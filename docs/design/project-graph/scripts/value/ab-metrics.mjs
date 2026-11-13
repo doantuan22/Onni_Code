@@ -12,8 +12,11 @@ for (const id of ids) {
   // setup = reading the order/handoff + reset/npm ci; work starts after the reset command
   const resetAt = tools.findIndex((t) => /git reset --hard/.test(cmd(t)));
   const work = tools.slice(resetAt + 1);
-  const firstEdit = work.findIndex((t) => t.item.name === 'fileChange');
-  const reportAt = work.findIndex((t) => /task report|onni task|ONNI_BIN/.test(cmd(t)) && !/graph-proto/.test(cmd(t)));
+  // graph calls: the V1 prototype or the P1 `onni graph` CLI (built index.js); edits: patch tool or a shell write
+  const isGraph = (t) => /graph-proto|index\.js['"]? graph /.test(cmd(t));
+  const isEdit = (t) => t.item.name === 'fileChange' || /WriteAllText|Set-Content|Out-File|apply_patch/.test(cmd(t));
+  const firstEdit = work.findIndex(isEdit);
+  const reportAt = work.findIndex((t) => /task report|onni task|ONNI_BIN/.test(cmd(t)) && !isGraph(t));
   const tokens = events.filter((e) => e.type === 'token-usage').map((e) => e.tokensUsed);
   const usage = events.filter((e) => e.type === 'turn.completed').map((e) => e.usage ?? {});
   const ts = events.map((e) => e.ts).filter(Boolean);
@@ -23,8 +26,8 @@ for (const id of ids) {
     toolCalls: work.length,
     toolCallsBeforeFirstEdit: firstEdit,
     toolCallsBeforeReport: reportAt < 0 ? work.length : reportAt,
-    graphCalls: work.filter((t) => /graph-proto/.test(cmd(t))).length,
-    edits: work.filter((t) => t.item.name === 'fileChange').length,
+    graphCalls: work.filter(isGraph).length,
+    edits: work.filter(isEdit).length,
     tokensTotal: tokens.at(-1) ?? null,
     lastTurnInput: usage.at(-1)?.input ?? null,
     wallSecondsAfterSetup: Math.round((Date.parse(ts.at(-1)) - Date.parse(startWork)) / 1000),

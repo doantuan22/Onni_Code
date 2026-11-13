@@ -762,12 +762,12 @@ giai đoạn sau chỉ bắt đầu khi chủ dự án duyệt cổng (§0 quy�
 
 | Đợt | Phần | Phụ thuộc | Đầu ra | Trạng thái |
 | --- | --- | --- | --- | --- |
-| 1 | N0 baseline môi trường | — | `spikes/baseline.md` | đang làm |
+| 1 | N0 baseline môi trường | — | `spikes/baseline.md` | **xong** (typecheck/build/test:package xanh; undici 6.29.1, không lỗi `maxRedirections`; `npm test` 99 fail môi trường/chưa rõ làm baseline, CI là chuẩn) |
 | 1 | S4 đo git | — | `spikes/git.md`, `scripts/git-bench/` | **xong** (log gộp 50 commit ~0,39 s vs 50 diff-tree ~12,7 s → bắt buộc gộp lô) |
 | 1 | S3 bộ vàng + fixture + đếm lại quy mô | — | `spikes/golden-graph.md`, `spikes/golden/`, `scripts/golden/` | **xong** (897 file production, ~2.532 cạnh; bộ vàng 70 file/1.061 cạnh; 10 cặp lệch esbuild giao S1 hiệu chỉnh) |
 | 1 | V1a prototype CLI `impact/tests/context` + đề xuất A/B | — | `scripts/proto/` | **xong** (dựng nguội ~2,5 s; hub `store.ts` 249 dependents → 17 nhóm; 3 tác vụ A/B đề xuất) |
-| 2 | S1 spike engine | S3 | `spikes/engine.md`, `scripts/engine/` | chờ |
-| 2 | R1 replay lịch sử git | V1a | `spikes/replay.md`, `scripts/replay/` | chờ |
+| 2 | S1 spike engine | S3 | `spikes/engine.md`, `scripts/engine/` | đang làm |
+| 2 | R1 replay lịch sử git | V1a | `spikes/replay.md`, `scripts/replay/` | đang làm |
 | 3 | S5 ngưỡng hub/co-change | R1 | `spikes/hub-cochange.md`, `scripts/hub-cochange/` | chờ |
-| 3 | V1b A/B nhỏ ~3 tác vụ (graph-off vs graph-on) | V1a | `spikes/value.md` | chờ |
+| 3 | V1b A/B nhỏ ~3 tác vụ (graph-off vs graph-on) | V1a | `spikes/value.md` | đang làm |
 | — | Cổng **G0**: chủ dự án duyệt số đo và D1–D8 | tất cả | quyết định ghi ở đây | chờ |

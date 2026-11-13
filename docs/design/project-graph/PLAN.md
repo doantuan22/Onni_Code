@@ -763,7 +763,7 @@ giai đoạn sau chỉ bắt đầu khi chủ dự án duyệt cổng (§0 quy�
 | Đợt | Phần | Phụ thuộc | Đầu ra | Trạng thái |
 | --- | --- | --- | --- | --- |
 | 1 | N0 baseline môi trường | — | `spikes/baseline.md` | đang làm |
-| 1 | S4 đo git | — | `spikes/git.md`, `scripts/git-bench/` | đang làm |
+| 1 | S4 đo git | — | `spikes/git.md`, `scripts/git-bench/` | **xong** (log gộp 50 commit ~0,39 s vs 50 diff-tree ~12,7 s → bắt buộc gộp lô) |
 | 1 | S3 bộ vàng + fixture + đếm lại quy mô | — | `spikes/golden-graph.md`, `spikes/golden/`, `scripts/golden/` | đang làm |
 | 1 | V1a prototype CLI `impact/tests/context` + đề xuất A/B | — | `scripts/proto/` | đang làm |
 | 2 | S1 spike engine | S3 | `spikes/engine.md`, `scripts/engine/` | chờ |

@@ -766,7 +766,7 @@ giai đoạn sau chỉ bắt đầu khi chủ dự án duyệt cổng (§0 quy�
 | 1 | S4 đo git | — | `spikes/git.md`, `scripts/git-bench/` | **xong** (log gộp 50 commit ~0,39 s vs 50 diff-tree ~12,7 s → bắt buộc gộp lô) |
 | 1 | S3 bộ vàng + fixture + đếm lại quy mô | — | `spikes/golden-graph.md`, `spikes/golden/`, `scripts/golden/` | **xong** (897 file production, ~2.532 cạnh; bộ vàng 70 file/1.061 cạnh; 10 cặp lệch esbuild giao S1 hiệu chỉnh) |
 | 1 | V1a prototype CLI `impact/tests/context` + đề xuất A/B | — | `scripts/proto/` | **xong** (dựng nguội ~2,5 s; hub `store.ts` 249 dependents → 17 nhóm; 3 tác vụ A/B đề xuất) |
-| 2 | S1 spike engine | S3 | `spikes/engine.md`, `scripts/engine/` | đang làm (lượt 1 hiệu chỉnh bộ vàng xong; S1b chấm ứng viên) |
+| 2 | S1 spike engine | S3 | `spikes/engine.md`, `scripts/engine/` | **xong** (Oxc P97,8/R98,8, ~250 ms/897 file, native binding; regex P97,3/R98,6 không dependency; tree-sitter chính thức chạy được nhưng chậm 8–15× → breadth P2+) |
 | 2 | R1 replay lịch sử git | V1a | `spikes/replay.md`, `scripts/replay/` | **xong** (470 commit/15 ngày; test recall val 89,6% nhưng bỏ sót ở 10/52 commit → `verify` chỉ gợi ý; precision co-change 10–38%) |
 | 3 | S5 ngưỡng hub/co-change | R1 | `spikes/hub-cochange.md`, `scripts/hub-cochange/` | đang làm |
 | 3 | V1b A/B nhỏ ~3 tác vụ (graph-off vs graph-on) | V1a | `spikes/value.md` | đang làm |

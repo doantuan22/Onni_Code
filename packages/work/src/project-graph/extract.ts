@@ -83,7 +83,14 @@ export function extractImports(source: string): ExtractResult {
     while ((x = re.exec(s))) found.push({ specifier: x[2] ?? '', kind, line: lineOf(x.index) });
   };
   scan(SIDE_RE, 'import');
-  scan(DYN_RE, 'dynamic');
+  // `typeof import('x').y` and `import('x').Type` are type positions (no runtime load): report them as type imports.
+  DYN_RE.lastIndex = 0;
+  while ((m = DYN_RE.exec(s))) {
+    const before = s.slice(Math.max(0, m.index - 12), m.index);
+    const after = s.slice(m.index + m[0].length, m.index + m[0].length + 40);
+    const typePosition = /\btypeof\s+$/.test(before) || (/^\s*\.\s*[A-Z]\w*/.test(after) && !/^\s*\.\s*(?:then|catch|finally)\b/.test(after));
+    found.push({ specifier: m[2] ?? '', kind: typePosition ? 'type' : 'dynamic', line: lineOf(m.index) });
+  }
   scan(REQ_RE, 'require');
   scan(MOCK_RE, 'mock');
   const allDyn = (s.match(/\bimport\s*\(/g) ?? []).length;

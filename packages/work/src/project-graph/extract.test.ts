@@ -45,6 +45,14 @@ describe('extractImports', () => {
     expect(r.unresolvedDynamic).toBe(2);
   });
 
+  it('reports import() in a type position as a type import', () => {
+    const src = `type A = import('./a.ts').Foo;
+let f: typeof import('./b.ts').bar;
+const c = await import('./c.ts').then((m) => m.x);
+const d = (await import('./d.ts')).default;`;
+    expect(specs(src)).toEqual(['dynamic:./c.ts', 'dynamic:./d.ts', 'type:./a.ts', 'type:./b.ts']);
+  });
+
   it('ignores imports inside comments and template literals', () => {
     const src = `// import a from './no1.ts';\n/* import b from './no2.ts'; */\nconst t = \`import c from './no3.ts'\`;\nimport ok from './yes.ts';`;
     expect(specs(src)).toEqual(['import:./yes.ts']);

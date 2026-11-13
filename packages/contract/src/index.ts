@@ -33,6 +33,7 @@ export * from './preview.ts';
 export * from './start-app.ts';
 export * from './secrets.ts';
 export * from './e2e.ts';
+export * from './project-graph.ts';
 
 export * from './webhooks.ts';
 export * from './terminal.ts';

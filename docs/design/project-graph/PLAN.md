@@ -769,5 +769,5 @@ giai đoạn sau chỉ bắt đầu khi chủ dự án duyệt cổng (§0 quy�
 | 2 | S1 spike engine | S3 | `spikes/engine.md`, `scripts/engine/` | **xong** (Oxc P97,8/R98,8, ~250 ms/897 file, native binding; regex P97,3/R98,6 không dependency; tree-sitter chính thức chạy được nhưng chậm 8–15× → breadth P2+) |
 | 2 | R1 replay lịch sử git | V1a | `spikes/replay.md`, `scripts/replay/` | **xong** (470 commit/15 ngày; test recall val 89,6% nhưng bỏ sót ở 10/52 commit → `verify` chỉ gợi ý; precision co-change 10–38%) |
 | 3 | S5 ngưỡng hub/co-change | R1 | `spikes/hub-cochange.md`, `scripts/hub-cochange/` | đang làm |
-| 3 | V1b A/B nhỏ ~3 tác vụ (graph-off vs graph-on) | V1a | `spikes/value.md` | đang làm |
+| 3 | V1b A/B nhỏ ~3 tác vụ (graph-off vs graph-on) | V1a | `spikes/value.md` | **xong** (định vị như nhau; graph-on tốn hơn ở 2/3 tác vụ, pass 2/3 vs 3/3 → H1 không có tín hiệu) |
 | — | Cổng **G0**: chủ dự án duyệt số đo và D1–D8 | tất cả | quyết định ghi ở đây | chờ |

@@ -3,7 +3,7 @@ import {
   graphImpactQuerySchema,
   graphStatusSchema,
   graphTestsQuerySchema,
-} from './project-graph.ts';
+} from '@onni/contract';
 
 describe('project graph contract', () => {
   it('normalizes a single impact file into an array', () => {

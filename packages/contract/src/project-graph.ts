@@ -151,3 +151,16 @@ export const graphRebuildResultSchema = z.object({
   reason: z.string().max(4_096).optional(),
 }).strict();
 export type GraphRebuildResult = z.infer<typeof graphRebuildResultSchema>;
+
+/** An engine that cannot answer (no graph yet, building, git missing) replies 200 with this instead of a result. */
+export const graphUnavailableSchema = z.object({
+  available: z.literal(false),
+  reason: z.string().max(4_096),
+}).strict();
+export type GraphUnavailable = z.infer<typeof graphUnavailableSchema>;
+
+export const graphImpactResponseSchema = z.union([graphImpactResultSchema, graphUnavailableSchema]);
+export type GraphImpactResponse = z.infer<typeof graphImpactResponseSchema>;
+
+export const graphTestsResponseSchema = z.union([graphTestsResultSchema, graphUnavailableSchema]);
+export type GraphTestsResponse = z.infer<typeof graphTestsResponseSchema>;

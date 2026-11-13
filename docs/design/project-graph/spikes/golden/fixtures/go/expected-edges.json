@@ -1,0 +1,6 @@
+[
+  {"from":"main.go","to":"fmt","kind":"ext","evidence":"main.go:4"},
+  {"from":"main.go","to":"greet/greet.go","kind":"imports","evidence":"main.go:5"},
+  {"from":"main.go","to":"example.com/missing/pkg","kind":"unresolved","evidence":"main.go:6"},
+  {"from":"greet/greet.go","to":"model/model.go","kind":"imports","evidence":"greet/greet.go:3"}
+]

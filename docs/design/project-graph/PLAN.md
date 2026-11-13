@@ -1,6 +1,6 @@
 # Kế hoạch: Project Graph (đồ thị dự án) — bản neo vào hành động có số đo
 
-Trạng thái: **Giai đoạn 0 HOÀN THÀNH (2026-11-13); G0 đã duyệt "go thu hẹp"; P1 (thu hẹp) đang thực hiện** (xem §15.3; bản viết lại 2026-11-13; bản trước 2026-11-06). Chủ dự án đã quyết: đây là
+Trạng thái: **Giai đoạn 0 và P1 (thu hẹp) HOÀN THÀNH (2026-11-13); G-B: `verify` chỉ gợi ý; G-A: no-go → P2/P3 không bắt đầu theo §0 quyết định 7** (xem §15.3; bản viết lại 2026-11-13; bản trước 2026-11-06). Chủ dự án đã quyết: đây là
 chức năng **thêm mới, tách riêng**, không thay thế và không sửa Automations.
 
 Tài liệu tổng hợp sáu báo cáo trong cùng thư mục:
@@ -744,8 +744,8 @@ quyết định riêng:
 - [x] Khảo sát + nghiên cứu (server, web, engines, viz, agent-evidence, impact-ux) + kế hoạch + review bản trước
 - [x] Viết lại kế hoạch neo vào hành động có số đo (tài liệu này)
 - [x] Giai đoạn 0 (**HOÀN THÀNH 2026-11-13**, §15.3): V1 prototype CLI · R1 replay · S1 engine · S3 bộ vàng · S4 git · S5 hub/co-change · N0 baseline — rồi cổng **G0**
-- [ ] P1: C0 contract · E1 engine (hub, freshness, co-change) · T1 ứng viên test · N1 nối dây — chấp nhận §10
-- [ ] **G-A** (A/B graph-off/on/grep) và **G-B** (replay precision/recall) có kết luận ghi lại — go/no-go P2
+- [x] P1 thu hẹp (**HOÀN THÀNH 2026-11-13**, `evals/p1-acceptance.md`): C0 contract · E1 engine regex (hub, freshness; co-change bỏ theo G0) · T1 ứng viên test · N1 nối dây — chấp nhận §10
+- [x] **G-A** (`evals/g-a.md`: **no-go**) và **G-B** (`evals/g-b.md`: `verify` giữ chế độ gợi ý) có kết luận ghi lại — P2 **không bắt đầu**
 - [ ] P2: M1 overlap (cảnh báo) · M2 prompt + skill + context-from-graph · M3 gợi ý subset test trong `verify` — rồi **G-C**
 - [ ] P3: W1 thẻ Impact · W2 đồ thị diff · W3 (có điều kiện) bản đồ toàn repo
 - [ ] Mỗi bước: contract + parity + CLI + prompt (nếu có) + UI (nếu có) + test + `.env.example`/`docs/reference.md`
@@ -800,7 +800,7 @@ G-A đầy đủ (≥ 10 tác vụ, có manager–worker và cánh grep).
 - D2 (ngưỡng G-A/G-B): dùng đề xuất của `replay.md` §"Ngưỡng đề xuất" — `verify` chỉ ở chế độ gợi ý. D3, D8: giữ đề xuất.
 - Kết quả Giai đoạn 0 merge vào `dev`.
 
-**Giai đoạn P1 (thu hẹp) — đang thực hiện (bắt đầu 2026-11-13).** Kế hoạch giao việc (file độc quyền theo §10):
+**Giai đoạn P1 (thu hẹp) — HOÀN THÀNH (2026-11-13).** Biên bản: `evals/p1-acceptance.md`. Kế hoạch giao việc (file độc quyền theo §10):
 
 | Đợt | Phần | Phụ thuộc | Phạm vi | Trạng thái |
 | --- | --- | --- | --- | --- |
@@ -808,4 +808,14 @@ G-A đầy đủ (≥ 10 tác vụ, có manager–worker và cánh grep).
 | 1 | E1 engine regex: liệt kê + denylist, băm, cache `.ai/onni/project-graph/`, ghép đồ thị, tested-by, package-dep, hub p95×20, freshness, `complete` theo phạm vi, chia lô nhường event loop | G0 | `packages/work/src/project-graph/**` (trừ `tests-select/`) | **xong** (93 test xanh; bộ vàng recall imports 98,7%, reexports 100%; build ~1 s/2.446 file; trễ event loop tối đa 16 ms) |
 | 2 | T1 ứng viên test: graph (import trực tiếp, cùng tên, sibling) + `vitest related` khi `ONNI_PROJECT_GRAPH_TOOLS=1` | E1 | `packages/work/src/project-graph/tests-select/**` | **xong** (graph high/medium + runner `vitest related` sau cờ; 102 test project-graph xanh; typecheck xanh) |
 | 3 | N1 nối dây: route + validator, CLI `onni graph`, capability, `data-gitignore`, `.env.example`, `docs/reference.md`, parity | C0, E1, T1 | §10 hàng N1 | **xong** (tắt → 409; bật → 4 route + CLI `onni graph`; typecheck/build/test:package xanh; 24 file test liên quan 328/328 xanh) |
-| 4 | Chấp nhận P1 (§10): bộ vàng, xóa cache, denylist, event loop, công tắc tắt → 409; chạy lại G-B trên engine sản phẩm; G-A thu hẹp | N1 | `docs/design/project-graph/evals/` | đang làm |
+| 4 | Chấp nhận P1 (§10): bộ vàng, xóa cache, denylist, event loop, công tắc tắt → 409; chạy lại G-B trên engine sản phẩm; G-A thu hẹp | N1 | `docs/design/project-graph/evals/` | **xong** (mọi tiêu chí §10 đạt; G-B và G-A có kết luận) |
+
+**Kết luận cổng sau P1 (2026-11-13):**
+
+- **G-B** (`evals/g-b.md`): engine sản phẩm cho recall test cao+vừa trên validation 89,2% (CI95 82,7–95,3%), bỏ sót ở 10/54 commit,
+  cận dưới CI95 tỉ lệ commit đủ test là 70,4%, dưới ngưỡng 97% của D2 → `onni graph tests` **chỉ là gợi ý** ("chạy trước, toàn bộ
+  sau"); M3 (subset trong `verify`) không làm.
+- **G-A** (`evals/g-a.md`): CLI P1 giữ pass 3/3 nhưng tốn token hơn cánh không graph ở 3/3 tác vụ (×1,30–1,55), định vị không
+  nhanh hơn → **no-go**. Theo §9.1 và §0 quyết định 7: dừng ở CLI nhỏ `impact`/`tests` (mặc định tắt), **P2 và P3 không bắt
+  đầu**. Mở lại P2 cần một G-A mới trên tác vụ manager–worker nhiều worker (chưa có trong mẫu) và quyết định riêng của chủ dự án.
+- Việc tồn đọng ghi ở cuối `evals/p1-acceptance.md`.

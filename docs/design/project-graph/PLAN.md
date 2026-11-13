@@ -1,6 +1,6 @@
 # Kế hoạch: Project Graph (đồ thị dự án) — bản neo vào hành động có số đo
 
-Trạng thái: **Giai đoạn 0 HOÀN THÀNH (2026-11-13), cổng G0 chờ chủ dự án duyệt — P1 chưa bắt đầu** (xem §15.3; bản viết lại 2026-11-13; bản trước 2026-11-06). Chủ dự án đã quyết: đây là
+Trạng thái: **Giai đoạn 0 HOÀN THÀNH (2026-11-13); G0 đã duyệt "go thu hẹp"; P1 (thu hẹp) đang thực hiện** (xem §15.3; bản viết lại 2026-11-13; bản trước 2026-11-06). Chủ dự án đã quyết: đây là
 chức năng **thêm mới, tách riêng**, không thay thế và không sửa Automations.
 
 Tài liệu tổng hợp sáu báo cáo trong cùng thư mục:
@@ -770,7 +770,7 @@ giai đoạn sau chỉ bắt đầu khi chủ dự án duyệt cổng (§0 quy�
 | 2 | R1 replay lịch sử git | V1a | `spikes/replay.md`, `scripts/replay/` | **xong** (470 commit/15 ngày; test recall val 89,6% nhưng bỏ sót ở 10/52 commit → `verify` chỉ gợi ý; precision co-change 10–38%) |
 | 3 | S5 ngưỡng hub/co-change | R1 | `spikes/hub-cochange.md`, `scripts/hub-cochange/` | **xong** (hub p95 × tối thiểu 20; co-change chỉ thông tin: sup≥3, conf≥0,3, không decay, tách test/config, cap p95 — precision val 7%; `store.ts` 249 dependents = 55 production + 194 test) |
 | 3 | V1b A/B nhỏ ~3 tác vụ (graph-off vs graph-on) | V1a | `spikes/value.md` | **xong** (định vị như nhau; graph-on tốn hơn ở 2/3 tác vụ, pass 2/3 vs 3/3 → H1 không có tín hiệu) |
-| — | Cổng **G0**: chủ dự án duyệt số đo và D1–D8 | tất cả | quyết định ghi ở đây | **chờ chủ dự án** |
+| — | Cổng **G0**: chủ dự án duyệt số đo và D1–D8 | tất cả | quyết định ghi ở đây | **đã duyệt 2026-11-13** (xem dưới) |
 
 **Tóm tắt chứng cứ cho G0** (chi tiết trong từng file `spikes/*.md`):
 
@@ -788,3 +788,24 @@ giai đoạn sau chỉ bắt đầu khi chủ dự án duyệt cổng (§0 quy�
 `context`, tiêm prompt, co-change trong cảnh báo. Phương án thay thế hợp lệ theo §0 quyết định 7: dừng ở prototype hiện có.
 Việc tồn đọng trước khi chấp nhận P1: thử Oxc/regex trên Node 20/22 + Linux; vá bộ vàng (import nhiều dòng, kind `@onni/*`);
 G-A đầy đủ (≥ 10 tác vụ, có manager–worker và cánh grep).
+
+**Quyết định G0 của chủ dự án (2026-11-13):**
+
+- **Go thu hẹp.** P1 chỉ gồm CLI/HTTP chỉ-đọc `graph status`, `graph build`, `graph impact`, `graph tests` (+ hub, cờ
+  `complete` theo phạm vi câu hỏi, freshness). **Ra khỏi P1:** `graph context`, `neighbors/path/search`, tiêm prompt (D7 = không),
+  co-change (lớp LX và cảnh báo). P2/P3 giữ nguyên điều kiện cổng.
+- **Engine P1 = regex** (port từ `scripts/proto/lib.mjs`, 0 dependency mới). Oxc/tree-sitter là adapter tùy chọn về sau (D4 cập nhật).
+- **D1 = tắt** (`ONNI_PROJECT_GRAPH` mặc định tắt, bật bằng `=1`); **D5 = tắt** (co-change không có trong P1).
+  `ONNI_PROJECT_GRAPH_TOOLS=1` (D6) vẫn opt-in cho `vitest related`.
+- D2 (ngưỡng G-A/G-B): dùng đề xuất của `replay.md` §"Ngưỡng đề xuất" — `verify` chỉ ở chế độ gợi ý. D3, D8: giữ đề xuất.
+- Kết quả Giai đoạn 0 merge vào `dev`.
+
+**Giai đoạn P1 (thu hẹp) — đang thực hiện (bắt đầu 2026-11-13).** Kế hoạch giao việc (file độc quyền theo §10):
+
+| Đợt | Phần | Phụ thuộc | Phạm vi | Trạng thái |
+| --- | --- | --- | --- | --- |
+| 1 | C0 contract zod `status/impact/tests/rebuild` | G0 | `packages/contract/src/project-graph.ts`, `contract/src/index.ts` | chờ |
+| 1 | E1 engine regex: liệt kê + denylist, băm, cache `.ai/onni/project-graph/`, ghép đồ thị, tested-by, package-dep, hub p95×20, freshness, `complete` theo phạm vi, chia lô nhường event loop | G0 | `packages/work/src/project-graph/**` (trừ `tests-select/`) | chờ |
+| 2 | T1 ứng viên test: graph (import trực tiếp, cùng tên, sibling) + `vitest related` khi `ONNI_PROJECT_GRAPH_TOOLS=1` | E1 | `packages/work/src/project-graph/tests-select/**` | chờ |
+| 3 | N1 nối dây: route + validator, CLI `onni graph`, capability, `data-gitignore`, `.env.example`, `docs/reference.md`, parity | C0, E1, T1 | §10 hàng N1 | chờ |
+| 4 | Chấp nhận P1 (§10): bộ vàng, xóa cache, denylist, event loop, công tắc tắt → 409; chạy lại G-B trên engine sản phẩm; G-A thu hẹp | N1 | `docs/design/project-graph/evals/` | chờ |

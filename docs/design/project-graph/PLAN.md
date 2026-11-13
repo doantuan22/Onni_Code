@@ -1,6 +1,6 @@
 # Kế hoạch: Project Graph (đồ thị dự án) — bản neo vào hành động có số đo
 
-Trạng thái: **kế hoạch, chưa triển khai** (bản viết lại 2026-11-13; bản trước 2026-11-06). Chủ dự án đã quyết: đây là
+Trạng thái: **Giai đoạn 0 HOÀN THÀNH (2026-11-13), cổng G0 chờ chủ dự án duyệt — P1 chưa bắt đầu** (xem §15.3; bản viết lại 2026-11-13; bản trước 2026-11-06). Chủ dự án đã quyết: đây là
 chức năng **thêm mới, tách riêng**, không thay thế và không sửa Automations.
 
 Tài liệu tổng hợp sáu báo cáo trong cùng thư mục:
@@ -743,7 +743,7 @@ quyết định riêng:
 
 - [x] Khảo sát + nghiên cứu (server, web, engines, viz, agent-evidence, impact-ux) + kế hoạch + review bản trước
 - [x] Viết lại kế hoạch neo vào hành động có số đo (tài liệu này)
-- [ ] Giai đoạn 0: V1 prototype CLI · R1 replay · S1 engine · S3 bộ vàng · S4 git · S5 hub/co-change · N0 baseline — rồi cổng **G0**
+- [x] Giai đoạn 0 (**HOÀN THÀNH 2026-11-13**, §15.3): V1 prototype CLI · R1 replay · S1 engine · S3 bộ vàng · S4 git · S5 hub/co-change · N0 baseline — rồi cổng **G0**
 - [ ] P1: C0 contract · E1 engine (hub, freshness, co-change) · T1 ứng viên test · N1 nối dây — chấp nhận §10
 - [ ] **G-A** (A/B graph-off/on/grep) và **G-B** (replay precision/recall) có kết luận ghi lại — go/no-go P2
 - [ ] P2: M1 overlap (cảnh báo) · M2 prompt + skill + context-from-graph · M3 gợi ý subset test trong `verify` — rồi **G-C**
@@ -757,7 +757,7 @@ quyết định riêng:
 Quy ước: mỗi giai đoạn chỉ được đánh dấu **HOÀN THÀNH** khi mọi phần việc có đầu ra đã kiểm và cổng ra của nó có kết luận;
 giai đoạn sau chỉ bắt đầu khi chủ dự án duyệt cổng (§0 quyết định 7, §13).
 
-**Giai đoạn 0 — đang thực hiện (bắt đầu 2026-11-13).** Không đổi code sản phẩm; mọi đầu ra nằm dưới
+**Giai đoạn 0 — HOÀN THÀNH (2026-11-13).** Mọi phần việc có đầu ra đã kiểm và đã merge; cổng **G0** chờ chủ dự án. Không đổi code sản phẩm; mọi đầu ra nằm dưới
 `docs/design/project-graph/{spikes,scripts}/`. Kế hoạch giao việc:
 
 | Đợt | Phần | Phụ thuộc | Đầu ra | Trạng thái |
@@ -768,6 +768,23 @@ giai đoạn sau chỉ bắt đầu khi chủ dự án duyệt cổng (§0 quy�
 | 1 | V1a prototype CLI `impact/tests/context` + đề xuất A/B | — | `scripts/proto/` | **xong** (dựng nguội ~2,5 s; hub `store.ts` 249 dependents → 17 nhóm; 3 tác vụ A/B đề xuất) |
 | 2 | S1 spike engine | S3 | `spikes/engine.md`, `scripts/engine/` | **xong** (Oxc P97,8/R98,8, ~250 ms/897 file, native binding; regex P97,3/R98,6 không dependency; tree-sitter chính thức chạy được nhưng chậm 8–15× → breadth P2+) |
 | 2 | R1 replay lịch sử git | V1a | `spikes/replay.md`, `scripts/replay/` | **xong** (470 commit/15 ngày; test recall val 89,6% nhưng bỏ sót ở 10/52 commit → `verify` chỉ gợi ý; precision co-change 10–38%) |
-| 3 | S5 ngưỡng hub/co-change | R1 | `spikes/hub-cochange.md`, `scripts/hub-cochange/` | đang làm |
+| 3 | S5 ngưỡng hub/co-change | R1 | `spikes/hub-cochange.md`, `scripts/hub-cochange/` | **xong** (hub p95 × tối thiểu 20; co-change chỉ thông tin: sup≥3, conf≥0,3, không decay, tách test/config, cap p95 — precision val 7%; `store.ts` 249 dependents = 55 production + 194 test) |
 | 3 | V1b A/B nhỏ ~3 tác vụ (graph-off vs graph-on) | V1a | `spikes/value.md` | **xong** (định vị như nhau; graph-on tốn hơn ở 2/3 tác vụ, pass 2/3 vs 3/3 → H1 không có tín hiệu) |
-| — | Cổng **G0**: chủ dự án duyệt số đo và D1–D8 | tất cả | quyết định ghi ở đây | chờ |
+| — | Cổng **G0**: chủ dự án duyệt số đo và D1–D8 | tất cả | quyết định ghi ở đây | **chờ chủ dự án** |
+
+**Tóm tắt chứng cứ cho G0** (chi tiết trong từng file `spikes/*.md`):
+
+| Giả thuyết / câu hỏi | Kết quả Giai đoạn 0 | Hệ quả đề xuất |
+| --- | --- | --- |
+| H1 — agent định vị nhanh/rẻ hơn (`value.md`) | 3 tác vụ × 2 cánh: định vị như nhau; graph-on tốn token hơn ở 2/3, pass 2/3 vs 3/3 | **Không có tín hiệu.** Không tiêm graph vào prompt (D7 = không); M2 không làm trừ khi G-A đầy đủ đảo kết quả |
+| H2 — ứng viên test (`replay.md`) | Recall val 89,6% (CI 82–96%) với ~5,6% số test; bỏ sót ở 10/52 commit | **Có giá trị ở chế độ gợi ý** ("chạy trước, toàn bộ sau"); không bao giờ thay `verify` mặc định với dữ liệu hiện có |
+| H3 — cảnh báo co-change/trùng (`replay.md`, `hub-cochange.md`) | Precision co-change 7–38%; lịch sử chỉ 15 ngày | Chỉ thông tin, tắt mặc định (D5); không chặn dispatch |
+| Engine (`engine.md`) | Oxc P97,8/R98,8 (native, Node ≥ 20.19); regex P97,3/R98,6 không dependency; tree-sitter chậm 8–15× | Đề xuất P1 dùng **regex** (0 dependency, 0 rủi ro đóng gói) + Oxc là adapter tùy chọn sau; tree-sitter cho Python/Go ở P2+ |
+| Hub (`hub-cochange.md`) | Ngưỡng p95 × 20 ổn định giữa train/val; nhóm hub giảm p90 tập impact ~116 → ~28 | Giữ trong E1 |
+| Môi trường (`baseline.md`, `git.md`) | typecheck/build/test:package xanh; git log gộp nhanh hơn ~30× so với diff-tree từng commit | Cổng cục bộ = typecheck/build/test:package; CI quyết test; miner co-change dùng một `git log` |
+
+**Khuyến nghị của manager cho G0:** *go có thu hẹp* — P1 chỉ gồm CLI chỉ-đọc `onni graph tests` + `onni graph impact`
+(regex + hub + cờ `complete` tính theo phạm vi câu hỏi), mặc định tắt (`ONNI_PROJECT_GRAPH`, D1 chưa duyệt); bỏ khỏi P1:
+`context`, tiêm prompt, co-change trong cảnh báo. Phương án thay thế hợp lệ theo §0 quyết định 7: dừng ở prototype hiện có.
+Việc tồn đọng trước khi chấp nhận P1: thử Oxc/regex trên Node 20/22 + Linux; vá bộ vàng (import nhiều dòng, kind `@onni/*`);
+G-A đầy đủ (≥ 10 tác vụ, có manager–worker và cánh grep).

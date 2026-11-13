@@ -59,8 +59,6 @@ export const capabilitiesSchema = z.object({
    * REQUIRED for the same reason as `tokenMetrics` below: this server always sends it.
    */
   automations: z.boolean(),
-  /** `true` only with `ONNI_PROJECT_GRAPH=1` (default OFF): the `/graph*` family answers 409 otherwise. Optional only so cockpit fixtures predating it stay valid; the server always sends it. */
-  projectGraph: z.boolean().optional(),
   /** Project lifecycle notifications; independent of graph notify steps. */
   webhooks: z.boolean(),
   /** Present on unsupported server platforms, regardless of the opt-in flag. */

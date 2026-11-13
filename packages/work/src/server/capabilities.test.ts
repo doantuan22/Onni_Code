@@ -235,7 +235,6 @@ describe('resolveCapabilities — followups (#471)', () => {
       followups: true,
       singleProject: false,
       automations: true,
-      projectGraph: false,
       webhooks: false,
       dispatch: true,
       tokenMetrics: true,
@@ -290,7 +289,6 @@ describe('resolveCapabilities — automations (spec 2026-09-14, default-on)', ()
   it('does not turn on any other opt-in capability', () => {
     expect(resolveCapabilities({})).toMatchObject({
       automations: true,
-      projectGraph: false,
       followups: false,
       singleProject: false,
       dispatch: true,
@@ -322,7 +320,6 @@ describe('resolveCapabilities — dispatch (spec 2026-09-10-dispatch)', () => {
     expect(resolveCapabilities({})).toMatchObject({
       dispatch: true,
       automations: true,
-      projectGraph: false,
       followups: false,
       singleProject: false,
     });
@@ -391,7 +388,7 @@ describe('webhook platform availability', () => {
         expect(capabilitiesSchema.strict().parse(capabilities)).toEqual(capabilities);
         expect(capabilities.webhooks).toBe(supported && flag === '1');
         expect(capabilities).toEqual({
-          localHandoff: true, terminal: true, designMode: true, followups: false, singleProject: false, automations: true, projectGraph: false,
+          localHandoff: true, terminal: true, designMode: true, followups: false, singleProject: false, automations: true,
           dispatch: true, tokenMetrics: true, tokenUsageMetrics: true, costMetrics: true,
           webhooks: supported && flag === '1',
           ...(supported ? {} : { webhooksUnavailableReason: 'unsupported_platform' }),
@@ -399,11 +396,5 @@ describe('webhook platform availability', () => {
         if (supported) expect(capabilities).not.toHaveProperty('webhooksUnavailableReason');
       }
     } finally { Object.defineProperty(process, 'platform', original); }
-  });
-
-  it('project graph is off unless ONNI_PROJECT_GRAPH is exactly 1', () => {
-    expect(resolveCapabilities({}, undefined).projectGraph).toBe(false);
-    expect(resolveCapabilities({ ONNI_PROJECT_GRAPH: '0' }, undefined).projectGraph).toBe(false);
-    expect(resolveCapabilities({ ONNI_PROJECT_GRAPH: '1' }, undefined).projectGraph).toBe(true);
   });
 });

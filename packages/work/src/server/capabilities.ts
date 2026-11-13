@@ -245,8 +245,6 @@ export function resolveCapabilities(env: NodeJS.ProcessEnv = process.env, bindHo
     followups: followupsEnabled(env),
     singleProject: env.ONNI_SINGLE_PROJECT === '1',
     automations: env.ONNI_AUTOMATIONS !== '0',
-    // Opt-in (G0/D1): the graph reads and builds from the repo, so it ships OFF.
-    projectGraph: env.ONNI_PROJECT_GRAPH === '1',
     webhooks: webhookPlatformSupported() && env.ONNI_WEBHOOKS === '1',
     ...(!webhookPlatformSupported() ? { webhooksUnavailableReason: 'unsupported_platform' as const } : {}),
     dispatch: env.ONNI_DISPATCH !== '0',

@@ -85,6 +85,8 @@ import { createMemoryRoutes } from './routes/memory.ts';
 import { createRunsRoutes } from './routes/runs.ts';
 import { createAutomationChecksRoutes, type ManualCheck } from './routes/automation-checks.ts';
 import { createAutomationsRoutes } from './routes/automations.ts';
+import { createProjectGraphRoutes, PROJECT_GRAPH_OFF } from './routes/project-graph.ts';
+import { ProjectGraphRegistry } from '../project-graph/registry.ts';
 import { z } from 'zod';
 import {
   PROMPT_TEMPLATE_TEXT_MAX,
@@ -1881,6 +1883,14 @@ export function createApp(deps: ServerDeps) {
    * out above: this family is mounted with `.route('/', …)` alongside a dozen unrelated sub-apps,
    * and `route()` re-registers a sub-app's middleware under the mount prefix.
    */
+  const projectGraphRegistry = new ProjectGraphRegistry();
+  const requireProjectGraph = async (c: Context, next: Next) => {
+    if (!capabilities().projectGraph) return c.json({ error: PROJECT_GRAPH_OFF }, 409);
+    await next();
+  };
+
+  const projectGraphRoutes = createProjectGraphRoutes({ requireProjectGraph, registry: projectGraphRegistry });
+
   const requireDispatch = async (c: Context, next: Next) => {
     if (!capabilities().dispatch) return c.json({ error: DISPATCH_OFF }, 409);
     await next();
@@ -2156,6 +2166,7 @@ export function createApp(deps: ServerDeps) {
     .route('/', workflowsRoutes)
     .route('/', planRoutes)
     .route('/', automationsRoutes)
+    .route('/', projectGraphRoutes)
     .route('/', webhookRoutes)
     .route('/', dispatchRoutes)
     .route('/', memoryRoutes)

@@ -517,6 +517,8 @@ Useful environment variables:
 | `ONNI_DESIGN_MODE=0` | Turn off Design Mode in a task's **Preview** tab (spec `.ai/specs/2026-10-09-design-mode.md`). Unset, it is on for a local cockpit: switching it on makes OnniCode re-serve the previewed local `http://` dev server on a second `127.0.0.1` port with an element picker injected, so you can click an element and send the agent a note about it. The port opens only on that click and closes when idle. Always off on a hosted cockpit, where a loopback port reaches nobody — there is no `=1`. |
 | `ONNI_FOLLOWUPS=1` | Turn on the global follow-up **Inbox**: agents are asked to leave follow-ups in `todos.json` when they finish, and the Inbox view appears. Off by default — each task's own **Notes** handoff journal runs either way. |
 | `ONNI_AUTOMATIONS=0` | Turn **automations** off. On by default since the automations redesign (spec `.ai/specs/2026-09-14-automations-redesign.md`): the Automations view lists GitHub-triggered and scheduled automations, and OnniCode polls GitHub or fires schedules on each enabled one while it is running — nothing runs until you enable an automation yourself. An agent can also **create an automation from a prompt**: type "whenever a PR is opened, review it" into New task — pick the built-in `create-onni-automation` skill, or just ask; every task's system prompt teaches it to recognise the intent — and the agent writes the definition and creates it through `onni automation create` (paused, with a `onni automation check` preview of what it would match), then links the Automations page. Only the exact value `0` opts out (`ONNI_AUTOMATIONS=1`, the old opt-in, is accepted and changes nothing); opted out, the nav item is absent, the endpoints answer `409`, and the workspace scheduler never starts. Read at boot, so restart after changing it; definitions, receipts and high-watermarks are kept either way. |
+| `ONNI_PROJECT_GRAPH=1` | Turn the **Project Graph** on (default **off**). A derived import graph of the repository, cached in `.ai/onni/project-graph/`: `onni graph impact <file…>` lists what a change reaches and `onni graph tests` ranks the tests to run. Off, every `/graph*` route answers `409` and `onni graph` relays that. Nothing is built at boot — only `onni graph build` or `POST /graph/rebuild` builds, at most once per 10 s. Read at boot. |
+| `ONNI_PROJECT_GRAPH_TOOLS=1` | With the graph on, let `onni graph tests --runner` (or `?runner=1`) also run `vitest related` for extra test candidates. Default **off**. |
 | `ONNI_WEBHOOKS=1` | Enable project lifecycle notifications in Settings → Webhooks. Off by default; independent of graph workflow notifications. See the [receiver guide](../packages/work/docs/webhooks.md). |
 | `ONNI_WORKFLOW_WEBHOOKS=1` | Let a workflow graph's **`notify.webhook`** node POST to the URL it names (JSON: `text`, `run`, `node`). Off by default: a workflow file — which can be imported from anywhere — calling out to an arbitrary URL widens exposure, so it is opt-in. Off, the node leaves by `failed` with a note; under `ONNI_DRY_RUN=1` nothing is sent either way. |
 | `ONNI_TERMINAL=1` / `=0` | The task view's interactive **terminal** (spec `.ai/specs/2026-10-07-task-workspace.md` §6). Unset it is on for a local cockpit and off on a hosted one (`ONNI_REMOTE=1` or a non-loopback bind). `1` allows it there too — without a sign-in in front of OnniCode this hands a shell on the server to anyone your reverse proxy admits. `0` turns it off everywhere. A platform with no prebuilt PTY binary reports the terminal unavailable with a reason instead of failing. |
@@ -627,6 +629,21 @@ report instead).
 
 `onni runs` is read-only. Cancel, relaunch and archive from the cockpit, or call
 the API below.
+
+### `onni graph` (Project Graph)
+
+Needs `ONNI_PROJECT_GRAPH=1`. With `ONNI_API_URL` set it talks to the cockpit; without it, it runs the graph in-process on the current directory.
+
+```bash
+onni graph status                          # empty | building | ready | stale | unavailable
+onni graph build [--full]                  # build or refresh the graph (--full ignores the cache)
+onni graph impact <file…> [--expand <dir>] [--max-items N] [--format text|json]
+onni graph impact --run <id>               # files changed by a task
+onni graph tests <file…> [--runner] [--format text|json]
+onni graph tests --run <id>
+```
+
+Every answer prints `complete`, `truncated` and `stale`; when it is not complete, fall back to grep and reading the source. `--runner` needs `ONNI_PROJECT_GRAPH_TOOLS=1`. HTTP: `GET /graph`, `GET /graph/impact`, `GET /graph/tests`, `POST /graph/rebuild` (project-scoped like the rest).
 
 ### Limits and unattended safety
 

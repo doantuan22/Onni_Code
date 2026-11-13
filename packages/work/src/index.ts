@@ -45,6 +45,7 @@ import { runProjectsCommand } from './workspace/projects-cli.ts';
 import { WorkspaceSemaphore } from './workspace/semaphore.ts';
 import { runTaskCommand } from './dispatch/task-cli.ts';
 import { runAutomationCommand } from './automations/automation-cli.ts';
+import { runGraphCommand } from './project-graph/graph-cli.ts';
 import { apiOrigin, pickPort } from './api-origin.ts';
 import { runRunsCommand } from './runs/runs-cli.ts';
 import type { RunLimitsRequest } from '@onni/contract';
@@ -130,6 +131,11 @@ async function main(): Promise<void> {
   // `onni automation …` (spec 2026-09-13-automations-from-prompt): same shape, same reason.
   if (process.argv[2] === 'automation') {
     process.exitCode = await runAutomationCommand(process.argv.slice(3));
+    return;
+  }
+  // `onni graph …` (Project Graph P1): HTTP when ONNI_API_URL is set, in-process on cwd otherwise.
+  if (process.argv[2] === 'graph') {
+    process.exitCode = await runGraphCommand(process.argv.slice(3));
     return;
   }
   // `onni runs …` (#1080): the read-only twin for a person at a shell, same addressing.

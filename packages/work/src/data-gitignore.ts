@@ -61,6 +61,7 @@ export const DATA_GITIGNORE_ENTRIES = [
   'automation-poll.lock.guard/',
   'automation-mutation.lock.guard/',
   'automation-mutation.lock',
+  'project-graph/', // derived Project Graph cache; rebuilt on demand
 ] as const;
 
 /** onni's own data directory as a git pathspec exclusion. An in-place task's Changes and its

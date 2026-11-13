@@ -1,36 +1,6 @@
 [
   {
     "from": "packages/contract/src/index.ts",
-    "to": "packages/contract/src/events.ts",
-    "kind": "reexports",
-    "evidence": "packages/contract/src/index.ts:5"
-  },
-  {
-    "from": "packages/contract/src/index.ts",
-    "to": "packages/contract/src/health.ts",
-    "kind": "reexports",
-    "evidence": "packages/contract/src/index.ts:6"
-  },
-  {
-    "from": "packages/contract/src/index.ts",
-    "to": "packages/contract/src/runs.ts",
-    "kind": "reexports",
-    "evidence": "packages/contract/src/index.ts:7"
-  },
-  {
-    "from": "packages/contract/src/index.ts",
-    "to": "packages/contract/src/drafts.ts",
-    "kind": "reexports",
-    "evidence": "packages/contract/src/index.ts:8"
-  },
-  {
-    "from": "packages/contract/src/index.ts",
-    "to": "packages/contract/src/repo.ts",
-    "kind": "reexports",
-    "evidence": "packages/contract/src/index.ts:9"
-  },
-  {
-    "from": "packages/contract/src/index.ts",
     "to": "packages/contract/src/github.ts",
     "kind": "reexports",
     "evidence": "packages/contract/src/index.ts:10"
@@ -228,6 +198,36 @@
     "evidence": "packages/contract/src/index.ts:43"
   },
   {
+    "from": "packages/contract/src/index.ts",
+    "to": "packages/contract/src/events.ts",
+    "kind": "reexports",
+    "evidence": "packages/contract/src/index.ts:5"
+  },
+  {
+    "from": "packages/contract/src/index.ts",
+    "to": "packages/contract/src/health.ts",
+    "kind": "reexports",
+    "evidence": "packages/contract/src/index.ts:6"
+  },
+  {
+    "from": "packages/contract/src/index.ts",
+    "to": "packages/contract/src/runs.ts",
+    "kind": "reexports",
+    "evidence": "packages/contract/src/index.ts:7"
+  },
+  {
+    "from": "packages/contract/src/index.ts",
+    "to": "packages/contract/src/drafts.ts",
+    "kind": "reexports",
+    "evidence": "packages/contract/src/index.ts:8"
+  },
+  {
+    "from": "packages/contract/src/index.ts",
+    "to": "packages/contract/src/repo.ts",
+    "kind": "reexports",
+    "evidence": "packages/contract/src/index.ts:9"
+  },
+  {
     "from": "packages/web/src/routes.tsx",
     "to": "packages/web/src/hooks/use-webhook-toasts.ts",
     "kind": "imports",
@@ -235,9 +235,9 @@
   },
   {
     "from": "packages/web/src/routes.tsx",
-    "to": "react",
-    "kind": "ext",
-    "evidence": "packages/web/src/routes.tsx:2"
+    "to": "packages/web/src/api/project-scope-context.tsx",
+    "kind": "imports",
+    "evidence": "packages/web/src/routes.tsx:13"
   },
   {
     "from": "packages/web/src/routes.tsx",
@@ -260,12 +260,24 @@
   {
     "from": "packages/web/src/routes.tsx",
     "to": "packages/web/src/routes/task-workspace/layout-state.ts",
+    "kind": "imports",
+    "evidence": "packages/web/src/routes.tsx:15"
+  },
+  {
+    "from": "packages/web/src/routes.tsx",
+    "to": "packages/web/src/routes/task-workspace/layout-state.ts",
     "kind": "type-imports",
     "evidence": "packages/web/src/routes.tsx:16"
   },
   {
     "from": "packages/web/src/routes.tsx",
     "to": "packages/web/src/lib/i18n/index.ts",
+    "kind": "imports",
+    "evidence": "packages/web/src/routes.tsx:17"
+  },
+  {
+    "from": "packages/web/src/routes.tsx",
+    "to": "packages/web/src/lib/lazy-route.ts",
     "kind": "imports",
     "evidence": "packages/web/src/routes.tsx:17"
   },
@@ -285,11 +297,29 @@
     "from": "packages/web/src/routes.tsx",
     "to": "packages/web/src/lib/project-router.tsx",
     "kind": "imports",
+    "evidence": "packages/web/src/routes.tsx:19"
+  },
+  {
+    "from": "packages/web/src/routes.tsx",
+    "to": "react",
+    "kind": "ext",
+    "evidence": "packages/web/src/routes.tsx:2"
+  },
+  {
+    "from": "packages/web/src/routes.tsx",
+    "to": "packages/web/src/lib/project-router.tsx",
+    "kind": "imports",
     "evidence": "packages/web/src/routes.tsx:20"
   },
   {
     "from": "packages/web/src/routes.tsx",
     "to": "packages/web/src/routes/automations/automations-loading.tsx",
+    "kind": "imports",
+    "evidence": "packages/web/src/routes.tsx:21"
+  },
+  {
+    "from": "packages/web/src/routes.tsx",
+    "to": "packages/web/src/routes/compare-loading.tsx",
     "kind": "imports",
     "evidence": "packages/web/src/routes.tsx:21"
   },
@@ -309,11 +339,23 @@
     "from": "packages/web/src/routes.tsx",
     "to": "packages/web/src/routes/inbox.tsx",
     "kind": "imports",
+    "evidence": "packages/web/src/routes.tsx:23"
+  },
+  {
+    "from": "packages/web/src/routes.tsx",
+    "to": "packages/web/src/routes/inbox.tsx",
+    "kind": "imports",
     "evidence": "packages/web/src/routes.tsx:24"
   },
   {
     "from": "packages/web/src/routes.tsx",
     "to": "packages/web/src/routes/not-found.tsx",
+    "kind": "imports",
+    "evidence": "packages/web/src/routes.tsx:25"
+  },
+  {
+    "from": "packages/web/src/routes.tsx",
+    "to": "packages/web/src/routes/repo-git/repo-git-loading.tsx",
     "kind": "imports",
     "evidence": "packages/web/src/routes.tsx:25"
   },
@@ -333,7 +375,19 @@
     "from": "packages/web/src/routes.tsx",
     "to": "packages/web/src/routes/unknown-project.tsx",
     "kind": "imports",
+    "evidence": "packages/web/src/routes.tsx:27"
+  },
+  {
+    "from": "packages/web/src/routes.tsx",
+    "to": "packages/web/src/routes/unknown-project.tsx",
+    "kind": "imports",
     "evidence": "packages/web/src/routes.tsx:28"
+  },
+  {
+    "from": "packages/web/src/routes.tsx",
+    "to": "packages/web/src/routes/task-git/git-tab-loading.tsx",
+    "kind": "imports",
+    "evidence": "packages/web/src/routes.tsx:29"
   },
   {
     "from": "packages/web/src/routes.tsx",
@@ -349,6 +403,12 @@
   },
   {
     "from": "packages/web/src/routes.tsx",
+    "to": "packages/web/src/routes/settings/registry.tsx",
+    "kind": "imports",
+    "evidence": "packages/web/src/routes.tsx:31"
+  },
+  {
+    "from": "packages/web/src/routes.tsx",
     "to": "packages/web/src/routes/task-thread/thread-loading.tsx",
     "kind": "imports",
     "evidence": "packages/web/src/routes.tsx:31"
@@ -358,6 +418,18 @@
     "to": "packages/web/src/routes/settings/registry.tsx",
     "kind": "imports",
     "evidence": "packages/web/src/routes.tsx:32"
+  },
+  {
+    "from": "packages/web/src/routes.tsx",
+    "to": "packages/web/src/routes/settings/settings-shell.tsx",
+    "kind": "imports",
+    "evidence": "packages/web/src/routes.tsx:33"
+  },
+  {
+    "from": "packages/web/src/routes.tsx",
+    "to": "packages/web/src/routes/global-tasks.tsx",
+    "kind": "imports",
+    "evidence": "packages/web/src/routes.tsx:38"
   },
   {
     "from": "packages/web/src/routes.tsx",
@@ -442,78 +514,6 @@
     "to": "packages/web/src/routes/automations/automations-route.tsx",
     "kind": "dynamic-import",
     "evidence": "packages/web/src/routes.tsx:99"
-  },
-  {
-    "from": "packages/web/src/routes.tsx",
-    "to": "packages/web/src/api/project-scope-context.tsx",
-    "kind": "imports",
-    "evidence": "packages/web/src/routes.tsx:13"
-  },
-  {
-    "from": "packages/web/src/routes.tsx",
-    "to": "packages/web/src/routes/task-workspace/layout-state.ts",
-    "kind": "imports",
-    "evidence": "packages/web/src/routes.tsx:15"
-  },
-  {
-    "from": "packages/web/src/routes.tsx",
-    "to": "packages/web/src/lib/lazy-route.ts",
-    "kind": "imports",
-    "evidence": "packages/web/src/routes.tsx:17"
-  },
-  {
-    "from": "packages/web/src/routes.tsx",
-    "to": "packages/web/src/lib/project-router.tsx",
-    "kind": "imports",
-    "evidence": "packages/web/src/routes.tsx:19"
-  },
-  {
-    "from": "packages/web/src/routes.tsx",
-    "to": "packages/web/src/routes/compare-loading.tsx",
-    "kind": "imports",
-    "evidence": "packages/web/src/routes.tsx:21"
-  },
-  {
-    "from": "packages/web/src/routes.tsx",
-    "to": "packages/web/src/routes/inbox.tsx",
-    "kind": "imports",
-    "evidence": "packages/web/src/routes.tsx:23"
-  },
-  {
-    "from": "packages/web/src/routes.tsx",
-    "to": "packages/web/src/routes/repo-git/repo-git-loading.tsx",
-    "kind": "imports",
-    "evidence": "packages/web/src/routes.tsx:25"
-  },
-  {
-    "from": "packages/web/src/routes.tsx",
-    "to": "packages/web/src/routes/unknown-project.tsx",
-    "kind": "imports",
-    "evidence": "packages/web/src/routes.tsx:27"
-  },
-  {
-    "from": "packages/web/src/routes.tsx",
-    "to": "packages/web/src/routes/task-git/git-tab-loading.tsx",
-    "kind": "imports",
-    "evidence": "packages/web/src/routes.tsx:29"
-  },
-  {
-    "from": "packages/web/src/routes.tsx",
-    "to": "packages/web/src/routes/settings/registry.tsx",
-    "kind": "imports",
-    "evidence": "packages/web/src/routes.tsx:31"
-  },
-  {
-    "from": "packages/web/src/routes.tsx",
-    "to": "packages/web/src/routes/settings/settings-shell.tsx",
-    "kind": "imports",
-    "evidence": "packages/web/src/routes.tsx:33"
-  },
-  {
-    "from": "packages/web/src/routes.tsx",
-    "to": "packages/web/src/routes/global-tasks.tsx",
-    "kind": "imports",
-    "evidence": "packages/web/src/routes.tsx:38"
   },
   {
     "from": "packages/work/src/automations/automation-cli.ts",
@@ -649,6 +649,12 @@
   },
   {
     "from": "packages/work/src/automations/deferred-reset.ts",
+    "to": "packages/work/src/automations/types.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/automations/deferred-reset.ts:56"
+  },
+  {
+    "from": "packages/work/src/automations/deferred-reset.ts",
     "to": "packages/work/src/workspace/agent-profiles.ts",
     "kind": "type-imports",
     "evidence": "packages/work/src/automations/deferred-reset.ts:6"
@@ -660,16 +666,34 @@
     "evidence": "packages/work/src/automations/deferred-reset.ts:7"
   },
   {
-    "from": "packages/work/src/automations/deferred-reset.ts",
-    "to": "packages/work/src/automations/types.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/automations/deferred-reset.ts:56"
-  },
-  {
     "from": "packages/work/src/automations/deferred-start.ts",
     "to": "packages/work/src/core/codex-usage-probe.ts",
     "kind": "imports",
     "evidence": "packages/work/src/automations/deferred-start.ts:1"
+  },
+  {
+    "from": "packages/work/src/automations/deferred-start.ts",
+    "to": "packages/work/src/workflows/types.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/automations/deferred-start.ts:10"
+  },
+  {
+    "from": "packages/work/src/automations/deferred-start.ts",
+    "to": "packages/work/src/workspace/agent-accounts.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/automations/deferred-start.ts:11"
+  },
+  {
+    "from": "packages/work/src/automations/deferred-start.ts",
+    "to": "packages/work/src/workspace/agent-profiles.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/automations/deferred-start.ts:12"
+  },
+  {
+    "from": "packages/work/src/automations/deferred-start.ts",
+    "to": "packages/work/src/automations/types.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/automations/deferred-start.ts:13"
   },
   {
     "from": "packages/work/src/automations/deferred-start.ts",
@@ -720,34 +744,16 @@
     "evidence": "packages/work/src/automations/deferred-start.ts:9"
   },
   {
-    "from": "packages/work/src/automations/deferred-start.ts",
-    "to": "packages/work/src/workflows/types.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/automations/deferred-start.ts:10"
-  },
-  {
-    "from": "packages/work/src/automations/deferred-start.ts",
-    "to": "packages/work/src/workspace/agent-accounts.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/automations/deferred-start.ts:11"
-  },
-  {
-    "from": "packages/work/src/automations/deferred-start.ts",
-    "to": "packages/work/src/workspace/agent-profiles.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/automations/deferred-start.ts:12"
-  },
-  {
-    "from": "packages/work/src/automations/deferred-start.ts",
-    "to": "packages/work/src/automations/types.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/automations/deferred-start.ts:13"
-  },
-  {
     "from": "packages/work/src/automations/event-poll-cycle.ts",
     "to": "packages/work/src/automations/task-template.ts",
     "kind": "imports",
     "evidence": "packages/work/src/automations/event-poll-cycle.ts:1"
+  },
+  {
+    "from": "packages/work/src/automations/event-poll-cycle.ts",
+    "to": "packages/work/src/automations/types.ts",
+    "kind": "dynamic-import",
+    "evidence": "packages/work/src/automations/event-poll-cycle.ts:152"
   },
   {
     "from": "packages/work/src/automations/event-poll-cycle.ts",
@@ -760,12 +766,6 @@
     "to": "packages/work/src/automations/store.ts",
     "kind": "type-imports",
     "evidence": "packages/work/src/automations/event-poll-cycle.ts:3"
-  },
-  {
-    "from": "packages/work/src/automations/event-poll-cycle.ts",
-    "to": "packages/work/src/automations/types.ts",
-    "kind": "dynamic-import",
-    "evidence": "packages/work/src/automations/event-poll-cycle.ts:152"
   },
   {
     "from": "packages/work/src/automations/event-source.ts",
@@ -853,6 +853,18 @@
   },
   {
     "from": "packages/work/src/automations/scheduler.ts",
+    "to": "packages/work/src/automations/types.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/automations/scheduler.ts:10"
+  },
+  {
+    "from": "packages/work/src/automations/scheduler.ts",
+    "to": "packages/work/src/automations/event-poll-cycle.ts",
+    "kind": "reexports",
+    "evidence": "packages/work/src/automations/scheduler.ts:14"
+  },
+  {
+    "from": "packages/work/src/automations/scheduler.ts",
     "to": "packages/work/src/automations/coordinator.ts",
     "kind": "type-imports",
     "evidence": "packages/work/src/automations/scheduler.ts:2"
@@ -862,6 +874,24 @@
     "to": "packages/work/src/automations/github-poller.ts",
     "kind": "imports",
     "evidence": "packages/work/src/automations/scheduler.ts:3"
+  },
+  {
+    "from": "packages/work/src/automations/scheduler.ts",
+    "to": "packages/work/src/automations/schedule-runner.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/automations/scheduler.ts:35"
+  },
+  {
+    "from": "packages/work/src/automations/scheduler.ts",
+    "to": "packages/work/src/automations/schedule-runner.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/automations/scheduler.ts:36"
+  },
+  {
+    "from": "packages/work/src/automations/scheduler.ts",
+    "to": "packages/work/src/automations/schedule-runner.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/automations/scheduler.ts:37"
   },
   {
     "from": "packages/work/src/automations/scheduler.ts",
@@ -900,36 +930,6 @@
     "evidence": "packages/work/src/automations/scheduler.ts:9"
   },
   {
-    "from": "packages/work/src/automations/scheduler.ts",
-    "to": "packages/work/src/automations/types.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/automations/scheduler.ts:10"
-  },
-  {
-    "from": "packages/work/src/automations/scheduler.ts",
-    "to": "packages/work/src/automations/event-poll-cycle.ts",
-    "kind": "reexports",
-    "evidence": "packages/work/src/automations/scheduler.ts:14"
-  },
-  {
-    "from": "packages/work/src/automations/scheduler.ts",
-    "to": "packages/work/src/automations/schedule-runner.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/automations/scheduler.ts:35"
-  },
-  {
-    "from": "packages/work/src/automations/scheduler.ts",
-    "to": "packages/work/src/automations/schedule-runner.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/automations/scheduler.ts:36"
-  },
-  {
-    "from": "packages/work/src/automations/scheduler.ts",
-    "to": "packages/work/src/automations/schedule-runner.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/automations/scheduler.ts:37"
-  },
-  {
     "from": "packages/work/src/automations/stats.ts",
     "to": "@onni/contract",
     "kind": "package-dep",
@@ -952,54 +952,6 @@
     "to": "zod",
     "kind": "ext",
     "evidence": "packages/work/src/automations/task-template.ts:1"
-  },
-  {
-    "from": "packages/work/src/automations/task-template.ts",
-    "to": "packages/work/src/core/agent-runner.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/automations/task-template.ts:2"
-  },
-  {
-    "from": "packages/work/src/automations/task-template.ts",
-    "to": "packages/work/src/automations/deferred-start.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/automations/task-template.ts:3"
-  },
-  {
-    "from": "packages/work/src/automations/task-template.ts",
-    "to": "@onni/contract",
-    "kind": "package-dep",
-    "evidence": "packages/work/src/automations/task-template.ts:4"
-  },
-  {
-    "from": "packages/work/src/automations/task-template.ts",
-    "to": "@onni/contract",
-    "kind": "package-dep",
-    "evidence": "packages/work/src/automations/task-template.ts:5"
-  },
-  {
-    "from": "packages/work/src/automations/task-template.ts",
-    "to": "packages/work/src/workflows/load.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/automations/task-template.ts:6"
-  },
-  {
-    "from": "packages/work/src/automations/task-template.ts",
-    "to": "packages/work/src/workflows/types.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/automations/task-template.ts:7"
-  },
-  {
-    "from": "packages/work/src/automations/task-template.ts",
-    "to": "packages/work/src/runs/store.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/automations/task-template.ts:8"
-  },
-  {
-    "from": "packages/work/src/automations/task-template.ts",
-    "to": "packages/work/src/workflows/run.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/automations/task-template.ts:9"
   },
   {
     "from": "packages/work/src/automations/task-template.ts",
@@ -1033,15 +985,63 @@
   },
   {
     "from": "packages/work/src/automations/task-template.ts",
+    "to": "packages/work/src/core/agent-runner.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/automations/task-template.ts:2"
+  },
+  {
+    "from": "packages/work/src/automations/task-template.ts",
+    "to": "packages/work/src/automations/deferred-start.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/automations/task-template.ts:3"
+  },
+  {
+    "from": "packages/work/src/automations/task-template.ts",
     "to": "packages/work/src/automations/store.ts",
     "kind": "type-imports",
     "evidence": "packages/work/src/automations/task-template.ts:370"
   },
   {
     "from": "packages/work/src/automations/task-template.ts",
+    "to": "@onni/contract",
+    "kind": "package-dep",
+    "evidence": "packages/work/src/automations/task-template.ts:4"
+  },
+  {
+    "from": "packages/work/src/automations/task-template.ts",
     "to": "packages/work/src/automations/store.ts",
     "kind": "type-imports",
     "evidence": "packages/work/src/automations/task-template.ts:410"
+  },
+  {
+    "from": "packages/work/src/automations/task-template.ts",
+    "to": "@onni/contract",
+    "kind": "package-dep",
+    "evidence": "packages/work/src/automations/task-template.ts:5"
+  },
+  {
+    "from": "packages/work/src/automations/task-template.ts",
+    "to": "packages/work/src/workflows/load.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/automations/task-template.ts:6"
+  },
+  {
+    "from": "packages/work/src/automations/task-template.ts",
+    "to": "packages/work/src/workflows/types.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/automations/task-template.ts:7"
+  },
+  {
+    "from": "packages/work/src/automations/task-template.ts",
+    "to": "packages/work/src/runs/store.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/automations/task-template.ts:8"
+  },
+  {
+    "from": "packages/work/src/automations/task-template.ts",
+    "to": "packages/work/src/workflows/run.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/automations/task-template.ts:9"
   },
   {
     "from": "packages/work/src/core/process-jobs.ts",
@@ -1075,15 +1075,15 @@
   },
   {
     "from": "packages/work/src/dispatch/engine.ts",
-    "to": "packages/work/src/runs/store.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/dispatch/engine.ts:19"
-  },
-  {
-    "from": "packages/work/src/dispatch/engine.ts",
     "to": "@onni/contract",
     "kind": "imports",
     "evidence": "packages/work/src/dispatch/engine.ts:10"
+  },
+  {
+    "from": "packages/work/src/dispatch/engine.ts",
+    "to": "packages/work/src/runs/store.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/dispatch/engine.ts:19"
   },
   {
     "from": "packages/work/src/dispatch/peek.ts",
@@ -1099,15 +1099,15 @@
   },
   {
     "from": "packages/work/src/dispatch/scorecard.ts",
-    "to": "packages/work/src/runs/store.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/dispatch/scorecard.ts:9"
-  },
-  {
-    "from": "packages/work/src/dispatch/scorecard.ts",
     "to": "@onni/contract",
     "kind": "imports",
     "evidence": "packages/work/src/dispatch/scorecard.ts:1"
+  },
+  {
+    "from": "packages/work/src/dispatch/scorecard.ts",
+    "to": "packages/work/src/runs/store.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/dispatch/scorecard.ts:9"
   },
   {
     "from": "packages/work/src/e2e-setup.ts",
@@ -1147,54 +1147,6 @@
   },
   {
     "from": "packages/work/src/index.ts",
-    "to": "packages/work/src/webhooks/coordinator.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/index.ts:2"
-  },
-  {
-    "from": "packages/work/src/index.ts",
-    "to": "packages/work/src/webhooks/service.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/index.ts:3"
-  },
-  {
-    "from": "packages/work/src/index.ts",
-    "to": "packages/work/src/workspace/projects.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/index.ts:4"
-  },
-  {
-    "from": "packages/work/src/index.ts",
-    "to": "packages/work/src/server-install/state.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/index.ts:5"
-  },
-  {
-    "from": "packages/work/src/index.ts",
-    "to": "node:util",
-    "kind": "ext",
-    "evidence": "packages/work/src/index.ts:6"
-  },
-  {
-    "from": "packages/work/src/index.ts",
-    "to": "node:child_process",
-    "kind": "ext",
-    "evidence": "packages/work/src/index.ts:7"
-  },
-  {
-    "from": "packages/work/src/index.ts",
-    "to": "node:fs",
-    "kind": "ext",
-    "evidence": "packages/work/src/index.ts:8"
-  },
-  {
-    "from": "packages/work/src/index.ts",
-    "to": "node:path",
-    "kind": "ext",
-    "evidence": "packages/work/src/index.ts:9"
-  },
-  {
-    "from": "packages/work/src/index.ts",
     "to": "node:url",
     "kind": "ext",
     "evidence": "packages/work/src/index.ts:10"
@@ -1213,6 +1165,12 @@
   },
   {
     "from": "packages/work/src/index.ts",
+    "to": "packages/work/src/core/provider-auth.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/index.ts:13"
+  },
+  {
+    "from": "packages/work/src/index.ts",
     "to": "packages/work/src/core/provider-availability.ts",
     "kind": "imports",
     "evidence": "packages/work/src/index.ts:17"
@@ -1228,6 +1186,12 @@
     "to": "packages/work/src/git-worktree.ts",
     "kind": "imports",
     "evidence": "packages/work/src/index.ts:19"
+  },
+  {
+    "from": "packages/work/src/index.ts",
+    "to": "packages/work/src/webhooks/coordinator.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/index.ts:2"
   },
   {
     "from": "packages/work/src/index.ts",
@@ -1291,9 +1255,33 @@
   },
   {
     "from": "packages/work/src/index.ts",
+    "to": "packages/work/src/webhooks/service.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/index.ts:3"
+  },
+  {
+    "from": "packages/work/src/index.ts",
+    "to": "packages/work/src/server/provider-auth-runtime.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/index.ts:30"
+  },
+  {
+    "from": "packages/work/src/index.ts",
+    "to": "packages/work/src/server/provider-action-gate.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/index.ts:34"
+  },
+  {
+    "from": "packages/work/src/index.ts",
     "to": "packages/work/src/self-update/layout.ts",
     "kind": "imports",
     "evidence": "packages/work/src/index.ts:39"
+  },
+  {
+    "from": "packages/work/src/index.ts",
+    "to": "packages/work/src/workspace/projects.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/index.ts:4"
   },
   {
     "from": "packages/work/src/index.ts",
@@ -1357,6 +1345,12 @@
   },
   {
     "from": "packages/work/src/index.ts",
+    "to": "packages/work/src/server-install/state.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/index.ts:5"
+  },
+  {
+    "from": "packages/work/src/index.ts",
     "to": "@onni/contract",
     "kind": "package-dep",
     "evidence": "packages/work/src/index.ts:50"
@@ -1399,6 +1393,12 @@
   },
   {
     "from": "packages/work/src/index.ts",
+    "to": "node:util",
+    "kind": "ext",
+    "evidence": "packages/work/src/index.ts:6"
+  },
+  {
+    "from": "packages/work/src/index.ts",
     "to": "packages/work/src/server-install/strategies.ts",
     "kind": "dynamic-import",
     "evidence": "packages/work/src/index.ts:646"
@@ -1429,21 +1429,21 @@
   },
   {
     "from": "packages/work/src/index.ts",
-    "to": "packages/work/src/core/provider-auth.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/index.ts:13"
+    "to": "node:child_process",
+    "kind": "ext",
+    "evidence": "packages/work/src/index.ts:7"
   },
   {
     "from": "packages/work/src/index.ts",
-    "to": "packages/work/src/server/provider-auth-runtime.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/index.ts:30"
+    "to": "node:fs",
+    "kind": "ext",
+    "evidence": "packages/work/src/index.ts:8"
   },
   {
     "from": "packages/work/src/index.ts",
-    "to": "packages/work/src/server/provider-action-gate.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/index.ts:34"
+    "to": "node:path",
+    "kind": "ext",
+    "evidence": "packages/work/src/index.ts:9"
   },
   {
     "from": "packages/work/src/runs/arm-repo-handle.ts",
@@ -1465,6 +1465,12 @@
   },
   {
     "from": "packages/work/src/runs/retention.ts",
+    "to": "packages/work/src/runs/store.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/runs/retention.ts:10"
+  },
+  {
+    "from": "packages/work/src/runs/retention.ts",
     "to": "node:fs",
     "kind": "ext",
     "evidence": "packages/work/src/runs/retention.ts:7"
@@ -1480,12 +1486,6 @@
     "to": "packages/work/src/automations/pr-head.ts",
     "kind": "imports",
     "evidence": "packages/work/src/runs/retention.ts:9"
-  },
-  {
-    "from": "packages/work/src/runs/retention.ts",
-    "to": "packages/work/src/runs/store.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/runs/retention.ts:10"
   },
   {
     "from": "packages/work/src/runs/run-index.ts",
@@ -1525,6 +1525,18 @@
   },
   {
     "from": "packages/work/src/runs/store.ts",
+    "to": "node:path",
+    "kind": "ext",
+    "evidence": "packages/work/src/runs/store.ts:22"
+  },
+  {
+    "from": "packages/work/src/runs/store.ts",
+    "to": "zod",
+    "kind": "ext",
+    "evidence": "packages/work/src/runs/store.ts:23"
+  },
+  {
+    "from": "packages/work/src/runs/store.ts",
     "to": "packages/work/src/runs/lifecycle.ts",
     "kind": "imports",
     "evidence": "packages/work/src/runs/store.ts:3"
@@ -1543,24 +1555,6 @@
   },
   {
     "from": "packages/work/src/runs/store.ts",
-    "to": "node:os",
-    "kind": "ext",
-    "evidence": "packages/work/src/runs/store.ts:6"
-  },
-  {
-    "from": "packages/work/src/runs/store.ts",
-    "to": "node:path",
-    "kind": "ext",
-    "evidence": "packages/work/src/runs/store.ts:22"
-  },
-  {
-    "from": "packages/work/src/runs/store.ts",
-    "to": "zod",
-    "kind": "ext",
-    "evidence": "packages/work/src/runs/store.ts:23"
-  },
-  {
-    "from": "packages/work/src/runs/store.ts",
     "to": "packages/work/src/runs/stream-redaction.ts",
     "kind": "imports",
     "evidence": "packages/work/src/runs/store.ts:56"
@@ -1576,6 +1570,12 @@
     "to": "packages/work/src/core/secret-redaction.ts",
     "kind": "imports",
     "evidence": "packages/work/src/runs/store.ts:58"
+  },
+  {
+    "from": "packages/work/src/runs/store.ts",
+    "to": "node:os",
+    "kind": "ext",
+    "evidence": "packages/work/src/runs/store.ts:6"
   },
   {
     "from": "packages/work/src/runs/store.ts",
@@ -1633,6 +1633,12 @@
   },
   {
     "from": "packages/work/src/runs/transcript-search.ts",
+    "to": "packages/work/src/runs/store.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/runs/transcript-search.ts:13"
+  },
+  {
+    "from": "packages/work/src/runs/transcript-search.ts",
     "to": "node:path",
     "kind": "ext",
     "evidence": "packages/work/src/runs/transcript-search.ts:2"
@@ -1642,12 +1648,6 @@
     "to": "zod",
     "kind": "ext",
     "evidence": "packages/work/src/runs/transcript-search.ts:3"
-  },
-  {
-    "from": "packages/work/src/runs/transcript-search.ts",
-    "to": "packages/work/src/runs/store.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/runs/transcript-search.ts:13"
   },
   {
     "from": "packages/work/src/runs/transcript-search.ts",
@@ -1666,6 +1666,36 @@
     "to": "packages/work/src/data-gitignore.ts",
     "kind": "imports",
     "evidence": "packages/work/src/server/project-context.ts:1"
+  },
+  {
+    "from": "packages/work/src/server/project-context.ts",
+    "to": "packages/work/src/workspace/semaphore.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/project-context.ts:10"
+  },
+  {
+    "from": "packages/work/src/server/project-context.ts",
+    "to": "packages/work/src/workflows/run.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/project-context.ts:11"
+  },
+  {
+    "from": "packages/work/src/server/project-context.ts",
+    "to": "packages/work/src/server/launch-key.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/project-context.ts:12"
+  },
+  {
+    "from": "packages/work/src/server/project-context.ts",
+    "to": "packages/work/src/server/git.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/project-context.ts:13"
+  },
+  {
+    "from": "packages/work/src/server/project-context.ts",
+    "to": "packages/work/src/server/tracker/agent-credentials.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/project-context.ts:14"
   },
   {
     "from": "packages/work/src/server/project-context.ts",
@@ -1716,52 +1746,10 @@
     "evidence": "packages/work/src/server/project-context.ts:9"
   },
   {
-    "from": "packages/work/src/server/project-context.ts",
-    "to": "packages/work/src/workspace/semaphore.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/project-context.ts:10"
-  },
-  {
-    "from": "packages/work/src/server/project-context.ts",
-    "to": "packages/work/src/workflows/run.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/project-context.ts:11"
-  },
-  {
-    "from": "packages/work/src/server/project-context.ts",
-    "to": "packages/work/src/server/launch-key.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/project-context.ts:12"
-  },
-  {
-    "from": "packages/work/src/server/project-context.ts",
-    "to": "packages/work/src/server/git.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/project-context.ts:13"
-  },
-  {
-    "from": "packages/work/src/server/project-context.ts",
-    "to": "packages/work/src/server/tracker/agent-credentials.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/project-context.ts:14"
-  },
-  {
     "from": "packages/work/src/server/provider-action-gate.ts",
     "to": "packages/work/src/core/provider-auth.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/provider-action-gate.ts:7"
-  },
-  {
-    "from": "packages/work/src/server/provider-action-gate.ts",
-    "to": "packages/work/src/runs/store.ts",
     "kind": "type-imports",
-    "evidence": "packages/work/src/server/provider-action-gate.ts:8"
-  },
-  {
-    "from": "packages/work/src/server/provider-action-gate.ts",
-    "to": "packages/work/src/workspace/agent-accounts.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/provider-action-gate.ts:9"
+    "evidence": "packages/work/src/server/provider-action-gate.ts:1"
   },
   {
     "from": "packages/work/src/server/provider-action-gate.ts",
@@ -1784,8 +1772,32 @@
   {
     "from": "packages/work/src/server/provider-action-gate.ts",
     "to": "packages/work/src/core/provider-auth.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/provider-action-gate.ts:7"
+  },
+  {
+    "from": "packages/work/src/server/provider-action-gate.ts",
+    "to": "packages/work/src/runs/store.ts",
     "kind": "type-imports",
-    "evidence": "packages/work/src/server/provider-action-gate.ts:1"
+    "evidence": "packages/work/src/server/provider-action-gate.ts:8"
+  },
+  {
+    "from": "packages/work/src/server/provider-action-gate.ts",
+    "to": "packages/work/src/workspace/agent-accounts.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/provider-action-gate.ts:9"
+  },
+  {
+    "from": "packages/work/src/server/provider-auth-runtime.ts",
+    "to": "packages/work/src/core/provider-auth.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/provider-auth-runtime.ts:1"
+  },
+  {
+    "from": "packages/work/src/server/provider-auth-runtime.ts",
+    "to": "packages/work/src/server/recorded-profile.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/provider-auth-runtime.ts:10"
   },
   {
     "from": "packages/work/src/server/provider-auth-runtime.ts",
@@ -1798,18 +1810,6 @@
     "to": "@onni/contract",
     "kind": "package-dep",
     "evidence": "packages/work/src/server/provider-auth-runtime.ts:9"
-  },
-  {
-    "from": "packages/work/src/server/provider-auth-runtime.ts",
-    "to": "packages/work/src/server/recorded-profile.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/provider-auth-runtime.ts:10"
-  },
-  {
-    "from": "packages/work/src/server/provider-auth-runtime.ts",
-    "to": "packages/work/src/core/provider-auth.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/provider-auth-runtime.ts:1"
   },
   {
     "from": "packages/work/src/server/recorded-profile.ts",
@@ -1828,54 +1828,6 @@
     "to": "node:crypto",
     "kind": "ext",
     "evidence": "packages/work/src/server/routes/automations.ts:1"
-  },
-  {
-    "from": "packages/work/src/server/routes/automations.ts",
-    "to": "hono",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/routes/automations.ts:2"
-  },
-  {
-    "from": "packages/work/src/server/routes/automations.ts",
-    "to": "packages/work/src/automations/deferred-start.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/automations.ts:3"
-  },
-  {
-    "from": "packages/work/src/server/routes/automations.ts",
-    "to": "packages/work/src/automations/deferred-reset.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/automations.ts:4"
-  },
-  {
-    "from": "packages/work/src/server/routes/automations.ts",
-    "to": "packages/work/src/automations/github-poller.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/automations.ts:5"
-  },
-  {
-    "from": "packages/work/src/server/routes/automations.ts",
-    "to": "packages/work/src/automations/scheduler.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/automations.ts:6"
-  },
-  {
-    "from": "packages/work/src/server/routes/automations.ts",
-    "to": "packages/work/src/automations/schedule-runner.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/automations.ts:7"
-  },
-  {
-    "from": "packages/work/src/server/routes/automations.ts",
-    "to": "packages/work/src/automations/tracker-poller.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/automations.ts:8"
-  },
-  {
-    "from": "packages/work/src/server/routes/automations.ts",
-    "to": "packages/work/src/automations/stats.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/automations.ts:9"
   },
   {
     "from": "packages/work/src/server/routes/automations.ts",
@@ -1906,6 +1858,12 @@
     "to": "packages/work/src/automations/store.ts",
     "kind": "type-imports",
     "evidence": "packages/work/src/server/routes/automations.ts:19"
+  },
+  {
+    "from": "packages/work/src/server/routes/automations.ts",
+    "to": "hono",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/routes/automations.ts:2"
   },
   {
     "from": "packages/work/src/server/routes/automations.ts",
@@ -1956,10 +1914,64 @@
     "evidence": "packages/work/src/server/routes/automations.ts:27"
   },
   {
+    "from": "packages/work/src/server/routes/automations.ts",
+    "to": "packages/work/src/automations/deferred-start.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/automations.ts:3"
+  },
+  {
+    "from": "packages/work/src/server/routes/automations.ts",
+    "to": "packages/work/src/automations/deferred-reset.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/automations.ts:4"
+  },
+  {
+    "from": "packages/work/src/server/routes/automations.ts",
+    "to": "packages/work/src/automations/github-poller.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/automations.ts:5"
+  },
+  {
+    "from": "packages/work/src/server/routes/automations.ts",
+    "to": "packages/work/src/automations/scheduler.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/automations.ts:6"
+  },
+  {
+    "from": "packages/work/src/server/routes/automations.ts",
+    "to": "packages/work/src/automations/schedule-runner.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/automations.ts:7"
+  },
+  {
+    "from": "packages/work/src/server/routes/automations.ts",
+    "to": "packages/work/src/automations/tracker-poller.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/automations.ts:8"
+  },
+  {
+    "from": "packages/work/src/server/routes/automations.ts",
+    "to": "packages/work/src/automations/stats.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/automations.ts:9"
+  },
+  {
     "from": "packages/work/src/server/routes/groups.ts",
     "to": "node:fs",
     "kind": "ext",
     "evidence": "packages/work/src/server/routes/groups.ts:1"
+  },
+  {
+    "from": "packages/work/src/server/routes/groups.ts",
+    "to": "packages/work/src/server/validators.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/groups.ts:10"
+  },
+  {
+    "from": "packages/work/src/server/routes/groups.ts",
+    "to": "zod",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/routes/groups.ts:11"
   },
   {
     "from": "packages/work/src/server/routes/groups.ts",
@@ -2010,70 +2022,10 @@
     "evidence": "packages/work/src/server/routes/groups.ts:9"
   },
   {
-    "from": "packages/work/src/server/routes/groups.ts",
-    "to": "packages/work/src/server/validators.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/groups.ts:10"
-  },
-  {
-    "from": "packages/work/src/server/routes/groups.ts",
-    "to": "zod",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/routes/groups.ts:11"
-  },
-  {
     "from": "packages/work/src/server/routes/projects.ts",
     "to": "node:fs/promises",
     "kind": "ext",
     "evidence": "packages/work/src/server/routes/projects.ts:1"
-  },
-  {
-    "from": "packages/work/src/server/routes/projects.ts",
-    "to": "node:path",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/routes/projects.ts:2"
-  },
-  {
-    "from": "packages/work/src/server/routes/projects.ts",
-    "to": "hono",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/routes/projects.ts:3"
-  },
-  {
-    "from": "packages/work/src/server/routes/projects.ts",
-    "to": "zod",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/routes/projects.ts:4"
-  },
-  {
-    "from": "packages/work/src/server/routes/projects.ts",
-    "to": "@onni/contract",
-    "kind": "package-dep",
-    "evidence": "packages/work/src/server/routes/projects.ts:5"
-  },
-  {
-    "from": "packages/work/src/server/routes/projects.ts",
-    "to": "packages/work/src/workspace/config.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/projects.ts:6"
-  },
-  {
-    "from": "packages/work/src/server/routes/projects.ts",
-    "to": "packages/work/src/workspace/projects.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/projects.ts:7"
-  },
-  {
-    "from": "packages/work/src/server/routes/projects.ts",
-    "to": "packages/work/src/paths.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/projects.ts:8"
-  },
-  {
-    "from": "packages/work/src/server/routes/projects.ts",
-    "to": "packages/work/src/server/checkout.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/projects.ts:9"
   },
   {
     "from": "packages/work/src/server/routes/projects.ts",
@@ -2124,10 +2076,64 @@
     "evidence": "packages/work/src/server/routes/projects.ts:17"
   },
   {
+    "from": "packages/work/src/server/routes/projects.ts",
+    "to": "node:path",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/routes/projects.ts:2"
+  },
+  {
+    "from": "packages/work/src/server/routes/projects.ts",
+    "to": "hono",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/routes/projects.ts:3"
+  },
+  {
+    "from": "packages/work/src/server/routes/projects.ts",
+    "to": "zod",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/routes/projects.ts:4"
+  },
+  {
+    "from": "packages/work/src/server/routes/projects.ts",
+    "to": "@onni/contract",
+    "kind": "package-dep",
+    "evidence": "packages/work/src/server/routes/projects.ts:5"
+  },
+  {
+    "from": "packages/work/src/server/routes/projects.ts",
+    "to": "packages/work/src/workspace/config.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/projects.ts:6"
+  },
+  {
+    "from": "packages/work/src/server/routes/projects.ts",
+    "to": "packages/work/src/workspace/projects.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/projects.ts:7"
+  },
+  {
+    "from": "packages/work/src/server/routes/projects.ts",
+    "to": "packages/work/src/paths.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/projects.ts:8"
+  },
+  {
+    "from": "packages/work/src/server/routes/projects.ts",
+    "to": "packages/work/src/server/checkout.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/projects.ts:9"
+  },
+  {
     "from": "packages/work/src/server/routes/runs-index.ts",
     "to": "node:path",
     "kind": "ext",
     "evidence": "packages/work/src/server/routes/runs-index.ts:1"
+  },
+  {
+    "from": "packages/work/src/server/routes/runs-index.ts",
+    "to": "packages/work/src/server/project-context.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/server/routes/runs-index.ts:10"
   },
   {
     "from": "packages/work/src/server/routes/runs-index.ts",
@@ -2178,12 +2184,6 @@
     "evidence": "packages/work/src/server/routes/runs-index.ts:9"
   },
   {
-    "from": "packages/work/src/server/routes/runs-index.ts",
-    "to": "packages/work/src/server/project-context.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/server/routes/runs-index.ts:10"
-  },
-  {
     "from": "packages/work/src/server/routes/runs.ts",
     "to": "node:path",
     "kind": "ext",
@@ -2197,15 +2197,15 @@
   },
   {
     "from": "packages/work/src/server/routes/runs.ts",
-    "to": "node:fs/promises",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/routes/runs.ts:3"
+    "to": "packages/work/src/server/open-in-app.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/server/routes/runs.ts:278"
   },
   {
     "from": "packages/work/src/server/routes/runs.ts",
-    "to": "hono",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/routes/runs.ts:4"
+    "to": "packages/work/src/server/open-in-app.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/server/routes/runs.ts:279"
   },
   {
     "from": "packages/work/src/server/routes/runs.ts",
@@ -2215,9 +2215,21 @@
   },
   {
     "from": "packages/work/src/server/routes/runs.ts",
+    "to": "packages/work/src/server/open-in-terminal.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/server/routes/runs.ts:280"
+  },
+  {
+    "from": "packages/work/src/server/routes/runs.ts",
     "to": "packages/work/src/server/validators.ts",
     "kind": "imports",
     "evidence": "packages/work/src/server/routes/runs.ts:29"
+  },
+  {
+    "from": "packages/work/src/server/routes/runs.ts",
+    "to": "node:fs/promises",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/routes/runs.ts:3"
   },
   {
     "from": "packages/work/src/server/routes/runs.ts",
@@ -2251,6 +2263,18 @@
   },
   {
     "from": "packages/work/src/server/routes/runs.ts",
+    "to": "packages/work/src/workflows/queued-bounds.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/runs.ts:35"
+  },
+  {
+    "from": "packages/work/src/server/routes/runs.ts",
+    "to": "hono",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/routes/runs.ts:4"
+  },
+  {
+    "from": "packages/work/src/server/routes/runs.ts",
     "to": "packages/work/src/workflows/landing.ts",
     "kind": "imports",
     "evidence": "packages/work/src/server/routes/runs.ts:44"
@@ -2278,6 +2302,12 @@
     "to": "packages/work/src/server/git.ts",
     "kind": "imports",
     "evidence": "packages/work/src/server/routes/runs.ts:48"
+  },
+  {
+    "from": "packages/work/src/server/routes/runs.ts",
+    "to": "packages/work/src/server/git-changes.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/runs.ts:49"
   },
   {
     "from": "packages/work/src/server/routes/runs.ts",
@@ -2320,6 +2350,12 @@
     "to": "packages/work/src/server/forge/github.ts",
     "kind": "imports",
     "evidence": "packages/work/src/server/routes/runs.ts:69"
+  },
+  {
+    "from": "packages/work/src/server/routes/runs.ts",
+    "to": "packages/work/src/server/provider-action-gate.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/runs.ts:70"
   },
   {
     "from": "packages/work/src/server/routes/runs.ts",
@@ -2394,46 +2430,34 @@
     "evidence": "packages/work/src/server/routes/runs.ts:88"
   },
   {
-    "from": "packages/work/src/server/routes/runs.ts",
-    "to": "packages/work/src/server/open-in-app.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/server/routes/runs.ts:278"
-  },
-  {
-    "from": "packages/work/src/server/routes/runs.ts",
-    "to": "packages/work/src/server/open-in-app.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/server/routes/runs.ts:279"
-  },
-  {
-    "from": "packages/work/src/server/routes/runs.ts",
-    "to": "packages/work/src/server/open-in-terminal.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/server/routes/runs.ts:280"
-  },
-  {
-    "from": "packages/work/src/server/routes/runs.ts",
-    "to": "packages/work/src/workflows/queued-bounds.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/runs.ts:35"
-  },
-  {
-    "from": "packages/work/src/server/routes/runs.ts",
-    "to": "packages/work/src/server/git-changes.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/runs.ts:49"
-  },
-  {
-    "from": "packages/work/src/server/routes/runs.ts",
-    "to": "packages/work/src/server/provider-action-gate.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/runs.ts:70"
-  },
-  {
     "from": "packages/work/src/server/routes/sse.ts",
     "to": "node:path",
     "kind": "ext",
     "evidence": "packages/work/src/server/routes/sse.ts:1"
+  },
+  {
+    "from": "packages/work/src/server/routes/sse.ts",
+    "to": "packages/work/src/server/run-frames.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/sse.ts:10"
+  },
+  {
+    "from": "packages/work/src/server/routes/sse.ts",
+    "to": "packages/work/src/server/sse-subscriptions.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/sse.ts:11"
+  },
+  {
+    "from": "packages/work/src/server/routes/sse.ts",
+    "to": "packages/work/src/server/project-context.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/server/routes/sse.ts:12"
+  },
+  {
+    "from": "packages/work/src/server/routes/sse.ts",
+    "to": "packages/work/src/server/validators.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/sse.ts:13"
   },
   {
     "from": "packages/work/src/server/routes/sse.ts",
@@ -2484,52 +2508,10 @@
     "evidence": "packages/work/src/server/routes/sse.ts:9"
   },
   {
-    "from": "packages/work/src/server/routes/sse.ts",
-    "to": "packages/work/src/server/run-frames.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/sse.ts:10"
-  },
-  {
-    "from": "packages/work/src/server/routes/sse.ts",
-    "to": "packages/work/src/server/sse-subscriptions.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/sse.ts:11"
-  },
-  {
-    "from": "packages/work/src/server/routes/sse.ts",
-    "to": "packages/work/src/server/project-context.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/server/routes/sse.ts:12"
-  },
-  {
-    "from": "packages/work/src/server/routes/sse.ts",
-    "to": "packages/work/src/server/validators.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/sse.ts:13"
-  },
-  {
     "from": "packages/work/src/server/routes/terminal.ts",
     "to": "hono",
     "kind": "ext",
     "evidence": "packages/work/src/server/routes/terminal.ts:1"
-  },
-  {
-    "from": "packages/work/src/server/routes/terminal.ts",
-    "to": "packages/work/src/start-app.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/terminal.ts:7"
-  },
-  {
-    "from": "packages/work/src/server/routes/terminal.ts",
-    "to": "packages/work/src/runs/store.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/server/routes/terminal.ts:8"
-  },
-  {
-    "from": "packages/work/src/server/routes/terminal.ts",
-    "to": "packages/work/src/worktree-lifecycle/config.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/terminal.ts:9"
   },
   {
     "from": "packages/work/src/server/routes/terminal.ts",
@@ -2586,10 +2568,34 @@
     "evidence": "packages/work/src/server/routes/terminal.ts:18"
   },
   {
+    "from": "packages/work/src/server/routes/terminal.ts",
+    "to": "packages/work/src/start-app.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/terminal.ts:7"
+  },
+  {
+    "from": "packages/work/src/server/routes/terminal.ts",
+    "to": "packages/work/src/runs/store.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/server/routes/terminal.ts:8"
+  },
+  {
+    "from": "packages/work/src/server/routes/terminal.ts",
+    "to": "packages/work/src/worktree-lifecycle/config.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/terminal.ts:9"
+  },
+  {
     "from": "packages/work/src/server/routes/workspace-events.ts",
     "to": "hono",
     "kind": "ext",
     "evidence": "packages/work/src/server/routes/workspace-events.ts:1"
+  },
+  {
+    "from": "packages/work/src/server/routes/workspace-events.ts",
+    "to": "hono/streaming",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/routes/workspace-events.ts:10"
   },
   {
     "from": "packages/work/src/server/routes/workspace-events.ts",
@@ -2640,34 +2646,10 @@
     "evidence": "packages/work/src/server/routes/workspace-events.ts:9"
   },
   {
-    "from": "packages/work/src/server/routes/workspace-events.ts",
-    "to": "hono/streaming",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/routes/workspace-events.ts:10"
-  },
-  {
     "from": "packages/work/src/server/routes/workspace-search.ts",
     "to": "node:path",
     "kind": "ext",
     "evidence": "packages/work/src/server/routes/workspace-search.ts:1"
-  },
-  {
-    "from": "packages/work/src/server/routes/workspace-search.ts",
-    "to": "hono",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/routes/workspace-search.ts:2"
-  },
-  {
-    "from": "packages/work/src/server/routes/workspace-search.ts",
-    "to": "zod",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/routes/workspace-search.ts:3"
-  },
-  {
-    "from": "packages/work/src/server/routes/workspace-search.ts",
-    "to": "packages/work/src/server/validators.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/workspace-search.ts:8"
   },
   {
     "from": "packages/work/src/server/routes/workspace-search.ts",
@@ -2701,9 +2683,27 @@
   },
   {
     "from": "packages/work/src/server/routes/workspace-search.ts",
+    "to": "hono",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/routes/workspace-search.ts:2"
+  },
+  {
+    "from": "packages/work/src/server/routes/workspace-search.ts",
+    "to": "zod",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/routes/workspace-search.ts:3"
+  },
+  {
+    "from": "packages/work/src/server/routes/workspace-search.ts",
     "to": "@onni/contract",
     "kind": "imports",
     "evidence": "packages/work/src/server/routes/workspace-search.ts:4"
+  },
+  {
+    "from": "packages/work/src/server/routes/workspace-search.ts",
+    "to": "packages/work/src/server/validators.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/workspace-search.ts:8"
   },
   {
     "from": "packages/work/src/server/routes/workspace-search.ts",
@@ -2719,21 +2719,27 @@
   },
   {
     "from": "packages/work/src/server/routes/workspace-threads.ts",
-    "to": "hono",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/routes/workspace-threads.ts:2"
-  },
-  {
-    "from": "packages/work/src/server/routes/workspace-threads.ts",
-    "to": "zod",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/routes/workspace-threads.ts:3"
-  },
-  {
-    "from": "packages/work/src/server/routes/workspace-threads.ts",
     "to": "packages/work/src/server/validators.ts",
     "kind": "imports",
     "evidence": "packages/work/src/server/routes/workspace-threads.ts:11"
+  },
+  {
+    "from": "packages/work/src/server/routes/workspace-threads.ts",
+    "to": "packages/work/src/runs/run-index.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/workspace-threads.ts:12"
+  },
+  {
+    "from": "packages/work/src/server/routes/workspace-threads.ts",
+    "to": "packages/work/src/runs/store.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/routes/workspace-threads.ts:18"
+  },
+  {
+    "from": "packages/work/src/server/routes/workspace-threads.ts",
+    "to": "hono",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/routes/workspace-threads.ts:2"
   },
   {
     "from": "packages/work/src/server/routes/workspace-threads.ts",
@@ -2755,21 +2761,15 @@
   },
   {
     "from": "packages/work/src/server/routes/workspace-threads.ts",
+    "to": "zod",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/routes/workspace-threads.ts:3"
+  },
+  {
+    "from": "packages/work/src/server/routes/workspace-threads.ts",
     "to": "@onni/contract",
     "kind": "imports",
     "evidence": "packages/work/src/server/routes/workspace-threads.ts:4"
-  },
-  {
-    "from": "packages/work/src/server/routes/workspace-threads.ts",
-    "to": "packages/work/src/runs/run-index.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/workspace-threads.ts:12"
-  },
-  {
-    "from": "packages/work/src/server/routes/workspace-threads.ts",
-    "to": "packages/work/src/runs/store.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/routes/workspace-threads.ts:18"
   },
   {
     "from": "packages/work/src/server/run-frames.ts",
@@ -2791,459 +2791,9 @@
   },
   {
     "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/webhooks/coordinator.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:2"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/webhooks/service.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:3"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server-install/state.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:4"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/automations/deferred-reset.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:5"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/automations/deferred-start.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:6"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "@onni/contract",
-    "kind": "package-dep",
-    "evidence": "packages/work/src/server/server.ts:7"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "@onni/contract",
-    "kind": "package-dep",
-    "evidence": "packages/work/src/server/server.ts:8"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/workspace/secrets.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:9"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
     "to": "packages/work/src/server/tracker/index.ts",
     "kind": "imports",
     "evidence": "packages/work/src/server/server.ts:10"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/tracker/watch.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:11"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "node:fs",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/server.ts:12"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/runs/layouts.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:14"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/terminal/detected-urls.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:15"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/terminal/sessions.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:16"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "node:crypto",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/server.ts:17"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/automations/store.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:18"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/automations/coordinator.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:19"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/automations/github-poller.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:20"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/automations/tracker-poller.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:21"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/automations/scheduler.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:22"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/automations/schedule-runner.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:23"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/automations/stats.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:24"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/automations/task-template.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:25"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "@onni/contract",
-    "kind": "package-dep",
-    "evidence": "packages/work/src/server/server.ts:36"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "node:http",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/server.ts:37"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "node:fs/promises",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/server.ts:38"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "node:os",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/server.ts:39"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "node:path",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/server.ts:40"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "node:url",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/server.ts:41"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "hono",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/server.ts:42"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/groups.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:43"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/open-targets.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:44"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/todos.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:45"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/worktrees.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:46"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/terminal.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:47"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/project-terminal.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:48"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "hono",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/server.ts:49"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "@hono/node-server",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/server.ts:50"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "hono/body-limit",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/server.ts:51"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "hono/http-exception",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/server.ts:52"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "hono/streaming",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/server.ts:53"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/validators.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:54"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/models.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:55"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/providers.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:56"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/agent-profiles.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:57"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/projects.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:58"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/workspace-config.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:59"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/runs-index.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:60"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/workspace-search.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:61"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/workspace-threads.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:62"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/workspace-config.ts",
-    "kind": "reexports",
-    "evidence": "packages/work/src/server/server.ts:63"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/projects.ts",
-    "kind": "reexports",
-    "evidence": "packages/work/src/server/server.ts:64"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/fs-browse.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:65"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/workspace-secrets.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:66"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/preview.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:67"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/health.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:68"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/drafts.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:69"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/layouts.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:70"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/workspace-panes.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:71"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/e2e.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:72"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "yaml",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/server.ts:73"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/workflows.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:74"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/plan.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:75"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/config.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:76"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/agent-config.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:77"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/sse.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:78"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/workspace-events.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:79"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/repo.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:80"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/github.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:81"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/tracker.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:82"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/dispatch.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:83"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/memory.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:84"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/runs.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:85"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/automation-checks.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:86"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/server/routes/automations.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:87"
-  },
-  {
-    "from": "packages/work/src/server/server.ts",
-    "to": "zod",
-    "kind": "ext",
-    "evidence": "packages/work/src/server/server.ts:88"
   },
   {
     "from": "packages/work/src/server/server.ts",
@@ -3274,6 +2824,12 @@
     "to": "packages/work/src/core/host-usage.ts",
     "kind": "imports",
     "evidence": "packages/work/src/server/server.ts:109"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/tracker/watch.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:11"
   },
   {
     "from": "packages/work/src/server/server.ts",
@@ -3319,6 +2875,12 @@
   },
   {
     "from": "packages/work/src/server/server.ts",
+    "to": "node:fs",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/server.ts:12"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
     "to": "packages/work/src/core/opencode-model-catalog.ts",
     "kind": "imports",
     "evidence": "packages/work/src/server/server.ts:120"
@@ -3346,6 +2908,12 @@
     "to": "packages/work/src/core/cli-fingerprint.ts",
     "kind": "imports",
     "evidence": "packages/work/src/server/server.ts:124"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/core/provider-auth.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:125"
   },
   {
     "from": "packages/work/src/server/server.ts",
@@ -3385,6 +2953,12 @@
   },
   {
     "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/runs/layouts.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:14"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
     "to": "packages/work/src/skills.ts",
     "kind": "imports",
     "evidence": "packages/work/src/server/server.ts:140"
@@ -3418,6 +2992,12 @@
     "to": "packages/work/src/workflows/run.ts",
     "kind": "imports",
     "evidence": "packages/work/src/server/server.ts:148"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/terminal/detected-urls.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:15"
   },
   {
     "from": "packages/work/src/server/server.ts",
@@ -3475,6 +3055,12 @@
   },
   {
     "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/terminal/sessions.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:16"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
     "to": "packages/work/src/agent-config/files.ts",
     "kind": "imports",
     "evidence": "packages/work/src/server/server.ts:160"
@@ -3493,6 +3079,30 @@
   },
   {
     "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/workspace/config.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:163"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "node:crypto",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/server.ts:17"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/workspace/agent-accounts.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:172"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/automations/store.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:18"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
     "to": "packages/work/src/workspace/agent-profiles.ts",
     "kind": "imports",
     "evidence": "packages/work/src/server/server.ts:182"
@@ -3508,6 +3118,18 @@
     "to": "packages/work/src/core/shell-env.ts",
     "kind": "imports",
     "evidence": "packages/work/src/server/server.ts:184"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/workspace/projects.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:185"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/automations/coordinator.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:19"
   },
   {
     "from": "packages/work/src/server/server.ts",
@@ -3532,6 +3154,18 @@
     "to": "@onni/contract",
     "kind": "package-dep",
     "evidence": "packages/work/src/server/server.ts:199"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/webhooks/coordinator.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:2"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/automations/github-poller.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:20"
   },
   {
     "from": "packages/work/src/server/server.ts",
@@ -3595,6 +3229,12 @@
   },
   {
     "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/automations/tracker-poller.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:21"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
     "to": "packages/work/src/github-hosts.ts",
     "kind": "imports",
     "evidence": "packages/work/src/server/server.ts:210"
@@ -3649,6 +3289,12 @@
   },
   {
     "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/automations/scheduler.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:22"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
     "to": "packages/work/src/server/provider-auth-runtime.ts",
     "kind": "imports",
     "evidence": "packages/work/src/server/server.ts:221"
@@ -3673,33 +3319,387 @@
   },
   {
     "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/automations/schedule-runner.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:23"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/automations/stats.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:24"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/automations/task-template.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:25"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
     "to": "packages/work/src/automations/types.ts",
     "kind": "imports",
     "evidence": "packages/work/src/server/server.ts:26"
   },
   {
     "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/core/provider-auth.ts",
+    "to": "packages/work/src/webhooks/service.ts",
     "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:125"
+    "evidence": "packages/work/src/server/server.ts:3"
   },
   {
     "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/workspace/config.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:163"
+    "to": "@onni/contract",
+    "kind": "package-dep",
+    "evidence": "packages/work/src/server/server.ts:36"
   },
   {
     "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/workspace/agent-accounts.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:172"
+    "to": "node:http",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/server.ts:37"
   },
   {
     "from": "packages/work/src/server/server.ts",
-    "to": "packages/work/src/workspace/projects.ts",
+    "to": "node:fs/promises",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/server.ts:38"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "node:os",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/server.ts:39"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server-install/state.ts",
     "kind": "imports",
-    "evidence": "packages/work/src/server/server.ts:185"
+    "evidence": "packages/work/src/server/server.ts:4"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "node:path",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/server.ts:40"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "node:url",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/server.ts:41"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "hono",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/server.ts:42"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/groups.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:43"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/open-targets.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:44"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/todos.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:45"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/worktrees.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:46"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/terminal.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:47"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/project-terminal.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:48"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "hono",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/server.ts:49"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/automations/deferred-reset.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:5"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "@hono/node-server",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/server.ts:50"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "hono/body-limit",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/server.ts:51"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "hono/http-exception",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/server.ts:52"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "hono/streaming",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/server.ts:53"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/validators.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:54"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/models.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:55"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/providers.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:56"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/agent-profiles.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:57"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/projects.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:58"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/workspace-config.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:59"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/automations/deferred-start.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:6"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/runs-index.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:60"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/workspace-search.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:61"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/workspace-threads.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:62"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/workspace-config.ts",
+    "kind": "reexports",
+    "evidence": "packages/work/src/server/server.ts:63"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/projects.ts",
+    "kind": "reexports",
+    "evidence": "packages/work/src/server/server.ts:64"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/fs-browse.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:65"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/workspace-secrets.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:66"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/preview.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:67"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/health.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:68"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/drafts.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:69"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "@onni/contract",
+    "kind": "package-dep",
+    "evidence": "packages/work/src/server/server.ts:7"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/layouts.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:70"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/workspace-panes.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:71"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/e2e.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:72"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "yaml",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/server.ts:73"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/workflows.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:74"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/plan.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:75"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/config.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:76"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/agent-config.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:77"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/sse.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:78"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/workspace-events.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:79"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "@onni/contract",
+    "kind": "package-dep",
+    "evidence": "packages/work/src/server/server.ts:8"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/repo.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:80"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/github.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:81"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/tracker.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:82"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/dispatch.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:83"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/memory.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:84"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/runs.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:85"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/automation-checks.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:86"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/server/routes/automations.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:87"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "zod",
+    "kind": "ext",
+    "evidence": "packages/work/src/server/server.ts:88"
+  },
+  {
+    "from": "packages/work/src/server/server.ts",
+    "to": "packages/work/src/workspace/secrets.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/server/server.ts:9"
   },
   {
     "from": "packages/work/src/server/sse-subscriptions.ts",
@@ -3718,54 +3718,6 @@
     "to": "@onni/contract",
     "kind": "package-dep",
     "evidence": "packages/work/src/webhooks/service.ts:1"
-  },
-  {
-    "from": "packages/work/src/webhooks/service.ts",
-    "to": "packages/work/src/tracker-association.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/webhooks/service.ts:2"
-  },
-  {
-    "from": "packages/work/src/webhooks/service.ts",
-    "to": "packages/work/src/webhooks/links.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/webhooks/service.ts:3"
-  },
-  {
-    "from": "packages/work/src/webhooks/service.ts",
-    "to": "packages/work/src/webhooks/history.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/webhooks/service.ts:4"
-  },
-  {
-    "from": "packages/work/src/webhooks/service.ts",
-    "to": "packages/work/src/webhooks/operations.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/webhooks/service.ts:5"
-  },
-  {
-    "from": "packages/work/src/webhooks/service.ts",
-    "to": "node:events",
-    "kind": "ext",
-    "evidence": "packages/work/src/webhooks/service.ts:6"
-  },
-  {
-    "from": "packages/work/src/webhooks/service.ts",
-    "to": "node:crypto",
-    "kind": "ext",
-    "evidence": "packages/work/src/webhooks/service.ts:7"
-  },
-  {
-    "from": "packages/work/src/webhooks/service.ts",
-    "to": "node:fs/promises",
-    "kind": "ext",
-    "evidence": "packages/work/src/webhooks/service.ts:8"
-  },
-  {
-    "from": "packages/work/src/webhooks/service.ts",
-    "to": "node:fs",
-    "kind": "ext",
-    "evidence": "packages/work/src/webhooks/service.ts:9"
   },
   {
     "from": "packages/work/src/webhooks/service.ts",
@@ -3829,6 +3781,12 @@
   },
   {
     "from": "packages/work/src/webhooks/service.ts",
+    "to": "packages/work/src/tracker-association.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/webhooks/service.ts:2"
+  },
+  {
+    "from": "packages/work/src/webhooks/service.ts",
     "to": "packages/work/src/webhooks/admission.ts",
     "kind": "imports",
     "evidence": "packages/work/src/webhooks/service.ts:20"
@@ -3868,6 +3826,48 @@
     "to": "packages/work/src/webhooks/transport.ts",
     "kind": "imports",
     "evidence": "packages/work/src/webhooks/service.ts:26"
+  },
+  {
+    "from": "packages/work/src/webhooks/service.ts",
+    "to": "packages/work/src/webhooks/links.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/webhooks/service.ts:3"
+  },
+  {
+    "from": "packages/work/src/webhooks/service.ts",
+    "to": "packages/work/src/webhooks/history.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/webhooks/service.ts:4"
+  },
+  {
+    "from": "packages/work/src/webhooks/service.ts",
+    "to": "packages/work/src/webhooks/operations.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/webhooks/service.ts:5"
+  },
+  {
+    "from": "packages/work/src/webhooks/service.ts",
+    "to": "node:events",
+    "kind": "ext",
+    "evidence": "packages/work/src/webhooks/service.ts:6"
+  },
+  {
+    "from": "packages/work/src/webhooks/service.ts",
+    "to": "node:crypto",
+    "kind": "ext",
+    "evidence": "packages/work/src/webhooks/service.ts:7"
+  },
+  {
+    "from": "packages/work/src/webhooks/service.ts",
+    "to": "node:fs/promises",
+    "kind": "ext",
+    "evidence": "packages/work/src/webhooks/service.ts:8"
+  },
+  {
+    "from": "packages/work/src/webhooks/service.ts",
+    "to": "node:fs",
+    "kind": "ext",
+    "evidence": "packages/work/src/webhooks/service.ts:9"
   },
   {
     "from": "packages/work/src/workflows/completion-reason.ts",
@@ -3973,27 +3973,69 @@
   },
   {
     "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/workflows/run/agent-step.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:1"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/workflows/run/check-steps.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:1"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/workflows/run/dispatch.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:1"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/workflows/run/graph.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:1"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/workflows/run/manager-controls.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:1"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/workflows/run/manager-state.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:1"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/workflows/run/messages.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:1"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/workflows/run/queue.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:1"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/workflows/run/scheduling.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:1"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/workflows/run/start.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:1"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
     "to": "packages/work/src/workflows/run/internal-types.ts",
     "kind": "type-imports",
     "evidence": "packages/work/src/workflows/run.ts:12"
-  },
-  {
-    "from": "packages/work/src/workflows/run.ts",
-    "to": "packages/work/src/workflows/run/execute.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run.ts:35"
-  },
-  {
-    "from": "packages/work/src/workflows/run.ts",
-    "to": "packages/work/src/workflows/run/verify.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run.ts:36"
-  },
-  {
-    "from": "packages/work/src/workflows/run.ts",
-    "to": "packages/work/src/workflows/run/internal-types.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run.ts:75"
   },
   {
     "from": "packages/work/src/workflows/run.ts",
@@ -4075,6 +4117,12 @@
   },
   {
     "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/core/ask.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:248"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
     "to": "packages/work/src/core/claude-cli-runner.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run.ts:255"
@@ -4084,6 +4132,12 @@
     "to": "packages/work/src/workflows/resume-fallback.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run.ts:256"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/core/private-mcp.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:257"
   },
   {
     "from": "packages/work/src/workflows/run.ts",
@@ -4156,6 +4210,18 @@
     "to": "packages/work/src/core/agent-model-policy.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run.ts:275"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/core/model-identity.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:276"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/handoff.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:281"
   },
   {
     "from": "packages/work/src/workflows/run.ts",
@@ -4249,6 +4315,12 @@
   },
   {
     "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/workflows/run/settlement.ts",
+    "kind": "dynamic-import",
+    "evidence": "packages/work/src/workflows/run.ts:3263"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
     "to": "packages/work/src/server/forge/github.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run.ts:337"
@@ -4282,6 +4354,18 @@
     "to": "packages/work/src/runs/store.ts",
     "kind": "type-imports",
     "evidence": "packages/work/src/workflows/run.ts:342"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/workflows/run/execute.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:35"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/workflows/run/verify.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:36"
   },
   {
     "from": "packages/work/src/workflows/run.ts",
@@ -4345,9 +4429,27 @@
   },
   {
     "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/dispatch/tree-fs.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:374"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/dispatch/engine.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:387"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
     "to": "packages/work/src/runs/retention.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run.ts:400"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/runs/agent-tmpdir.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:401"
   },
   {
     "from": "packages/work/src/workflows/run.ts",
@@ -4405,6 +4507,12 @@
   },
   {
     "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/workflows/manager-worker.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:416"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
     "to": "packages/work/src/workflows/push-guard.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run.ts:424"
@@ -4453,6 +4561,12 @@
   },
   {
     "from": "packages/work/src/workflows/run.ts",
+    "to": "packages/work/src/workflows/types.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run.ts:432"
+  },
+  {
+    "from": "packages/work/src/workflows/run.ts",
     "to": "packages/work/src/workflows/graph.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run.ts:440"
@@ -4495,9 +4609,9 @@
   },
   {
     "from": "packages/work/src/workflows/run.ts",
-    "to": "packages/work/src/workflows/run/settlement.ts",
-    "kind": "dynamic-import",
-    "evidence": "packages/work/src/workflows/run.ts:3263"
+    "to": "packages/work/src/workflows/run/internal-types.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run.ts:75"
   },
   {
     "from": "packages/work/src/workflows/run.ts",
@@ -4506,112 +4620,10 @@
     "evidence": "packages/work/src/workflows/run.ts:94"
   },
   {
-    "from": "packages/work/src/workflows/run.ts",
-    "to": "packages/work/src/core/ask.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run.ts:248"
-  },
-  {
-    "from": "packages/work/src/workflows/run.ts",
-    "to": "packages/work/src/core/private-mcp.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run.ts:257"
-  },
-  {
-    "from": "packages/work/src/workflows/run.ts",
-    "to": "packages/work/src/core/model-identity.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run.ts:276"
-  },
-  {
-    "from": "packages/work/src/workflows/run.ts",
-    "to": "packages/work/src/handoff.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run.ts:281"
-  },
-  {
-    "from": "packages/work/src/workflows/run.ts",
-    "to": "packages/work/src/dispatch/tree-fs.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run.ts:374"
-  },
-  {
-    "from": "packages/work/src/workflows/run.ts",
-    "to": "packages/work/src/dispatch/engine.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run.ts:387"
-  },
-  {
-    "from": "packages/work/src/workflows/run.ts",
-    "to": "packages/work/src/runs/agent-tmpdir.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run.ts:401"
-  },
-  {
-    "from": "packages/work/src/workflows/run.ts",
-    "to": "packages/work/src/workflows/manager-worker.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run.ts:416"
-  },
-  {
-    "from": "packages/work/src/workflows/run.ts",
-    "to": "packages/work/src/workflows/types.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run.ts:432"
-  },
-  {
     "from": "packages/work/src/workflows/run/agent-step.ts",
     "to": "node:crypto",
     "kind": "ext",
     "evidence": "packages/work/src/workflows/run/agent-step.ts:1"
-  },
-  {
-    "from": "packages/work/src/workflows/run/agent-step.ts",
-    "to": "node:path",
-    "kind": "ext",
-    "evidence": "packages/work/src/workflows/run/agent-step.ts:2"
-  },
-  {
-    "from": "packages/work/src/workflows/run/agent-step.ts",
-    "to": "packages/work/src/core/claude-cli-runner.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/agent-step.ts:3"
-  },
-  {
-    "from": "packages/work/src/workflows/run/agent-step.ts",
-    "to": "packages/work/src/core/model-identity.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/agent-step.ts:4"
-  },
-  {
-    "from": "packages/work/src/workflows/run/agent-step.ts",
-    "to": "packages/work/src/core/agent-runner.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/agent-step.ts:5"
-  },
-  {
-    "from": "packages/work/src/workflows/run/agent-step.ts",
-    "to": "packages/work/src/core/ask.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/agent-step.ts:6"
-  },
-  {
-    "from": "packages/work/src/workflows/run/agent-step.ts",
-    "to": "packages/work/src/core/agent-model-policy.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/agent-step.ts:7"
-  },
-  {
-    "from": "packages/work/src/workflows/run/agent-step.ts",
-    "to": "packages/work/src/core/runner-factory.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/agent-step.ts:8"
-  },
-  {
-    "from": "packages/work/src/workflows/run/agent-step.ts",
-    "to": "packages/work/src/core/ui-events.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/agent-step.ts:9"
   },
   {
     "from": "packages/work/src/workflows/run/agent-step.ts",
@@ -4675,6 +4687,12 @@
   },
   {
     "from": "packages/work/src/workflows/run/agent-step.ts",
+    "to": "node:path",
+    "kind": "ext",
+    "evidence": "packages/work/src/workflows/run/agent-step.ts:2"
+  },
+  {
+    "from": "packages/work/src/workflows/run/agent-step.ts",
     "to": "packages/work/src/server/tracker/agent-credentials.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run/agent-step.ts:20"
@@ -4735,6 +4753,12 @@
   },
   {
     "from": "packages/work/src/workflows/run/agent-step.ts",
+    "to": "packages/work/src/core/claude-cli-runner.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/agent-step.ts:3"
+  },
+  {
+    "from": "packages/work/src/workflows/run/agent-step.ts",
     "to": "packages/work/src/workflows/run/internal-types.ts",
     "kind": "type-imports",
     "evidence": "packages/work/src/workflows/run/agent-step.ts:30"
@@ -4764,58 +4788,46 @@
     "evidence": "packages/work/src/workflows/run/agent-step.ts:34"
   },
   {
+    "from": "packages/work/src/workflows/run/agent-step.ts",
+    "to": "packages/work/src/core/model-identity.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/agent-step.ts:4"
+  },
+  {
+    "from": "packages/work/src/workflows/run/agent-step.ts",
+    "to": "packages/work/src/core/agent-runner.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/agent-step.ts:5"
+  },
+  {
+    "from": "packages/work/src/workflows/run/agent-step.ts",
+    "to": "packages/work/src/core/ask.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/agent-step.ts:6"
+  },
+  {
+    "from": "packages/work/src/workflows/run/agent-step.ts",
+    "to": "packages/work/src/core/agent-model-policy.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/agent-step.ts:7"
+  },
+  {
+    "from": "packages/work/src/workflows/run/agent-step.ts",
+    "to": "packages/work/src/core/runner-factory.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/agent-step.ts:8"
+  },
+  {
+    "from": "packages/work/src/workflows/run/agent-step.ts",
+    "to": "packages/work/src/core/ui-events.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/agent-step.ts:9"
+  },
+  {
     "from": "packages/work/src/workflows/run/check-steps.ts",
     "to": "node:crypto",
     "kind": "ext",
     "evidence": "packages/work/src/workflows/run/check-steps.ts:1"
-  },
-  {
-    "from": "packages/work/src/workflows/run/check-steps.ts",
-    "to": "node:fs",
-    "kind": "ext",
-    "evidence": "packages/work/src/workflows/run/check-steps.ts:2"
-  },
-  {
-    "from": "packages/work/src/workflows/run/check-steps.ts",
-    "to": "node:fs/promises",
-    "kind": "ext",
-    "evidence": "packages/work/src/workflows/run/check-steps.ts:3"
-  },
-  {
-    "from": "packages/work/src/workflows/run/check-steps.ts",
-    "to": "node:path",
-    "kind": "ext",
-    "evidence": "packages/work/src/workflows/run/check-steps.ts:4"
-  },
-  {
-    "from": "packages/work/src/workflows/run/check-steps.ts",
-    "to": "packages/work/src/core/agent-runner.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/check-steps.ts:5"
-  },
-  {
-    "from": "packages/work/src/workflows/run/check-steps.ts",
-    "to": "packages/work/src/core/bash-path.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/check-steps.ts:6"
-  },
-  {
-    "from": "packages/work/src/workflows/run/check-steps.ts",
-    "to": "packages/work/src/core/utf8-chunks.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/check-steps.ts:7"
-  },
-  {
-    "from": "packages/work/src/workflows/run/check-steps.ts",
-    "to": "packages/work/src/core/secret-redaction.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/check-steps.ts:8"
-  },
-  {
-    "from": "packages/work/src/workflows/run/check-steps.ts",
-    "to": "packages/work/src/automations/pr-head.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/check-steps.ts:9"
   },
   {
     "from": "packages/work/src/workflows/run/check-steps.ts",
@@ -4872,58 +4884,58 @@
     "evidence": "packages/work/src/workflows/run/check-steps.ts:18"
   },
   {
+    "from": "packages/work/src/workflows/run/check-steps.ts",
+    "to": "node:fs",
+    "kind": "ext",
+    "evidence": "packages/work/src/workflows/run/check-steps.ts:2"
+  },
+  {
+    "from": "packages/work/src/workflows/run/check-steps.ts",
+    "to": "node:fs/promises",
+    "kind": "ext",
+    "evidence": "packages/work/src/workflows/run/check-steps.ts:3"
+  },
+  {
+    "from": "packages/work/src/workflows/run/check-steps.ts",
+    "to": "node:path",
+    "kind": "ext",
+    "evidence": "packages/work/src/workflows/run/check-steps.ts:4"
+  },
+  {
+    "from": "packages/work/src/workflows/run/check-steps.ts",
+    "to": "packages/work/src/core/agent-runner.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/check-steps.ts:5"
+  },
+  {
+    "from": "packages/work/src/workflows/run/check-steps.ts",
+    "to": "packages/work/src/core/bash-path.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/check-steps.ts:6"
+  },
+  {
+    "from": "packages/work/src/workflows/run/check-steps.ts",
+    "to": "packages/work/src/core/utf8-chunks.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/check-steps.ts:7"
+  },
+  {
+    "from": "packages/work/src/workflows/run/check-steps.ts",
+    "to": "packages/work/src/core/secret-redaction.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/check-steps.ts:8"
+  },
+  {
+    "from": "packages/work/src/workflows/run/check-steps.ts",
+    "to": "packages/work/src/automations/pr-head.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/check-steps.ts:9"
+  },
+  {
     "from": "packages/work/src/workflows/run/dispatch.ts",
     "to": "node:fs",
     "kind": "ext",
     "evidence": "packages/work/src/workflows/run/dispatch.ts:1"
-  },
-  {
-    "from": "packages/work/src/workflows/run/dispatch.ts",
-    "to": "@onni/contract",
-    "kind": "package-dep",
-    "evidence": "packages/work/src/workflows/run/dispatch.ts:2"
-  },
-  {
-    "from": "packages/work/src/workflows/run/dispatch.ts",
-    "to": "packages/work/src/core/antigravity-permissions.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/dispatch.ts:3"
-  },
-  {
-    "from": "packages/work/src/workflows/run/dispatch.ts",
-    "to": "packages/work/src/git-worktree.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/dispatch.ts:4"
-  },
-  {
-    "from": "packages/work/src/workflows/run/dispatch.ts",
-    "to": "packages/work/src/dispatch/prompts.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/dispatch.ts:5"
-  },
-  {
-    "from": "packages/work/src/workflows/run/dispatch.ts",
-    "to": "packages/work/src/dispatch/budget-format.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/dispatch.ts:6"
-  },
-  {
-    "from": "packages/work/src/workflows/run/dispatch.ts",
-    "to": "packages/work/src/dispatch/access.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/dispatch.ts:7"
-  },
-  {
-    "from": "packages/work/src/workflows/run/dispatch.ts",
-    "to": "packages/work/src/dispatch/tree-fs.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/dispatch.ts:8"
-  },
-  {
-    "from": "packages/work/src/workflows/run/dispatch.ts",
-    "to": "packages/work/src/dispatch/engine.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/dispatch.ts:9"
   },
   {
     "from": "packages/work/src/workflows/run/dispatch.ts",
@@ -4980,58 +4992,58 @@
     "evidence": "packages/work/src/workflows/run/dispatch.ts:18"
   },
   {
+    "from": "packages/work/src/workflows/run/dispatch.ts",
+    "to": "@onni/contract",
+    "kind": "package-dep",
+    "evidence": "packages/work/src/workflows/run/dispatch.ts:2"
+  },
+  {
+    "from": "packages/work/src/workflows/run/dispatch.ts",
+    "to": "packages/work/src/core/antigravity-permissions.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/dispatch.ts:3"
+  },
+  {
+    "from": "packages/work/src/workflows/run/dispatch.ts",
+    "to": "packages/work/src/git-worktree.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/dispatch.ts:4"
+  },
+  {
+    "from": "packages/work/src/workflows/run/dispatch.ts",
+    "to": "packages/work/src/dispatch/prompts.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/dispatch.ts:5"
+  },
+  {
+    "from": "packages/work/src/workflows/run/dispatch.ts",
+    "to": "packages/work/src/dispatch/budget-format.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/dispatch.ts:6"
+  },
+  {
+    "from": "packages/work/src/workflows/run/dispatch.ts",
+    "to": "packages/work/src/dispatch/access.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/dispatch.ts:7"
+  },
+  {
+    "from": "packages/work/src/workflows/run/dispatch.ts",
+    "to": "packages/work/src/dispatch/tree-fs.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/dispatch.ts:8"
+  },
+  {
+    "from": "packages/work/src/workflows/run/dispatch.ts",
+    "to": "packages/work/src/dispatch/engine.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/dispatch.ts:9"
+  },
+  {
     "from": "packages/work/src/workflows/run/graph.ts",
     "to": "node:crypto",
     "kind": "ext",
     "evidence": "packages/work/src/workflows/run/graph.ts:1"
-  },
-  {
-    "from": "packages/work/src/workflows/run/graph.ts",
-    "to": "@onni/contract",
-    "kind": "package-dep",
-    "evidence": "packages/work/src/workflows/run/graph.ts:2"
-  },
-  {
-    "from": "packages/work/src/workflows/run/graph.ts",
-    "to": "node:path",
-    "kind": "ext",
-    "evidence": "packages/work/src/workflows/run/graph.ts:3"
-  },
-  {
-    "from": "packages/work/src/workflows/run/graph.ts",
-    "to": "packages/work/src/core/agent-runner.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/graph.ts:4"
-  },
-  {
-    "from": "packages/work/src/workflows/run/graph.ts",
-    "to": "packages/work/src/dispatch/engine.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/graph.ts:5"
-  },
-  {
-    "from": "packages/work/src/workflows/run/graph.ts",
-    "to": "packages/work/src/git-worktree.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/graph.ts:6"
-  },
-  {
-    "from": "packages/work/src/workflows/run/graph.ts",
-    "to": "packages/work/src/handoff.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/graph.ts:7"
-  },
-  {
-    "from": "packages/work/src/workflows/run/graph.ts",
-    "to": "packages/work/src/runs/store.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/graph.ts:8"
-  },
-  {
-    "from": "packages/work/src/workflows/run/graph.ts",
-    "to": "packages/work/src/server/forge/github.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/graph.ts:9"
   },
   {
     "from": "packages/work/src/workflows/run/graph.ts",
@@ -5095,6 +5107,12 @@
   },
   {
     "from": "packages/work/src/workflows/run/graph.ts",
+    "to": "@onni/contract",
+    "kind": "package-dep",
+    "evidence": "packages/work/src/workflows/run/graph.ts:2"
+  },
+  {
+    "from": "packages/work/src/workflows/run/graph.ts",
     "to": "packages/work/src/workflows/push-guard.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run/graph.ts:20"
@@ -5124,58 +5142,52 @@
     "evidence": "packages/work/src/workflows/run/graph.ts:24"
   },
   {
+    "from": "packages/work/src/workflows/run/graph.ts",
+    "to": "node:path",
+    "kind": "ext",
+    "evidence": "packages/work/src/workflows/run/graph.ts:3"
+  },
+  {
+    "from": "packages/work/src/workflows/run/graph.ts",
+    "to": "packages/work/src/core/agent-runner.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/graph.ts:4"
+  },
+  {
+    "from": "packages/work/src/workflows/run/graph.ts",
+    "to": "packages/work/src/dispatch/engine.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/graph.ts:5"
+  },
+  {
+    "from": "packages/work/src/workflows/run/graph.ts",
+    "to": "packages/work/src/git-worktree.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/graph.ts:6"
+  },
+  {
+    "from": "packages/work/src/workflows/run/graph.ts",
+    "to": "packages/work/src/handoff.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/graph.ts:7"
+  },
+  {
+    "from": "packages/work/src/workflows/run/graph.ts",
+    "to": "packages/work/src/runs/store.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/graph.ts:8"
+  },
+  {
+    "from": "packages/work/src/workflows/run/graph.ts",
+    "to": "packages/work/src/server/forge/github.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/graph.ts:9"
+  },
+  {
     "from": "packages/work/src/workflows/run/internal-types.ts",
     "to": "packages/work/src/core/agent-runner.ts",
     "kind": "type-imports",
     "evidence": "packages/work/src/workflows/run/internal-types.ts:1"
-  },
-  {
-    "from": "packages/work/src/workflows/run/internal-types.ts",
-    "to": "packages/work/src/workflows/types.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/internal-types.ts:2"
-  },
-  {
-    "from": "packages/work/src/workflows/run/internal-types.ts",
-    "to": "packages/work/src/workflows/graph.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/internal-types.ts:3"
-  },
-  {
-    "from": "packages/work/src/workflows/run/internal-types.ts",
-    "to": "packages/work/src/core/agent-runner.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/internal-types.ts:4"
-  },
-  {
-    "from": "packages/work/src/workflows/run/internal-types.ts",
-    "to": "packages/work/src/core/ui-events.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/internal-types.ts:5"
-  },
-  {
-    "from": "packages/work/src/workflows/run/internal-types.ts",
-    "to": "packages/work/src/runs/ui-event-sink.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/internal-types.ts:6"
-  },
-  {
-    "from": "packages/work/src/workflows/run/internal-types.ts",
-    "to": "packages/work/src/workflows/landing.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/internal-types.ts:7"
-  },
-  {
-    "from": "packages/work/src/workflows/run/internal-types.ts",
-    "to": "packages/work/src/skills.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/internal-types.ts:8"
-  },
-  {
-    "from": "packages/work/src/workflows/run/internal-types.ts",
-    "to": "packages/work/src/core/bash-path.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/internal-types.ts:9"
   },
   {
     "from": "packages/work/src/workflows/run/internal-types.ts",
@@ -5185,9 +5197,33 @@
   },
   {
     "from": "packages/work/src/workflows/run/internal-types.ts",
+    "to": "packages/work/src/core/ask.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/internal-types.ts:1040"
+  },
+  {
+    "from": "packages/work/src/workflows/run/internal-types.ts",
+    "to": "packages/work/src/core/ask.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/internal-types.ts:1067"
+  },
+  {
+    "from": "packages/work/src/workflows/run/internal-types.ts",
+    "to": "packages/work/src/core/ask.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/internal-types.ts:1069"
+  },
+  {
+    "from": "packages/work/src/workflows/run/internal-types.ts",
     "to": "packages/work/src/core/private-mcp.ts",
     "kind": "type-imports",
     "evidence": "packages/work/src/workflows/run/internal-types.ts:11"
+  },
+  {
+    "from": "packages/work/src/workflows/run/internal-types.ts",
+    "to": "packages/work/src/workflows/types.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/internal-types.ts:2"
   },
   {
     "from": "packages/work/src/workflows/run/internal-types.ts",
@@ -5227,9 +5263,39 @@
   },
   {
     "from": "packages/work/src/workflows/run/internal-types.ts",
+    "to": "packages/work/src/runs/ui-event-sink.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/internal-types.ts:298"
+  },
+  {
+    "from": "packages/work/src/workflows/run/internal-types.ts",
+    "to": "packages/work/src/core/ask.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/internal-types.ts:299"
+  },
+  {
+    "from": "packages/work/src/workflows/run/internal-types.ts",
+    "to": "packages/work/src/runs/ui-event-sink.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/internal-types.ts:299"
+  },
+  {
+    "from": "packages/work/src/workflows/run/internal-types.ts",
+    "to": "packages/work/src/workflows/graph.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/internal-types.ts:3"
+  },
+  {
+    "from": "packages/work/src/workflows/run/internal-types.ts",
     "to": "packages/work/src/worktree-lifecycle/coordinator.ts",
     "kind": "type-imports",
     "evidence": "packages/work/src/workflows/run/internal-types.ts:30"
+  },
+  {
+    "from": "packages/work/src/workflows/run/internal-types.ts",
+    "to": "packages/work/src/workflows/run/preparation.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/internal-types.ts:302"
   },
   {
     "from": "packages/work/src/workflows/run/internal-types.ts",
@@ -5251,33 +5317,21 @@
   },
   {
     "from": "packages/work/src/workflows/run/internal-types.ts",
-    "to": "packages/work/src/runs/ui-event-sink.ts",
+    "to": "packages/work/src/core/agent-runner.ts",
     "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/internal-types.ts:298"
-  },
-  {
-    "from": "packages/work/src/workflows/run/internal-types.ts",
-    "to": "packages/work/src/runs/ui-event-sink.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/internal-types.ts:299"
-  },
-  {
-    "from": "packages/work/src/workflows/run/internal-types.ts",
-    "to": "packages/work/src/core/ask.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/internal-types.ts:299"
-  },
-  {
-    "from": "packages/work/src/workflows/run/internal-types.ts",
-    "to": "packages/work/src/workflows/run/preparation.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/internal-types.ts:302"
+    "evidence": "packages/work/src/workflows/run/internal-types.ts:4"
   },
   {
     "from": "packages/work/src/workflows/run/internal-types.ts",
     "to": "packages/work/src/skills.ts",
     "kind": "type-imports",
     "evidence": "packages/work/src/workflows/run/internal-types.ts:443"
+  },
+  {
+    "from": "packages/work/src/workflows/run/internal-types.ts",
+    "to": "packages/work/src/core/ui-events.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/internal-types.ts:5"
   },
   {
     "from": "packages/work/src/workflows/run/internal-types.ts",
@@ -5299,9 +5353,21 @@
   },
   {
     "from": "packages/work/src/workflows/run/internal-types.ts",
+    "to": "packages/work/src/runs/ui-event-sink.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/internal-types.ts:6"
+  },
+  {
+    "from": "packages/work/src/workflows/run/internal-types.ts",
     "to": "packages/work/src/skills.ts",
     "kind": "type-imports",
     "evidence": "packages/work/src/workflows/run/internal-types.ts:603"
+  },
+  {
+    "from": "packages/work/src/workflows/run/internal-types.ts",
+    "to": "packages/work/src/workflows/landing.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/internal-types.ts:7"
   },
   {
     "from": "packages/work/src/workflows/run/internal-types.ts",
@@ -5317,6 +5383,12 @@
   },
   {
     "from": "packages/work/src/workflows/run/internal-types.ts",
+    "to": "packages/work/src/skills.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/internal-types.ts:8"
+  },
+  {
+    "from": "packages/work/src/workflows/run/internal-types.ts",
     "to": "packages/work/src/core/ask.ts",
     "kind": "type-imports",
     "evidence": "packages/work/src/workflows/run/internal-types.ts:808"
@@ -5329,21 +5401,9 @@
   },
   {
     "from": "packages/work/src/workflows/run/internal-types.ts",
-    "to": "packages/work/src/core/ask.ts",
+    "to": "packages/work/src/core/bash-path.ts",
     "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/internal-types.ts:1040"
-  },
-  {
-    "from": "packages/work/src/workflows/run/internal-types.ts",
-    "to": "packages/work/src/core/ask.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/internal-types.ts:1067"
-  },
-  {
-    "from": "packages/work/src/workflows/run/internal-types.ts",
-    "to": "packages/work/src/core/ask.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/internal-types.ts:1069"
+    "evidence": "packages/work/src/workflows/run/internal-types.ts:9"
   },
   {
     "from": "packages/work/src/workflows/run/manager-controls.ts",
@@ -5443,6 +5503,12 @@
   },
   {
     "from": "packages/work/src/workflows/run/manager-controls.ts",
+    "to": "packages/work/src/git-worktree.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/manager-controls.ts:56"
+  },
+  {
+    "from": "packages/work/src/workflows/run/manager-controls.ts",
     "to": "packages/work/src/workspace/config.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run/manager-controls.ts:64"
@@ -5458,12 +5524,6 @@
     "to": "packages/work/src/workflows/run/preparation.ts",
     "kind": "type-imports",
     "evidence": "packages/work/src/workflows/run/manager-controls.ts:66"
-  },
-  {
-    "from": "packages/work/src/workflows/run/manager-controls.ts",
-    "to": "packages/work/src/git-worktree.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/manager-controls.ts:56"
   },
   {
     "from": "packages/work/src/workflows/run/manager-controls.ts",
@@ -5485,12 +5545,6 @@
   },
   {
     "from": "packages/work/src/workflows/run/manager-state.ts",
-    "to": "node:fs",
-    "kind": "ext",
-    "evidence": "packages/work/src/workflows/run/manager-state.ts:2"
-  },
-  {
-    "from": "packages/work/src/workflows/run/manager-state.ts",
     "to": "packages/work/src/core/ask.ts",
     "kind": "type-imports",
     "evidence": "packages/work/src/workflows/run/manager-state.ts:18"
@@ -5500,6 +5554,12 @@
     "to": "packages/work/src/core/ask.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run/manager-state.ts:19"
+  },
+  {
+    "from": "packages/work/src/workflows/run/manager-state.ts",
+    "to": "node:fs",
+    "kind": "ext",
+    "evidence": "packages/work/src/workflows/run/manager-state.ts:2"
   },
   {
     "from": "packages/work/src/workflows/run/manager-state.ts",
@@ -5545,6 +5605,12 @@
   },
   {
     "from": "packages/work/src/workflows/run/manager-state.ts",
+    "to": "@onni/contract",
+    "kind": "package-dep",
+    "evidence": "packages/work/src/workflows/run/manager-state.ts:267"
+  },
+  {
+    "from": "packages/work/src/workflows/run/manager-state.ts",
     "to": "packages/work/src/dispatch/memory.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run/manager-state.ts:27"
@@ -5574,12 +5640,6 @@
     "evidence": "packages/work/src/workflows/run/manager-state.ts:31"
   },
   {
-    "from": "packages/work/src/workflows/run/manager-state.ts",
-    "to": "@onni/contract",
-    "kind": "package-dep",
-    "evidence": "packages/work/src/workflows/run/manager-state.ts:267"
-  },
-  {
     "from": "packages/work/src/workflows/run/messages.ts",
     "to": "node:crypto",
     "kind": "ext",
@@ -5587,9 +5647,33 @@
   },
   {
     "from": "packages/work/src/workflows/run/messages.ts",
+    "to": "packages/work/src/workflows/run/start.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/messages.ts:10"
+  },
+  {
+    "from": "packages/work/src/workflows/run/messages.ts",
+    "to": "packages/work/src/workflows/run/preparation.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/messages.ts:11"
+  },
+  {
+    "from": "packages/work/src/workflows/run/messages.ts",
+    "to": "packages/work/src/workflows/run/internal-types.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/messages.ts:18"
+  },
+  {
+    "from": "packages/work/src/workflows/run/messages.ts",
     "to": "node:fs",
     "kind": "ext",
     "evidence": "packages/work/src/workflows/run/messages.ts:2"
+  },
+  {
+    "from": "packages/work/src/workflows/run/messages.ts",
+    "to": "packages/work/src/workflows/run.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/messages.ts:24"
   },
   {
     "from": "packages/work/src/workflows/run/messages.ts",
@@ -5634,34 +5718,16 @@
     "evidence": "packages/work/src/workflows/run/messages.ts:9"
   },
   {
-    "from": "packages/work/src/workflows/run/messages.ts",
-    "to": "packages/work/src/workflows/run/start.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/messages.ts:10"
-  },
-  {
-    "from": "packages/work/src/workflows/run/messages.ts",
-    "to": "packages/work/src/workflows/run.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/messages.ts:24"
-  },
-  {
-    "from": "packages/work/src/workflows/run/messages.ts",
-    "to": "packages/work/src/workflows/run/preparation.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/messages.ts:11"
-  },
-  {
-    "from": "packages/work/src/workflows/run/messages.ts",
-    "to": "packages/work/src/workflows/run/internal-types.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/messages.ts:18"
-  },
-  {
     "from": "packages/work/src/workflows/run/queue.ts",
     "to": "packages/work/src/workspace/agent-accounts.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run/queue.ts:1"
+  },
+  {
+    "from": "packages/work/src/workflows/run/queue.ts",
+    "to": "packages/work/src/workflows/run/preparation.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/queue.ts:10"
   },
   {
     "from": "packages/work/src/workflows/run/queue.ts",
@@ -5712,16 +5778,46 @@
     "evidence": "packages/work/src/workflows/run/queue.ts:9"
   },
   {
-    "from": "packages/work/src/workflows/run/queue.ts",
-    "to": "packages/work/src/workflows/run/preparation.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/queue.ts:10"
-  },
-  {
     "from": "packages/work/src/workflows/run/scheduling.ts",
     "to": "packages/work/src/core/agent-failure-class.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run/scheduling.ts:1"
+  },
+  {
+    "from": "packages/work/src/workflows/run/scheduling.ts",
+    "to": "packages/work/src/workflows/limits.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/scheduling.ts:10"
+  },
+  {
+    "from": "packages/work/src/workflows/run/scheduling.ts",
+    "to": "packages/work/src/workflows/types.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/scheduling.ts:11"
+  },
+  {
+    "from": "packages/work/src/workflows/run/scheduling.ts",
+    "to": "@onni/contract",
+    "kind": "package-dep",
+    "evidence": "packages/work/src/workflows/run/scheduling.ts:12"
+  },
+  {
+    "from": "packages/work/src/workflows/run/scheduling.ts",
+    "to": "packages/work/src/workflows/run.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/scheduling.ts:13"
+  },
+  {
+    "from": "packages/work/src/workflows/run/scheduling.ts",
+    "to": "packages/work/src/workflows/run/internal-types.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/scheduling.ts:14"
+  },
+  {
+    "from": "packages/work/src/workflows/run/scheduling.ts",
+    "to": "packages/work/src/workspace/semaphore.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/scheduling.ts:15"
   },
   {
     "from": "packages/work/src/workflows/run/scheduling.ts",
@@ -5772,82 +5868,10 @@
     "evidence": "packages/work/src/workflows/run/scheduling.ts:9"
   },
   {
-    "from": "packages/work/src/workflows/run/scheduling.ts",
-    "to": "packages/work/src/workflows/limits.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/scheduling.ts:10"
-  },
-  {
-    "from": "packages/work/src/workflows/run/scheduling.ts",
-    "to": "packages/work/src/workflows/types.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/scheduling.ts:11"
-  },
-  {
-    "from": "packages/work/src/workflows/run/scheduling.ts",
-    "to": "@onni/contract",
-    "kind": "package-dep",
-    "evidence": "packages/work/src/workflows/run/scheduling.ts:12"
-  },
-  {
-    "from": "packages/work/src/workflows/run/scheduling.ts",
-    "to": "packages/work/src/workflows/run.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/scheduling.ts:13"
-  },
-  {
-    "from": "packages/work/src/workflows/run/scheduling.ts",
-    "to": "packages/work/src/workflows/run/internal-types.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/scheduling.ts:14"
-  },
-  {
-    "from": "packages/work/src/workflows/run/scheduling.ts",
-    "to": "packages/work/src/workspace/semaphore.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/scheduling.ts:15"
-  },
-  {
     "from": "packages/work/src/workflows/run/settlement.ts",
     "to": "node:fs",
     "kind": "ext",
     "evidence": "packages/work/src/workflows/run/settlement.ts:1"
-  },
-  {
-    "from": "packages/work/src/workflows/run/settlement.ts",
-    "to": "node:path",
-    "kind": "ext",
-    "evidence": "packages/work/src/workflows/run/settlement.ts:2"
-  },
-  {
-    "from": "packages/work/src/workflows/run/settlement.ts",
-    "to": "@onni/contract",
-    "kind": "package-dep",
-    "evidence": "packages/work/src/workflows/run/settlement.ts:3"
-  },
-  {
-    "from": "packages/work/src/workflows/run/settlement.ts",
-    "to": "packages/work/src/core/agent-runner.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/settlement.ts:4"
-  },
-  {
-    "from": "packages/work/src/workflows/run/settlement.ts",
-    "to": "packages/work/src/workflows/completion-reason.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/settlement.ts:5"
-  },
-  {
-    "from": "packages/work/src/workflows/run/settlement.ts",
-    "to": "packages/work/src/workflows/commit-message.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/settlement.ts:6"
-  },
-  {
-    "from": "packages/work/src/workflows/run/settlement.ts",
-    "to": "packages/work/src/worktree-lifecycle/config.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/settlement.ts:7"
   },
   {
     "from": "packages/work/src/workflows/run/settlement.ts",
@@ -5884,6 +5908,12 @@
     "to": "packages/work/src/runs/task-markers.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run/settlement.ts:19"
+  },
+  {
+    "from": "packages/work/src/workflows/run/settlement.ts",
+    "to": "node:path",
+    "kind": "ext",
+    "evidence": "packages/work/src/workflows/run/settlement.ts:2"
   },
   {
     "from": "packages/work/src/workflows/run/settlement.ts",
@@ -5941,6 +5971,36 @@
   },
   {
     "from": "packages/work/src/workflows/run/settlement.ts",
+    "to": "@onni/contract",
+    "kind": "package-dep",
+    "evidence": "packages/work/src/workflows/run/settlement.ts:3"
+  },
+  {
+    "from": "packages/work/src/workflows/run/settlement.ts",
+    "to": "packages/work/src/core/agent-runner.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/settlement.ts:4"
+  },
+  {
+    "from": "packages/work/src/workflows/run/settlement.ts",
+    "to": "packages/work/src/workflows/completion-reason.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/settlement.ts:5"
+  },
+  {
+    "from": "packages/work/src/workflows/run/settlement.ts",
+    "to": "packages/work/src/workflows/commit-message.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/settlement.ts:6"
+  },
+  {
+    "from": "packages/work/src/workflows/run/settlement.ts",
+    "to": "packages/work/src/worktree-lifecycle/config.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/settlement.ts:7"
+  },
+  {
+    "from": "packages/work/src/workflows/run/settlement.ts",
     "to": "packages/work/src/workflows/run/preparation.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run/settlement.ts:8"
@@ -5950,54 +6010,6 @@
     "to": "node:crypto",
     "kind": "ext",
     "evidence": "packages/work/src/workflows/run/start.ts:1"
-  },
-  {
-    "from": "packages/work/src/workflows/run/start.ts",
-    "to": "node:fs/promises",
-    "kind": "ext",
-    "evidence": "packages/work/src/workflows/run/start.ts:2"
-  },
-  {
-    "from": "packages/work/src/workflows/run/start.ts",
-    "to": "@onni/contract",
-    "kind": "package-dep",
-    "evidence": "packages/work/src/workflows/run/start.ts:3"
-  },
-  {
-    "from": "packages/work/src/workflows/run/start.ts",
-    "to": "packages/work/src/core/antigravity-permissions.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/start.ts:4"
-  },
-  {
-    "from": "packages/work/src/workflows/run/start.ts",
-    "to": "packages/work/src/core/codex-usage-probe.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/start.ts:5"
-  },
-  {
-    "from": "packages/work/src/workflows/run/start.ts",
-    "to": "packages/work/src/core/agent-runner.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/start.ts:6"
-  },
-  {
-    "from": "packages/work/src/workflows/run/start.ts",
-    "to": "packages/work/src/core/private-mcp.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/start.ts:7"
-  },
-  {
-    "from": "packages/work/src/workflows/run/start.ts",
-    "to": "packages/work/src/core/process-usage.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/start.ts:8"
-  },
-  {
-    "from": "packages/work/src/workflows/run/start.ts",
-    "to": "packages/work/src/core/agent-model-policy.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/start.ts:9"
   },
   {
     "from": "packages/work/src/workflows/run/start.ts",
@@ -6061,6 +6073,12 @@
   },
   {
     "from": "packages/work/src/workflows/run/start.ts",
+    "to": "node:fs/promises",
+    "kind": "ext",
+    "evidence": "packages/work/src/workflows/run/start.ts:2"
+  },
+  {
+    "from": "packages/work/src/workflows/run/start.ts",
     "to": "packages/work/src/workflows/limits.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run/start.ts:20"
@@ -6108,22 +6126,52 @@
     "evidence": "packages/work/src/workflows/run/start.ts:27"
   },
   {
+    "from": "packages/work/src/workflows/run/start.ts",
+    "to": "@onni/contract",
+    "kind": "package-dep",
+    "evidence": "packages/work/src/workflows/run/start.ts:3"
+  },
+  {
+    "from": "packages/work/src/workflows/run/start.ts",
+    "to": "packages/work/src/core/antigravity-permissions.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/start.ts:4"
+  },
+  {
+    "from": "packages/work/src/workflows/run/start.ts",
+    "to": "packages/work/src/core/codex-usage-probe.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/start.ts:5"
+  },
+  {
+    "from": "packages/work/src/workflows/run/start.ts",
+    "to": "packages/work/src/core/agent-runner.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/start.ts:6"
+  },
+  {
+    "from": "packages/work/src/workflows/run/start.ts",
+    "to": "packages/work/src/core/private-mcp.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/start.ts:7"
+  },
+  {
+    "from": "packages/work/src/workflows/run/start.ts",
+    "to": "packages/work/src/core/process-usage.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/start.ts:8"
+  },
+  {
+    "from": "packages/work/src/workflows/run/start.ts",
+    "to": "packages/work/src/core/agent-model-policy.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/start.ts:9"
+  },
+  {
     "from": "packages/work/src/workflows/run/verify.ts",
     "to": "node:fs",
     "kind": "ext",
     "evidence": "packages/work/src/workflows/run/verify.ts:1"
-  },
-  {
-    "from": "packages/work/src/workflows/run/verify.ts",
-    "to": "node:fs/promises",
-    "kind": "ext",
-    "evidence": "packages/work/src/workflows/run/verify.ts:2"
-  },
-  {
-    "from": "packages/work/src/workflows/run/verify.ts",
-    "to": "node:path",
-    "kind": "ext",
-    "evidence": "packages/work/src/workflows/run/verify.ts:3"
   },
   {
     "from": "packages/work/src/workflows/run/verify.ts",
@@ -6139,39 +6187,21 @@
   },
   {
     "from": "packages/work/src/workflows/run/verify.ts",
+    "to": "packages/work/src/dispatch/access.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/verify.ts:14"
+  },
+  {
+    "from": "packages/work/src/workflows/run/verify.ts",
     "to": "packages/work/src/dispatch/baseline.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run/verify.ts:19"
   },
   {
     "from": "packages/work/src/workflows/run/verify.ts",
-    "to": "packages/work/src/dispatch/engine.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/verify.ts:33"
-  },
-  {
-    "from": "packages/work/src/workflows/run/verify.ts",
-    "to": "packages/work/src/runs/store.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/verify.ts:41"
-  },
-  {
-    "from": "packages/work/src/workflows/run/verify.ts",
-    "to": "packages/work/src/workflows/run/internal-types.ts",
-    "kind": "type-imports",
-    "evidence": "packages/work/src/workflows/run/verify.ts:42"
-  },
-  {
-    "from": "packages/work/src/workflows/run/verify.ts",
-    "to": "@onni/contract",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/verify.ts:4"
-  },
-  {
-    "from": "packages/work/src/workflows/run/verify.ts",
-    "to": "packages/work/src/dispatch/access.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workflows/run/verify.ts:14"
+    "to": "node:fs/promises",
+    "kind": "ext",
+    "evidence": "packages/work/src/workflows/run/verify.ts:2"
   },
   {
     "from": "packages/work/src/workflows/run/verify.ts",
@@ -6187,9 +6217,39 @@
   },
   {
     "from": "packages/work/src/workflows/run/verify.ts",
+    "to": "node:path",
+    "kind": "ext",
+    "evidence": "packages/work/src/workflows/run/verify.ts:3"
+  },
+  {
+    "from": "packages/work/src/workflows/run/verify.ts",
+    "to": "packages/work/src/dispatch/engine.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/verify.ts:33"
+  },
+  {
+    "from": "packages/work/src/workflows/run/verify.ts",
     "to": "packages/work/src/git-worktree.ts",
     "kind": "imports",
     "evidence": "packages/work/src/workflows/run/verify.ts:34"
+  },
+  {
+    "from": "packages/work/src/workflows/run/verify.ts",
+    "to": "@onni/contract",
+    "kind": "imports",
+    "evidence": "packages/work/src/workflows/run/verify.ts:4"
+  },
+  {
+    "from": "packages/work/src/workflows/run/verify.ts",
+    "to": "packages/work/src/runs/store.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/verify.ts:41"
+  },
+  {
+    "from": "packages/work/src/workflows/run/verify.ts",
+    "to": "packages/work/src/workflows/run/internal-types.ts",
+    "kind": "type-imports",
+    "evidence": "packages/work/src/workflows/run/verify.ts:42"
   },
   {
     "from": "packages/work/src/workflows/unattended.ts",
@@ -6205,24 +6265,6 @@
   },
   {
     "from": "packages/work/src/workspace/dashboard.ts",
-    "to": "packages/work/src/workspace/dashboard-overview.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workspace/dashboard.ts:2"
-  },
-  {
-    "from": "packages/work/src/workspace/dashboard.ts",
-    "to": "@onni/contract",
-    "kind": "package-dep",
-    "evidence": "packages/work/src/workspace/dashboard.ts:8"
-  },
-  {
-    "from": "packages/work/src/workspace/dashboard.ts",
-    "to": "node:crypto",
-    "kind": "ext",
-    "evidence": "packages/work/src/workspace/dashboard.ts:9"
-  },
-  {
-    "from": "packages/work/src/workspace/dashboard.ts",
     "to": "node:fs",
     "kind": "ext",
     "evidence": "packages/work/src/workspace/dashboard.ts:10"
@@ -6232,6 +6274,24 @@
     "to": "node:path",
     "kind": "ext",
     "evidence": "packages/work/src/workspace/dashboard.ts:11"
+  },
+  {
+    "from": "packages/work/src/workspace/dashboard.ts",
+    "to": "packages/work/src/workspace/dashboard-overview.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workspace/dashboard.ts:2"
+  },
+  {
+    "from": "packages/work/src/workspace/dashboard.ts",
+    "to": "packages/work/src/workspace/dashboard-costs.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workspace/dashboard.ts:28"
+  },
+  {
+    "from": "packages/work/src/workspace/dashboard.ts",
+    "to": "packages/work/src/workspace/dashboard-insights.ts",
+    "kind": "imports",
+    "evidence": "packages/work/src/workspace/dashboard.ts:3"
   },
   {
     "from": "packages/work/src/workspace/dashboard.ts",
@@ -6259,51 +6319,21 @@
   },
   {
     "from": "packages/work/src/workspace/dashboard.ts",
-    "to": "packages/work/src/workspace/dashboard-insights.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workspace/dashboard.ts:3"
+    "to": "@onni/contract",
+    "kind": "package-dep",
+    "evidence": "packages/work/src/workspace/dashboard.ts:8"
   },
   {
     "from": "packages/work/src/workspace/dashboard.ts",
-    "to": "packages/work/src/workspace/dashboard-costs.ts",
-    "kind": "imports",
-    "evidence": "packages/work/src/workspace/dashboard.ts:28"
+    "to": "node:crypto",
+    "kind": "ext",
+    "evidence": "packages/work/src/workspace/dashboard.ts:9"
   },
   {
     "from": "packages/work/src/worktree-lifecycle/coordinator.ts",
     "to": "node:crypto",
     "kind": "ext",
     "evidence": "packages/work/src/worktree-lifecycle/coordinator.ts:1"
-  },
-  {
-    "from": "packages/work/src/worktree-lifecycle/coordinator.ts",
-    "to": "node:child_process",
-    "kind": "ext",
-    "evidence": "packages/work/src/worktree-lifecycle/coordinator.ts:2"
-  },
-  {
-    "from": "packages/work/src/worktree-lifecycle/coordinator.ts",
-    "to": "node:util",
-    "kind": "ext",
-    "evidence": "packages/work/src/worktree-lifecycle/coordinator.ts:3"
-  },
-  {
-    "from": "packages/work/src/worktree-lifecycle/coordinator.ts",
-    "to": "node:fs",
-    "kind": "ext",
-    "evidence": "packages/work/src/worktree-lifecycle/coordinator.ts:4"
-  },
-  {
-    "from": "packages/work/src/worktree-lifecycle/coordinator.ts",
-    "to": "node:fs/promises",
-    "kind": "ext",
-    "evidence": "packages/work/src/worktree-lifecycle/coordinator.ts:5"
-  },
-  {
-    "from": "packages/work/src/worktree-lifecycle/coordinator.ts",
-    "to": "node:path",
-    "kind": "ext",
-    "evidence": "packages/work/src/worktree-lifecycle/coordinator.ts:6"
   },
   {
     "from": "packages/work/src/worktree-lifecycle/coordinator.ts",
@@ -6343,6 +6373,12 @@
   },
   {
     "from": "packages/work/src/worktree-lifecycle/coordinator.ts",
+    "to": "node:child_process",
+    "kind": "ext",
+    "evidence": "packages/work/src/worktree-lifecycle/coordinator.ts:2"
+  },
+  {
+    "from": "packages/work/src/worktree-lifecycle/coordinator.ts",
     "to": "packages/work/src/worktree-lifecycle/store.ts",
     "kind": "imports",
     "evidence": "packages/work/src/worktree-lifecycle/coordinator.ts:20"
@@ -6364,5 +6400,29 @@
     "to": "packages/work/src/worktree-lifecycle/executor.ts",
     "kind": "imports",
     "evidence": "packages/work/src/worktree-lifecycle/coordinator.ts:23"
+  },
+  {
+    "from": "packages/work/src/worktree-lifecycle/coordinator.ts",
+    "to": "node:util",
+    "kind": "ext",
+    "evidence": "packages/work/src/worktree-lifecycle/coordinator.ts:3"
+  },
+  {
+    "from": "packages/work/src/worktree-lifecycle/coordinator.ts",
+    "to": "node:fs",
+    "kind": "ext",
+    "evidence": "packages/work/src/worktree-lifecycle/coordinator.ts:4"
+  },
+  {
+    "from": "packages/work/src/worktree-lifecycle/coordinator.ts",
+    "to": "node:fs/promises",
+    "kind": "ext",
+    "evidence": "packages/work/src/worktree-lifecycle/coordinator.ts:5"
+  },
+  {
+    "from": "packages/work/src/worktree-lifecycle/coordinator.ts",
+    "to": "node:path",
+    "kind": "ext",
+    "evidence": "packages/work/src/worktree-lifecycle/coordinator.ts:6"
   }
 ]

@@ -38,3 +38,11 @@ node docs/design/project-graph/scripts/golden/check-golden.mjs
 ```
 
 `build-golden.mjs` chọn lại 70 file theo bộ quy tắc trong script và ghi đè `files.json`/`edges.json`. `check-golden.mjs` dùng esbuild `metafile` với `write:false`; không ghi bundle ra đĩa. Expected edges của Python/Go được viết tường minh để người đọc có thể đối chiếu với fixture.
+
+## Hiệu chỉnh S1 (2026-11-13)
+
+Kiểm tra esbuild ban đầu báo 10 cạnh thiếu; cả 10 là import tĩnh nhiều dòng của `packages/work/src/workflows/run.ts` tới module trong `workflows/run/`. Đã bổ sung cạnh `imports` tương ứng vào `golden/edges.json`, evidence trỏ tới dòng `from`. Kết quả sau sửa: 214 cặp regex, 121 cặp esbuild, giao 121, bỏ sót 0; 1.071/1.071 evidence hợp lệ. Các cặp regex-only không bị xóa vì bao gồm quan hệ source-level (đặc biệt type-only) mà esbuild bundle loại bỏ.
+
+Chưa chạy `ts.preProcessFile`: worktree không có TypeScript cài đặt. Kiểm tra thủ công xác nhận 10 cạnh là import module thật. Cần bổ sung cross-check TypeScript trước khi chốt độ chính xác S1. Chi tiết chấm engine và giới hạn phép đo ở [`engine.md`](engine.md).
+
+Cross-check b? sung S1: `typescript@5.9.3` `preProcessFile` ?? ch?y tr?n corpus 70 file (1.077 entries th?, g?m c? external/reference n?n ch?a ph?i metric edge). Workspace TypeScript 7.0.2 kh?ng export API n?y; xem `engine.md`.

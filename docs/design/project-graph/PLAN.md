@@ -804,7 +804,7 @@ G-A đầy đủ (≥ 10 tác vụ, có manager–worker và cánh grep).
 
 | Đợt | Phần | Phụ thuộc | Phạm vi | Trạng thái |
 | --- | --- | --- | --- | --- |
-| 1 | C0 contract zod `status/impact/tests/rebuild` | G0 | `packages/contract/src/project-graph.ts`, `contract/src/index.ts` | đang làm |
+| 1 | C0 contract zod `status/impact/tests/rebuild` | G0 | `packages/contract/src/project-graph.ts`, `contract/src/index.ts` | **xong** (schema + export; typecheck xanh; test của nó phải chuyển sang `packages/work` ở N1 vì vitest không có project contract) |
 | 1 | E1 engine regex: liệt kê + denylist, băm, cache `.ai/onni/project-graph/`, ghép đồ thị, tested-by, package-dep, hub p95×20, freshness, `complete` theo phạm vi, chia lô nhường event loop | G0 | `packages/work/src/project-graph/**` (trừ `tests-select/`) | đang làm |
 | 2 | T1 ứng viên test: graph (import trực tiếp, cùng tên, sibling) + `vitest related` khi `ONNI_PROJECT_GRAPH_TOOLS=1` | E1 | `packages/work/src/project-graph/tests-select/**` | chờ |
 | 3 | N1 nối dây: route + validator, CLI `onni graph`, capability, `data-gitignore`, `.env.example`, `docs/reference.md`, parity | C0, E1, T1 | §10 hàng N1 | chờ |

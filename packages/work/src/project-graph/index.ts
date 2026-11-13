@@ -139,6 +139,9 @@ export class ProjectGraphService {
   unresolvedIn(path: string): number {
     return this.graph?.unresolved.get(normalizePath(path))?.length ?? 0;
   }
+  unparsedIn(path: string): boolean {
+    return this.graph?.unparsed.has(normalizePath(path)) ?? false;
+  }
   isHub(path: string): boolean {
     return this.graph?.isHub(normalizePath(path)) ?? false;
   }

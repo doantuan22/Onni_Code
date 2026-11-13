@@ -751,3 +751,23 @@ quyết định riêng:
 - [ ] Mỗi bước: contract + parity + CLI + prompt (nếu có) + UI (nếu có) + test + `.env.example`/`docs/reference.md`
 - [ ] Trước mỗi commit: `typecheck`, `test`, `test:unit`, `build`, `test:package`
 - [ ] Mọi số đo sử dụng chỉ lưu cục bộ; không có đường gửi đi
+
+### 15.3 Nhật ký thực hiện
+
+Quy ước: mỗi giai đoạn chỉ được đánh dấu **HOÀN THÀNH** khi mọi phần việc có đầu ra đã kiểm và cổng ra của nó có kết luận;
+giai đoạn sau chỉ bắt đầu khi chủ dự án duyệt cổng (§0 quyết định 7, §13).
+
+**Giai đoạn 0 — đang thực hiện (bắt đầu 2026-11-13).** Không đổi code sản phẩm; mọi đầu ra nằm dưới
+`docs/design/project-graph/{spikes,scripts}/`. Kế hoạch giao việc:
+
+| Đợt | Phần | Phụ thuộc | Đầu ra | Trạng thái |
+| --- | --- | --- | --- | --- |
+| 1 | N0 baseline môi trường | — | `spikes/baseline.md` | đang làm |
+| 1 | S4 đo git | — | `spikes/git.md`, `scripts/git-bench/` | đang làm |
+| 1 | S3 bộ vàng + fixture + đếm lại quy mô | — | `spikes/golden-graph.md`, `spikes/golden/`, `scripts/golden/` | đang làm |
+| 1 | V1a prototype CLI `impact/tests/context` + đề xuất A/B | — | `scripts/proto/` | đang làm |
+| 2 | S1 spike engine | S3 | `spikes/engine.md`, `scripts/engine/` | chờ |
+| 2 | R1 replay lịch sử git | V1a | `spikes/replay.md`, `scripts/replay/` | chờ |
+| 3 | S5 ngưỡng hub/co-change | R1 | `spikes/hub-cochange.md`, `scripts/hub-cochange/` | chờ |
+| 3 | V1b A/B nhỏ ~3 tác vụ (graph-off vs graph-on) | V1a | `spikes/value.md` | chờ |
+| — | Cổng **G0**: chủ dự án duyệt số đo và D1–D8 | tất cả | quyết định ghi ở đây | chờ |

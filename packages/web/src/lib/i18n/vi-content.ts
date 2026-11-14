@@ -1,14 +1,41 @@
 /** Vietnamese for the content surfaces: skills, workflows, docs, previews, error pages.
  *  Keys are exact English source strings. */
 export const viContent: Record<string, string> = {
+  'All projects (~/.onni/skills)': 'Mọi dự án (~/.onni/skills)',
+  Body: 'Nội dung',
+  'Change the name, description, or Markdown body. The skill stays in its current scope.':
+    'Đổi tên, mô tả hoặc nội dung Markdown. Skill vẫn nằm ở phạm vi hiện tại.',
+  'Create a skill as a Markdown playbook agents can follow.':
+    'Tạo một skill dạng playbook Markdown mà agent có thể làm theo.',
+  'Create skill': 'Tạo skill',
+  'Delete “{name}”? This removes the skill from ~/.onni/skills (all projects).':
+    'Xoá “{name}”? Thao tác này xoá skill khỏi ~/.onni/skills (mọi dự án).',
+  'Delete “{name}”? This removes the skill from this project.':
+    'Xoá “{name}”? Thao tác này xoá skill khỏi dự án này.',
+  'Delete skill': 'Xoá skill',
+  Description: 'Mô tả',
+  'Edit skill': 'Sửa skill',
+  Interactive: 'Tương tác',
+  'Letters, numbers, and . _ - only (must start with a letter or number).':
+    'Chỉ chữ, số và . _ - (phải bắt đầu bằng chữ hoặc số).',
+  'Markdown instructions for the agent': 'Hướng dẫn Markdown cho agent',
+  'New skill': 'Skill mới',
+  Preview: 'Xem trước',
+  Scope: 'Phạm vi',
+  'Skill created.': 'Đã tạo skill.',
+  'Skill deleted.': 'Đã xoá skill.',
+  'Skill saved.': 'Đã lưu skill.',
+  'This project (.ai/onni/skills)': 'Dự án này (.ai/onni/skills)',
+  'When to use this skill, in one line': 'Khi nào nên dùng skill này, trong một dòng',
+  Write: 'Soạn',
   ' or ': ' hoặc ',
   '— the page did not respond or does not allow embedding. The address is still in the bar; you can fix it.':
     '— trang không phản hồi hoặc không cho phép nhúng. Địa chỉ vẫn ở trên thanh địa chỉ; bạn có thể sửa lại.',
   '— wire it to an agent to resolve it;': '— nối nó vào một agent để xử lý;',
   ', or ': ', hoặc ',
   '; otherwise it leaves by failed.': '; nếu không nó rời theo nhánh failed.',
-  '. Global (~/.agents/skills) and team-repo skills appear here too — try Refresh.':
-    '. Skill toàn cục (~/.agents/skills) và skill từ repo nhóm cũng xuất hiện ở đây — thử Làm mới.',
+  '. Global (~/.onni/skills, ~/.agents/skills) and team-repo skills appear here too — try Refresh.':
+    '. Skill toàn cục (~/.onni/skills, ~/.agents/skills) và skill từ repo nhóm cũng xuất hiện ở đây — thử Làm mới.',
   '“{name}” already exists': '“{name}” đã tồn tại',
   '“{name}” is taken or not a valid id (letters, digits, - and _).':
     '“{name}” đã bị dùng hoặc không phải id hợp lệ (chữ, số, - và _).',
@@ -185,7 +212,8 @@ export const viContent: Record<string, string> = {
   'no skill': 'không dùng skill',
   'No skill selected': 'Chưa chọn skill',
   'No skills yet — drop Markdown files into': 'Chưa có skill — thả tệp Markdown vào',
-  'No skills yet. Drop Markdown files into': 'Chưa có skill. Thả tệp Markdown vào',
+  'No skills yet. Create one with New skill, or drop Markdown files into':
+    'Chưa có skill. Tạo mới bằng nút New skill, hoặc thả tệp Markdown vào',
   'no timeout': 'không timeout',
   'No workflow graph': 'Không có đồ thị quy trình',
   'No workflow named “{name}” — starting a new one.':

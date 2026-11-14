@@ -5,7 +5,7 @@ import { useI18n } from '@/lib/i18n'
  * files — the Skills tab (`routes/skills.tsx`) and the workflow builder's skill palette
  * (`routes/workflows/workflows.tsx`). #374 (follow-up to #342): both used to mention only
  * `.ai/skills/`, while discovery also scans `.ai/onni/skills/`, `.agents/skills/` (+ its
- * per-agent mirrors, e.g. `.claude/skills/`), the global `~/.agents/skills` /
+ * per-agent mirrors, e.g. `.claude/skills/`), the global `~/.onni/skills` / `~/.agents/skills` /
  * `~/.claude/skills`, and the team skills repo (`src/skills.ts`). One shared list, so the two
  * SURFACES render the same copy.
  *
@@ -46,11 +46,11 @@ export function SkillEmptyHint() {
   const { t } = useI18n()
   return (
     <>
-      {t('No skills yet. Drop Markdown files into')} <ProjectDirList />{' '}
+      {t('No skills yet. Create one with New skill, or drop Markdown files into')} <ProjectDirList />{' '}
       {t('(agent mirrors like')} <Path>.claude/skills/</Path> {t('work too) — optional frontmatter:')}{' '}
       <Path>name</Path>, <Path>description</Path>
       {t(
-        '. Global (~/.agents/skills) and team-repo skills appear here too — try Refresh.',
+        '. Global (~/.onni/skills, ~/.agents/skills) and team-repo skills appear here too — try Refresh.',
       )}
     </>
   )

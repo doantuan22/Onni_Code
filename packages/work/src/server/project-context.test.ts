@@ -104,6 +104,19 @@ describe('ProjectContexts', () => {
     contexts.disposeAll();
   });
 
+  it('passes the requested project id to the registry lookup', async () => {
+    const resolve = vi.fn(async (selector?: { projectId: string }): Promise<ProjectContextSource[]> =>
+      selector?.projectId === 'b'
+        ? [{ id: 'b', root: rootB, status: 'not-git' }]
+        : [{ id: 'a', root: rootA, status: 'not-git' }],
+    );
+    const contexts = new ProjectContexts({ listProjects: resolve });
+    const ctx = await contexts.context('b');
+    expect(ctx.id).toBe('b');
+    expect(resolve).toHaveBeenCalledWith({ projectId: 'b' });
+    contexts.disposeAll();
+  });
+
   it('never instantiates a missing-root project (even when the directory happens to exist)', async () => {
     const contexts = makeContexts([{ id: 'gone', root: rootA, status: 'missing' }]);
     await expect(contexts.context('gone')).rejects.toMatchObject({

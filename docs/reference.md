@@ -29,7 +29,11 @@ Three words, no jargon — **task**, **skill**, **chain**:
   the live session while it works.
 - 📖 **Skills** are Markdown playbooks. Drop them in `.ai/skills/` or
   `.ai/onni/skills/`, or pull them from a shared **team skills repo** (a bare
-  git clone cached globally in `~/.cache/onni/`). A workflow step references one by
+  git clone cached globally in `~/.cache/onni/`). Create, edit, and delete your
+  own skills from the Skills tab — a skill you author lives in `.ai/onni/skills/`
+  (this project) or `~/.onni/skills/` (all projects), with a live Markdown
+  preview; skills from other sources (team, built-in, `npx skills` installs) are
+  read-only. A workflow step references one by
   `skill: <name>` and its body becomes the agent's extra system prompt — so you
   shape *how* the agent reasons without touching code.
 - 🔗 **Chains (workflows)** stitch steps into a pipeline: agent steps plus shell
@@ -87,7 +91,7 @@ One browser window, with live task updates over Server-Sent Events:
 | **Inbox** | **Opt-in** (`ONNI_FOLLOWUPS=1`; hidden by default). Follow-ups an agent left behind (`todos.json`) — one click turns a suggestion into the next task, pre-wired to its suggested skill. Off, agents are never asked to leave follow-ups; each task's own **Notes** handoff journal is unaffected. |
 | **Git** | Branch, working-tree status, diff vs HEAD, recent commits (click one for its inline patch + GitHub link), and the configurable base branch that worktrees fork from and PRs target. **Files** browses the whole repository — the tree on the left, the file on the right (syntax-highlighted, images inline, Markdown rendered with a toggle to the source), and a filter box that finds a path as you type. Every file is its own URL (`/git/files/<path>`), so a view can be refreshed or pasted to a colleague. The tree is git's own view of the repository, so `.gitignore`d build output and `node_modules` never appear — and a file git does not list cannot be opened, which is what keeps an ignored `.env` out of reach. Read-only: nothing here edits the checkout. |
 | **GitHub** | Open issues and PRs of the repo's origin, read through your logged-in `gh`. Hand an issue straight to the agent — pick a workflow and skills, one click runs it. GitHub Enterprise works the same on any domain: a remote counts as GitHub when its host is `github.com`, `*.ghe.com`, or one `gh` is signed in to (`gh auth login --hostname <host>`, or `GH_HOST`). A self-hosted server on any other domain needs that login first. github.com and Enterprise projects work side by side; OnniCode pins the right host per repo, so `GH_HOST` never has to be exported. |
-| **Skills** | Local skills plus the team skills repo, with a rendered body + prompt preview. Refresh pulls the latest from the remote. |
+| **Skills** | Local skills plus the team skills repo, with a rendered body + prompt preview. Refresh pulls the latest from the remote. **New skill** authors a Markdown playbook into `.ai/onni/skills/` (this project) or `~/.onni/skills/` (all projects) with a live preview; skills you authored show Edit and Delete, while team, built-in and `npx skills`-installed skills are read-only. |
 | **Workflows** | Build a workflow as a node graph, or let the planner draft one from a description; save it as YAML (a plain stack of skills stays in the portable `skills:` form), import/export, or delete. Built-ins always come back. |
 | **Settings** | Appearance (dark/light theme, accent, density), agent backends, notifications, and the skills catalog. |
 
@@ -199,6 +203,14 @@ onni projects tag api storefront backend   # set the grouping tags (no tags clea
 
 These read and write `~/.onni/config.json` directly, so they work with the
 server stopped, and `ONNI_HOME` selects which workspace they operate on.
+
+**One cockpit per repo at a time.** Each `onni serve` is an independent process
+with no shared coordinator. Two servers pointed at the same repo each open their
+own `runs.json` and the last writer wins: atomic writes (tmp file + rename) keep
+a file from corrupting, but do not prevent a lost update. Don't run two cockpits
+on one repo simultaneously. The server-instance list only shares the webhook port
+across cockpits on one machine; it does not coordinate run state.
+
 
 Settings is one full-screen surface with one navigation (the app sidebar is
 hidden there; **Back** or Escape returns to the page you came from). The
@@ -727,7 +739,10 @@ run on `Narrow allow-rules` and the run says so. A manager–worker preset canno
   plus `route-parity.test.ts` keep the two aligned (see
   [BACKWARD_COMPATIBILITY.md](../BACKWARD_COMPATIBILITY.md) §2).
   The common ones: `GET/POST /runs`, `GET /runs/:id`,
-  `POST /runs/:id/{cancel,messages,continue,archive}`, `GET /automations`.
+  `POST /runs/:id/{cancel,messages,continue,archive}`, `GET /automations`,
+  and the skill write routes — `POST /skills`, `PUT /skills/:name`,
+  `DELETE /skills/:name` (create/edit/delete onni-managed skills; a 409 refuses
+  a read-only source or a duplicate name).
 - **No built-in auth.** The cockpit binds `127.0.0.1` and trusts the machine;
   see [Remote access](#remote-access-host-onni-work-on-a-server) before exposing it.
 

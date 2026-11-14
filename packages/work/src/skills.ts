@@ -6,6 +6,7 @@ import { gatedSkillsRepos } from './config.ts';
 import { getTeamSkillsCached } from './skills-remote.ts';
 import { readUiState } from './ui-state.ts';
 import { builtinSkills } from './automations/builtin-skill.ts';
+import { onniHomeDir } from './paths.ts';
 
 /**
  * A skill is a Markdown file with optional YAML-ish frontmatter (`name`,
@@ -23,8 +24,14 @@ export interface Skill {
   body: string;
   path: string;
   /** `builtin` is the one skill onni ships itself (`create-onni-automation`, spec
-   *  2026-09-13-automations-from-prompt) — listed last, and only while automations are reachable. */
-  source: 'ai' | 'onni' | 'agents' | 'global' | 'team' | 'builtin';
+   *  2026-09-13-automations-from-prompt) — listed last, and only while automations are reachable.
+   *  `onni-global` is an onni-managed skill under `~/.onni/skills`, shared across projects. */
+  source: 'ai' | 'onni' | 'agents' | 'global' | 'team' | 'builtin' | 'onni-global';
+  /** True when onni wrote this skill (`source` is `onni` or `onni-global`) — the UI's
+   *  create/edit/delete affordances key off this rather than guessing from the path. */
+  owned?: boolean;
+  /** Onni-managed skills only: `project` (`.ai/onni/skills`) or `global` (`~/.onni/skills`). */
+  scope?: 'project' | 'global';
   /** Team skills only: where the definition lives in its skills repo. */
   team?: {
     repo: string;
@@ -62,6 +69,10 @@ export const SKILL_DIRS: Array<{ dir: string; source: Skill['source'] }> = [
    identity, and a second Claude login is not a second skill library. `npx skills`, which
    writes the `~/.claude/skills` mirror, is profile-unaware for the same reason. */
 const GLOBAL_SKILL_DIRS: Array<{ dir: string; source: Skill['source'] }> = [
+  // Onni-managed global skills come first so a user's own global skill shadows a Claude-synced
+  // skill of the same name. Uses `onniHomeDir()` (honours `ONNI_HOME`) so discovery and the
+  // write path (`skills-store.ts`) agree on the directory.
+  { dir: join(onniHomeDir(), 'skills'), source: 'onni-global' },
   { dir: join(homedir(), '.agents/skills'), source: 'global' },
   { dir: join(homedir(), '.claude/skills'), source: 'global' },
 ];
@@ -69,7 +80,7 @@ const GLOBAL_SKILL_DIRS: Array<{ dir: string; source: Skill['source'] }> = [
 /**
  * Discover the merged skill catalog for a repo. Name collisions resolve
  * local-first: `.ai/onni/skills` → `.ai/skills` → `.agents/skills` + agent
- * mirrors → global (`~/.agents/skills`, `~/.claude/skills`) → team repo
+ * mirrors → global (`~/.onni/skills`, `~/.agents/skills`, `~/.claude/skills`) → team repo
  * ("the user's repo is the source of truth"). Missing directories are fine —
  * an empty catalog is fully supported (steps fall back to their plain
  * prompt). Team skills come from the in-process cache; the first call starts
@@ -241,7 +252,9 @@ async function readMarkdownSkills(dir: string, source: Skill['source']): Promise
         ? frontmatter.description.trim()
         : undefined;
     const interactive = frontmatter.interactive === true || frontmatter.interactive === 'true' ? true : undefined;
-    skills.push({ name, description, interactive, body, path: absPath, source });
+    const owned = source === 'onni' || source === 'onni-global';
+    const scope = owned ? (source === 'onni-global' ? 'global' : 'project') : undefined;
+    skills.push({ name, description, interactive, body, path: absPath, source, ...(owned ? { owned: true, scope } : {}) });
   }
   return skills;
 }

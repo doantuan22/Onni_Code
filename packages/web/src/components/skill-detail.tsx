@@ -36,6 +36,7 @@ export type SkillActivation = {
 const SKILL_SOURCE_DESCRIPTIONS: Record<Skill['source'], string> = {
   ai: 'From this project’s .ai/skills; always enabled while present.',
   onni: 'From this project’s .ai/onni/skills; always enabled while present.',
+  'onni-global': 'An onni-managed skill from ~/.onni/skills, shared across all projects.',
   agents: 'From .agents/skills or an agent-specific folder; always enabled while present.',
   global: 'User-wide from ~/.agents/skills or ~/.claude/skills, shared across projects.',
   team: 'Shared from a team repository configured for this project; importable skills can be enabled or disabled here.',

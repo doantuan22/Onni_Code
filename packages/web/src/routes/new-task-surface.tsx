@@ -57,6 +57,7 @@ import { LimitsPill } from '@/components/limits-pill'
 import { PickerPill, RunnerPill, chevron, chipClass } from '@/components/picker-pill'
 import { PromptTemplateMenu } from '@/components/prompt-template-menu'
 import { SourcePill } from '@/components/source-pill'
+import { Switch } from '@/components/ui/switch'
 import { TaskSettingsPanel, TaskSummary } from '@/components/task-settings-panel'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
 import {
@@ -1447,12 +1448,8 @@ function WhereOption({
 function AskToggle({ on, auto, onChange }: { on: boolean; auto: boolean; onChange: (on: boolean) => void }) {
   const { t } = useI18n()
   return (
-    <button
-      type="button"
-      role="checkbox"
-      aria-checked={on}
-      data-slot="ask-toggle"
-      onClick={() => onChange(!on)}
+    <label
+      className="flex w-fit items-center gap-3"
       title={
         on
           ? auto
@@ -1460,15 +1457,10 @@ function AskToggle({ on, auto, onChange }: { on: boolean; auto: boolean; onChang
             : t('Read-only question — answers from the checkout, changes nothing')
           : t('Check to ask a read-only question instead of filing a change')
       }
-      className={cn(chipClass, on && 'border-primary/60 text-foreground')}
     >
-      {on ? (
-        <CheckIcon aria-hidden="true" className="size-3 shrink-0 text-primary" />
-      ) : (
-        <SquareIcon aria-hidden="true" className="size-3 shrink-0 text-soft-foreground" />
-      )}
-      {t('Ask')}
-    </button>
+      <Switch data-slot="ask-toggle" checked={on} onCheckedChange={onChange} />
+      <span className="text-[13px] text-muted-foreground">{t('Ask')}</span>
+    </label>
   )
 }
 
@@ -1487,27 +1479,18 @@ function NewBranchToggle({
 }) {
   const { t } = useI18n()
   return (
-    <span className="flex items-center gap-1">
-      <button
-        type="button"
-        role="checkbox"
-        aria-checked={on}
-        data-slot="new-branch-toggle"
-        onClick={() => onChange(!on)}
+    <span className="flex flex-wrap items-center gap-2">
+      <label
+        className="flex w-fit items-center gap-3"
         title={
           on
             ? t('Switches the repo checkout to a new branch from the base before the agent starts')
             : t('Runs on whatever branch is checked out — check to start a new branch from the base')
         }
-        className={cn(chipClass, on && 'border-primary/60 text-foreground')}
       >
-        {on ? (
-          <CheckIcon aria-hidden="true" className="size-3 shrink-0 text-primary" />
-        ) : (
-          <SquareIcon aria-hidden="true" className="size-3 shrink-0 text-soft-foreground" />
-        )}
-        {t('New branch')}
-      </button>
+        <Switch data-slot="new-branch-toggle" checked={on} onCheckedChange={onChange} />
+        <span className="text-[13px] text-muted-foreground">{t('New branch')}</span>
+      </label>
       {on ? (
         <input
           aria-label={t('New branch name')}
@@ -1537,13 +1520,8 @@ function AutonomousToggle({
 }) {
   const { t } = useI18n()
   return (
-    <button
-      type="button"
-      role="checkbox"
-      aria-checked={on}
-      disabled={disabled}
-      data-slot="autonomous-toggle"
-      onClick={() => onChange(!on)}
+    <label
+      className="flex w-fit items-center gap-3"
       title={
         disabled
           ? disabledReason ?? t('Plan-first runs are interactive — autonomous is unavailable')
@@ -1551,15 +1529,15 @@ function AutonomousToggle({
             ? t('Autonomous — the agent runs to completion without pausing for you')
             : t('Runs interactively — check to let the agent finish without pausing for you')
       }
-      className={cn(chipClass, on && !disabled && 'border-primary/60 text-foreground')}
     >
-      {on ? (
-        <CheckIcon aria-hidden="true" className="size-3 shrink-0 text-primary" />
-      ) : (
-        <SquareIcon aria-hidden="true" className="size-3 shrink-0 text-soft-foreground" />
-      )}
-      {t('Autonomous')}
-    </button>
+      <Switch
+        data-slot="autonomous-toggle"
+        checked={on}
+        disabled={disabled}
+        onCheckedChange={onChange}
+      />
+      <span className="text-[13px] text-muted-foreground">{t('Autonomous')}</span>
+    </label>
   )
 }
 
@@ -1574,26 +1552,17 @@ function GenerateFollowupsToggle({
 }) {
   const { t } = useI18n()
   return (
-    <button
-      type="button"
-      role="checkbox"
-      aria-checked={on}
-      data-slot="generate-followups-toggle"
-      onClick={() => onChange(!on)}
+    <label
+      className="flex w-fit items-center gap-3"
       title={
         on
           ? t('Agents can add newly discovered follow-up work to the task inbox')
           : t('Follow-up generation is off; agents still maintain the handoff journal')
       }
-      className={cn(chipClass, on && 'border-primary/60 text-foreground')}
     >
-      {on ? (
-        <CheckIcon aria-hidden="true" className="size-3 shrink-0 text-primary" />
-      ) : (
-        <SquareIcon aria-hidden="true" className="size-3 shrink-0 text-soft-foreground" />
-      )}
-      {t('Follow-ups')}
-    </button>
+      <Switch data-slot="generate-followups-toggle" checked={on} onCheckedChange={onChange} />
+      <span className="text-[13px] text-muted-foreground">{t('Follow-ups')}</span>
+    </label>
   )
 }
 

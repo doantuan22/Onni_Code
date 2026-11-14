@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeftIcon, RefreshCwIcon, SparklesIcon, TriangleAlertIcon } from 'lucide-react'
+import { ArrowLeftIcon, PencilIcon, PlusIcon, RefreshCwIcon, SparklesIcon, Trash2Icon, TriangleAlertIcon } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 
 import { Link, useActiveProjectId } from '@/lib/project-router'
 
-import { putUiState, refreshSkills } from '@/api/client'
+import { deleteSkill, putUiState, refreshSkills } from '@/api/client'
 import {
   queryKeys,
   useImportableSkills,
@@ -17,7 +17,9 @@ import type { Skill, UiState } from '@onni/api-client'
 import { CenteredState } from '@/components/centered-state'
 import { SkillDetailBody, SkillSourceTag } from '@/components/skill-detail'
 import type { SkillActivation } from '@/components/skill-detail'
+import { SkillEditor } from '@/components/skill-editor'
 import { SkillEmptyHint } from '@/components/skill-empty-hint'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
@@ -95,9 +97,11 @@ function SkillsCatalog() {
   const skillsQuery = useSkills()
   const workflowsQuery = useWorkflows()
   const importableQuery = useImportableSkills()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [query, setQuery] = useState('')
   const [repoFilter, setRepoFilter] = useState<string | null>(null)
+  const [editing, setEditing] = useState<Skill | 'new' | null>(null)
+  const [deleting, setDeleting] = useState<SkillCatalogItem | null>(null)
   const queryClient = useQueryClient()
   const uiState = useUiState()
   const importable = importableQuery.data ?? []
@@ -141,6 +145,24 @@ function SkillsCatalog() {
     },
     onError: (error) => toast(error.message, { tone: 'danger' }),
   })
+
+  const removeSkill = useMutation({
+    mutationFn: (name: string) => deleteSkill(name),
+    onSuccess: (_result, name) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.skills })
+      toast(t('Skill deleted.'))
+      if (param === name) setSearchParams({}, { replace: true })
+    },
+    onError: (error) => toast(error.message, { tone: 'danger' }),
+  })
+
+  const onSaved = useCallback(
+    (skill: Skill) => {
+      // Selection lives in the URL; a rename changes the param, a create selects the new skill.
+      setSearchParams({ skill: skill.name }, { replace: true })
+    },
+    [setSearchParams],
+  )
 
   if (skillsQuery.isError) {
     return (
@@ -220,6 +242,16 @@ function SkillsCatalog() {
             />
             {t('Refresh')}
           </button>
+          <Button
+            type="button"
+            data-slot="skills-new"
+            size="sm"
+            onClick={() => setEditing('new')}
+            className="ml-auto h-8 gap-1.5 px-2.5 text-xs"
+          >
+            <PlusIcon aria-hidden="true" className="size-3.5" />
+            {t('New skill')}
+          </Button>
         </div>
         {repoGroups.length > 1 ? (
           <div className="shrink-0 px-3 pb-2">
@@ -318,6 +350,24 @@ function SkillsCatalog() {
                   {t('Back to skills')}
                 </Link>
               ) : null}
+              {selected.owned ? (
+                <div data-slot="skill-actions" className="mb-4 flex items-center gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={() => setEditing(selected)} className="h-8 gap-1.5 px-2.5 text-xs">
+                    <PencilIcon aria-hidden="true" className="size-3.5" />
+                    {t('Edit')}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setDeleting(selected)}
+                    className="h-8 gap-1.5 px-2.5 text-xs text-danger hover:text-danger"
+                  >
+                    <Trash2Icon aria-hidden="true" className="size-3.5" />
+                    {t('Delete')}
+                  </Button>
+                </div>
+              ) : null}
               <SkillDetailBody
                 skill={selected}
                 enabled={selected.enabled}
@@ -336,6 +386,41 @@ function SkillsCatalog() {
           )}
         </div>
       </section>
+
+      <SkillEditor
+        open={editing !== null}
+        skill={editing === 'new' ? null : editing}
+        onClose={() => setEditing(null)}
+        onSaved={onSaved}
+      />
+
+      <AlertDialog open={deleting !== null} onOpenChange={(open) => (open ? undefined : setDeleting(null))}>
+        <AlertDialogContent data-slot="skill-delete-confirm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('Delete skill')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleting
+                ? (deleting.scope === 'global'
+                    ? t('Delete “{name}”? This removes the skill from ~/.onni/skills (all projects).', { name: deleting.name })
+                    : t('Delete “{name}”? This removes the skill from this project.', { name: deleting.name }))
+                : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              data-slot="skill-delete-confirm-action"
+              className="bg-danger text-white hover:bg-danger/90"
+              onClick={() => {
+                if (deleting) removeSkill.mutate(deleting.name)
+                setDeleting(null)
+              }}
+            >
+              {t('Delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

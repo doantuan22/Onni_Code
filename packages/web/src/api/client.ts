@@ -151,6 +151,10 @@ import type {
   SetWorkspaceUiStateInput,
   ImportableSkill,
   Skill,
+  CreateSkillInput,
+  UpdateSkillInput,
+  SkillSavedResponse,
+  DeleteSkillResponse,
   StartTodoResponse,
   TodoItem,
   UiState,
@@ -736,6 +740,38 @@ export async function refreshSkills(): Promise<Skill[]> {
   return unwrap(
     await onni.api.v1.p[':projectId'].skills.refresh.$post({ param: { projectId: queryScope() } }),
     '/skills/refresh',
+  )
+}
+
+/** Create an onni-managed skill (`.ai/onni/skills` or `~/.onni/skills`, chosen by `scope`). */
+export async function createSkill(input: CreateSkillInput): Promise<SkillSavedResponse> {
+  return unwrap(
+    await onni.api.v1.p[':projectId'].skills.$post({
+      param: { projectId: queryScope() },
+      json: input,
+    }),
+    '/skills',
+  )
+}
+
+/** Edit an onni-managed skill: `name` renames it, the other fields merge over the current value. */
+export async function updateSkill(name: string, input: UpdateSkillInput): Promise<SkillSavedResponse> {
+  return unwrap(
+    await onni.api.v1.p[':projectId'].skills[':name'].$put({
+      param: { projectId: queryScope(), name: encodeURIComponent(name) },
+      json: input,
+    }),
+    `/skills/${encodeURIComponent(name)}`,
+  )
+}
+
+/** Delete an onni-managed skill. Read-only sources (team/builtin/agents/global/ai) are refused. */
+export async function deleteSkill(name: string): Promise<DeleteSkillResponse> {
+  return unwrap(
+    await onni.api.v1.p[':projectId'].skills[':name'].$delete({
+      param: { projectId: queryScope(), name: encodeURIComponent(name) },
+    }),
+    `/skills/${encodeURIComponent(name)}`,
   )
 }
 

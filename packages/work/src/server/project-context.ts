@@ -54,8 +54,10 @@ export interface ProjectContextSource {
 }
 
 export interface ProjectContextDeps {
-  /** Registry lookup — the workspace `listProjects()` in production. */
-  listProjects: () => Promise<readonly ProjectContextSource[]>;
+  /** Registry lookup — the workspace `listProjects()` in production. Takes an
+   *  optional `{ projectId }` selector so a build probes ONE project instead of
+   *  the whole registry; single-project injection ignores it (boot project). */
+  listProjects: (selector?: { projectId: string }) => Promise<readonly ProjectContextSource[]>;
   /** Resolve the one automation store owned by this project. Production
    *  injects the workspace automation coordinator's cached store so API
    *  mutations and scheduler reads share the same in-memory state. */
@@ -108,6 +110,8 @@ export class ProjectContexts {
   private readonly semaphore: WorkspaceSemaphore;
 
   constructor(private readonly deps: ProjectContextDeps) {
+    // Fallback is defaults-only and never refreshed: production injects the boot
+    // semaphore, whose `refresh()` is the single config-cache hook.
     this.semaphore = deps.semaphore ?? new WorkspaceSemaphore();
   }
 
@@ -238,7 +242,7 @@ export class ProjectContexts {
   }
 
   private async build(projectId: string): Promise<ProjectContext> {
-    const projects = await this.deps.listProjects();
+    const projects = await this.deps.listProjects({ projectId });
     const project = projects.find((p) => p.id === projectId);
     if (!project) throw new ProjectContextError('unknown-project', projectId);
     if (project.status === 'missing') throw new ProjectContextError('missing-root', projectId);

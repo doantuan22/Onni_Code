@@ -45,6 +45,15 @@ const openMercatoSkill = (name: string): Skill =>
     team: { repo: 'open-mercato/skills', ref: 'main', path: `${name}/SKILL.md`, dir: true },
   })
 
+const ownedSkill = (name: string, scope: 'project' | 'global' = 'project'): Skill =>
+  skill({
+    name,
+    source: scope === 'global' ? 'onni-global' : 'onni',
+    path: scope === 'global' ? `/home/u/.onni/skills/${name}/SKILL.md` : `.ai/onni/skills/${name}/SKILL.md`,
+    owned: true,
+    scope,
+  })
+
 const WORKFLOWS: WorkflowsResponse = {
   workflows: [
     {
@@ -97,6 +106,9 @@ function serve({
           ),
         )
       }
+      if (path === '/api/v1/skills' && method === 'POST') return json({ skill: body })
+      if (/^\/api\/v1\/skills\/[^/]+$/.test(path) && method === 'DELETE') return json({ deleted: true })
+      if (/^\/api\/v1\/skills\/[^/]+$/.test(path) && method === 'PUT') return json({ skill: body })
       if (path === '/api/v1/skills/refresh' && method === 'POST') return json(refreshed)
       // Both the fast read and the ?wait=1 convergence read hit this endpoint.
       if (path.startsWith('/api/v1/skills/importable')) {
@@ -473,5 +485,59 @@ describe('the selected skill GitHub launcher', () => {
     await waitFor(() => expect(decodeURIComponent(link.getAttribute('href') ?? '')).toContain('auto=1&key=sekret'))
     fireEvent.click(document.querySelector('[data-slot="skill-bookmarklet-copy"]')!)
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(link.getAttribute('href')))
+  })
+})
+
+describe('the onni-managed skill write affordances', () => {
+  it('shows Edit and Delete only for an owned skill, and a New skill button always', async () => {
+    serve({ skills: [ownedSkill('mine'), skill({ name: 'om-fix', source: 'ai' })] })
+    renderAt('/skills')
+    await waitFor(() => expect(rowNames()).toHaveLength(2))
+    expect(document.querySelector('[data-slot="skills-new"]')).not.toBeNull()
+
+    // Not owned: no action row.
+    fireEvent.click(document.querySelector('[data-slot="skill-row"][data-skill="om-fix"]')!)
+    await waitFor(() => expect(detail()?.querySelector('h2')?.textContent).toBe('om-fix'))
+    expect(document.querySelector('[data-slot="skill-actions"]')).toBeNull()
+
+    // Owned: Edit + Delete appear.
+    fireEvent.click(document.querySelector('[data-slot="skill-row"][data-skill="mine"]')!)
+    await waitFor(() => expect(detail()?.querySelector('h2')?.textContent).toBe('mine'))
+    const actions = document.querySelector('[data-slot="skill-actions"]')
+    expect(actions).not.toBeNull()
+    expect(actions?.textContent).toContain('Edit')
+    expect(actions?.textContent).toContain('Delete')
+  })
+
+  it('deletes an owned skill through the confirm dialog and clears the selection', async () => {
+    serve({ skills: [ownedSkill('doomed')] })
+    renderAt('/skills?skill=doomed')
+    await waitFor(() => expect(detail()?.querySelector('h2')?.textContent).toBe('doomed'))
+
+    fireEvent.click([...document.querySelectorAll('[data-slot="skill-actions"] button')].find((b) => b.textContent?.includes('Delete'))!)
+    await waitFor(() => expect(document.querySelector('[data-slot="skill-delete-confirm"]')).not.toBeNull())
+
+    fireEvent.click(document.querySelector('[data-slot="skill-delete-confirm-action"]')!)
+    await waitFor(() =>
+      expect(requests.some((r) => r.method === 'DELETE' && /\/skills\/doomed$/.test(r.url))).toBe(true),
+    )
+    // The selection param was cleared, so the preview returns to the empty state.
+    await waitFor(() => expect(document.querySelector('[data-slot="skills-detail"]')?.className).toContain('hidden'))
+  })
+
+  it('opens the editor in create mode with a scope picker, and saves through POST', async () => {
+    serve({ skills: [ownedSkill('mine')] })
+    renderAt('/skills')
+    await waitFor(() => expect(rowNames()).toHaveLength(1))
+
+    fireEvent.click(document.querySelector('[data-slot="skills-new"]')!)
+    await waitFor(() => expect(document.querySelector('[data-slot="skill-editor"]')).not.toBeNull())
+    expect(document.querySelector('[data-slot="skill-editor-scope"]')).not.toBeNull()
+    expect(document.querySelector('[data-slot="skill-editor-scope"]')?.getAttribute('data-value')).toBe('project')
+
+    fireEvent.change(document.querySelector('[data-slot="skill-editor-name"]')!, { target: { value: 'fresh-skill' } })
+    fireEvent.change(document.querySelector('[data-slot="skill-editor-body"]')!, { target: { value: 'Body' } })
+    fireEvent.click(document.querySelector('[data-slot="skill-editor-save"]')!)
+    await waitFor(() => expect(requests.some((r) => r.method === 'POST' && r.url === '/api/v1/skills')).toBe(true))
   })
 })

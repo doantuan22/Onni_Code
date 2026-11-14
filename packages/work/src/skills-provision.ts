@@ -1,5 +1,6 @@
 import { copyFile, cp, lstat, mkdir, readFile, symlink, writeFile } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, join, relative } from 'node:path';
+import { SKILL_NAME_PATTERN } from '@onni/contract';
 import type { Skill } from './skills.ts';
 import { excludeFromGit, materializeSkillDir } from './skills-remote.ts';
 
@@ -19,8 +20,9 @@ export const PROVISION_SKILL_DIRS = ['.claude/skills', '.agents/skills'] as cons
 /** Bound on one closure — a skill that names the whole catalog must not copy all of it. */
 const MAX_CLOSURE = 24;
 
-/** A skill name that is safe as one directory name (no separators, never `.`/`..`). */
-const SAFE_SKILL_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+/** A skill name that is safe as one directory name (no separators, never `.`/`..`). Re-exported
+ *  from the contract so the provisioner and the write path (`skills-store.ts`) share one rule. */
+export const SAFE_SKILL_NAME = SKILL_NAME_PATTERN;
 
 /** True when `body` names `name` as a skill: hyphenated names by word, plain names only as `/name` or `` `name` ``. */
 export function mentionsSkill(body: string, name: string): boolean {

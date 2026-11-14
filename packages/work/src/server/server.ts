@@ -138,6 +138,7 @@ import { dashboardRoutes } from './dashboard.ts';
 
 
 import { discoverSkills } from '../skills.ts';
+import { createOwnedSkill, deleteOwnedSkill, updateOwnedSkill } from '../skills-store.ts';
 import { DesignProxies } from './preview/design-proxy.ts';
 import { getTeamSkillsCached, isSafeRef, refreshTeamSkills, safeRemoteFor, waitForTeamSkills } from '../skills-remote.ts';
 
@@ -1054,11 +1055,11 @@ export function createApp(deps: ServerDeps) {
   // Non-boot projects build lazily on first scoped request; their managers
   // count against the same workspace semaphore as the boot manager (step 2.5).
   const contexts = deps.contexts ?? new ProjectContexts({
-    listProjects: async () => {
-      const selector = capabilities().singleProject
+    listProjects: async (selector) => {
+      const sel = capabilities().singleProject
         ? { projectId: await resolveBootProject() }
-        : undefined;
-      return listProjects(selector);
+        : selector;
+      return listProjects(sel);
     },
     semaphore: deps.semaphore,
   });
@@ -2151,6 +2152,9 @@ export function createApp(deps: ServerDeps) {
       getTeamSkillsCached,
       refreshTeamSkills,
       waitForTeamSkills,
+      createOwnedSkill,
+      updateOwnedSkill,
+      deleteOwnedSkill,
     }))
     .route('/', uiStateRoutes({ uiStateBody, maxBodySize: UI_STATE_BODY_LIMIT }))
     .route('/', workflowsRoutes)

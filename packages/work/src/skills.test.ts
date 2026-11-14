@@ -9,6 +9,7 @@ import {
   readImportedSkills,
   type Skill,
 } from './skills.ts';
+import { onniHomeDir } from './paths.ts';
 
 /**
  * The opt-out gate's two pure halves (#391 follow-up: the promo banner is gone, replaced by
@@ -155,6 +156,30 @@ describe('discoverSkills local entrypoints', () => {
 
     expect(skills).toHaveLength(1);
     expect(skills[0]?.source).toBe('agents');
+  });
+
+  it('marks a ~/.onni/skills entry as owned with the onni-global source', async () => {
+    const repoRoot = await mkdtemp(join(tmpdir(), 'onni-skills-'));
+    tempDirs.push(repoRoot);
+    // GLOBAL_SKILL_DIRS is evaluated at import, so it points at the vitest-sandbox ONNI_HOME —
+    // write there rather than overriding ONNI_HOME (which the frozen const would not see).
+    const dir = join(onniHomeDir(), 'skills/global-one');
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, 'SKILL.md'), '---\nname: global-one\n---\nGlobal body');
+
+    try {
+      const found = (await discoverSkills(repoRoot)).filter((skill) => skill.name === 'global-one');
+      expect(found).toHaveLength(1);
+      expect(found[0]).toMatchObject({
+        source: 'onni-global',
+        owned: true,
+        scope: 'global',
+        body: 'Global body',
+        path: join(dir, 'SKILL.md'),
+      });
+    } finally {
+      await rm(join(onniHomeDir(), 'skills/global-one'), { recursive: true, force: true });
+    }
   });
 });
 

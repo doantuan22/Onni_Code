@@ -112,7 +112,7 @@ describe('the workspace settings API (step 2.7)', () => {
       agentDefaults: {},
       taskPresets: [],
       limits: { mode: 'capped', maxCostUsd: 10, maxTokens: 10_000_000, maxWallClockMinutes: 240, maxStepIterations: 30 },
-      safety: { waitExpiryMinutes: 30, dispatchMaxDepth: 1, dispatchMaxSubtasks: 12, dispatchUnlimitedSubtasks: false, dispatchRetryLimit: 1, managerComplexityPolicy: true, managerFullAccess: false },
+      safety: { waitExpiryMinutes: 30, dispatchMaxDepth: 1, dispatchMaxSubtasks: 12, dispatchMaxConcurrent: 50, dispatchUnlimitedSubtasks: false, dispatchUnlimitedConcurrent: false, dispatchRetryLimit: 1, managerComplexityPolicy: true, managerFullAccess: false },
       managerWorker: { presets: [], defaultPresetId: null },
       agentPermissions: { antigravity: 'files-only' },
     });
@@ -312,7 +312,7 @@ describe('the workspace settings API (step 2.7)', () => {
       agentDefaults: {},
       taskPresets: [],
       limits: { mode: 'capped', maxCostUsd: 10, maxTokens: 10_000_000, maxWallClockMinutes: 240, maxStepIterations: 30 },
-      safety: { waitExpiryMinutes: 30, dispatchMaxDepth: 1, dispatchMaxSubtasks: 12, dispatchUnlimitedSubtasks: false, dispatchRetryLimit: 1, managerComplexityPolicy: true, managerFullAccess: false },
+      safety: { waitExpiryMinutes: 30, dispatchMaxDepth: 1, dispatchMaxSubtasks: 12, dispatchMaxConcurrent: 50, dispatchUnlimitedSubtasks: false, dispatchUnlimitedConcurrent: false, dispatchRetryLimit: 1, managerComplexityPolicy: true, managerFullAccess: false },
       managerWorker: { presets: [], defaultPresetId: null },
       agentPermissions: { antigravity: 'files-only' },
     });

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DISPATCH_MAX_IN_FLIGHT } from './dispatch.ts';
 
 /**
  * Run limits (spec docs/design/unattended-safety.md §2). Two modes, one feature: `none` applies no
@@ -61,8 +62,12 @@ export const safetySettingsSchema = z.object({
   dispatchMaxDepth: z.number().int().min(1).max(3),
   /** Tree-wide subtask cap used when the root has no `intent.maxSubtasks`. */
   dispatchMaxSubtasks: z.number().int().min(1).max(100),
+  /** Concurrent workers allowed when the root has no `intent.inFlight`. */
+  dispatchMaxConcurrent: z.number().int().min(1).max(DISPATCH_MAX_IN_FLIGHT).optional(),
   /** Turns the subtask counter off (a task's own `intent.maxSubtasks` still applies). Cost/token ceilings are separate. */
   dispatchUnlimitedSubtasks: z.boolean(),
+  /** Lifts the in-flight ceiling entirely (a task's own `intent.inFlight` still applies). */
+  dispatchUnlimitedConcurrent: z.boolean().optional(),
   /** Ceiling on how many times a failed order may be dispatched again (an order may only lower it). */
   dispatchRetryLimit: z.number().int().min(0).max(3),
   /** Manager–worker: tell a manager to hand complex work to workers instead of doing it alone. Absent = on. */
@@ -75,7 +80,9 @@ export const DEFAULT_SAFETY_SETTINGS: SafetySettings = {
   waitExpiryMinutes: 30,
   dispatchMaxDepth: 1,
   dispatchMaxSubtasks: 12,
+  dispatchMaxConcurrent: DISPATCH_MAX_IN_FLIGHT,
   dispatchUnlimitedSubtasks: false,
+  dispatchUnlimitedConcurrent: false,
   dispatchRetryLimit: 1,
   managerComplexityPolicy: true,
   managerFullAccess: false,

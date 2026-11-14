@@ -139,7 +139,7 @@ Lệnh tái hiện: `npm test` (toàn bộ) hoặc hẹp hơn:
 | `onni task create` / `report` / `list` | CLI cho agent con gọi về cha | `packages/work/src/dispatch/task-cli.ts` | CLI trong worktree | ĐÃ XÁC MINH | `dispatch/task-cli.test.ts` + dry-run CLI |
 | Budget cho con | `budgetUsd` (trần 10 000 USD) carve cho con; `enforceDispatchBudget` đậu run `waiting` khi spent ≥ budget | `contract/dispatch.ts:78,130` · `run.ts:2827-2842,3004-3020` · `engine.ts:54` | Task settings → Advanced · `onni task create --budget` | ĐÃ XÁC MINH | `dispatch/engine.test.ts` pass |
 | Report buffer | giữ tối đa 20 report mới nhất cho cha | `dispatch/engine.ts:30,209-211` | tự động | ĐÃ XÁC MINH | `dispatch/engine.test.ts` pass |
-| Trần con đang chạy | 4 in-flight (`DISPATCH_MAX_IN_FLIGHT`) | `contract/dispatch.ts:57` · `engine.ts:25` | env/Task settings → Advanced chỉ hạ được | ĐÃ XÁC MINH | `contract-parity.dispatch.test.ts` pass |
+| Trần con đang chạy | 50 in-flight (`DISPATCH_MAX_IN_FLIGHT`), hạ được bằng `safety.dispatchMaxConcurrent`, tắt hẳn bằng `safety.dispatchUnlimitedConcurrent` | `contract/dispatch.ts:575` · `contract/limits.ts` · `run.ts` (`dispatch()`) | Task settings → Advanced (`inFlight`) · Settings → Resources → Limits → Advanced | ĐÃ XÁC MINH | `contract-parity.dispatch.test.ts`, `workflows/dispatch-structure.test.ts` pass |
 | Trần số subtask | `dispatch()` đếm con theo `rootRunId` và từ chối khi vượt: `intent.maxSubtasks` nếu root có, **nếu không thì `safety.dispatchMaxSubtasks` (mặc định 12)** — cây không `intent` cũng bị chặn. (Bản chụp 2026-10-30 ghi "engine không đếm": **sai**, bộ đếm đã có ở `run.ts` từ trước; nhánh `feat/unattended-safety` chỉ thêm mặc định cho cây không `intent`) | `workflows/run.ts` (`dispatch()`, "Structural brakes") · `contract/limits.ts` | Task settings → Advanced · automation · Settings → Resources → Limits → Advanced | ĐÃ XÁC MINH | `workflows/dispatch-structure.test.ts`, `dispatch-engine.test.ts` pass |
 | Prompt cho con | briefing/return format | `dispatch/prompts.ts` | tự động | ĐÃ XÁC MINH | `dispatch/prompts.test.ts` pass |
 | Depth cap | `safety.dispatchMaxDepth`, mặc định **1** (worker không dispatch tiếp), tối đa 3; độ sâu tính bằng cách đi ngược `parentRunId` | `dispatch/engine.ts` (`dispatchDepth`) · `workflows/run.ts` (`dispatch()`) | Settings → Resources → Limits → Advanced | ĐÃ XÁC MINH | `workflows/dispatch-structure.test.ts` pass |
@@ -296,7 +296,7 @@ Lệnh tái hiện: `npm test` (toàn bộ) hoặc hẹp hơn:
 | 15 phút (min 0, max 1440) | `work/src/workspace/config.ts:85,94` | idle timeout | Settings |
 | 4 × idle | `work/src/workflows/run.ts:249` | `MONITORING_LIVENESS_MS` | **không** |
 | 1 s / 5 s | `run.ts:247` `CANCEL_GRACE_MS`, `:251` `LEFTOVER_SETTLE_GRACE_MS` | grace cancel & reap | **không** |
-| 4 / 50 | `contract/src/dispatch.ts:57,59` | con in-flight / subtask | **không** |
+| 50 / 100 | `contract/src/dispatch.ts:575,577` | con in-flight / subtask | **không** |
 | 20 | `work/src/dispatch/engine.ts:30` | report chờ cho một cha | **không** |
 | 20 / 28 000 000 | `contract/src/runs.ts:1121,1125` | attachments / tổng base64 | **không** |
 | 32 MiB / 128 KiB / 2 MiB+64 KiB | `work/src/server/server.ts:1107-1109`, `:3563,3622,3706` | body limits | **không** |

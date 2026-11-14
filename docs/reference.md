@@ -462,7 +462,9 @@ whose counter never resets within a run, so every run is finite.
 - **Fork / join.** Each fork port leads to one agent node, and every one of those agents
   leads into the same `join`. The agents run at once as subtasks through dispatch — fresh
   sessions, each in its own worktree forked from the task branch (the fork commits the
-  task's work first), with a budget carved from the parent's, at most four in flight. An
+  task's work first), with a budget carved from the parent's, at most `safety.dispatchMaxConcurrent`
+  (default 50) in flight — or unlimited when Settings → Resources → Limits → *Advanced* has the
+  concurrent-workers switch on. An
   agent with `review: true` runs as a reviewer of the task branch instead of an
   implementer. `wait: any` takes the first branch to succeed and cancels the rest.
   Sub-workflows run as subtasks the same way.
@@ -649,7 +651,8 @@ onni stop --all [--port 4321]                 # emergency stop: every queued and
 
 These stay on in **both** modes (Settings → Resources → Limits → *Advanced*): an autonomous or dispatched
 task that waits for an answer longer than `safety.waitExpiryMinutes` (default 30) ends `failed`
-(Continue answers it); dispatch depth (default 1), subtasks per tree (default 12) and `retry_limit`.
+(Continue answers it); dispatch depth (default 1), subtasks per tree (default 12), concurrent
+workers (default 50, or unlimited with the switch) and `retry_limit`.
 Autonomous and dispatched runs also never auto-land: `landing: "auto"` applies to attended in-place
 runs only. They get a `pre-push` hook refusing any ref outside `refs/heads/onni/*`, and Claude
 sessions deny `git push`. **This is a fence, not a sandbox**: `--no-verify`, an agent that rewrites its

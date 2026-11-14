@@ -216,17 +216,20 @@ export function dispatch(
   // The user's limits, when the root was started with the composer's Dispatch toggle: they may
   // only tighten the engine's own caps, and the child defaults they name fill an order's gaps.
   const intent = runs.find((r) => r.id === (parent.dispatch?.rootRunId ?? parent.id))?.dispatch?.intent;
-  const inFlightCap = Math.min(MAX_CHILDREN_IN_FLIGHT, intent?.inFlight ?? MAX_CHILDREN_IN_FLIGHT);
-  const inFlight = inFlightChildren(runs, parentId)
-    .filter((run) => run.id !== opts.redirectOrigin?.sourceRunId)
-    .length;
-  if (inFlight + 1 > inFlightCap) {
-    const refused = `${inFlight} child run${inFlight === 1 ? '' : 's'} already in flight; the cap is ${inFlightCap} per task${intent?.inFlight !== undefined && intent.inFlight < MAX_CHILDREN_IN_FLIGHT ? ' (set by the user)' : ''}. Wait for reports, then dispatch again.`;
-    note(`dispatch refused — ${refused}`, 'danger');
-    return { refused };
+  const safety = context.semaphore.safety();
+  // The in-flight brake, unless the workspace switch lifts it and the user set no per-task cap.
+  if (!(safety.dispatchUnlimitedConcurrent === true && intent?.inFlight === undefined)) {
+    const inFlightCap = Math.min(MAX_CHILDREN_IN_FLIGHT, intent?.inFlight ?? safety.dispatchMaxConcurrent ?? MAX_CHILDREN_IN_FLIGHT);
+    const inFlight = inFlightChildren(runs, parentId)
+      .filter((run) => run.id !== opts.redirectOrigin?.sourceRunId)
+      .length;
+    if (inFlight + 1 > inFlightCap) {
+      const refused = `${inFlight} child run${inFlight === 1 ? '' : 's'} already in flight; the cap is ${inFlightCap} per task${inFlightCap < MAX_CHILDREN_IN_FLIGHT ? ' (set by the user)' : ''}. Wait for reports, then dispatch again.`;
+      note(`dispatch refused — ${refused}`, 'danger');
+      return { refused };
+    }
   }
   // Structural brakes (docs/design/unattended-safety.md §4): on in every limits mode.
-  const safety = context.semaphore.safety();
   const depth = dispatchDepth(runs, parent);
   if (depth + 1 > safety.dispatchMaxDepth) {
     const refused = `dispatch depth is capped at ${safety.dispatchMaxDepth} — a task at depth ${depth} cannot dispatch further. Do the work yourself and report.`;

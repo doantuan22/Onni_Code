@@ -6,7 +6,7 @@ import { readFileWithRetry, renameSyncWithRetry, renameWithRetry } from '../fs-r
 // Contract VALUES, like `workspaceUiStateSchema` in workspace/migrations.ts: the tag bounds this
 // file must not `.catch` away are the same constants the PATCH route validates against, so they
 // are imported rather than repeated.
-import { agentPermissionLevelSchema, DEFAULT_AGENT_PERMISSIONS, DEFAULT_AGENT_PERMISSION_LEVEL, DEFAULT_MANAGER_WORKER_SETTINGS, DEFAULT_RUN_LIMITS, DEFAULT_SAFETY_SETTINGS, managerPresetSchema, MANAGER_PRESETS_MAX, PROJECT_TAGS_MAX, PROJECT_TAG_MAX_LENGTH, runLimitsSchema, taskPresetSchema, TASK_PRESETS_MAX } from '@onni/contract';
+import { agentPermissionLevelSchema, DEFAULT_AGENT_PERMISSIONS, DEFAULT_AGENT_PERMISSION_LEVEL, DEFAULT_MANAGER_WORKER_SETTINGS, DEFAULT_RUN_LIMITS, DEFAULT_SAFETY_SETTINGS, DISPATCH_MAX_IN_FLIGHT, managerPresetSchema, MANAGER_PRESETS_MAX, PROJECT_TAGS_MAX, PROJECT_TAG_MAX_LENGTH, runLimitsSchema, taskPresetSchema, TASK_PRESETS_MAX } from '@onni/contract';
 import { PROVIDER_IDS, type ProviderId } from '../core/provider-auth.ts';
 import { assertOnniHomeWriteIsSandboxed, isAbsolutePath, workspaceConfigPath } from '../paths.ts';
 
@@ -90,7 +90,9 @@ const safetyConfigSchema = z
     waitExpiryMinutes: z.number().int().min(1).max(1440).default(DEFAULT_SAFETY_SETTINGS.waitExpiryMinutes).catch(DEFAULT_SAFETY_SETTINGS.waitExpiryMinutes),
     dispatchMaxDepth: z.number().int().min(1).max(3).default(DEFAULT_SAFETY_SETTINGS.dispatchMaxDepth).catch(DEFAULT_SAFETY_SETTINGS.dispatchMaxDepth),
     dispatchMaxSubtasks: z.number().int().min(1).max(100).default(DEFAULT_SAFETY_SETTINGS.dispatchMaxSubtasks).catch(DEFAULT_SAFETY_SETTINGS.dispatchMaxSubtasks),
+    dispatchMaxConcurrent: z.number().int().min(1).max(50).default(DISPATCH_MAX_IN_FLIGHT).catch(DISPATCH_MAX_IN_FLIGHT),
     dispatchUnlimitedSubtasks: z.boolean().default(DEFAULT_SAFETY_SETTINGS.dispatchUnlimitedSubtasks).catch(DEFAULT_SAFETY_SETTINGS.dispatchUnlimitedSubtasks),
+    dispatchUnlimitedConcurrent: z.boolean().default(false).catch(false),
     dispatchRetryLimit: z.number().int().min(0).max(3).default(DEFAULT_SAFETY_SETTINGS.dispatchRetryLimit).catch(DEFAULT_SAFETY_SETTINGS.dispatchRetryLimit),
     managerComplexityPolicy: z.boolean().default(true).catch(true),
     managerFullAccess: z.boolean().default(false).catch(false),

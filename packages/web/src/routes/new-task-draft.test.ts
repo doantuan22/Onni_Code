@@ -446,7 +446,7 @@ describe('run limits, roster and preset in the draft store', () => {
 describe('normalizeDispatchIntent', () => {
   it('keeps only the contract keys, within the contract ranges', () => {
     expect(normalizeDispatchIntent({
-      maxSubtasks: 10, inFlight: 9, runner: 'nope', model: '', budgetUsd: -1, extra: 1,
+      maxSubtasks: 10, inFlight: 51, runner: 'nope', model: '', budgetUsd: -1, extra: 1,
     })).toEqual({ maxSubtasks: 10 })
     expect(normalizeDispatchIntent({
       maxSubtasks: 101, inFlight: 2, runner: 'codex', model: 'gpt-future', budgetUsd: 2.5,

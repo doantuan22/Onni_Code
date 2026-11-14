@@ -1,5 +1,5 @@
 import { rosterWorkerKey, type AgentPermissionLevel, type Roster, type RosterWorker } from '@onni/contract';
-import { DISPATCH_MAX_IN_FLIGHT, PLAN_PROMPT_MAX_PARTS, RUNNERS_WITHOUT_COST, RUNNERS_WITHOUT_TOKENS, type TreePlan, type TreePlanPart } from '@onni/contract';
+import { PLAN_PROMPT_MAX_PARTS, RUNNERS_WITHOUT_COST, RUNNERS_WITHOUT_TOKENS, type TreePlan, type TreePlanPart } from '@onni/contract';
 import { REVIEW_PROMPT } from '../dispatch/prompts.ts';
 import { managerCommandsBlock, workerCommandsBlock } from '../dispatch/commands.ts';
 import { formatBudgetLine, toDispatchBudget } from '../dispatch/budget-format.ts';
@@ -119,6 +119,8 @@ export interface RemainingBudget {
   /** The cap `subtasks` counts down from (for the "running low" nudge). */
   subtaskCap?: number;
   maxDepth: number;
+  /** Concurrent workers allowed; `undefined` when the in-flight ceiling is switched off. */
+  inFlight?: number;
 }
 
 /** Worker calls left; under 20% it tells the manager to batch the rest for workers instead of doing it itself. */
@@ -132,9 +134,12 @@ function subtaskLine(left: RemainingBudget): string {
 
 function remainingLines(left: RemainingBudget): string {
   const shared = left.unlimited ? '' : ' — shared by you and every worker; the whole tree stops when a ceiling is reached';
+  const concurrent = left.inFlight === undefined
+    ? 'No limit on how many workers run at once.'
+    : `At most ${left.inFlight} workers in flight at once; a worker over its entry's concurrency waits in the queue.`;
   return `- Remaining at the start of this session: ${formatBudgetLine(toDispatchBudget(left))}${shared}.\n`
     + `- ${subtaskLine(left)} Workers run at depth ${left.maxDepth}: a worker cannot dispatch further tasks.\n`
-    + `- At most ${DISPATCH_MAX_IN_FLIGHT} workers in flight at once; a worker over its entry's concurrency waits in the queue.`;
+    + `- ${concurrent}`;
 }
 
 /**

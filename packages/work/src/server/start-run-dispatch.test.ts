@@ -70,7 +70,7 @@ describe('POST /runs and the dispatch intent', () => {
 
   it('400s an intent outside the contract: an unknown key, or a cap above the engine’s', async () => {
     expect((await post({ steps: [{ id: 'work', prompt: '{{task}}' }], task: 't', dispatch: { maxSubtask: 3 } })).status).toBe(400);
-    expect((await post({ steps: [{ id: 'work', prompt: '{{task}}' }], task: 't', dispatch: { inFlight: 9 } })).status).toBe(400);
+    expect((await post({ steps: [{ id: 'work', prompt: '{{task}}' }], task: 't', dispatch: { inFlight: 51 } })).status).toBe(400);
     expect(inputs).toHaveLength(0);
   });
 });

@@ -2,6 +2,7 @@ import {
   CONFLICTS_FILES_MAX,
   CONFLICTS_MAX_PAIRS,
   CONFLICTS_TRIAL_MAX,
+  DISPATCH_MAX_IN_FLIGHT,
   MANAGER_CANCEL_REASON_MAX_CHARS,
   MANAGER_DELIVERIES_MAX_OUTSTANDING,
   MANAGER_DELIVERIES_MAX_RETAINED,
@@ -324,6 +325,8 @@ export function remainingForManager(ctx: ManagerControlContext, runs: readonly R
     const ownCap = root?.dispatch?.intent?.maxSubtasks;
     const uncapped = ownCap === undefined && safety.dispatchUnlimitedSubtasks;
     const cap = ownCap ?? safety.dispatchMaxSubtasks;
+    const ownInFlight = root?.dispatch?.intent?.inFlight;
+    const inFlightUnlimited = ownInFlight === undefined && safety.dispatchUnlimitedConcurrent === true;
     return {
       unlimited: !capped,
       ...(capped && limits.maxCostUsd !== undefined ? { costUsd: limits.maxCostUsd - used.cost } : {}),
@@ -333,6 +336,7 @@ export function remainingForManager(ctx: ManagerControlContext, runs: readonly R
       subtasks: uncapped ? Number.POSITIVE_INFINITY : cap - children,
       subtaskCap: cap,
       maxDepth: safety.dispatchMaxDepth,
+      inFlight: inFlightUnlimited ? undefined : (ownInFlight ?? safety.dispatchMaxConcurrent ?? DISPATCH_MAX_IN_FLIGHT),
     };
   }
 

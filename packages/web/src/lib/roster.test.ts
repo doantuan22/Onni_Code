@@ -27,7 +27,7 @@ describe('roster drafts', () => {
   it('round-trips through the contract and clamps concurrency', () => {
     const draft = { managerRunner: 'claude' as const, managerModel: ' opus ', workers: [{ runner: 'codex' as const, model: 'gpt-5', role: 'tests', kinds: [] as never[], tier: '' as const, maxConcurrent: 99 }] }
     const result = rosterFromDraft(draft)
-    expect(result.ok && result.roster.workers[0]).toMatchObject({ model: 'gpt-5', maxConcurrent: 4 })
+    expect(result.ok && result.roster.workers[0]).toMatchObject({ model: 'gpt-5', maxConcurrent: 50 })
     expect(result.ok && result.roster.manager.model).toBe('opus')
     if (result.ok) expect(draftFromRoster(result.roster).workers[0]?.role).toBe('tests')
   })

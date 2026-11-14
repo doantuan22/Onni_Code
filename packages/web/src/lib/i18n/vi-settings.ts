@@ -842,6 +842,10 @@ export const viSettings: Record<string, string> = {
   'type the project name to confirm': 'hãy gõ đúng tên dự án để xác nhận',
   'Subtasks per tree': 'Lượt gọi worker mỗi cây',
   'Unlimited worker calls': 'Không giới hạn lượt gọi worker',
+  'Concurrent workers': 'Worker chạy đồng thời',
+  'Unlimited concurrent workers': 'Không giới hạn worker chạy đồng thời',
+  'How many workers a manager may run at once. Applies when the task was not started with its own in-flight limit.':
+    'Số worker mà manager có thể chạy cùng lúc. Áp dụng khi nhiệm vụ không có giới hạn in-flight riêng.',
   'Total worker calls in one tree (not the number running at once). Applies when the task was not started with its own subtask limit.':
     'Tổng số lượt gọi worker trong một cây nhiệm vụ (không phải số worker chạy song song). Áp dụng khi nhiệm vụ không có giới hạn riêng.',
   Swap: 'Bộ nhớ hoán đổi',

@@ -79,7 +79,7 @@ tới cockpit. Cùng engine đó chạy được không cần desktop: `node pac
 | `runs/` | `RunStore` (index `runs.json`, một file NDJSON mỗi run, bus sự kiện in-process), retention, review gate, auto-name, layouts, drafts. |
 | `workflows/` | Load/normalize YAML, chạy step, retry, continue, recovery, dispatch, landing, graph (`version: 2`). |
 | `core/` | Seam `AgentRunner`/`AgentSession`, adapter từng backend, mapping v1 `AgentEvent` → v2 `UiEvent`, model catalog, detect, agent profiles. |
-| `dispatch/` | Agent cha giao task con qua `onni task`; tối đa 4 con in-flight, budget con trích từ cha. |
+| `dispatch/` | Agent cha giao task con qua `onni task`; tối đa `dispatchMaxConcurrent` con in-flight (mặc định 50, có switch không giới hạn), budget con trích từ cha. |
 | `automations/` | Poll GitHub / lịch, deferred start, receipts, coordinator. |
 | `skills*.ts` | Playbook Markdown: local → `.agents` mirror → global → team repo (cache nền). |
 | `workspace/` | Registry `~/.onni/config.json`, migrations, semaphore `maxParallel`, agent accounts, secrets. |

@@ -3,6 +3,7 @@ import { useState } from 'react'
 
 import { putWorkspaceConfig } from '@/api/client'
 import { workspaceQueryKeys } from '@/api/queries'
+import { DISPATCH_MAX_IN_FLIGHT } from '@onni/api-client'
 import type { SetWorkspaceConfigInput, WorkspaceConfigResponse } from '@onni/api-client'
 import { IntegerStepper } from '@/components/integer-stepper'
 import { RunLimitsFields } from '@/components/run-limits-fields'
@@ -87,6 +88,19 @@ export function LimitsPanel({ config }: { config: WorkspaceConfigResponse }) {
                   checked={safety.dispatchUnlimitedSubtasks}
                   onCheckedChange={(checked) => save.mutateAsync({ safety: { dispatchUnlimitedSubtasks: checked } })} />
                 <span className="text-[13px] text-muted-foreground">{t('Unlimited worker calls')}</span>
+              </label>
+            </div>
+          </SettingsField>
+          <SettingsField title={t('Concurrent workers')} hint={t('How many workers a manager may run at once. Applies when the task was not started with its own in-flight limit.')}>
+            <div className="flex flex-wrap items-center gap-4">
+              <IntegerStepper aria-label={t('Concurrent workers')} data-slot="safety-concurrent" value={safety.dispatchMaxConcurrent ?? DISPATCH_MAX_IN_FLIGHT} min={1} max={DISPATCH_MAX_IN_FLIGHT}
+                disabled={safety.dispatchUnlimitedConcurrent === true}
+                onCommit={(n) => save.mutateAsync({ safety: { dispatchMaxConcurrent: n ?? DISPATCH_MAX_IN_FLIGHT } })} />
+              <label className="flex items-center gap-2">
+                <Switch aria-label={t('Unlimited concurrent workers')} data-slot="safety-concurrent-unlimited"
+                  checked={safety.dispatchUnlimitedConcurrent === true}
+                  onCheckedChange={(checked) => save.mutateAsync({ safety: { dispatchUnlimitedConcurrent: checked } })} />
+                <span className="text-[13px] text-muted-foreground">{t('Unlimited concurrent workers')}</span>
               </label>
             </div>
           </SettingsField>

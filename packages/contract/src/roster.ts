@@ -55,7 +55,7 @@ export const rosterManagerSchema = z
 export type RosterManager = z.infer<typeof rosterManagerSchema>;
 
 export const ROSTER_MAX_WORKERS = 6;
-export const ROSTER_MAX_CONCURRENT = 4;
+export const ROSTER_MAX_CONCURRENT = 50;
 
 /**
  * What a worker is good for, and how much it can carry. Both are information for the MANAGER, shown

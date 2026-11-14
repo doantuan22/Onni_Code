@@ -127,6 +127,22 @@ describe('dispatch structure', () => {
     ok(r.id, 'mock:done three', { title: 'three' });
   }, 40_000);
 
+  it('caps concurrent workers at the workspace default', async () => {
+    boot({ dispatchMaxConcurrent: 2 });
+    const r = await root();
+    ok(r.id, 'mock:monitoring one', { title: 'one' });
+    ok(r.id, 'mock:monitoring two', { title: 'two' });
+    expect(refused(r.id, 'mock:monitoring three', { title: 'three' })).toContain('the cap is 2 per task (set by the user)');
+  }, 40_000);
+
+  it('the concurrent switch lifts the in-flight ceiling', async () => {
+    boot({ dispatchMaxConcurrent: 2, dispatchUnlimitedConcurrent: true });
+    const r = await root();
+    ok(r.id, 'mock:monitoring one', { title: 'one' });
+    ok(r.id, 'mock:monitoring two', { title: 'two' });
+    ok(r.id, 'mock:monitoring three', { title: 'three' });
+  }, 40_000);
+
   it('refuses the same order while its worker is still going, but not after it settled', async () => {
     const r = await root();
     const first = ok(r.id, 'mock:monitoring dup', { title: 'dup' });

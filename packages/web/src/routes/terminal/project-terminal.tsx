@@ -232,7 +232,7 @@ export function ProjectTerminalRoute() {
               aria-label={t('New terminal')}
               data-slot="project-terminal-new"
             >
-              {opening ? <Loader2Icon className="size-4 animate-spin" /> : <PlusIcon className="size-4" />}
+              {opening ? <Loader2Icon className="size-4 motion-safe:animate-spin" /> : <PlusIcon className="size-4" />}
               {t('New terminal')}
             </Button>
           </DropdownMenuTrigger>
@@ -270,7 +270,7 @@ export function ProjectTerminalRoute() {
       <div className="relative min-h-0 flex-1">
         {loading ? (
           <div className="flex h-full items-center justify-center text-muted-foreground">
-            <Loader2Icon className="size-5 animate-spin" />
+            <Loader2Icon className="size-5 motion-safe:animate-spin" />
           </div>
         ) : unavailable ? (
           <p className="p-6 text-sm text-muted-foreground">{unavailable}</p>

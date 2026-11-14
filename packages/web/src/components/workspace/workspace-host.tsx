@@ -6,9 +6,11 @@ import { useProjectScope } from '@/api/project-scope-context'
 import { useHealth, useRuns } from '@/api/queries'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/toaster'
+import { useFlipGroup } from '@/lib/flip'
 import { useI18n } from '@/lib/i18n'
 import { useNavigate } from '@/lib/project-router'
 import { useIsDesktop } from '@/lib/use-desktop'
+import { usePrefersReducedMotion } from '@/lib/use-prefers-reduced-motion'
 import { cn } from '@/lib/utils'
 import { useWorkspacePanesSync } from '@/lib/workspace-panes-sync'
 import {
@@ -139,6 +141,14 @@ function WorkspaceHostPane({
 
   useWorkspaceShortcuts({ projectId })
   useMarkViewed({ projectId, state, target })
+
+  const hostRef = useRef<HTMLDivElement | null>(null)
+  const reduceMotion = usePrefersReducedMotion()
+  useFlipGroup(hostRef, {
+    enabled: !reduceMotion,
+    selector: '[data-slot="workspace-pane"]',
+    keyAttribute: 'data-pane-id',
+  })
 
   const [scrollAnchors, setScrollAnchors] = useState<Record<string, number>>({})
   const pendingUrlPaneRef = useRef<string | null>(null)
@@ -338,17 +348,19 @@ function WorkspaceHostPane({
 
     if (isDesktop) {
       return (
-        <div className="flex min-h-0 flex-1 flex-col">
-          <SplitTabStrip
-            state={state}
-            onActivate={activate}
-            onClose={handleClosePane}
-            onUnsplit={() => update(disableSplit)}
-            onPickThread={handlePickThread}
-          />
-          <div className="flex min-h-0 flex-1 flex-row divide-x divide-border">
-            {renderPane(paneA)}
-            {renderPane(paneB)}
+        <div ref={hostRef} style={{ display: 'contents' }}>
+          <div className="flex min-h-0 flex-1 flex-col">
+            <SplitTabStrip
+              state={state}
+              onActivate={activate}
+              onClose={handleClosePane}
+              onUnsplit={() => update(disableSplit)}
+              onPickThread={handlePickThread}
+            />
+            <div className="flex min-h-0 flex-1 flex-row divide-x divide-border">
+              {renderPane(paneA)}
+              {renderPane(paneB)}
+            </div>
           </div>
         </div>
       )
@@ -357,7 +369,8 @@ function WorkspaceHostPane({
     // Below 1024px: ONE conversation pane at a time (the active one)
     const activePaneRef = state.active === paneB.paneId ? paneB : paneA
     return (
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div ref={hostRef} style={{ display: 'contents' }}>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div
           data-slot="conversation-header"
           className="flex h-[var(--header-h,48px)] min-w-0 shrink-0 items-center justify-between border-b border-border bg-muted/40 px-3 text-xs"
@@ -494,6 +507,7 @@ function WorkspaceHostPane({
             )}
           />
         ) : null}
+        </div>
       </div>
     )
   }
@@ -507,11 +521,12 @@ function WorkspaceHostPane({
   if (!pane || !matchesTarget) return null
 
   if (isDesktop) {
-    return renderPane(pane)
+    return <div ref={hostRef} style={{ display: 'contents' }}>{renderPane(pane)}</div>
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div ref={hostRef} style={{ display: 'contents' }}>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div
         data-slot="conversation-header"
         className="flex h-[var(--header-h,48px)] min-w-0 shrink-0 items-center justify-between border-b border-border bg-muted/40 px-3 text-xs"
@@ -570,6 +585,7 @@ function WorkspaceHostPane({
           )}
         />
       ) : null}
+      </div>
     </div>
   )
 }

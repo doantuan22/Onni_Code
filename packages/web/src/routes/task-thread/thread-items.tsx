@@ -229,7 +229,7 @@ export function UserBubble({
             disabled={busy}
             className="rounded-sm bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground hover:brightness-[0.96] focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
           >
-            {busy ? <LoaderCircleIcon className="size-3.5 animate-spin" /> : t('Save')}
+            {busy ? <LoaderCircleIcon className="size-3.5 motion-safe:animate-spin" /> : t('Save')}
           </button>
         </span>
         {actionError ? <p role="alert" className="mt-1.5 text-xs text-danger">{actionError}</p> : null}
@@ -578,7 +578,7 @@ export function WorkingIndicator({ since, lastActivityAt }: { since?: string; la
       // Wraps rather than overflows: with both stamps the line outgrows a 320px phone column.
       className="flex flex-wrap items-center gap-x-2 gap-y-0.5 py-1 text-[13px] text-soft-foreground"
     >
-      <LoaderCircleIcon role="status" aria-label={t('Working')} className="size-3.5 shrink-0 animate-spin" />
+      <LoaderCircleIcon role="status" aria-label={t('Working')} className="size-3.5 shrink-0 motion-safe:animate-spin" />
       <span className="shimmer font-medium">{t('Working…')}</span>
       {elapsed !== undefined ? (
         <span data-slot="working-elapsed" title={t('Started {time}', { time: exactLabel(since) ?? '' })} className="font-mono text-xs tabular-nums">
@@ -883,7 +883,7 @@ export function ToolCard({
         ) : null}
         <span className="ml-auto flex shrink-0 items-center gap-2 pl-2">
           {busy ? (
-            <LoaderCircleIcon role="status" aria-label={t('Running')} className="size-3.5 animate-spin text-soft-foreground" />
+            <LoaderCircleIcon role="status" aria-label={t('Running')} className="size-3.5 motion-safe:animate-spin text-soft-foreground" />
           ) : null}
           {item.status === 'failed' ? <span className="text-xs text-muted-foreground">{t('failed')}</span> : null}
           {item.status === 'declined' ? <span className="text-xs text-soft-foreground">{t('declined')}</span> : null}

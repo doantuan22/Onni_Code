@@ -56,7 +56,7 @@ export function RepoSyncBar() {
       </span>
       <div className="ml-auto flex items-center gap-1">
         <SyncButton which="fetch" label={t('Fetch')} busy={busy} pending={pending} onClick={run} disabled={!s.pushRemote}>
-          <RefreshCwIcon aria-hidden="true" className={cn(busy && pending === 'fetch' && 'animate-spin')} />
+          <RefreshCwIcon aria-hidden="true" className={cn(busy && pending === 'fetch' && 'motion-safe:animate-spin')} />
         </SyncButton>
         {s.upstream ? (
           <>
@@ -75,7 +75,7 @@ export function RepoSyncBar() {
               disabled={!s.ahead && !s.behind}
               variant="outline"
             >
-              <RefreshCwIcon aria-hidden="true" className={cn(busy && pending === 'sync' && 'animate-spin')} />
+              <RefreshCwIcon aria-hidden="true" className={cn(busy && pending === 'sync' && 'motion-safe:animate-spin')} />
             </SyncButton>
           </>
         ) : s.branch && s.pushRemote ? (

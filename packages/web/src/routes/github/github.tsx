@@ -1136,7 +1136,7 @@ function MergeRequirementIcon({ state }: { state: MergeRequirementState }) {
   const iconClass = 'size-4 shrink-0'
   if (state === 'passing') return <CircleCheckIcon aria-hidden="true" data-slot="gh-merge-status-passing" className={cn(iconClass, 'text-success')} />
   if (state === 'failing') return <CircleXIcon aria-hidden="true" data-slot="gh-merge-status-failing" className={cn(iconClass, 'text-danger')} />
-  if (state === 'pending') return <LoaderCircleIcon aria-hidden="true" data-slot="gh-merge-status-pending" className={cn(iconClass, 'animate-spin text-warning')} />
+  if (state === 'pending') return <LoaderCircleIcon aria-hidden="true" data-slot="gh-merge-status-pending" className={cn(iconClass, 'motion-safe:animate-spin text-warning')} />
   return <CircleIcon aria-hidden="true" data-slot="gh-merge-status-unknown" className={cn(iconClass, 'text-soft-foreground')} />
 }
 
@@ -1232,7 +1232,7 @@ function GithubMergeBox({ number }: { number: number }) {
               disabled={refreshMergeState.isPending}
               onClick={() => refreshMergeState.mutate()}
             >
-              <RefreshCwIcon aria-hidden="true" className={cn('size-3.5', refreshMergeState.isPending && 'animate-spin')} />
+              <RefreshCwIcon aria-hidden="true" className={cn('size-3.5', refreshMergeState.isPending && 'motion-safe:animate-spin')} />
               {t('Refresh')}
             </Button>
           </div>

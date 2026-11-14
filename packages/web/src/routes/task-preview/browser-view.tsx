@@ -667,7 +667,7 @@ export function BrowserView({
             setStatus('loading')
             setReloadToken((token) => token + 1)
           }}
-          icon={<RotateCwIcon aria-hidden="true" className={cn('size-3.5', status === 'loading' && 'animate-spin')} />}
+          icon={<RotateCwIcon aria-hidden="true" className={cn('size-3.5', status === 'loading' && 'motion-safe:animate-spin')} />}
         />
         <form
           className="min-w-0 flex-1"

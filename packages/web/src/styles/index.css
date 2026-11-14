@@ -263,6 +263,66 @@
   --syn-var: #111827;
 }
 
+/* ---------- motion ----------
+ * One duration + easing scale for every animation in the cockpit. Durations follow the
+ * Material 3 rhythm (micro → large surface); the two neutral curves cover most motion, and
+ * `--ease-spring` is the one overshoot curve for entrances. The spring is the real deal: a
+ * `linear()` overshoot preset (linear-easing.com "spring" — Chrome 113 / Safari 17.2 /
+ * Firefox 112) that settles past its target; an engine that cannot parse `linear()` drops the
+ * declaration and keeps the easeOutBack cubic-bezier declared first, so the fallback is a
+ * property-value fallback, not a feature sniff. Reduced-motion readers get none of this by
+ * construction: every consumer pairs a token with `motion-safe:` or a media guard. */
+
+:root {
+  --duration-micro: 120ms;
+  --duration-fast: 180ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@supports (animation-timing-function: linear(0, 1)) {
+  :root {
+    --ease-spring: linear(
+      0,
+      0.008,
+      0.031,
+      0.069,
+      0.12,
+      0.184,
+      0.259,
+      0.343,
+      0.435,
+      0.532,
+      0.633,
+      0.734,
+      0.83,
+      0.915,
+      0.98,
+      1.011,
+      1.026,
+      1.031,
+      1.029,
+      1.024,
+      1.018,
+      1.011,
+      1.005,
+      1,
+      0.996,
+      0.994,
+      0.993,
+      0.994,
+      0.995,
+      0.997,
+      0.999,
+      1
+    );
+  }
+}
+
 /* ---------- appearance: density + width (Settings → Appearance, redesign R6) ----------
  * `data-density` / `data-width` land on <html> before first paint (the index.html pre-paint
  * script reads the localStorage mirror; ui-state.json is the authoritative store — see
@@ -394,6 +454,21 @@
     letter-spacing: normal;
     color: var(--violet);
   }
+}
+
+/* Overlay entrances spring; exits stay on the fast default. `animate-in`/`animate-out`
+ * (tw-animate-css) read `--tw-ease` and `--tw-duration`, the same two variables Tailwind's own
+ * `ease-*` / `duration-*` utilities write — so setting them here retimes the enter keyframes
+ * only. Applied as `data-[state=open]:*`, the variables exist only while open: the instant Radix
+ * flips to `closed` the exit animation reads its own timing again. `overlay-spring` is the modal
+ * step (slow + spring, for a dialog's pop-in); `ease-spring` only swaps the curve so a surface
+ * that owns its duration — the sheet's 250ms slide, a menu's 150ms — keeps it. */
+@utility overlay-spring {
+  --tw-ease: var(--ease-spring);
+  --tw-duration: var(--duration-slow);
+}
+@utility ease-spring {
+  --tw-ease: var(--ease-spring);
 }
 
 /* ---------- base ---------- */
@@ -691,4 +766,40 @@
  * heading's `textContent`, so the heading must stay exactly the group's name (see `TaskColumnsHeading`). */
 .palette-date-label::after {
   content: attr(data-label);
+}
+
+/* ---------- route transitions (<ViewTransition>, app.tsx) ----------
+ * Same-document View Transitions on the routed content only — the shell and sidebar sit outside
+ * the boundary, so a navigation cross-fades the page while the chrome stays put. The class is the
+ * one React applies for the boundary's `default="route-fade"` trigger; the incoming snapshot
+ * rises 8px through the fade (Material's "fade through") and the outgoing one only fades, so the
+ * two pages never pile up in the same spot. Reduced motion drops the pseudo-element animations,
+ * which the API treats as an instant swap. */
+
+::view-transition-old(.route-fade) {
+  animation: route-fade-out var(--duration-slow) var(--ease-out) both;
+}
+::view-transition-new(.route-fade) {
+  animation: route-fade-in var(--duration-slow) var(--ease-out) both;
+}
+@keyframes route-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes route-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(.route-fade),
+  ::view-transition-new(.route-fade) {
+    animation: none;
+  }
 }

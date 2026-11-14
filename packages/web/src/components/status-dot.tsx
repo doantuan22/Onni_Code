@@ -18,7 +18,7 @@ const statusDotVariants = cva("inline-block size-[7px] shrink-0 rounded-full", {
       neutral: "bg-soft-foreground",
     },
     pulse: {
-      true: "animate-pulse",
+      true: "motion-safe:animate-pulse",
       false: "",
     },
   },

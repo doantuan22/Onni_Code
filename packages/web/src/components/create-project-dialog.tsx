@@ -449,8 +449,8 @@ function OwnerPickerLoading() {
       </span>
       {[0, 1].map((i) => (
         <div key={i} className="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5">
-          <span className="size-9 shrink-0 animate-pulse rounded-full bg-muted" />
-          <span className="h-3 w-24 animate-pulse rounded bg-muted" />
+          <span className="size-9 shrink-0 motion-safe:animate-pulse rounded-full bg-muted" />
+          <span className="h-3 w-24 motion-safe:animate-pulse rounded bg-muted" />
         </div>
       ))}
     </div>

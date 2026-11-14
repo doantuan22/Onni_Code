@@ -405,7 +405,7 @@ export function TerminalDrawer({
         </p>
       ) : starting ? (
         <p className="flex items-center gap-2 px-3 py-4 text-xs text-soft-foreground">
-          <Loader2Icon aria-hidden="true" className="size-3.5 animate-spin" />
+          <Loader2Icon aria-hidden="true" className="size-3.5 motion-safe:animate-spin" />
           {t('Starting the shell…')}
         </p>
       ) : (

@@ -37,7 +37,7 @@ function SheetOverlay({
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/50 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0",
+        "fixed inset-0 z-50 bg-black/50 motion-safe:data-[state=closed]:animate-out data-[state=closed]:fade-out-0 motion-safe:data-[state=open]:animate-in data-[state=open]:fade-in-0",
         className
       )}
       {...props}
@@ -62,7 +62,7 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          "fixed z-50 flex flex-col gap-4 bg-background shadow-modal transition ease-in-out data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=open]:animate-in data-[state=open]:duration-250",
+          "fixed z-50 flex flex-col gap-4 bg-background shadow-modal transition ease-in-out motion-safe:data-[state=closed]:animate-out data-[state=closed]:duration-200 motion-safe:data-[state=open]:animate-in data-[state=open]:duration-250 data-[state=open]:ease-spring",
           // The close button is positioned absolutely, so nothing else reserves its footprint and
           // header text wraps straight underneath it. Pad the header past `right-4` + the button's
           // 44px target. This has to come from here rather than SheetHeader's own base classes:

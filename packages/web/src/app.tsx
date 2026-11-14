@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, ViewTransition } from 'react'
 import { BrowserRouter } from 'react-router'
 
 import { GlobalEventsProvider } from './api/global-events'
@@ -61,7 +61,15 @@ export function App() {
                       project. */}
                   <ReferenceStatusRegistry>
                     <AppShellContainer>
-                      <AppRoutes />
+                      {/* Route content only: the shell/sidebar stays outside the animated region,
+                          so a navigation cross-fades the page while the chrome holds still. The
+                          declarative router already wraps navigation in startTransition, which is
+                          what arms React's ViewTransition; `route-fade` is the class index.css
+                          styles (::view-transition-old/new). Unsupported engines keep the
+                          synchronous, no-animation swap React falls back to. */}
+                      <ViewTransition default="route-fade">
+                        <AppRoutes />
+                      </ViewTransition>
                     </AppShellContainer>
                   </ReferenceStatusRegistry>
                   {/* One toast outlet for the whole app — `toast()` is a module-level call. */}

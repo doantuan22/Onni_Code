@@ -110,7 +110,7 @@ export function AgentUsage({ provider, now = Date.now() }: { provider: string; n
         {entry?.observedAt ? <span className="text-[11px] text-soft-foreground">{t('updated {time} ago', { time: formatSpan(entry.observedAt, now) })}</span> : null}
         {entry && entry.support !== 'unsupported' ? (
           <Button type="button" size="sm" variant="ghost" className="ml-auto h-7 gap-1.5 px-2" data-action="usage-refresh" disabled={refreshing} onClick={() => void refresh()}>
-            <RefreshCwIcon className={cn('size-3.5', refreshing && 'animate-spin')} aria-hidden="true" />
+            <RefreshCwIcon className={cn('size-3.5', refreshing && 'motion-safe:animate-spin')} aria-hidden="true" />
             {t('Refresh')}
           </Button>
         ) : null}

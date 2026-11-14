@@ -877,7 +877,7 @@ export function NewTaskSurface({
       >
         <TwinkleBackdrop />
         <div data-slot="auto-starting" role="status" className="text-center">
-          <h1 className="animate-pulse text-lg font-semibold tracking-tight">{t('Starting task…')}</h1>
+          <h1 className="motion-safe:animate-pulse text-lg font-semibold tracking-tight">{t('Starting task…')}</h1>
           <p className="mt-1.5 text-[13.5px] text-muted-foreground">
             {t('Launched from a bookmarklet — taking you to the run.')}
           </p>

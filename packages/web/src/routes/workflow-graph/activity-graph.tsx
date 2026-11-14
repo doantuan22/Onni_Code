@@ -248,7 +248,7 @@ function ActivityGraphView({ run }: { run: ApiRun }) {
     return () => cancelAnimationFrame(frame)
   }, [signature, rf]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (runs.isPending) return <CenteredState icon={<Loader2Icon className="animate-spin" />} tone="neutral" title={t('Loading the activity map…')} subtitle="" heading="h2" />
+  if (runs.isPending) return <CenteredState icon={<Loader2Icon className="motion-safe:animate-spin" />} tone="neutral" title={t('Loading the activity map…')} subtitle="" heading="h2" />
   if (runs.isError) return <CenteredState icon={<XCircleIcon />} tone="danger" title={t('The activity map did not load')} subtitle={runs.error.message} heading="h2" />
   if (nodes.length === 0) return <CenteredState icon={<UsersIcon />} tone="neutral" title={t('Nothing to draw yet')} subtitle={t('This task has not started.')} heading="h2" />
 

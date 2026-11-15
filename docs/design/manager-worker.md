@@ -1,8 +1,6 @@
 # Manager / Worker — thiết kế (Giai đoạn 1, chỉ đọc)
 
-Nhánh `feat/manager-worker`, tạo từ `dev` (đã chứa `feat/unattended-safety`, commit 76a8933). Mọi dẫn chứng là `file:dòng` hoặc `file` + tên hàm trên code hiện tại; chưa sửa dòng code nào. Sơ đồ: [`docs/architecture/13-seq-manager-worker.puml`](../architecture/13-seq-manager-worker.puml).
-
-> PNG: [`13-seq-manager-worker.png`](../architecture/13-seq-manager-worker.png).
+Nhánh `feat/manager-worker`, tạo từ `dev` (đã chứa `feat/unattended-safety`, commit 76a8933). Mọi dẫn chứng là `file:dòng` hoặc `file` + tên hàm trên code hiện tại; chưa sửa dòng code nào.
 
 ## 1. Hiện trạng
 
@@ -117,8 +115,7 @@ Theo tin nhắn duyệt, **tin nhắn thắng**. Chỗ lệch / làm khác so v�
 
 **Rủi ro còn lại (thêm):** (a) run top-level tạo qua HTTP thô không bị ràng roster (chấp nhận, đã ghi vào docs/UI);
 (b) manager bỏ qua prompt hoặc merge kém — engine chỉ rào *nơi giao*, không ép *phải giao* (có ghi chú "manager không
-giao việc"); (c) hai worker cùng sửa một file vẫn xung đột; (d) `maxConcurrent` cao hơn `maxParallel` vô nghĩa (UI cảnh báo);
-(e) PNG của sơ đồ chưa được render (môi trường chặn chạy `plantuml.jar`) — render bằng lệnh trong `docs/architecture/README.md`.
+giao việc"); (c) hai worker cùng sửa một file vẫn xung đột; (d) `maxConcurrent` cao hơn `maxParallel` vô nghĩa (UI cảnh báo).
 
 ## Phụ lục B — prompt của manager, nguyên văn (roster mẫu: manager claude/opus; worker codex/gpt-5 "backend tests and migrations" ×2, opencode "documentation and changelogs" ×1; còn lại $7.50, 4 200 000 token, 180 phút, 25 bước, 9 subtask, độ sâu 1)
 

@@ -1,9 +1,11 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { RunEvent, RunRecord } from '../runs/store.ts';
-import { freshContinuationContext } from './continuation-context.ts';
+import { compactContinuationContext, freshContinuationContext } from './continuation-context.ts';
 
 const run = (extra: Partial<RunRecord> = {}): RunRecord => ({
   id: 'r1', title: 'Fix it', workflow: 'quick-task', task: 'Fix the checkout bug',
@@ -67,5 +69,41 @@ describe('freshContinuationContext', () => {
   it('falls back to legacy assistant text for old task histories', () => {
     const context = freshContinuationContext(run(), [event(1, 'text', { text: 'legacy answer' })], DIR);
     expect(context).toContain('Assistant:\nlegacy answer');
+  });
+});
+
+describe('compactContinuationContext', () => {
+  let dataDir: string;
+  beforeEach(() => { dataDir = mkdtempSync(join(tmpdir(), 'onni-compact-')); });
+  afterEach(() => { rmSync(dataDir, { recursive: true, force: true }); });
+
+  const writeHandoff = (runId: string, resumeNotes: string): void => {
+    const file = join(dataDir, 'runs', `${runId}.handoff.md`);
+    mkdirSync(join(dataDir, 'runs'), { recursive: true });
+    writeFileSync(file, `# Handoff — Fix it\n\n## Goal\n\nFix the checkout bug\n\n## Progress log\n\n- done\n\n## Resume notes\n\n${resumeNotes}`, 'utf8');
+  };
+
+  it('carries the handoff journal verbatim', () => {
+    writeHandoff('r1', 'Fixing the checkout; next: add tests.');
+    const context = compactContinuationContext(run(), [], DIR, dataDir);
+    expect(context).toContain('## Handoff journal');
+    expect(context).toContain('Fixing the checkout; next: add tests.');
+  });
+
+  it('keeps every user instruction while trimming the oldest assistant messages', () => {
+    const context = compactContinuationContext(run(), [
+      event(1, 'user-message', { text: 'do A' }),
+      event(2, 'item.completed', { item: { id: 'm1', kind: 'message', role: 'assistant', text: 'x'.repeat(70_000) } }),
+      event(3, 'user-message', { text: 'now do B' }),
+    ], DIR, dataDir);
+    expect(context).toContain('User:\ndo A');
+    expect(context).toContain('User:\nnow do B');
+    expect(context).toContain('(oldest messages truncated)');
+  });
+
+  it('degrades to a plain continuation without a handoff file', () => {
+    const context = compactContinuationContext(run(), [event(1, 'user-message', { text: 'hi' })], DIR, dataDir);
+    expect(context).not.toContain('## Handoff journal');
+    expect(context).toContain('User:\nhi');
   });
 });

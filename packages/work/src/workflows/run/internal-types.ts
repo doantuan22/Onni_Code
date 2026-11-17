@@ -158,6 +158,7 @@ export interface QueueContext<Input, Workflow extends WorkflowDef = WorkflowDef>
     persistedImages: ContentBlock[],
     persistedAttachments: PersistedAttachment[],
     ownerToken?: symbol,
+    compact?: boolean,
   ): Promise<void>;
   failOwnedContinuation(runId: string, ownerToken: symbol, message: string): void;
   abandonCancelledStart(runId: string): boolean;
@@ -312,6 +313,7 @@ export interface LifecycleContinueOptions {
   agentProfile?: string;
   raiseLimits?: boolean;
   replyTo?: string;
+  compact?: boolean;
 }
 
 /** The portion of an active owner touched by recovery, cancellation, and terminal cleanup. */
@@ -547,6 +549,9 @@ export interface SchedulingContext {
   repoRootBusy: SchedulingMutableValue<number>;
   lastLimitTick: SchedulingMutableValue<number>;
   queueReasonRevision: SchedulingMutableValue<number>;
+  /** Providers whose default login is currently connected — the failover candidate pool. A
+   *  manager with no provider-auth observer returns an empty set, disabling failover. */
+  usableProviders: () => ReadonlySet<RunnerId>;
   policy: SchedulingPolicy;
 
   pump(): Promise<void>;
@@ -674,6 +679,9 @@ export interface ContinuationOptions {
   agentProfile?: string;
   raiseLimits?: boolean;
   replyTo?: string;
+  /** Open a FRESH session seeded with the compacted context (the conversation outgrew the model's
+   *  window) instead of resuming the too-large session. Internal — the usage-limit scheduler sets it. */
+  compact?: boolean;
 }
 
 /** Active-run fields used by continuation and finish flows. */
@@ -820,6 +828,7 @@ export interface ContinuationContext {
     persistedImages?: ContentBlock[],
     persistedAttachments?: PersistedAttachment[],
     ownerToken?: symbol,
+    compact?: boolean,
   ): Promise<void>;
   sessionCostUsd(runId: string, sessionId: string): number;
   settleSuccess(runId: string, owner?: ContinuationActiveRun): Promise<boolean>;

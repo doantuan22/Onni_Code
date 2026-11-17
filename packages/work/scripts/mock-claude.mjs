@@ -304,6 +304,22 @@ async function respond(userText, imageCount) {
     return;
   }
 
+  // `mock:context` → the conversation outgrew the model's context window (agent-failure-class.ts
+  // `context_too_large`). Fired only when the opening prompt is the run's own task — a continuation
+  // opened from a compacted hand-off carries `## New user instruction` and must not overflow again,
+  // or a dry-run compaction test could never watch the fresh session settle.
+  if (userText.includes('mock:context') && !userText.includes('## New user instruction')) {
+    emit({
+      type: 'result',
+      subtype: 'success',
+      is_error: true,
+      result: 'Prompt is too long',
+      usage: { input_tokens: 0, output_tokens: 0 },
+      total_cost_usd: 0,
+    });
+    return;
+  }
+
   // `mock:limit` → the envelope Claude Code emits when the subscription window is
   // exhausted: an `is_error` result whose text is the machine-readable
   // `Claude AI usage limit reached|<epoch seconds>` marker. Makes the auto-resume path

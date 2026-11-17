@@ -7,6 +7,8 @@ import { reclaimWorktrees } from '../../runs/retention.ts';
 import type { RunRecord, StepState } from '../../runs/store.ts';
 import { parseUsageLimit } from '../../core/usage-limit.ts';
 import { followupsEnabled } from '../../handoff.ts';
+import { chooseFallbackTarget, fallbacksEnabled } from './fallback.ts';
+import { compactionEnabled } from '../continuation-context.ts';
 import { describeHit, evaluateLimits, raiseLimits, subtreeOf } from '../limits.ts';
 import { stepKind, type WorkflowDef } from '../types.ts';
 import type { LimitHit } from '@onni/contract';
@@ -25,6 +27,7 @@ export function scheduleAutoResumeIfLimited(context: SchedulingContext, runId: s
     scheduleTransientRetry(context, run);
     return;
   }
+  if (failure === 'context_too_large' && armContextCompaction(context, run)) return;
   armUsageLimitResume(context, run);
   // Account and conversation state is the user's to fix: say how, instead of a bare failure.
   const hint = failure === 'disk_full'
@@ -58,6 +61,29 @@ export function scheduleTransientRetry(context: SchedulingContext, run: RunRecor
   });
 }
 
+export function armContextCompaction(context: SchedulingContext, run: RunRecord): boolean {
+  const runId = run.id;
+  if (run.archived) return false;
+  if (!compactionEnabled()) return false;
+  if (!context.semaphore.autoResumeOnUsageLimit()) return false;
+  // No session = nothing to compact; `continueRun` would refuse anyway.
+  if (!run.steps.some((step) => step.sessionId)) return false;
+  // Once per run, sharing the failover counter: a task that already handed off (or compacted)
+  // once waits out any later stop instead of looping between recovery modes.
+  const attempts = run.autoResumeAttempts ?? 0;
+  if (attempts > 0) return false;
+  // Fresh session on the SAME model, seeded with the compacted context — the run failed on a
+  // window overflow, not an account window, so there is nothing to wait out.
+  const resumed = context.continueRun(runId, { compact: true });
+  if (!resumed.ok) return false;
+  context.store.updateRun(runId, { autoResumeAttempts: 1 });
+  context.store.appendEvent(runId, {
+    type: 'lifecycle',
+    message: `context window exceeded — compacting the conversation and continuing on ${failedBackend(run) ?? run.runner}`,
+  });
+  return true;
+}
+
 export function armUsageLimitResume(context: SchedulingContext, run: RunRecord): void {
   const runId = run.id;
   // Archiving IS resigning from a task. Reviving one because a window happened to reopen would
@@ -69,6 +95,25 @@ export function armUsageLimitResume(context: SchedulingContext, run: RunRecord):
   // No session to resume = nothing this feature can do; `continueRun` would refuse anyway.
   if (!run.steps.some((step) => step.sessionId)) return;
   const attempts = run.autoResumeAttempts ?? 0;
+  // Failover, once per run: hand the task to another connected provider instead of waiting out the
+  // reset. The attempt counter marks it used, so a second limit stop (on the fallback provider)
+  // waits like any other. A provider whose default login is held would fail again immediately.
+  if (attempts === 0 && fallbacksEnabled()) {
+    const holds = context.semaphore.accountHolds();
+    const held = new Set<string>([...holds.deadline, ...holds.inFlight]);
+    const target = chooseFallbackTarget(failedBackend(run) ?? run.runner, context.usableProviders(), held);
+    if (target) {
+      const resumed = context.continueRun(runId, { runner: target });
+      if (resumed.ok) {
+        context.store.updateRun(runId, { autoResumeAttempts: 1 });
+        context.store.appendEvent(runId, {
+          type: 'lifecycle',
+          message: `usage limit reached — handing the task to ${target} instead of waiting for the reset`,
+        });
+        return;
+      }
+    }
+  }
   if (attempts >= context.policy.maxAutoResumes) {
     context.store.appendEvent(runId, {
       type: 'note',

@@ -15,6 +15,7 @@ import {
   providerAuthChecksDisabled,
 } from './core/provider-auth.ts';
 import { applyProviderEnablement } from './core/provider-availability.ts';
+import type { RunnerId } from './core/agent-runner.ts';
 import { ensureDataGitignore } from './data-gitignore.ts';
 import { pruneOrphans, sweepVerifyBaselines } from './git-worktree.ts';
 import { getRepoInfo } from './server/git.ts';
@@ -285,7 +286,20 @@ async function serveCommand(
   // keepLive + recover() (#367): runs that were queued/running/waiting when
   // the previous process exited are re-queued or resumed instead of failed.
   const store = openStore(repoRoot, { keepLive: true });
-  const manager = new RunManager(store, repoRoot, { semaphore, projectId: bootProjectId, resolveTrackerEnv: resolveTrackerAgentEnv });
+  const providerAuth = new ProviderAuthService({ cwd: repoRoot });
+  const manager = new RunManager(store, repoRoot, {
+    semaphore,
+    projectId: bootProjectId,
+    resolveTrackerEnv: resolveTrackerAgentEnv,
+    usableProviders: () => {
+      const rows = providerAuth.peekStatus();
+      const usable = new Set<RunnerId>();
+      for (const row of rows?.providers ?? []) {
+        if (row.status === 'connected' && row.enabled !== false) usable.add(row.provider);
+      }
+      return usable;
+    },
+  });
   let httpServer: ReturnType<typeof startServer> | null = null;
   let stopping = false;
   // Owned lifecycle scripts drain first; then the store flushes.
@@ -305,7 +319,6 @@ async function serveCommand(
   };
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
-  const providerAuth = new ProviderAuthService({ cwd: repoRoot });
   const workspaceEvents = new WorkspaceEventBus();
   const providerRuntimeAuth = new ProviderRuntimeAuthObserver(providerAuth, (status) => {
     workspaceEvents.emit('provider-status', status);

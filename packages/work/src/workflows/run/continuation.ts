@@ -19,7 +19,7 @@ import { discoverSkills, type Skill } from '../../skills.ts';
 import { loadConfig } from '../../config.ts';
 import { READ_ONLY_TOOLS } from '../landing.ts';
 import { autosaveCommit } from '../../git-worktree.ts';
-import { freshContinuationContext } from '../continuation-context.ts';
+import { compactContinuationContext, freshContinuationContext } from '../continuation-context.ts';
 import { rematerializeReclaimedWorktree } from '../../runs/retention.ts';
 import { AgentTempDirError } from '../../runs/agent-tmpdir.ts';
 import { stripTaskMarkers } from '../../runs/task-markers.ts';
@@ -175,7 +175,7 @@ export function continueRun(ctx: ContinuationContext,
     const targetAccount = opts.agentProfile
       ?? (targetRunner === (run.runner ?? 'claude') ? run.agentProfile : undefined);
     const accountSwitched = targetAccount !== undefined && targetAccount !== sessionAccount;
-    const resume = sessionBackend === targetRunner && !accountSwitched;
+    const resume = !opts.compact && sessionBackend === targetRunner && !accountSwitched;
 
     // Follow-up runner/model/account override (#401, spec 2026-07-29-agent-profiles): the composer
     // lets the user pick which backend, model and login handle this continuation — the same flat
@@ -280,6 +280,7 @@ export function continueRun(ctx: ContinuationContext,
       undefined,
       undefined,
       ownerToken,
+      opts.compact === true,
     ).catch(
       (err: unknown) => {
         const message = err instanceof Error ? err.message : String(err);
@@ -307,6 +308,10 @@ export async function runContinuation(ctx: ContinuationContext,
     persistedImages: ContentBlock[] = [],
     persistedAttachments: PersistedAttachment[] = [],
     ownerToken?: symbol,
+    /** Compact the portable context (goal/state/handoff + trimmed transcript) instead of the
+     *  fresh tail — the conversation outgrew the model's window, so a plain tail dump would
+     *  fail the same way. Internal — the usage-limit scheduler sets it. */
+    compact = false,
   ): Promise<void> {
     const effectiveOwnerToken = ownerToken ?? Symbol('run-owner');
     // Continuation runs in the task's worktree when it still exists (spec
@@ -340,11 +345,15 @@ export async function runContinuation(ctx: ContinuationContext,
       if (ctx.abandonCancelledStart(runId)) return;
     }
     const record = ctx.store.getRun(runId);
-    // A provider/account switch cannot resume the old provider-owned session. Reconstruct the
-    // portable context from Onni's durable record + redacted event stream before this new turn's
-    // user-message is appended. This works even when the interrupted agent never wrote HANDOFF.md.
+    // A provider/account switch cannot resume the old provider-owned session — and a compacted
+    // continuation must not either (the old session is the thing that outgrew the window).
+    // Reconstruct the portable context from Onni's durable record + redacted event stream before
+    // this new turn's user-message is appended. This works even when the interrupted agent never
+    // wrote HANDOFF.md.
     const portableContext = record && sessionId === undefined
-      ? freshContinuationContext(record, ctx.store.readEvents(runId), ctx.attachmentsDir(runId))
+      ? (compact
+        ? compactContinuationContext(record, ctx.store.readEvents(runId), ctx.attachmentsDir(runId), ctx.dataDir)
+        : freshContinuationContext(record, ctx.store.readEvents(runId), ctx.attachmentsDir(runId)))
       : undefined;
     // The record is mutated in place below; a missing-session fallback needs it as it was.
     const recordBeforeTurn = record && sessionId !== undefined

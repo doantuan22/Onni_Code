@@ -747,6 +747,9 @@ interface ContinueRunOptions {
   /** The `requestId` of an open manager ask this continuation answers (plan v2 §9). Matching one
    *  clears it and names the question in the opening prompt. */
   replyTo?: string;
+  /** Open a FRESH session seeded with the compacted context (the conversation outgrew the model's
+   *  window) instead of resuming the too-large session. Internal — the usage-limit scheduler sets it. */
+  compact?: boolean;
 }
 
 interface ActiveRun {
@@ -1287,6 +1290,10 @@ export class RunManager {
   /** See the constructor option of the same name. */
   private readonly resolveTrackerEnv: ((root: string, expected: TrackerAssociation | undefined) => Promise<Record<string, string>>) | undefined;
 
+  /** See the constructor option of the same name. Defaults to an empty set, which disables the
+   *  usage-limit failover entirely. */
+  private readonly usableProviders: () => ReadonlySet<RunnerId>;
+
   constructor(
     private readonly store: RunStore,
     private readonly repoRoot: string,
@@ -1309,6 +1316,9 @@ export class RunManager {
       env?: () => NodeJS.ProcessEnv;
       /** Test seam for `onni task verify`: runner, bash, clock, environment and baseline deadline. */
       verifyDeps?: Partial<VerifyDependencies>;
+      /** Providers whose default login is connected (see `provider-auth.peekStatus`), consulted by
+       *  the usage-limit failover to pick a live hand-off target. Absent = no failover. */
+      usableProviders?: () => ReadonlySet<RunnerId>;
     } = {},
   ) {
     this.verifyDeps = {
@@ -1323,6 +1333,7 @@ export class RunManager {
     this.branchNameWaitMs = options.branchNameWaitMs ?? BRANCH_NAME_WAIT_MS;
     this.projectId = options.projectId;
     this.resolveTrackerEnv = options.resolveTrackerEnv;
+    this.usableProviders = options.usableProviders ?? (() => new Set<RunnerId>());
     this.secrets = options.secrets ?? new SecretStore();
     this.semaphore = options.semaphore ?? new WorkspaceSemaphore();
     this.offSemaphore = this.semaphore.register({
@@ -1562,8 +1573,8 @@ export class RunManager {
       hydrateQueuedContinuation: (runId, continuation) => this.hydrateQueuedContinuation(runId, continuation),
       refreshQueuedWorkflow: (runId, snapshot, catalog) => this.refreshQueuedWorkflow(runId, snapshot, catalog),
       execute: (runId, workflow, input, ownerToken) => this.execute(runId, workflow, input, ownerToken),
-      runContinuation: (runId, stepId, sessionId, backend, prompt, images, persistedImages, persistedAttachments, ownerToken) =>
-        this.runContinuation(runId, stepId, sessionId, backend, prompt, images, persistedImages, persistedAttachments, ownerToken),
+      runContinuation: (runId, stepId, sessionId, backend, prompt, images, persistedImages, persistedAttachments, ownerToken, compact) =>
+        this.runContinuation(runId, stepId, sessionId, backend, prompt, images, persistedImages, persistedAttachments, ownerToken, compact),
       failOwnedContinuation: (runId, ownerToken, message) => this.failOwnedContinuation(runId, ownerToken, message),
       abandonCancelledStart: (runId) => this.abandonCancelledStart(runId),
       clearIdleTimer: (runId) => {
@@ -2261,6 +2272,7 @@ export class RunManager {
         get value() { return manager.queueReasonRevision; },
         set value(value: number) { manager.queueReasonRevision = value; },
       },
+      usableProviders: () => this.usableProviders(),
       policy: {
         accountHeldFor, runAccountKey, resumeInFlight, autoResumeReasonFor, autoResumeCap, formatWakeInstant,
         autoResumeGraceMs: AUTO_RESUME_GRACE_MS, maxAutoResumes: MAX_AUTO_RESUMES,
@@ -2830,8 +2842,8 @@ export class RunManager {
       recordTurnEnd: (runId, turnText, run) => this.recordTurnEnd(runId, turnText, run ? state(run) : undefined),
       recordUsagePeaks: (runId, run) => this.recordUsagePeaks(runId, state(run)),
       releaseSlot: () => this.releaseSlot(),
-      runContinuation: (runId, stepId, sessionId, backend, prompt, images, persistedImages, persistedAttachments, ownerToken) =>
-        this.runContinuation(runId, stepId, sessionId, backend, prompt, images, persistedImages, persistedAttachments, ownerToken),
+      runContinuation: (runId, stepId, sessionId, backend, prompt, images, persistedImages, persistedAttachments, ownerToken, compact) =>
+        this.runContinuation(runId, stepId, sessionId, backend, prompt, images, persistedImages, persistedAttachments, ownerToken, compact),
       sessionCostUsd: (runId, sessionId) => this.sessionCostUsd(runId, sessionId),
       settleSuccess: (runId, run) => this.settleSuccess(runId, run ? state(run) : undefined),
       settleUnansweredPark: (runId, finishedAt, monitorHandoff) => this.settleUnansweredPark(runId, finishedAt, monitorHandoff),
@@ -2876,10 +2888,11 @@ export class RunManager {
     persistedImages: ContentBlock[] = [],
     persistedAttachments: PersistedAttachment[] = [],
     ownerToken?: symbol,
+    compact?: boolean,
   ): Promise<void> {
     return runContinuationTask(
       this.continuationContext(), runId, stepId, sessionId, backend, prompt,
-      images, persistedImages, persistedAttachments, ownerToken,
+      images, persistedImages, persistedAttachments, ownerToken, compact,
     );
   }
 

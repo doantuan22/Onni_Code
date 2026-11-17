@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createQueryClient } from '@/api/query-client'
 import { resetViewMemory } from '@/lib/view-memory'
 import { readWorkspaceState, resetWorkspaceStateStores } from '@/lib/workspace-state'
-import type { ApiRun, HealthResponse } from '@onni/api-client'
+import type { ApiRun, HealthResponse, Roster } from '@onni/api-client'
 
 import { reviveState, type ViewId } from './layout-state'
 
@@ -91,24 +91,24 @@ const health = (terminal: boolean): HealthResponse => ({
 const jsonResponse = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
 
-function stubFetch({ terminal = true }: { terminal?: boolean } = {}) {
+function stubFetch({ terminal = true, run = RUN }: { terminal?: boolean; run?: ApiRun } = {}) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL, init: RequestInit = {}) => {
       const path = String(input)
       const method = init.method ?? 'GET'
-      if (method === 'GET' && path === `/api/v1/runs/${RUN.id}`) return jsonResponse(RUN)
+      if (method === 'GET' && path === `/api/v1/runs/${run.id}`) return jsonResponse(run)
       if (method === 'GET' && path === '/api/v1/health') return jsonResponse(health(terminal))
-      if (method === 'GET' && path.startsWith(`/api/v1/runs/${RUN.id}/history`)) {
+      if (method === 'GET' && path.startsWith(`/api/v1/runs/${run.id}/history`)) {
         return jsonResponse({ events: [], olderCursor: null, newerCursor: null })
       }
-      if (method === 'GET' && path.startsWith(`/api/v1/runs/${RUN.id}/events`)) return jsonResponse([])
-      if (method === 'GET' && path.startsWith(`/api/v1/runs/${RUN.id}/drafts`)) return jsonResponse({ surfaces: {} })
-      if (method === 'GET' && path.startsWith(`/api/v1/runs/${RUN.id}/changes`)) {
+      if (method === 'GET' && path.startsWith(`/api/v1/runs/${run.id}/events`)) return jsonResponse([])
+      if (method === 'GET' && path.startsWith(`/api/v1/runs/${run.id}/drafts`)) return jsonResponse({ surfaces: {} })
+      if (method === 'GET' && path.startsWith(`/api/v1/runs/${run.id}/changes`)) {
         return jsonResponse({ files: [], stat: { adds: 0, dels: 0, files: 0 } })
       }
-      if (method === 'GET' && path.startsWith(`/api/v1/runs/${RUN.id}/commits`)) return jsonResponse({ commits: [] })
-      if (method === 'GET' && path.startsWith(`/api/v1/runs/${RUN.id}/files`)) {
+      if (method === 'GET' && path.startsWith(`/api/v1/runs/${run.id}/commits`)) return jsonResponse({ commits: [] })
+      if (method === 'GET' && path.startsWith(`/api/v1/runs/${run.id}/files`)) {
         return jsonResponse({ type: 'dir', path: '', entries: [] })
       }
       const layouts = /^\/api\/v1\/runs\/([^/]+)\/layouts$/.exec(path)
@@ -124,7 +124,7 @@ function stubFetch({ terminal = true }: { terminal?: boolean } = {}) {
         if (method === 'PUT') hostUiState = { ...hostUiState, ...JSON.parse(String(init.body ?? '{}')) }
         return jsonResponse(hostUiState)
       }
-      if (method === 'GET' && path === '/api/v1/runs') return jsonResponse([RUN])
+      if (method === 'GET' && path === '/api/v1/runs') return jsonResponse([run])
       if (method === 'GET' && path === '/api/v1/repo') return jsonResponse(health(terminal).repo)
       return jsonResponse({ error: `unstubbed: ${path}` }, 404)
     }),
@@ -201,6 +201,18 @@ describe('the task workspace (main)', () => {
     expect(screen.queryByRole('link', { name: 'Changes' })).toBeNull()
     // Opening the task saves nothing: the host has never been written to.
     expect(hostLayouts.r1).toBeUndefined()
+  })
+
+  it('shows the workers button in the header of a running manager task', async () => {
+    const roster: Roster = {
+      manager: { runner: 'claude' },
+      workers: [{ runner: 'codex', model: 'gpt-5', role: '', maxConcurrent: 1 }],
+    }
+    stubFetch({ run: { ...RUN, status: 'running', roster } })
+    renderWorkspace('session')
+    await ready()
+
+    expect(screen.getByRole('button', { name: 'Edit workers' })).toBeTruthy()
   })
 
   it('offers the Review preset in the Layout menu', async () => {

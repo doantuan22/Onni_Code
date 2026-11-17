@@ -11,10 +11,11 @@ import { Activity, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useS
 import { useNavigationType, useParams } from 'react-router'
 
 import { ApiError } from '@/api/client'
-import { useHealth, useMarkRunSeen, useRun } from '@/api/queries'
+import { useHealth, useMarkRunSeen, useRun, useRuns } from '@/api/queries'
 import { useRunHistory } from '@/api/run-history'
 import type { ApiRun } from '@onni/api-client'
 import { CenteredState } from '@/components/centered-state'
+import { EditWorkersButton } from '@/components/edit-workers-button'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -211,6 +212,14 @@ function WorkspaceView({
     () => VIEW_IDS.filter((view) => view !== 'terminal' || terminalAllowed),
     [terminalAllowed],
   )
+
+  // The roster lives on the tree ROOT; a worker run's own `roster` is undefined, so the workers
+  // button resolves the root from the shared list the same way the task-tree pane does.
+  const runs = useRuns().data
+  const rosterRootRun = useMemo(() => {
+    const rootRunId = run.dispatch?.rootRunId ?? run.id
+    return runs?.find((r) => r.id === rootRunId) ?? (run.id === rootRunId ? run : undefined)
+  }, [runs, run])
 
   // The deep-link hop, and Back undoing it (§5.3) — as on brutus, gated on `ready` so a card is
   // never built on the stand-in state before the host has answered.
@@ -461,19 +470,22 @@ function WorkspaceView({
   // Icon only, beside the header's collapse button: both change how much of the screen the work gets.
   const headerActions = useMemo(
     () => (
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        data-action="maximize-layout"
-        aria-label={t('Full view')}
-        title={t('Full view — hide everything but this layout (F)')}
-        className="text-muted-foreground"
-        onClick={toggleMaximized}
-      >
-        <Maximize2Icon aria-hidden="true" />
-      </Button>
+      <>
+        <EditWorkersButton run={rosterRootRun} iconOnly />
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          data-action="maximize-layout"
+          aria-label={t('Full view')}
+          title={t('Full view — hide everything but this layout (F)')}
+          className="text-muted-foreground"
+          onClick={toggleMaximized}
+        >
+          <Maximize2Icon aria-hidden="true" />
+        </Button>
+      </>
     ),
-    [t, toggleMaximized],
+    [t, toggleMaximized, rosterRootRun],
   )
 
   /**

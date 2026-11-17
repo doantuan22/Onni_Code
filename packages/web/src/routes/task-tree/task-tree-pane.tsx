@@ -1,20 +1,15 @@
 import * as React from 'react'
-import { GitBranchIcon, GitForkIcon, PencilIcon, TriangleAlertIcon } from 'lucide-react'
-import { useQueryClient } from '@tanstack/react-query'
+import { GitBranchIcon, GitForkIcon, TriangleAlertIcon } from 'lucide-react'
 
 import type { ApiRun } from '@onni/api-client'
-import { putRunRoster } from '@/api/client'
-import { queryKeys, useProviderStatus, useRuns } from '@/api/queries'
+import { useRuns } from '@/api/queries'
 import { useRunHistory } from '@/api/run-history'
 import { CenteredState } from '@/components/centered-state'
+import { EditWorkersButton } from '@/components/edit-workers-button'
 import { RunBackendBadge } from '@/components/run-backend-badge'
-import { RosterEditor } from '@/components/roster-editor'
 import { StatusDot } from '@/components/status-dot'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { deriveAttention, type AttentionTone } from '@/lib/attention'
 import { useI18n } from '@/lib/i18n'
-import { connectedBackends, draftFromRoster, rosterFromDraft, type RosterDraft } from '@/lib/roster'
 import { runTitle } from '@/lib/task-groups'
 import { buildTaskTree, flattenTaskTree, type TaskTreeNode } from '@/lib/task-tree'
 import { cn } from '@/lib/utils'
@@ -100,80 +95,11 @@ function BackendChip({ run }: { run: ApiRun }) {
 
 function TaskTreeHeader({ rootRun }: { rootRun?: ApiRun }) {
   const { t } = useI18n()
-  const queryClient = useQueryClient()
-  const providers = useProviderStatus()
-  const connected = connectedBackends(providers.data)
-  const [open, setOpen] = React.useState(false)
-  const [draft, setDraft] = React.useState<RosterDraft | null>(null)
-  const [error, setError] = React.useState<string | null>(null)
-  const [saving, setSaving] = React.useState(false)
-  const savingRef = React.useRef(false)
-  const active = rootRun?.status === 'running' || rootRun?.status === 'queued' || rootRun?.status === 'waiting'
-  const editable = Boolean(rootRun?.roster && active)
-  const parsed = draft ? rosterFromDraft(draft) : null
-  React.useEffect(() => {
-    if (open && !editable) setOpen(false)
-  }, [open, editable])
-  const save = async () => {
-    if (!rootRun || !editable || !parsed?.ok || savingRef.current) return
-    savingRef.current = true
-    setSaving(true)
-    setError(null)
-    try {
-      const result = await putRunRoster(rootRun.id, parsed.roster)
-      queryClient.setQueryData<ApiRun[]>(queryKeys.runs.list(), (runs) =>
-        runs?.map((run) => run.id === rootRun.id ? { ...run, roster: result.roster } : run),
-      )
-      queryClient.setQueryData<ApiRun>(queryKeys.runs.detail(rootRun.id), (run) =>
-        run ? { ...run, roster: result.roster } : run,
-      )
-      void queryClient.invalidateQueries({ queryKey: queryKeys.runs.all })
-      setOpen(false)
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t('Could not update workers'))
-    } finally {
-      savingRef.current = false
-      setSaving(false)
-    }
-  }
-
   return (
-    <>
-      <header className="flex h-header min-h-header min-w-0 items-center justify-between border-b border-border px-3">
-        <h2 className="text-xs font-medium text-foreground">{t('Task tree')}</h2>
-        {editable ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="xs"
-            data-slot="edit-workers"
-            onClick={() => {
-              setDraft(draftFromRoster(rootRun!.roster!))
-              setError(null)
-              setOpen(true)
-            }}
-          >
-            <PencilIcon aria-hidden="true" />
-            {t('Edit workers')}
-          </Button>
-        ) : null}
-      </header>
-      <Dialog open={open} onOpenChange={(next) => { if (!next) setOpen(false) }}>
-        <DialogContent data-slot="edit-workers-dialog" className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{t('Edit workers')}</DialogTitle>
-            <DialogDescription>{t('Changes apply to future dispatches. Existing workers keep running.')}</DialogDescription>
-          </DialogHeader>
-          {draft ? <RosterEditor draft={draft} onChange={setDraft} connected={connected} disabled={!editable || saving} managerLocked /> : null}
-          {parsed && !parsed.ok ? <p role="alert" className="text-sm text-danger">{parsed.error}</p> : null}
-          {error ? <p role="alert" data-slot="roster-save-error" className="text-sm text-danger">{error}</p> : null}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t('Cancel')}</Button>
-            <Button type="button" data-slot="save-workers" disabled={!editable || !parsed?.ok || saving} onClick={() => void save()}>{t('Save workers')}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+    <header className="flex h-header min-h-header min-w-0 items-center justify-between border-b border-border px-3">
+      <h2 className="text-xs font-medium text-foreground">{t('Task tree')}</h2>
+      <EditWorkersButton run={rootRun} />
+    </header>
   )
 }
 

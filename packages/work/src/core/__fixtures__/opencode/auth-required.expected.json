@@ -1,0 +1,7 @@
+[
+  {
+    "type": "session.error",
+    "message": "OpenCode authentication failed — run `opencode auth login`, or set a provider key in `~/.config/opencode/auth.json`.",
+    "fatal": true
+  }
+]

@@ -18,7 +18,8 @@
  *              (codex's checklist arrives as the `turn/plan/updated`
  *              notification, not as a tool call — `todoList` is kept below only
  *              as tolerance for its non-app-server transports)
- *  - opencode: bash, edit, write, read, grep, glob, webfetch, task, todowrite
+ *  - opencode: shell (bash), edit, write, read, grep, glob, webfetch, task,
+ *              todowrite
  */
 
 import type { ToolKind } from './ui-events.ts';
@@ -98,6 +99,7 @@ export function toolDisplay(name: string, input?: unknown): ToolDisplay {
   switch (key) {
     case 'bash':
     case 'commandexecution':
+    case 'shell':
       return {
         toolKind: 'execute',
         title: titled('Ran', commandText(input)),

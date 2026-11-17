@@ -1,8 +1,9 @@
 [
   {
     "type": "session.started",
-    "sessionId": "ses_01J8ZE00MAIN",
-    "backend": "opencode"
+    "sessionId": "ses_mock_1",
+    "backend": "opencode",
+    "cwd": "D:/opencode-acp/repo"
   },
   {
     "type": "turn.started",
@@ -12,60 +13,142 @@
     "type": "item.started",
     "item": {
       "kind": "tool",
-      "id": "prt_01J8ZE21TOOL",
-      "name": "bash",
-      "toolKind": "execute",
-      "title": "Ran npm test",
+      "id": "call_todo_1",
+      "name": "todowrite",
+      "toolKind": "plan",
+      "title": "Update plan",
       "status": "pending",
       "input": {
-        "command": "npm test",
-        "description": "Run the test suite"
+        "todos": [
+          {
+            "content": "Read calc.py",
+            "priority": "high",
+            "status": "in_progress"
+          },
+          {
+            "content": "Fix add() so it returns a + b",
+            "priority": "medium",
+            "status": "pending"
+          },
+          {
+            "content": "Run the checks",
+            "priority": "low",
+            "status": "pending"
+          }
+        ]
       }
     }
   },
   {
-    "type": "item.updated",
-    "item": {
-      "kind": "tool",
-      "id": "prt_01J8ZE21TOOL",
-      "name": "bash",
-      "toolKind": "execute",
-      "title": "npm test",
-      "status": "running",
-      "input": {
-        "command": "npm test",
-        "description": "Run the test suite"
+    "type": "plan.updated",
+    "entries": [
+      {
+        "content": "Read calc.py",
+        "status": "in_progress",
+        "priority": "high"
+      },
+      {
+        "content": "Fix add() so it returns a + b",
+        "status": "pending",
+        "priority": "medium"
+      },
+      {
+        "content": "Run the checks",
+        "status": "pending",
+        "priority": "low"
       }
+    ]
+  },
+  {
+    "type": "item.started",
+    "item": {
+      "kind": "reasoning",
+      "id": "turn_1_reasoning_1",
+      "text": ""
     }
+  },
+  {
+    "type": "item.delta",
+    "itemId": "turn_1_reasoning_1",
+    "field": "reasoning",
+    "delta": "The bug is probably in add()"
+  },
+  {
+    "type": "item.delta",
+    "itemId": "turn_1_reasoning_1",
+    "field": "reasoning",
+    "delta": " — let me read the file first."
   },
   {
     "type": "item.completed",
     "item": {
-      "kind": "tool",
-      "id": "prt_01J8ZE21TOOL",
-      "name": "bash",
-      "toolKind": "execute",
-      "title": "npm test",
-      "status": "completed",
-      "input": {
-        "command": "npm test",
-        "description": "Run the test suite"
-      },
-      "output": "Test Files  4 passed (4)\n",
-      "exitCode": 0
+      "kind": "reasoning",
+      "id": "turn_1_reasoning_1",
+      "text": "The bug is probably in add() — let me read the file first."
     }
   },
   {
     "type": "item.started",
     "item": {
       "kind": "tool",
-      "id": "prt_01J8ZE22TOOL",
-      "name": "webfetch",
-      "toolKind": "fetch",
-      "title": "Fetch https://example.com/docs",
+      "id": "call_read_1",
+      "name": "read",
+      "toolKind": "read",
+      "title": "Read",
+      "status": "pending",
+      "input": {}
+    }
+  },
+  {
+    "type": "item.updated",
+    "item": {
+      "kind": "tool",
+      "id": "call_read_1",
+      "name": "read",
+      "toolKind": "read",
+      "title": "Read D:\\opencode-acp\\repo\\calc.py",
+      "status": "running",
+      "input": {
+        "path": "D:\\opencode-acp\\repo\\calc.py"
+      },
+      "locations": [
+        {
+          "path": "D:\\opencode-acp\\repo\\calc.py"
+        }
+      ]
+    }
+  },
+  {
+    "type": "item.completed",
+    "item": {
+      "kind": "tool",
+      "id": "call_read_1",
+      "name": "read",
+      "toolKind": "read",
+      "title": "Read D:\\opencode-acp\\repo\\calc.py",
+      "status": "completed",
+      "input": {
+        "path": "D:\\opencode-acp\\repo\\calc.py"
+      },
+      "locations": [
+        {
+          "path": "D:\\opencode-acp\\repo\\calc.py"
+        }
+      ],
+      "output": "def add(a, b):\n    return a - b\n"
+    }
+  },
+  {
+    "type": "item.started",
+    "item": {
+      "kind": "tool",
+      "id": "call_shell_1",
+      "name": "shell",
+      "toolKind": "execute",
+      "title": "Ran python -m pytest test_calc.py",
       "status": "pending",
       "input": {
-        "url": "https://example.com/docs"
+        "command": "python -m pytest test_calc.py"
       }
     }
   },
@@ -73,41 +156,147 @@
     "type": "item.completed",
     "item": {
       "kind": "tool",
-      "id": "prt_01J8ZE22TOOL",
-      "name": "webfetch",
-      "toolKind": "fetch",
-      "title": "Fetch https://example.com/docs",
+      "id": "call_shell_1",
+      "name": "shell",
+      "toolKind": "execute",
+      "title": "Ran python -m pytest test_calc.py",
+      "status": "completed",
+      "input": {
+        "command": "python -m pytest test_calc.py"
+      },
+      "output": "1 passed in 0.02s"
+    }
+  },
+  {
+    "type": "item.started",
+    "item": {
+      "kind": "tool",
+      "id": "call_edit_1",
+      "name": "edit",
+      "toolKind": "edit",
+      "title": "Edit D:\\opencode-acp\\repo\\calc.py",
+      "status": "pending",
+      "input": {
+        "path": "D:\\opencode-acp\\repo\\calc.py",
+        "old_string": "    return a - b",
+        "new_string": "    return a + b"
+      },
+      "locations": [
+        {
+          "path": "D:\\opencode-acp\\repo\\calc.py"
+        }
+      ],
+      "diffs": [
+        {
+          "path": "D:\\opencode-acp\\repo\\calc.py",
+          "oldText": "    return a - b",
+          "newText": "    return a + b"
+        }
+      ]
+    }
+  },
+  {
+    "type": "item.completed",
+    "item": {
+      "kind": "tool",
+      "id": "call_edit_1",
+      "name": "edit",
+      "toolKind": "edit",
+      "title": "Edit D:\\opencode-acp\\repo\\calc.py",
+      "status": "completed",
+      "input": {
+        "path": "D:\\opencode-acp\\repo\\calc.py",
+        "old_string": "    return a - b",
+        "new_string": "    return a + b"
+      },
+      "locations": [
+        {
+          "path": "D:\\opencode-acp\\repo\\calc.py"
+        }
+      ],
+      "diffs": [
+        {
+          "path": "D:\\opencode-acp\\repo\\calc.py",
+          "oldText": "    return a - b",
+          "newText": "    return a + b"
+        }
+      ],
+      "output": "Applied 1 edit to calc.py"
+    }
+  },
+  {
+    "type": "item.started",
+    "item": {
+      "kind": "tool",
+      "id": "call_read_2",
+      "name": "read",
+      "toolKind": "read",
+      "title": "Read D:\\opencode-acp\\repo\\calc_test.py",
+      "status": "pending",
+      "input": {
+        "path": "D:\\opencode-acp\\repo\\calc_test.py"
+      }
+    }
+  },
+  {
+    "type": "item.completed",
+    "item": {
+      "kind": "tool",
+      "id": "call_read_2",
+      "name": "read",
+      "toolKind": "read",
+      "title": "Read D:\\opencode-acp\\repo\\calc_test.py",
       "status": "failed",
       "input": {
-        "url": "https://example.com/docs"
+        "path": "D:\\opencode-acp\\repo\\calc_test.py"
       },
-      "error": "Request failed with status 404"
+      "error": "ENOENT: no such file or directory, open 'D:\\opencode-acp\\repo\\calc_test.py'"
+    }
+  },
+  {
+    "type": "item.started",
+    "item": {
+      "kind": "message",
+      "id": "turn_1_msg_2",
+      "role": "assistant",
+      "text": ""
+    }
+  },
+  {
+    "type": "item.delta",
+    "itemId": "turn_1_msg_2",
+    "field": "text",
+    "delta": "Fixed `add` to return `a + b`"
+  },
+  {
+    "type": "item.completed",
+    "item": {
+      "kind": "message",
+      "id": "turn_1_msg_2",
+      "role": "assistant",
+      "text": "Fixed `add` to return `a + b`"
     }
   },
   {
     "type": "usage.updated",
     "usage": {
-      "input": 3400,
-      "output": 410,
-      "total": 5310,
-      "cacheRead": 1200,
-      "cacheWrite": 300,
-      "reasoning": 0
-    },
-    "costUsd": 0.0068
+      "input": 13777,
+      "output": 38,
+      "total": 30041,
+      "cacheRead": 16128,
+      "reasoning": 98
+    }
   },
   {
     "type": "turn.completed",
     "turnId": "turn_1",
     "stopReason": "end_turn",
     "usage": {
-      "input": 3400,
-      "output": 410,
-      "total": 5310,
-      "cacheRead": 1200,
-      "cacheWrite": 300,
-      "reasoning": 0
-    },
-    "costUsd": 0.0068
+      "input": 13777,
+      "output": 38,
+      "total": 30041,
+      "cacheRead": 16128,
+      "reasoning": 98
+    }
   }
 ]

@@ -8,7 +8,6 @@ import { sameData } from '@/lib/same-data'
 
 import claudeSubagent from '../../../../work/src/core/__fixtures__/claude/subagent-task.expected.json'
 import codexReview from '../../../../work/src/core/__fixtures__/codex/review-mode.expected.json'
-import opencodeSubtask from '../../../../work/src/core/__fixtures__/opencode/subtask-nested.expected.json'
 
 import {
   SessionTranscript,
@@ -594,7 +593,6 @@ describe('SessionTranscript', () => {
 
   it.each([
     ['Claude', claudeSubagent as object[], 'Scanning the auth middleware.'],
-    ['OpenCode', opencodeSubtask as object[], 'Two callers: router.ts and session.ts.'],
   ])('renders %s attributed fixture output through the same component', (_backend, fixture, expected) => {
     const thread = reduceThread(asRunEvents(fixture))
     const selected = collectSubagents(thread.turns)[0]

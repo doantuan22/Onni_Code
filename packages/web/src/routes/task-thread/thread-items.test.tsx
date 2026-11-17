@@ -13,7 +13,7 @@ import bashAndScreenshot from '../../../../work/src/core/__fixtures__/claude/bas
 import failedAndDenied from '../../../../work/src/core/__fixtures__/claude/failed-and-denied.expected.json'
 import subagentTask from '../../../../work/src/core/__fixtures__/claude/subagent-task.expected.json'
 import thinkingEditWriteTodo from '../../../../work/src/core/__fixtures__/claude/thinking-edit-write-todo.expected.json'
-import opencodeToolLifecycle from '../../../../work/src/core/__fixtures__/opencode/tool-lifecycle.expected.json'
+import codexCommandLifecycle from '../../../../work/src/core/__fixtures__/codex/command-lifecycle.expected.json'
 import { groupThreadItems } from './thread-groups'
 import {
   AgentUpdateRequiredCard,
@@ -313,8 +313,8 @@ describe('ToolCard — states', () => {
 })
 
 describe('ToolCard — exit-code pill (execute kind)', () => {
-  it('exit 0 (the golden opencode bash item) → success pill', () => {
-    const item = goldenItem(opencodeToolLifecycle, 'prt_01J8ZE21TOOL', 'completed')
+  it('exit 0 (the golden codex bash item) → success pill', () => {
+    const item = goldenItem(codexCommandLifecycle, 'item_cmd_1', 'completed')
     expect(item.exitCode).toBe(0)
     render(<ToolCard item={item} />)
     const pill = document.querySelector('[data-slot="tool-exit"]')!
@@ -323,10 +323,11 @@ describe('ToolCard — exit-code pill (execute kind)', () => {
   })
 
   it('a non-zero exit → danger pill', () => {
-    const item = goldenItem(opencodeToolLifecycle, 'prt_01J8ZE21TOOL', 'completed')
-    render(<ToolCard item={{ ...item, exitCode: 2 }} />)
+    const item = goldenItem(codexCommandLifecycle, 'item_cmd_2', 'failed')
+    expect(item.exitCode).toBe(1)
+    render(<ToolCard item={item} />)
     const pill = document.querySelector('[data-slot="tool-exit"]')!
-    expect(pill.textContent).toBe('2')
+    expect(pill.textContent).toBe('1')
     expect(pill.className).toContain('text-danger')
   })
 

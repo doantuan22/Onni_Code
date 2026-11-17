@@ -1,0 +1,126 @@
+[
+  {
+    "type": "session.started",
+    "sessionId": "ses_mock_2",
+    "backend": "opencode",
+    "cwd": "D:/opencode-acp/repo"
+  },
+  {
+    "type": "turn.started",
+    "turnId": "turn_1"
+  },
+  {
+    "type": "item.started",
+    "item": {
+      "kind": "tool",
+      "id": "call_sub_1",
+      "name": "subagent",
+      "toolKind": "task",
+      "title": "Task: Audit the migrations",
+      "status": "pending",
+      "input": {
+        "description": "Audit the migrations",
+        "prompt": "Find unguarded ALTER TABLE statements"
+      }
+    }
+  },
+  {
+    "type": "item.started",
+    "item": {
+      "kind": "tool",
+      "id": "call_grep_1",
+      "name": "grep",
+      "toolKind": "search",
+      "title": "Search ALTER TABLE",
+      "status": "pending",
+      "input": {
+        "pattern": "ALTER TABLE",
+        "path": "migrations"
+      },
+      "locations": [
+        {
+          "path": "migrations"
+        }
+      ]
+    }
+  },
+  {
+    "type": "item.completed",
+    "item": {
+      "kind": "tool",
+      "id": "call_grep_1",
+      "name": "grep",
+      "toolKind": "search",
+      "title": "Search ALTER TABLE",
+      "status": "completed",
+      "input": {
+        "pattern": "ALTER TABLE",
+        "path": "migrations"
+      },
+      "locations": [
+        {
+          "path": "migrations"
+        }
+      ],
+      "output": "migrations/0007_add_index.sql:3"
+    }
+  },
+  {
+    "type": "item.completed",
+    "item": {
+      "kind": "tool",
+      "id": "call_sub_1",
+      "name": "subagent",
+      "toolKind": "task",
+      "title": "Task: Audit the migrations",
+      "status": "completed",
+      "input": {
+        "description": "Audit the migrations",
+        "prompt": "Find unguarded ALTER TABLE statements"
+      },
+      "output": "One unguarded ALTER TABLE in 0007."
+    }
+  },
+  {
+    "type": "item.started",
+    "item": {
+      "kind": "message",
+      "id": "turn_1_msg_1",
+      "role": "assistant",
+      "text": ""
+    }
+  },
+  {
+    "type": "item.delta",
+    "itemId": "turn_1_msg_1",
+    "field": "text",
+    "delta": "The auditor found one unguarded ALTER TABLE."
+  },
+  {
+    "type": "item.completed",
+    "item": {
+      "kind": "message",
+      "id": "turn_1_msg_1",
+      "role": "assistant",
+      "text": "The auditor found one unguarded ALTER TABLE."
+    }
+  },
+  {
+    "type": "usage.updated",
+    "usage": {
+      "input": 3100,
+      "output": 96,
+      "total": 3196
+    }
+  },
+  {
+    "type": "turn.completed",
+    "turnId": "turn_1",
+    "stopReason": "end_turn",
+    "usage": {
+      "input": 3100,
+      "output": 96,
+      "total": 3196
+    }
+  }
+]

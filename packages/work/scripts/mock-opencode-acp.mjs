@@ -1,0 +1,203 @@
+#!/usr/bin/env node
+/**
+ * An offline stand-in for `opencode acp`, so `ONNI_DRY_RUN=1` never reaches a model provider — the
+ * same role `mock-cline-acp.mjs` and `mock-copilot-acp.mjs` play for their runners.
+ *
+ * It speaks the frames the real CLI spoke on a live 2.3.0 session
+ * (`src/core/__fixtures__/opencode/README.md`): the `initialize` capabilities are the real ones, a
+ * tool call carries its own `name` on the wire and goes `pending` → `in_progress` → `completed`,
+ * `session/new` answers `{sessionId, configOptions}` (not a model list), the plan is a `todowrite`
+ * tool call, and `session/prompt` answers `{stopReason, usage}` with standard ACP usage. An
+ * unauthenticated `session/new` answers `-32000 "Authentication required: …"`.
+ *
+ * Deliberately small: enough to prove the transport, the session lifecycle, follow-ups, cancel and
+ * resume end to end. It is not an OpenCode simulator.
+ */
+import { writeFileSync } from 'node:fs';
+import readline from 'node:readline';
+
+const SESSION_ID = '1700000000000_mockOp_acp';
+const send = (value) => process.stdout.write(`${JSON.stringify(value)}\n`);
+const answer = (id, result) => send({ jsonrpc: '2.0', id, result });
+const fail = (id, code, message) => send({ jsonrpc: '2.0', id, error: { code, message } });
+const update = (sessionId, body) => send({ jsonrpc: '2.0', method: 'session/update', params: { sessionId, update: body } });
+
+let turn = 0;
+let cancelled = false;
+/** Set by ONNI_MOCK_OPENCODE_UNAUTHENTICATED=1, so the auth path is testable offline. */
+const unauthenticated = process.env.ONNI_MOCK_OPENCODE_UNAUTHENTICATED === '1';
+/** Set by ONNI_MOCK_OPENCODE_ASK_PERMISSION=1: OpenCode should not ask under ACP, but "should
+ *  never" is exactly the assumption that strands a run, so the auto-answer path stays exercisable. */
+const askPermission = process.env.ONNI_MOCK_OPENCODE_ASK_PERMISSION === '1';
+/** Inbound requests onni answers, keyed by the id this mock sent them under. */
+const pendingRequests = new Map();
+let nextRequestId = 1000;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// So the runner test can assert the exact flags the runner spawned with, without a real CLI.
+if (process.env.ONNI_MOCK_OPENCODE_ARGS_FILE) {
+  writeFileSync(process.env.ONNI_MOCK_OPENCODE_ARGS_FILE, JSON.stringify({ argv: process.argv.slice(2), cwd: process.cwd() }));
+}
+
+/**
+ * Handling a frame must NEVER block the read loop: a `session/prompt` that waits for onni's answer
+ * to an inbound `session/request_permission` can only get that answer off stdin, so awaiting it
+ * inline deadlocks the whole mock. Frames are therefore dispatched without awaiting; the runner
+ * serializes prompts on its own side, so nothing races.
+ */
+async function handle(frame) {
+  const { id, method, params } = frame;
+
+  // An answer to a request THIS process sent (session/request_permission).
+  if (method === undefined && id !== undefined && pendingRequests.has(id)) {
+    pendingRequests.get(id)(frame);
+    pendingRequests.delete(id);
+    return;
+  }
+
+  if (method === 'initialize') {
+    answer(id, {
+      protocolVersion: 1,
+      agentCapabilities: {
+        loadSession: true,
+        mcpCapabilities: { http: true, sse: false },
+        promptCapabilities: { embeddedContext: true, image: true },
+        sessionCapabilities: { additionalDirectories: {}, close: {}, delete: {}, fork: {}, list: {}, resume: {} },
+        _meta: { 'opencode/child-session-updates': true },
+      },
+      agentInfo: { name: 'OpenCode', version: 'mock (ONNI_DRY_RUN=1)' },
+      authMethods: [{ id: 'opencode-login', name: 'Login with opencode', description: 'Run `opencode auth login` in the terminal' }],
+    });
+    return;
+  }
+
+  if (method === 'session/new') {
+    if (unauthenticated) fail(id, -32000, 'Authentication required: run `opencode auth login`');
+    else {
+      answer(id, {
+        sessionId: SESSION_ID,
+        configOptions: [
+          {
+            id: 'model',
+            name: 'Model',
+            category: 'model',
+            type: 'select',
+            currentValue: 'opencode/hy4-flash-free',
+            options: [{ value: 'opencode/claude-sonnet-5-5', name: 'opencode/Claude Sonnet 5.5' }],
+          },
+        ],
+      });
+    }
+    return;
+  }
+
+  if (method === 'session/load') {
+    answer(id, {});
+    // The real CLI ends a replay with this marker; the runner waits for it before prompting.
+    update(params?.sessionId ?? SESSION_ID, { sessionUpdate: 'available_commands_update', availableCommands: [] });
+    return;
+  }
+
+  // OpenCode answers -32601 for these; the mock mirrors that so the runner never depends on them.
+  if (method === 'session/set_model' || method === 'session/set_mode') {
+    fail(id, -32601, 'Method not found');
+    return;
+  }
+
+  if (method === 'session/cancel') {
+    cancelled = true;
+    return; // a notification: no answer, the pending prompt resolves `cancelled`
+  }
+
+  if (method === 'session/prompt') {
+    // The CLI quitting cleanly with a prompt unanswered.
+    if (process.env.ONNI_MOCK_OPENCODE_EXIT_MID_TURN === '1') process.exit(0);
+    // A turn that never ends on its own: only stdin EOF (exit 0) or a signal stops it.
+    if (process.env.ONNI_MOCK_OPENCODE_PROMPT_HANGS === '1') return;
+    turn += 1;
+    cancelled = false;
+    const sessionId = params?.sessionId ?? SESSION_ID;
+    const text = (params?.prompt ?? [])
+      .filter((block) => block?.type === 'text')
+      .map((block) => block.text)
+      .join('\n');
+
+    update(sessionId, { sessionUpdate: 'agent_thought_chunk', content: { type: 'text', text: 'Reading the request.' } });
+    update(sessionId, {
+      sessionUpdate: 'tool_call',
+      toolCallId: `call_read_${turn}`,
+      name: 'read',
+      title: 'read',
+      kind: 'read',
+      status: 'pending',
+      locations: [],
+      rawInput: { path: 'calc.py' },
+    });
+
+    if (askPermission) {
+      const requestId = nextRequestId++;
+      const answered = new Promise((resolve) => pendingRequests.set(requestId, resolve));
+      send({
+        jsonrpc: '2.0',
+        id: requestId,
+        method: 'session/request_permission',
+        params: {
+          sessionId,
+          toolCall: { toolCallId: `call_read_${turn}`, name: 'read', title: 'read', kind: 'read', status: 'pending' },
+          options: [
+            { optionId: 'allow_once', name: 'Allow once', kind: 'allow_once' },
+            { optionId: 'allow_always', name: 'Allow always', kind: 'allow_always' },
+            { optionId: 'reject_once', name: 'Reject', kind: 'reject_once' },
+          ],
+        },
+      });
+      const reply = await answered;
+      // Echo what onni picked, so the test can assert the choice reached the agent.
+      update(sessionId, {
+        sessionUpdate: 'agent_message_chunk',
+        content: { type: 'text', text: `[permission:${reply?.result?.outcome?.optionId ?? 'none'}] ` },
+      });
+    }
+
+    update(sessionId, { sessionUpdate: 'tool_call_update', toolCallId: `call_read_${turn}`, status: 'in_progress' });
+
+    // A beat, so a cancel arriving mid-turn is actually mid-turn.
+    await sleep(20);
+    if (cancelled) {
+      answer(id, { stopReason: 'cancelled', usage: { inputTokens: 8, outputTokens: 0, totalTokens: 8 } });
+      return;
+    }
+
+    update(sessionId, {
+      sessionUpdate: 'tool_call_update',
+      toolCallId: `call_read_${turn}`,
+      status: 'completed',
+      content: [{ type: 'content', content: { type: 'text', text: 'def add(a, b):\n    return a + b\n' } }],
+    });
+    update(sessionId, {
+      sessionUpdate: 'agent_message_chunk',
+      content: { type: 'text', text: `[ONNI_DRY_RUN] OpenCode mock answering turn ${turn}: ${text.slice(0, 120)}` },
+    });
+    update(sessionId, { sessionUpdate: 'usage_update', used: 120 * turn, size: 128000 });
+    answer(id, {
+      stopReason: 'end_turn',
+      usage: { inputTokens: 100 * turn, outputTokens: 20, totalTokens: 100 * turn + 20 },
+    });
+    return;
+  }
+
+  if (id !== undefined && method) fail(id, -32601, `Method not found: ${method}`);
+}
+
+for await (const line of readline.createInterface({ input: process.stdin })) {
+  const trimmed = line.trim();
+  if (!trimmed) continue;
+  let frame;
+  try {
+    frame = JSON.parse(trimmed);
+  } catch {
+    continue; // the real agent skips a line it cannot parse; so does this
+  }
+  void handle(frame);
+}

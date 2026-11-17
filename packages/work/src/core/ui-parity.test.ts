@@ -154,14 +154,16 @@ describe('protocol v2 backend parity (all first-class mappers emit every matrix 
   }
 
   // Sub-agent NESTING rides on parentItemId where the wire attributes work
-  // to its parent: claude `parent_tool_use_id`, opencode child-session parts
-  // under a `subtask`, and copilot's `_meta["github.com/copilot"].agentId`,
-  // which carries the delegating `task` call's own id. Codex and Cursor
-  // print-mode wire have no parent attribution, and pi's RPC protocol carries
+  // to its parent: claude `parent_tool_use_id`, and copilot's
+  // `_meta["github.com/copilot"].agentId`, which carries the delegating `task` call's own id.
+  // Codex and Cursor print-mode wire have no parent attribution, and pi's RPC protocol carries
   // no parent-item id either — all three's matrix cell is the task-kind tool
   // items asserted above. junie (core ACP) has no parent attribution either, and
   // its task-kind substitute is excluded above for the same protocol reason.
-  for (const backend of ['claude', 'opencode', 'copilot'] as const) {
+  // OpenCode's ACP child tool calls carry `_meta["opencode/child-session"].parentID`
+  // set to the ROOT session id, never the delegating `task` call's id — so it takes
+  // the codex/cursor/pi side of this rule (task-kind tool items above, no nesting).
+  for (const backend of ['claude', 'copilot'] as const) {
     it(`${backend} nests sub-agent work via parentItemId`, () => {
       expect(items(fixtureEvents(backend)).some((item) => item.parentItemId !== undefined)).toBe(true);
     });

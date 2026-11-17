@@ -6,7 +6,7 @@ import { CodexAppServerRunner } from './codex-app-server-runner.ts';
 import { JunieRunner } from './junie-runner.ts';
 import { CopilotAcpRunner } from './copilot-acp-runner.ts';
 import { ClineAcpRunner } from './cline-acp-runner.ts';
-import { OpencodeServerRunner } from './opencode-server-runner.ts';
+import { OpencodeAcpRunner } from './opencode-acp-runner.ts';
 import { CursorAgentRunner } from './cursor-agent-runner.ts';
 import { PiRunner } from './pi-runner.ts';
 import { diskFloorRefusal } from '../disk-space.ts';
@@ -26,7 +26,7 @@ function createBareRunner(backend: AgentBackend | RunnerId | undefined): AgentRu
     case 'codex':
       return new CodexAppServerRunner();
     case 'opencode':
-      return new OpencodeServerRunner();
+      return new OpencodeAcpRunner();
     case 'cursor':
       return new CursorAgentRunner();
     case 'pi':

@@ -29,7 +29,7 @@ const MODEL_LINE_RE = /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._:/-]*$/i;
 /** SGR/CSI sequences, in case a future CLI colorizes even a piped stdout. */
 const ANSI_RE = /\u001B\[[0-9;]*[A-Za-z]/g;
 
-/** The host binary, resolved exactly like `OpencodeServerRunner` and the backend probe. */
+/** The host binary, resolved exactly like `OpencodeAcpRunner` and the backend probe. */
 export function resolveOpencodeExecutable(bin?: string): string {
   return bin ?? process.env.ONNI_OPENCODE_BIN ?? 'opencode';
 }

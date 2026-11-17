@@ -120,6 +120,7 @@ import { discoverCursorModels } from '../core/cursor-model-catalog.ts';
 import { discoverOpencodeModels, resolveOpencodeExecutable } from '../core/opencode-model-catalog.ts';
 import { discoverJunieModels } from '../core/junie-model-catalog.ts';
 import { resolveJunieExecutable } from '../core/junie-acp-transport.ts';
+import { discoverClineModels, resolveClineExecutable } from '../core/cline-model-catalog.ts';
 import { discoverPiModels, resolvePiExecutable } from '../core/pi-model-catalog.ts';
 import { programFingerprint } from '../core/cli-fingerprint.ts';
 import {
@@ -873,6 +874,10 @@ export function createApp(deps: ServerDeps) {
       pi: {
         discover: () => discoverPiModels({ cwd: bootRoot }),
         fingerprint: () => programFingerprint(resolvePiExecutable()),
+      },
+      cline: {
+        discover: () => discoverClineModels({ cwd: bootRoot }),
+        fingerprint: () => programFingerprint(resolveClineExecutable()),
       },
     },
   });

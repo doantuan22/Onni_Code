@@ -37,6 +37,7 @@ describe('workspace model catalog API', () => {
           codex: { discover },
           opencode: { discover: opencodeDiscover },
           junie: { discover },
+          cline: { discover },
         },
       }),
     });
@@ -45,6 +46,7 @@ describe('workspace model catalog API', () => {
     ['codex', 'gpt-future'],
     ['claude', 'opus[1m]'],
     ['junie', 'v1:model:junie:sonnet'],
+    ['cline', 'anthropic/claude-sonnet-5.5'],
   ])('returns %s\'s discovered catalog and reuses its cache', async (runner, id) => {
     let calls = 0;
     const server = app(async () => {
@@ -89,6 +91,7 @@ describe('workspace model catalog API', () => {
     ['codex', 'Codex model discovery is temporarily unavailable'],
     ['claude', 'Claude model discovery is temporarily unavailable'],
     ['junie', 'Junie model discovery is temporarily unavailable'],
+    ['cline', 'Cline model discovery is temporarily unavailable'],
   ])('degrades %s discovery failures to an unavailable 200 response', async (runner, reason) => {
     const response = await apiRequest(
       app(async () => { throw new Error('secret detail'); }),
@@ -128,7 +131,7 @@ describe('workspace model catalog API', () => {
   it.each(['/api/v1/models', '/api/v1/models?runner=nope'])('rejects invalid query %s', async (path) => {
     const response = await apiRequest(app(async () => []), path);
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: 'runner must be claude, codex, opencode, cursor, pi, junie, or antigravity' });
+    expect(await response.json()).toEqual({ error: 'runner must be claude, codex, opencode, cursor, pi, junie, antigravity, or cline' });
   });
 
   it('returns a Cursor catalog when that adapter is registered', async () => {

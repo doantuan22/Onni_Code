@@ -152,7 +152,7 @@ export function DispatchToggle({
       data-slot="dispatch-control"
       data-state={on ? 'on' : 'off'}
       className={cn(
-        'inline-flex h-[26px] items-stretch overflow-hidden rounded-full border border-border bg-card text-muted-foreground transition-colors',
+        'inline-flex h-[26px] items-stretch overflow-hidden rounded-sm border border-border bg-card text-muted-foreground transition-colors',
         on && 'border-primary/60 bg-primary/10 text-primary',
       )}
     >
@@ -239,7 +239,7 @@ function Row({ label, htmlFor, children }: { label: string; htmlFor: string; chi
 }
 
 const selectClass =
-  'h-7 max-w-[180px] rounded-md border border-input bg-card px-2 text-xs shadow-xs outline-none transition-[color,box-shadow] hover:bg-muted focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50'
+  'h-7 max-w-[180px] rounded-md border border-input bg-card px-2 text-xs outline-none transition-[color,box-shadow] hover:bg-muted focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50'
 
 const MAX_SUBTASKS_CHOICES = [2, 3, 4, 5, 8, 10, 15, 20, 30, 50] as const
 const BUDGET_MIN_USD = 0.5

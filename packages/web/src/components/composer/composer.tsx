@@ -611,13 +611,13 @@ export function Composer({
           onDrop={onDrop}
           onDragOver={(event) => event.preventDefault()}
           className={cn(
-            'rounded-xl border border-border bg-card shadow-xs transition-[border-color,box-shadow]',
-            'focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/15',
+            'rounded-lg border border-border bg-card transition-[border-color,box-shadow]',
+            'focus-within:border-ring/70 focus-within:ring-2 focus-within:ring-ring/15',
             disabled && 'opacity-80',
           )}
         >
           {images.length > 0 || draftItems ? (
-            <div data-slot="composer-thumbs" className="flex flex-wrap items-center gap-2 px-4 pt-3">
+            <div data-slot="composer-thumbs" className="flex flex-wrap items-center gap-2 px-3 pt-2.5">
               {draftItems}
               {images.map((attachment, index) => (
                 <button
@@ -626,7 +626,7 @@ export function Composer({
                   aria-label={t('Remove {name}', { name: attachment.name })}
                   title={t('Click to remove')}
                   className={cn(
-                    'group relative overflow-hidden rounded-md border border-border',
+                    'group relative overflow-hidden rounded-sm border border-border',
                     attachment.isImage
                       ? 'size-12'
                       : 'flex h-12 max-w-[200px] items-center gap-1.5 bg-muted/40 px-2.5 text-xs text-muted-foreground',
@@ -658,16 +658,16 @@ export function Composer({
             ref={textareaRef}
             // `rows` is the phone case's floor, not the height: it is deliberately not
             // responsive, so the height comes from the `min-h`/`md:min-h` pair below (44px
-            // phone, 54px desktop) and from the `useLayoutEffect` autosize pass. On desktop
+            // phone, 46px desktop) and from the `useLayoutEffect` autosize pass. On desktop
             // that means one intrinsic row for the single paint before autosize runs, which
-            // `md:min-h-[54px]` already bounds. This textarea is shared with `/new`.
+            // `md:min-h-[46px]` already bounds. This textarea is shared with `/new`.
             rows={1}
             value={text}
             disabled={disabled}
             aria-label={t(ariaLabel)}
             placeholder={t(disabled ? disabledReason : placeholder)}
             // 16px on touch widths — iOS zooms any focused input below 16px (spec mobile rule).
-            className="block max-h-[220px] min-h-11 w-full resize-none bg-transparent px-3 pt-2.5 pb-1 text-base leading-normal outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed md:min-h-[54px] md:px-4 md:pt-3 md:text-sm"
+            className="block max-h-[220px] min-h-11 w-full resize-none bg-transparent px-3 pt-2.5 pb-1 text-base leading-normal outline-none placeholder:text-soft-foreground disabled:cursor-not-allowed md:min-h-[46px] md:px-3 md:pt-2.5 md:text-[13.5px]"
             onChange={(event) => {
               setText(event.target.value)
               syncTrigger()
@@ -904,7 +904,7 @@ function DictationBar({
       data-slot="dictation-overlay"
       role="status"
       aria-label={t('Dictation in progress')}
-      className="flex items-center gap-2.5 rounded-b-xl border-t border-border bg-muted/60 px-3 py-2"
+      className="flex items-center gap-2.5 rounded-b-lg border-t border-border bg-muted/60 px-3 py-2"
     >
       <span
         aria-hidden="true"
@@ -916,7 +916,7 @@ function DictationBar({
       <span
         data-slot="dictation-transcript"
         aria-live="polite"
-        className="min-w-0 flex-1 truncate text-sm text-foreground"
+        className="min-w-0 flex-1 truncate text-[12.5px] text-foreground"
       >
         {transcript === '' ? (
           <span className="text-muted-foreground">{t('Listening…')}</span>

@@ -93,7 +93,7 @@ export function CostProjectBars({
   return (
     <TooltipProvider delayDuration={150}>
       <div
-        className="space-y-1 rounded-xl border p-2"
+        className="space-y-1 rounded-md border p-2"
         aria-label={t('Projects ranked by {metric}', { metric: t(label) })}
       >
         {projects.length === 0 && (
@@ -112,7 +112,7 @@ export function CostProjectBars({
                 <button
                   data-export-row
                   data-export-keep
-                  className="group w-full rounded-lg px-3 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 motion-reduce:transition-none"
+                  className="group w-full rounded-md px-3 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 motion-reduce:transition-none"
                   disabled={!currentProjects.some((p) => p.projectId === project.projectId)}
                   onClick={() => onSelect(project.projectId)}
                 >

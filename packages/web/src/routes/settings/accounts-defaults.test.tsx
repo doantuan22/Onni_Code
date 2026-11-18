@@ -97,6 +97,7 @@ function serve({
     },
     resources: {
       maxParallel: 2,
+      maxParallelUnlimited: false,
       maxMonitoringSessions: 2,
       idleTimeoutMinutes: 15,
       monitoringWakeIntervalMinutes: null,
@@ -224,6 +225,7 @@ describe('Agent accounts → Defaults for new projects', () => {
             },
             resources: {
               maxParallel: 2,
+              maxParallelUnlimited: false,
               maxMonitoringSessions: 2,
               monitoringWakeIntervalMinutes: null,
               autoResumeOnUsageLimit: true,

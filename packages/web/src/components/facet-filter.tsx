@@ -80,7 +80,7 @@ export function FacetFilter({
           data-active={active ? 'true' : undefined}
           aria-label={`Filter by ${label.toLowerCase()}`}
           className={cn(
-            'inline-flex h-7 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
+            'inline-flex h-7 items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
             active && 'border-violet/40 bg-violet/10 text-foreground',
           )}
         >
@@ -180,7 +180,7 @@ export function ToggleChip({
       aria-pressed={selected}
       onClick={onToggle}
       className={cn(
-        'inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors',
+        'inline-flex h-7 items-center gap-1.5 rounded-sm border px-2.5 text-xs font-medium transition-colors',
         tone === 'tag'
           ? 'border-violet/25 bg-violet/10 text-violet hover:bg-violet/20'
           : 'border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground',

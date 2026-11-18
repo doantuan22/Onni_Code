@@ -2536,6 +2536,8 @@ export async function getWorkspaceConfig(opts?: ReadOptions): Promise<WorkspaceC
     orgSkillsRepos: answer.orgSkillsRepos ?? [],
     resources: {
       ...answer.resources,
+      // Older servers omit this additive key; absent means the numeric cap is in effect.
+      maxParallelUnlimited: answer.resources.maxParallelUnlimited ?? false,
       // Older servers omit this additive key; preserve an explicit null (disabled) while
       // defaulting only an absent value.
       idleTimeoutMinutes: answer.resources.idleTimeoutMinutes === undefined

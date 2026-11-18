@@ -155,13 +155,13 @@ function WebhookPanel({ projectId, enabled, unsupportedPlatform }: { projectId: 
     return { title: t('Delete {name}?', { name: row.name }), text: `${pending ? `${pending} ` : ''}${t('Its settings and signing keys are removed; delivery history stays for up to 30 days.')}`, deletesReceiver: true, run: () => webhookApi.remove(projectId, row.id, row.revision) }
   }
   if (unsupportedPlatform || !enabled) return <div data-slot="webhooks-settings" className={chassis}>
-    <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
-      <div><h2 className="text-sm font-semibold">{unsupportedPlatform ? t('Webhooks aren’t available on this platform') : t('Webhooks are off')}</h2>
-        <p className="mt-1 text-[13px] text-muted-foreground">{unsupportedPlatform
+    <section className="flex flex-col gap-3 rounded-md border border-border bg-card p-4">
+      <div><h2 className="text-[12.5px] font-semibold">{unsupportedPlatform ? t('Webhooks aren’t available on this platform') : t('Webhooks are off')}</h2>
+        <p className="mt-1 text-[12.5px] text-muted-foreground">{unsupportedPlatform
           ? t('Delivery needs an OS-verified process identity to keep a single sender. Linux, macOS and Windows provide one; this platform does not.')
           : t('Send task updates to your own endpoint when a task needs you, is ready for review or finishes.')}</p></div>
-      {!unsupportedPlatform && <p className="text-[13px]">{t('Start onni with')} <code>ONNI_WEBHOOKS=1</code>{t(', then reload this page. If someone else runs this server, ask them to turn webhooks on.')}</p>}
-      <a className="w-fit text-[13px] underline underline-offset-2 hover:text-foreground" href={guide.href} target="_blank" rel="noreferrer">{t(guide.note)}</a>
+      {!unsupportedPlatform && <p className="text-[12.5px]">{t('Start onni with')} <code>ONNI_WEBHOOKS=1</code>{t(', then reload this page. If someone else runs this server, ask them to turn webhooks on.')}</p>}
+      <a className="w-fit text-[12.5px] underline underline-offset-2 hover:text-foreground" href={guide.href} target="_blank" rel="noreferrer">{t(guide.note)}</a>
     </section>
   </div>
   const receivers = list.data?.receivers ?? []
@@ -170,7 +170,7 @@ function WebhookPanel({ projectId, enabled, unsupportedPlatform }: { projectId: 
   const noticeReceiver = notice?.receiverId ? receivers.find(row => row.id === notice.receiverId) : undefined
   const latestEdit = form && form !== 'new' ? receivers.find(row => row.id === form.id) : undefined
   const historyCount = list.data?.historyCount ?? 0
-  const reconciliation = stale && <div className="flex flex-col gap-2 rounded-md border border-warning/50 bg-warning/10 p-3 text-[13px]" role="alert">
+  const reconciliation = stale && <div className="flex flex-col gap-2 rounded-md border border-warning/50 bg-warning/10 p-3 text-[12.5px]" role="alert">
     <p>{t('This receiver changed in the meantime, so nothing was applied. Review its latest state and confirm again.')}</p>
     {form && form !== 'new' ? <>
       <p>{t('Your draft is kept. Saving it replaces the latest settings below; a blank URL keeps the current destination.')}</p>
@@ -184,17 +184,17 @@ function WebhookPanel({ projectId, enabled, unsupportedPlatform }: { projectId: 
   return <div data-slot="webhooks-settings" className={chassis}>
     <section className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0 flex-1">
-        <h2 className="text-sm font-semibold">{t('Receivers')}</h2>
-        <p className="text-[13px] text-muted-foreground">{t('Each receiver gets the task updates you choose while onni is running. New receivers stay Inactive until you test and activate them.')} <a className="underline underline-offset-2 hover:text-foreground" href={guide.href} target="_blank" rel="noreferrer">{t(guide.note)}</a></p>
+        <h2 className="text-[12.5px] font-semibold">{t('Receivers')}</h2>
+        <p className="text-[12.5px] text-muted-foreground">{t('Each receiver gets the task updates you choose while onni is running. New receivers stay Inactive until you test and activate them.')} <a className="underline underline-offset-2 hover:text-foreground" href={guide.href} target="_blank" rel="noreferrer">{t(guide.note)}</a></p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <Button variant="ghost" size="icon" aria-label={t('Refresh')} title={t('Refresh')} disabled={list.isFetching} onClick={() => void list.refetch()}><RefreshCwIcon /></Button>
         <Button ref={addTrigger} disabled={list.isPending || !!list.error} onClick={event => { formFocusTarget.current = event.currentTarget; setError(''); setStale(false); setDraft(webhookDraft()); setForm('new') }}><PlusIcon />{t('Add receiver')}</Button>
       </div>
     </section>
-    {notice && <section role="status" className="flex min-w-0 flex-col gap-2 rounded-md border border-warning/50 bg-warning/10 p-3 text-sm [overflow-wrap:anywhere]">
+    {notice && <section role="status" className="flex min-w-0 flex-col gap-2 rounded-md border border-warning/50 bg-warning/10 p-3 text-[12.5px] [overflow-wrap:anywhere]">
       <p><span className="font-medium">{t(activityLabel(notice.action))}</span>{notice.receiverName ? ` — ${notice.receiverName}` : ''}<span className="text-muted-foreground">{notice.destination ? ` · ${notice.destination}` : ''} · {webhookTime(notice.at)}{notice.source ? ` · ${t('via {source}', { source: t(sourceLabels[notice.source]) })}` : ''}</span></p>
-      <p className="text-[13px] text-muted-foreground">{t('Any local process, including agents, can change receivers and read signing keys. If this wasn’t you, review it.')}</p>
+      <p className="text-[12.5px] text-muted-foreground">{t('Any local process, including agents, can change receivers and read signing keys. If this wasn’t you, review it.')}</p>
       <div className="flex flex-wrap gap-2">
         <Button size="sm" variant="outline" disabled={mutation.isPending} onClick={() => mutation.mutate(() => webhookApi.acknowledge(projectId, list.data!.changeSequence))}>{t('Mark as reviewed')}</Button>
         {notice.receiverId && <Button size="sm" variant="ghost" onClick={() => navigateReceiver(notice.receiverId, 'activity')}>{t('View activity')}</Button>}
@@ -202,26 +202,26 @@ function WebhookPanel({ projectId, enabled, unsupportedPlatform }: { projectId: 
         {noticeReceiver && <Button size="sm" variant="danger-ghost" onClick={event => openConfirmation(deleteConfirmation(noticeReceiver), event.currentTarget)}>{t('Delete receiver')}</Button>}
       </div>
     </section>}
-    {endpoint && (!validEndpoint || !validTab) && <p role="alert" className="text-sm text-danger">{t('This receiver link is invalid.')}</p>}
-    {validEndpoint && requestedTab === 'settings' && !list.isPending && !list.error && !receivers.some(row => row.id === endpoint) && <div role="alert" className="flex flex-wrap items-center gap-2 text-sm"><span>{t('This receiver’s settings are unavailable — it may have been deleted.')}</span><Button size="sm" variant="outline" onClick={() => navigateReceiver(endpoint, 'deliveries')}>{t('View its history')}</Button></div>}
-    {validEndpoint && validTab && requestedTab !== 'settings' && !current && <p role="status" className="text-sm text-muted-foreground">{resolution.error ? t('This receiver’s history is unavailable or no longer kept.') : t('Loading history…')}</p>}
-    {(error || list.error) && <p role="alert" className="text-sm text-danger">{error || list.error?.message}</p>}
-    {list.data?.webhookHealth.status !== 'ready' && list.data?.webhookHealth.reason && <p role="status" className="rounded-md border border-warning/50 bg-warning/10 p-3 text-[13px]">{list.data.webhookHealth.reason}</p>}
-    {list.isPending && <p className="text-sm text-muted-foreground">{t('Loading receivers…')}</p>}
-    {!list.isPending && !list.error && !receivers.length && <div className="rounded-lg border border-dashed border-border p-6 text-center"><p className="text-sm font-medium">{t('No receivers yet')}</p><p className="mt-1 text-[13px] text-muted-foreground">{t('Add your own endpoint. Send a test, then activate it.')}</p></div>}
+    {endpoint && (!validEndpoint || !validTab) && <p role="alert" className="text-[12.5px] text-danger">{t('This receiver link is invalid.')}</p>}
+    {validEndpoint && requestedTab === 'settings' && !list.isPending && !list.error && !receivers.some(row => row.id === endpoint) && <div role="alert" className="flex flex-wrap items-center gap-2 text-[12.5px]"><span>{t('This receiver’s settings are unavailable — it may have been deleted.')}</span><Button size="sm" variant="outline" onClick={() => navigateReceiver(endpoint, 'deliveries')}>{t('View its history')}</Button></div>}
+    {validEndpoint && validTab && requestedTab !== 'settings' && !current && <p role="status" className="text-[12.5px] text-muted-foreground">{resolution.error ? t('This receiver’s history is unavailable or no longer kept.') : t('Loading history…')}</p>}
+    {(error || list.error) && <p role="alert" className="text-[12.5px] text-danger">{error || list.error?.message}</p>}
+    {list.data?.webhookHealth.status !== 'ready' && list.data?.webhookHealth.reason && <p role="status" className="rounded-md border border-warning/50 bg-warning/10 p-3 text-[12.5px]">{list.data.webhookHealth.reason}</p>}
+    {list.isPending && <p className="text-[12.5px] text-muted-foreground">{t('Loading receivers…')}</p>}
+    {!list.isPending && !list.error && !receivers.length && <div className="rounded-md border border-dashed border-border p-6 text-center"><p className="text-[12.5px] font-medium">{t('No receivers yet')}</p><p className="mt-1 text-[12.5px] text-muted-foreground">{t('Add your own endpoint. Send a test, then activate it.')}</p></div>}
     {receivers.map(row => {
       const inactive = ['inactive', 'disabled', 'paused'].includes(row.state)
       const testLabel = row.state === 'suspended' ? t('Test and recover') : row.state === 'disabled' ? t('Test after repair') : t('Send test')
       const summary = [row.destination, t('{profile} content', { profile: t(profileLabels[row.profile]) }), t('Last test: {result}', { result: t(lastTestLabels[row.lastTest]).toLowerCase() }),
         row.pendingCount ? tn(row.pendingCount, '{count} pending delivery', '{count} pending deliveries') : '', row.inFlightCount ? t('{count} sending', { count: row.inFlightCount }) : ''].filter(Boolean).join(' · ')
-      return <article key={row.id} className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-4">
+      return <article key={row.id} className="flex min-w-0 flex-col gap-3 rounded-md border border-border bg-card p-4">
         <div className="min-w-0">
-          <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold [overflow-wrap:anywhere]">{row.name}<Pill dot={endpointHealthTone[row.state]}>{t(receiverStateLabels[row.state])}</Pill></h3>
-          <p className="mt-1 break-words text-[13px] text-muted-foreground">{summary}</p>
-          {row.consecutiveFailures > 0 && <p className="mt-1 text-[13px] text-warning">{tn(row.consecutiveFailures, '{count} failed attempt in a row.', '{count} failed attempts in a row.')}{row.pendingCount > 0 ? row.nextProbeAt ? ` ${t('Next retry {time}.', { time: webhookTime(row.nextProbeAt) })}` : '' : ` ${t('Nothing is queued, so nothing will be retried until the next event.')}`}</p>}
-          {row.state === 'paused' && <p className="mt-1 text-[13px] text-muted-foreground">{row.pauseReason === 'project_removal' ? t('Paused when this project was removed from the workspace.') : t('Paused.')} {t('New events aren’t queued.')}</p>}
-          {row.activationBlocked && <p className="mt-1 text-[13px] text-warning">{t('Send a passing test of these settings before activating.')}</p>}
-          {row.retiredKeyExpiresAt && <p className="mt-1 text-[13px] text-muted-foreground">{t('The previous signing key stops working {time}.', { time: webhookTime(row.retiredKeyExpiresAt) })}</p>}
+          <h3 className="flex flex-wrap items-center gap-2 text-[12.5px] font-semibold [overflow-wrap:anywhere]">{row.name}<Pill dot={endpointHealthTone[row.state]}>{t(receiverStateLabels[row.state])}</Pill></h3>
+          <p className="mt-1 break-words text-[12.5px] text-muted-foreground">{summary}</p>
+          {row.consecutiveFailures > 0 && <p className="mt-1 text-[12.5px] text-warning">{tn(row.consecutiveFailures, '{count} failed attempt in a row.', '{count} failed attempts in a row.')}{row.pendingCount > 0 ? row.nextProbeAt ? ` ${t('Next retry {time}.', { time: webhookTime(row.nextProbeAt) })}` : '' : ` ${t('Nothing is queued, so nothing will be retried until the next event.')}`}</p>}
+          {row.state === 'paused' && <p className="mt-1 text-[12.5px] text-muted-foreground">{row.pauseReason === 'project_removal' ? t('Paused when this project was removed from the workspace.') : t('Paused.')} {t('New events aren’t queued.')}</p>}
+          {row.activationBlocked && <p className="mt-1 text-[12.5px] text-warning">{t('Send a passing test of these settings before activating.')}</p>}
+          {row.retiredKeyExpiresAt && <p className="mt-1 text-[12.5px] text-muted-foreground">{t('The previous signing key stops working {time}.', { time: webhookTime(row.retiredKeyExpiresAt) })}</p>}
         </div>
         {pendingTest && pendingTest.viewKey === location.key && pendingTest.receiverId === row.id && <WebhookTestFeedback key={pendingTest.deliveryId} projectId={projectId} test={pendingTest} openHistory={id => navigateReceiver(id)} />}
         <div className="flex flex-wrap items-center gap-2">
@@ -245,23 +245,23 @@ function WebhookPanel({ projectId, enabled, unsupportedPlatform }: { projectId: 
     {(historyCount > 0 || deleted) && <section className="flex flex-col gap-2">
       <div><Button size="sm" variant="ghost" onClick={() => setDeleted(value => !value)}>{deleted ? t('Hide deleted receivers') : t('Show deleted receivers ({count})', { count: historyCount })}</Button></div>
       {deleted && <>
-        {history.error && <p role="alert" className="text-sm text-danger">{history.error.message}</p>}
+        {history.error && <p role="alert" className="text-[12.5px] text-danger">{history.error.message}</p>}
         {history.data?.pages.flatMap(page => page.items).map(row => <Button key={row.id} ref={node => { if (node) historyTriggers.current.set(row.id, node); else historyTriggers.current.delete(row.id) }} variant="outline" className="h-auto max-w-full justify-start whitespace-normal py-2 text-left font-normal [overflow-wrap:anywhere]" onClick={() => navigateReceiver(row.id)}>{t('{name} — deleted {time}', { name: row.name, time: webhookTime(row.deletedAt) })}</Button>)}
-        {history.data && !history.data.pages.some(page => page.items.length) && <p className="text-[13px] text-muted-foreground">{t('No deleted receivers are kept.')}</p>}
+        {history.data && !history.data.pages.some(page => page.items.length) && <p className="text-[12.5px] text-muted-foreground">{t('No deleted receivers are kept.')}</p>}
         {history.hasNextPage && <div><Button size="sm" variant="outline" disabled={history.isFetchingNextPage} onClick={() => void history.fetchNextPage()}>{t('Load older')}</Button></div>}
       </>}
     </section>}
     <Dialog open={form !== undefined && !confirmation} onOpenChange={open => { if (!open && !mutation.isPending) { setForm(undefined); setDraft(webhookDraft()); setStale(false); if (endpoint) navigateReceiver() } }}><DialogContent onCloseAutoFocus={event => restoreFocus(event, formFocusTarget.current)} className="max-h-[90dvh] overflow-y-auto"><DialogHeader><DialogTitle>{form === 'new' ? t('Add receiver') : t('Edit receiver')}</DialogTitle><DialogDescription>{t('New and changed receivers stay Inactive until you test and activate them.')}</DialogDescription></DialogHeader>{form && <WebhookForm key={form === 'new' ? 'new' : `${form.id}-${form.revision}`} receiver={form === 'new' ? undefined : form} guideHref={guide.href} draft={draft} setDraft={setDraft} pending={mutation.isPending} blocked={stale} save={value => {
       if (form === 'new') mutation.mutate(() => webhookApi.create(projectId, value as CreateWebhook))
       else { const row = form; openConfirmation({ title: t('Save changes?'), text: t('Changing where or what {name} sends makes it Inactive again{cancels}. A delivery already sending may still arrive. Renaming alone keeps it active.', { name: row.name, cancels: row.pendingCount ? ` ${tn(row.pendingCount, 'and cancels {count} pending delivery', 'and cancels {count} pending deliveries')}` : '' }) + (row.format !== 'onni.json.v1' && value.format === 'onni.json.v1' ? ` ${t('After saving, use Rotate key and copy the new signing key into your receiver before testing.')}` : ''), run: () => webhookApi.update(projectId, row.id, value as UpdateWebhook) }) }
-    }} />}{reconciliation}{error && <p role="alert" className="text-sm text-danger">{error}</p>}</DialogContent></Dialog>
+    }} />}{reconciliation}{error && <p role="alert" className="text-[12.5px] text-danger">{error}</p>}</DialogContent></Dialog>
     <Dialog open={!!confirmation} onOpenChange={open => { if (!open && !mutation.isPending) setConfirmation(undefined) }}><DialogContent onCloseAutoFocus={event => restoreFocus(event, confirmationFocusTarget.current)} className="max-h-[90dvh] overflow-y-auto"><DialogHeader><DialogTitle>{confirmation?.title}</DialogTitle><DialogDescription>{confirmation?.text}</DialogDescription></DialogHeader>
       {confirmation?.receiver && <ActivationSummary receiver={confirmation.receiver} projectId={projectId} />}
-      {confirmation?.standard && <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5" checked={standardConsent} onChange={event => setStandardConsent(event.target.checked)} />{t('I understand Standard sends task titles, questions and error text to this receiver.')}</label>}
-      {confirmation?.local && <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5" checked={localConsent} onChange={event => setLocalConsent(event.target.checked)} />{t('I allow delivery to this computer or private network.')}</label>}
-      {reconciliation}{error && <p role="alert" className="text-sm text-danger">{error}</p>}
+      {confirmation?.standard && <label className="flex items-start gap-2 text-[12.5px]"><input type="checkbox" className="mt-0.5" checked={standardConsent} onChange={event => setStandardConsent(event.target.checked)} />{t('I understand Standard sends task titles, questions and error text to this receiver.')}</label>}
+      {confirmation?.local && <label className="flex items-start gap-2 text-[12.5px]"><input type="checkbox" className="mt-0.5" checked={localConsent} onChange={event => setLocalConsent(event.target.checked)} />{t('I allow delivery to this computer or private network.')}</label>}
+      {reconciliation}{error && <p role="alert" className="text-[12.5px] text-danger">{error}</p>}
       <DialogFooter><Button variant="outline" disabled={mutation.isPending} onClick={() => setConfirmation(undefined)}>{t('Cancel')}</Button><Button className={confirmation?.deletesReceiver ? 'bg-danger text-danger-foreground hover:brightness-[0.96]' : undefined} disabled={mutation.isPending || stale || !!confirmation?.standard && !standardConsent || !!confirmation?.local && !localConsent} onClick={() => confirmation && mutation.mutate(confirmation.run)}>{mutation.isPending ? t('Working…') : confirmation?.deletesReceiver ? t('Delete') : t('Confirm')}</Button></DialogFooter></DialogContent></Dialog>
-    <Dialog open={!!secret} onOpenChange={open => { if (!open) setSecret(undefined) }}><DialogContent onCloseAutoFocus={event => restoreFocus(event, secretFocusTarget.current)} className="max-h-[90dvh] overflow-y-auto"><DialogHeader><DialogTitle>{t('Save your signing key')}</DialogTitle><DialogDescription>{t('Copy it into your receiver now — it is shown only once. If you lose it, use Rotate key to get a new one (or Revoke old keys while a rotation is still overlapping).')}</DialogDescription></DialogHeader><code tabIndex={0} className="block select-text break-all rounded-md bg-muted p-3 font-mono text-sm">{secret}</code>{copyMessage && <p role="status" className="text-[13px] text-muted-foreground">{copyMessage}</p>}<DialogFooter><Button variant="outline" onClick={async () => { try { if (!secret || !navigator.clipboard?.writeText) throw new Error(t('Clipboard unavailable')); await navigator.clipboard.writeText(secret); setCopyMessage(t('Key copied. Store it in your receiver.')); } catch { setCopyMessage(t('Couldn’t copy — select the key and copy it manually before closing.')); } }}>{t('Copy key')}</Button><Button onClick={() => setSecret(undefined)}>{t('I’ve saved the key')}</Button></DialogFooter></DialogContent></Dialog>
+    <Dialog open={!!secret} onOpenChange={open => { if (!open) setSecret(undefined) }}><DialogContent onCloseAutoFocus={event => restoreFocus(event, secretFocusTarget.current)} className="max-h-[90dvh] overflow-y-auto"><DialogHeader><DialogTitle>{t('Save your signing key')}</DialogTitle><DialogDescription>{t('Copy it into your receiver now — it is shown only once. If you lose it, use Rotate key to get a new one (or Revoke old keys while a rotation is still overlapping).')}</DialogDescription></DialogHeader><code tabIndex={0} className="block select-text break-all rounded-md bg-muted p-3 font-mono text-[12.5px]">{secret}</code>{copyMessage && <p role="status" className="text-[12.5px] text-muted-foreground">{copyMessage}</p>}<DialogFooter><Button variant="outline" onClick={async () => { try { if (!secret || !navigator.clipboard?.writeText) throw new Error(t('Clipboard unavailable')); await navigator.clipboard.writeText(secret); setCopyMessage(t('Key copied. Store it in your receiver.')); } catch { setCopyMessage(t('Couldn’t copy — select the key and copy it manually before closing.')); } }}>{t('Copy key')}</Button><Button onClick={() => setSecret(undefined)}>{t('I’ve saved the key')}</Button></DialogFooter></DialogContent></Dialog>
     <Dialog open={!!current} onOpenChange={open => { if (!open) navigateReceiver() }}><DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl [overflow-wrap:anywhere]" onCloseAutoFocus={event => {
       const trigger = historyFocusTarget.current
       if (trigger?.isConnected) { event.preventDefault(); trigger.focus() }
@@ -269,7 +269,7 @@ function WebhookPanel({ projectId, enabled, unsupportedPlatform }: { projectId: 
   </div>
 }
 
-const chassis = 'mx-auto flex w-full max-w-2xl min-w-0 flex-col gap-6 p-4 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-6 md:pb-6'
+const chassis = 'flex w-full min-w-0 flex-col gap-6'
 const cancelled = (count: number, tn: (count: number, singular: string, plural: string, vars?: Record<string, string | number>) => string) => count ? ` ${tn(count, '{count} pending delivery will be cancelled; one already sending may still arrive.', '{count} pending deliveries will be cancelled; one already sending may still arrive.')}` : ''
 
 function ActivationSummary({ receiver, projectId }: { receiver: WebhookReceiver; projectId: string }) {
@@ -278,7 +278,7 @@ function ActivationSummary({ receiver, projectId }: { receiver: WebhookReceiver;
     ? ['task.attention_required', 'task.review_ready', 'task.finished', 'task.failed', 'task.cancelled'] as const
     : ['task.attention_required', 'task.review_ready', 'task.finished', 'task.failed'] as const
   const term = 'text-muted-foreground'
-  return <div className="flex min-w-0 flex-col gap-2 text-[13px]">
+  return <div className="flex min-w-0 flex-col gap-2 text-[12.5px]">
     <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 rounded-md border border-border bg-card p-3 [overflow-wrap:anywhere]">
       <dt className={term}>{t('Receiver')}</dt><dd>{receiver.name}</dd>
       <dt className={term}>{t('Destination')}</dt><dd>{t('Custom receiver (signed onni JSON)')}</dd>

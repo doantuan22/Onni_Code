@@ -37,7 +37,7 @@ import { AppSelect } from '@/components/ui/app-select'
 export function ManagerWorkerSection() {
   const { t } = useI18n()
   const config = useWorkspaceConfig()
-  if (config.isPending) return <p data-slot="mw-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">{t('Loading…')}</p>
+  if (config.isPending) return <p data-slot="mw-loading" className="p-4 text-[12.5px] text-soft-foreground md:p-6">{t('Loading…')}</p>
   if (config.isError) {
     return <CenteredState icon={<UsersIcon />} tone="danger" title={t('Manager–worker settings did not load')} subtitle={config.error.message} heading="h2" />
   }
@@ -61,6 +61,7 @@ function ManagerWorkerForm({ config }: { config: WorkspaceConfigResponse }) {
   // Shipped ON: a server that predates the key answers without it, and that must still read as on.
   const complexityPolicy = config.safety.managerComplexityPolicy ?? true
   const fullAccess = config.safety.managerFullAccess ?? false
+  const unlimited = config.resources.maxParallelUnlimited
   const [confirmingAccess, setConfirmingAccess] = useState(false)
   const saveFullAccess = useMutation({
     mutationFn: (on: boolean) => putWorkspaceConfig({ safety: { managerFullAccess: on } }),
@@ -81,19 +82,19 @@ function ManagerWorkerForm({ config }: { config: WorkspaceConfigResponse }) {
   }
 
   return (
-    <div data-slot="manager-worker-section" className="mx-auto flex w-full max-w-2xl flex-col gap-7 p-4 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-6 md:pb-6">
+    <div data-slot="manager-worker-section" className="flex w-full min-w-0 flex-col gap-5">
       <SettingsField
         title={t('Presets')}
         hint={t('A manager and the workers it may use. Choose one in the new-task composer, or adjust it for a single task there. Only the agents listed are ever used.')}
       >
-        {presets.length === 0 ? <p data-slot="mw-empty" className="text-[13px] text-soft-foreground">{t('No presets yet.')}</p> : null}
+        {presets.length === 0 ? <p data-slot="mw-empty" className="text-[12.5px] text-soft-foreground">{t('No presets yet.')}</p> : null}
         <ul className="flex flex-col gap-2">
           {presets.map((preset) => {
             const gone = disconnectedBackends(preset.roster, connected)
             return (
               <li key={preset.id} data-slot="mw-preset" className="flex flex-wrap items-center gap-2 rounded-md border border-border p-2.5">
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium">{preset.name}{preset.id === defaultPresetId ? <span className="ml-2 text-[11px] text-soft-foreground">{t('default')}</span> : null}</div>
+                  <div className="text-[12.5px] font-medium">{preset.name}{preset.id === defaultPresetId ? <span className="ml-2 text-[11px] text-soft-foreground">{t('default')}</span> : null}</div>
                   <div className="truncate text-[12px] text-muted-foreground">{describeRoster(preset.roster)}</div>
                   {gone.length > 0 ? <div className="text-[11px] text-danger">{t('Not connected: {backends}', { backends: gone.join(', ') })}</div> : null}
                 </div>
@@ -108,7 +109,7 @@ function ManagerWorkerForm({ config }: { config: WorkspaceConfigResponse }) {
             <input aria-label={t('Preset name')} placeholder={t('Preset name — e.g. Claude manages, Codex and OpenCode work')} value={editing.name} maxLength={80} onChange={(event) => setEditing({ ...editing, name: event.target.value })} className={fieldClass} />
             <RosterEditor draft={editing.draft} onChange={(draft) => setEditing({ ...editing, draft })} connected={connected} disabled={save.isPending} />
             {parsed && !parsed.ok ? <p className="text-[12px] text-danger">{parsed.error}</p> : null}
-            {parsed?.ok && totalConcurrency(parsed.roster) > config.resources.maxParallel ? (
+            {!unlimited && parsed?.ok && totalConcurrency(parsed.roster) > config.resources.maxParallel ? (
               <p className="text-[12px] text-warning">{t('These workers may run {workers} at once; the workspace runs {tasks} tasks in parallel.', { workers: totalConcurrency(parsed.roster), tasks: config.resources.maxParallel })}</p>
             ) : null}
             <div className="flex gap-2">
@@ -149,7 +150,7 @@ function ManagerWorkerForm({ config }: { config: WorkspaceConfigResponse }) {
             disabled={saveComplexityPolicy.isPending}
             onCheckedChange={(on) => saveComplexityPolicy.mutate(on)}
           />
-          <span className="text-[13px] text-muted-foreground">{complexityPolicy ? t('On') : t('Off')}</span>
+          <span className="text-[12.5px] text-muted-foreground">{complexityPolicy ? t('On') : t('Off')}</span>
         </label>
       </SettingsField>
 
@@ -165,7 +166,7 @@ function ManagerWorkerForm({ config }: { config: WorkspaceConfigResponse }) {
             disabled={saveFullAccess.isPending}
             onCheckedChange={(on) => (on ? setConfirmingAccess(true) : saveFullAccess.mutate(false))}
           />
-          <span className={fullAccess ? 'text-[13px] font-medium text-danger' : 'text-[13px] text-muted-foreground'}>{fullAccess ? t('On — managers may merge') : t('Off')}</span>
+          <span className={fullAccess ? 'text-[12.5px] font-medium text-danger' : 'text-[12.5px] text-muted-foreground'}>{fullAccess ? t('On — managers may merge') : t('Off')}</span>
         </label>
         <ConfirmDialog
           open={confirmingAccess}
@@ -182,13 +183,21 @@ function ManagerWorkerForm({ config }: { config: WorkspaceConfigResponse }) {
       </SettingsField>
 
       <SettingsField title={t('Limits that apply to the whole tree')} hint={t('A manager and its workers share one set of ceilings, and workers run within the parallel-task cap.')}>
-        <p data-slot="mw-limit-links" className="text-[13px] text-muted-foreground">
+        <p data-slot="mw-limit-links" className="text-[12.5px] text-muted-foreground">
           {t('Cost, token, time and step ceilings, the subtask cap and the unanswered-wait expiry are under')}{' '}
           <Link to="/settings/global/resources" className="font-medium text-foreground underline">{t('Settings → Resources → Run limits')}</Link>
           {'. '}
           {t('Workspace parallelism is currently')}{' '}
-          <strong>{config.resources.maxParallel}</strong>{' '}
-          {tn(config.resources.maxParallel, 'task at once (same page).', 'tasks at once (same page).')}
+          {unlimited ? (
+            <>
+              <strong>{t('Unlimited')}</strong>.
+            </>
+          ) : (
+            <>
+              <strong>{config.resources.maxParallel}</strong>{' '}
+              {tn(config.resources.maxParallel, 'task at once (same page).', 'tasks at once (same page).')}
+            </>
+          )}
         </p>
         <p data-slot="mw-fence-note" className="text-[12px] text-soft-foreground">
           {t('The worker list steers orchestration: the server refuses a dispatch to any agent outside it. It is not a security boundary — an agent can still run a CLI or call the HTTP API directly, and a top-level task started that way is not bound to a roster.')}

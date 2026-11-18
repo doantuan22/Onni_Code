@@ -17,7 +17,7 @@ describe('CenteredState', () => {
   // The design system's tile grammar, tone by tone (spec, "Design system": tinted border+fill).
   it.each([
     ['primary', ['border-primary/25', 'bg-primary/15', 'text-primary']],
-    ['neutral', ['border-border', 'bg-card', 'shadow-xs']],
+    ['neutral', ['border-border', 'bg-card']],
     ['danger', ['border-danger/20', 'bg-danger/15', 'text-danger']],
   ] as const)('tints the tile for the %s tone', (tone, classes) => {
     const { container } = render(<CenteredState icon={<SearchXIcon />} tone={tone} title="T" />)

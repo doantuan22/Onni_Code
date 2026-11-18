@@ -290,7 +290,7 @@ Lệnh tái hiện: `npm test` (toàn bộ) hoặc hẹp hơn:
 
 | Giá trị | Ở đâu | Ý nghĩa | đổi được bằng |
 | --- | --- | --- | --- |
-| 2 (min 1, max **16**) | `work/src/config.ts:39` | run song song mỗi workspace | `config.json.resources.maxParallel` |
+| 2 (min 1, max **50**, hoặc **Không giới hạn**) | `work/src/workspace/config.ts` | run song song mỗi workspace | `config.json.resources.maxParallel` / `maxParallelUnlimited` |
 | 10 | `work/src/config.ts:27,47,303` | worktree giữ lại | `worktreeRetention` |
 | 300 / 500 | `work/src/runs/store.ts:504-505` | run / archived giữ lại | `ONNI_RUNS_KEEP`, `ONNI_ARCHIVED_RUNS_KEEP` |
 | 15 phút (min 0, max 1440) | `work/src/workspace/config.ts:85,94` | idle timeout | Settings |

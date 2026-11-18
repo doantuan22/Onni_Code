@@ -66,7 +66,7 @@ export function PromptTemplateMenu({
           title={t('Insert a prompt template')}
           disabled={disabled}
           className={cn(
-            'inline-flex h-[26px] items-center gap-1.5 rounded-full border border-border bg-card text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50',
+            'inline-flex h-[26px] items-center gap-1.5 rounded-sm border border-border bg-card text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50',
             iconOnly ? 'w-[26px] justify-center px-0' : 'px-2.5',
             triggerClassName,
           )}

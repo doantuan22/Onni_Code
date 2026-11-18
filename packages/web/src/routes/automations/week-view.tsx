@@ -30,7 +30,7 @@ export function WeekView({ data }: { data: AutomationsResponse }) {
   if (!today || weekStart === undefined || weekStart === null || weekEnd === undefined || weekEnd === null) {
     return (
       <div data-slot="week-view" className="p-5">
-        <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+        <p className="rounded-md border border-dashed p-8 text-center text-[12.5px] text-muted-foreground">
           {t('Cannot draw the week: unknown time zone “{zone}”.', { zone: timeZone })}
         </p>
       </div>
@@ -68,7 +68,7 @@ export function WeekView({ data }: { data: AutomationsResponse }) {
               {t(column.label)}
               <span
                 className={cn(
-                  'rounded-full px-[7px] py-px text-[13px] font-medium tracking-normal normal-case',
+                  'rounded-sm px-[7px] py-px text-[12px] font-medium tracking-normal normal-case',
                   column.isToday ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
                 )}
               >

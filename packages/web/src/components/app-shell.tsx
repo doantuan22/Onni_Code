@@ -443,8 +443,8 @@ function SidebarContent({
       // an `@min-[…]/sidebar:` query and returns when the user drags the column wider.
       className="@container/sidebar flex min-h-0 flex-1 flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
     >
-      <div className={cn('px-3.5 pb-2.5', compactHeader ? 'pt-1.5' : 'pt-3.5')}>
-        <div className="flex items-center gap-[9px]">
+      <div className={cn('px-3 pb-2', compactHeader ? 'pt-1.5' : 'pt-3')}>
+        <div className="flex items-center gap-2">
           <BrandLockup name={brandName} logoUrl={brandLogoUrl} />
           {onRailToggle ? (
             <IconTooltip label={t('Collapse sidebar')} side="right">
@@ -477,7 +477,7 @@ function SidebarContent({
         ) : null}
       </div>
 
-      <div className="flex gap-1.5 px-2.5 pt-1 pb-2">
+      <div className="flex gap-1.5 px-2 pt-1 pb-2">
         <Button asChild variant="contrast" className="relative min-w-0 flex-1 justify-center">
           {/* A Router Link since R4 Step 1.1: the React /new composer is real, so deliberate
               New task affordances stay inside the SPA. Full document loads of /new (the
@@ -491,7 +491,7 @@ function SidebarContent({
                 reserves ⌘N for a new window — so the chip advertises the one that always works.) */}
             <kbd
               aria-hidden="true"
-              className="absolute right-2.5 rounded-[5px] border border-b-2 border-contrast-foreground/25 bg-transparent px-[5px] py-px font-mono text-[10.5px] font-medium text-contrast-foreground/60"
+              className="absolute right-2 rounded-[4px] border border-b-2 border-contrast-foreground/25 bg-transparent px-1 py-px font-mono text-[10px] font-medium text-contrast-foreground/60"
             >
               C
             </kbd>
@@ -502,7 +502,7 @@ function SidebarContent({
 
       {/* The first of the two top-level doors; `AllTasksLink` is the other. They share one skin
           (SIDEBAR_SECTION_LINK_CLASS) because they stack directly against each other. */}
-      <div className="shrink-0 px-1.5">
+      <div className="shrink-0 px-2">
         <DashboardLink onNavigate={onNavigate} />
       </div>
       {projectGroups ? (
@@ -513,14 +513,14 @@ function SidebarContent({
               what stops it reading as an unusually-worded project. Only in a multi-project
               workspace: with one project the page would be that project's own Tasks table
               wearing a second name. */}
-          <div className="shrink-0 border-b border-border px-1.5 pt-0.5 pb-2">
+          <div className="shrink-0 border-b border-border px-2 pt-0.5 pb-2">
             <AllTasksLink onNavigate={onNavigate} />
           </div>
           {/* Step 3.3: one collapsible group per registered project — nav + task list per group.
               The whole area scrolls as one (per the sidebar mockup); collapsed groups are one row. */}
           <div
             data-slot="project-groups"
-            className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-1.5 pt-1.5 pb-2"
+            className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-2 pt-1.5 pb-2"
           >
             <SidebarNavigateContext.Provider value={onNavigate}>
               {projectGroups}
@@ -529,7 +529,7 @@ function SidebarContent({
         </>
       ) : (
         <>
-          <nav aria-label={t('Main')} className="px-2.5 py-1.5">
+          <nav aria-label={t('Main')} className="px-2 py-1">
             {items.map((item) => {
               const isActive = item.to === activeTo
               const Icon = item.icon
@@ -544,10 +544,10 @@ function SidebarContent({
                   onClick={onNavigate}
                   aria-current={isActive ? 'page' : undefined}
                   className={cn(
-                    // h-[34px] is the mockup's desktop row. In the drawer these are touch targets, so
-                    // they relax to 44px — the one place the two framings legitimately differ.
-                    'flex h-11 w-full items-center gap-2.5 rounded-md px-2.5 text-[13.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:h-[34px]',
-                    isActive && 'bg-muted font-semibold text-foreground'
+                    // h-8 is the desktop row; in the drawer these relax to a 44px touch target.
+                    'relative flex h-11 w-full items-center gap-2 rounded-sm px-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:h-8',
+                    isActive &&
+                      'bg-muted font-semibold text-foreground before:absolute before:top-1/2 before:left-0 before:h-3.5 before:w-[2px] before:-translate-y-1/2 before:rounded-full before:bg-violet'
                   )}
                 >
                   <Icon className="size-4 shrink-0" aria-hidden="true" />
@@ -555,7 +555,7 @@ function SidebarContent({
                   {item.badge === 'inbox-count' && inboxCount ? (
                     <span
                       data-slot="nav-badge"
-                      className="ml-auto rounded-full bg-violet px-1.5 py-px text-[10.5px] font-semibold text-violet-foreground"
+                      className="ml-auto rounded-sm bg-violet px-1.5 py-px font-mono text-[10px] font-semibold text-violet-foreground"
                     >
                       {inboxCount}
                     </span>
@@ -566,7 +566,7 @@ function SidebarContent({
                     <span
                       data-slot="nav-unread-badge"
                       title={tn(unreadCount, '{count} unread finished task', '{count} unread finished tasks')}
-                      className="ml-auto rounded-full bg-violet px-1.5 py-px text-[10.5px] font-semibold text-violet-foreground"
+                      className="ml-auto rounded-sm bg-violet px-1.5 py-px font-mono text-[10px] font-semibold text-violet-foreground"
                     >
                       {unreadCount}
                     </span>
@@ -579,7 +579,7 @@ function SidebarContent({
           {/* The single-project quick-list (Needs you / Working / Recent). */}
           <div
             data-slot="task-quick-list"
-            className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-2.5 pb-2"
+            className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-2 pb-2"
           >
             {taskQuickList}
           </div>
@@ -594,7 +594,7 @@ function SidebarContent({
        *  and in remote), so the count of rows is a property of the viewport, not of the markup. */}
       <div
         data-slot="sidebar-footer"
-        className="flex flex-col gap-1.5 border-t border-border px-3.5 py-2.5"
+        className="flex flex-col gap-1 border-t border-border px-3 py-2"
       >
         {hostWidget}
         <CommandPaletteHint />
@@ -638,7 +638,7 @@ function RailSidebarContent({
           aria-label={t(item.label)}
           aria-current={isActive ? 'page' : undefined}
           className={cn(
-            'flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
+            'flex size-8 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
             isActive && 'bg-muted text-foreground',
           )}
         >
@@ -660,7 +660,7 @@ function RailSidebarContent({
             to="/"
             data-slot="rail-brand"
             aria-label={brandName}
-            className="flex size-9 items-center justify-center rounded-md hover:bg-muted"
+            className="flex size-8 items-center justify-center rounded-sm hover:bg-muted"
           >
             {brandLogoUrl ? (
               <img src={brandLogoUrl} alt="" aria-hidden="true" className="size-7 object-contain" />
@@ -675,14 +675,14 @@ function RailSidebarContent({
             variant="ghost"
             size="icon"
             aria-label={t('Expand sidebar')}
-            className="size-9"
+            className="size-8"
             onClick={onRailToggle}
           >
             <PanelLeftOpenIcon className="size-4" aria-hidden="true" />
           </Button>
         </IconTooltip>
         <IconTooltip label={t('New task')} side="right">
-          <Button asChild variant="contrast" size="icon" className="size-9">
+          <Button asChild variant="contrast" size="icon" className="size-8">
             <Link to="/new" aria-label={t('New task')}>
               <PlusIcon className="size-4" aria-hidden="true" />
             </Link>
@@ -696,7 +696,7 @@ function RailSidebarContent({
             to="/dashboard"
             data-slot="rail-dashboard-link"
             aria-label={t('Dashboard')}
-            className="flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex size-8 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <LayoutDashboardIcon className="size-4" aria-hidden="true" />
           </RouterLink>
@@ -719,7 +719,7 @@ function RailSidebarContent({
  * height, the same type scale, the same violet icon.
  *
  * ONE constant rather than two copies on purpose. Dashboard shipped as its own inline class
- * string and drifted to `min-h-11`/`text-sm`/no icon colour, which read on desktop as an 8px
+ * string and drifted to `min-h-11`/`text-[12.5px]`/no icon colour, which read on desktop as an 8px
  * taller row with the only grey icon of the pair. A shared string is what makes the next tweak
  * land on both rows or on neither.
  *
@@ -727,7 +727,7 @@ function RailSidebarContent({
  * only when active, `md:h-[34px]`) and are deliberately NOT peers of these two.
  */
 const SIDEBAR_SECTION_LINK_CLASS =
-  'flex h-11 w-full items-center gap-2.5 rounded-md px-2.5 text-[13.5px] font-semibold text-foreground transition-colors hover:bg-muted md:h-9'
+  'flex h-11 w-full items-center gap-2 rounded-sm px-2 text-[13px] font-semibold text-foreground transition-colors hover:bg-muted md:h-8'
 
 /**
  * The accent icon of a top-level door — violet, the same hue the tag chips and the Tasks page's
@@ -930,7 +930,7 @@ export function VersionChip({ version }: { version: string }) {
     <span
       data-slot="version-chip"
       title={`v${version}`}
-      className="flex min-w-0 items-center gap-1 rounded-full border border-border px-1.5 py-px font-mono text-[10px] font-medium text-soft-foreground"
+      className="flex min-w-0 items-center gap-1 rounded-sm border border-border px-1.5 py-px font-mono text-[10px] font-medium text-soft-foreground"
     >
       <span className="truncate">demo_dev</span>
     </span>

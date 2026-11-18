@@ -156,7 +156,7 @@ export function IntegerStepper({
     <div className="flex flex-col gap-1">
       <div
         className={cn(
-          'flex w-28 items-stretch overflow-hidden rounded-md border border-input bg-card shadow-xs focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50',
+          'flex w-28 items-stretch overflow-hidden rounded-md border border-input bg-card focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50',
           invalid && 'border-danger',
           disabled && 'opacity-50',
           className,
@@ -179,7 +179,7 @@ export function IntegerStepper({
           onChange={(event) => updateDraft(event.target.value)}
           onBlur={commit}
           onKeyDown={onKeyDown}
-          className="min-w-0 flex-1 bg-transparent px-3 py-1.5 text-sm outline-none placeholder:text-soft-foreground"
+          className="min-w-0 flex-1 bg-transparent px-3 py-1.5 text-[12.5px] outline-none placeholder:text-soft-foreground"
         />
         <div className="flex flex-col border-l border-input">
           <button

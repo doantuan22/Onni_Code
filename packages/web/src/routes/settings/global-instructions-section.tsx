@@ -23,7 +23,7 @@ export function GlobalInstructionsSection() {
   const { t } = useI18n()
   const config = useWorkspaceConfig()
   if (config.isPending) {
-    return <p className="p-4 text-[13px] text-soft-foreground md:p-6">{t('Loading instructions…')}</p>
+    return <p className="p-4 text-[12.5px] text-soft-foreground md:p-6">{t('Loading instructions…')}</p>
   }
   if (config.isError) {
     return (
@@ -61,7 +61,7 @@ function GlobalInstructionsForm({ config }: { config: WorkspaceConfigResponse })
   return (
     <div
       data-slot="global-instructions-section"
-      className="mx-auto flex w-full max-w-2xl flex-col gap-7 p-4 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-6 md:pb-6"
+      className="flex w-full min-w-0 flex-col gap-5"
     >
       <SettingsField
         title={t('Global system prompt')}

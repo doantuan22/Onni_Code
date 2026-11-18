@@ -43,7 +43,7 @@ export function TrackerRoute() {
   })
   if (association.isPending) return <PageState text={t('Loading tracker…')} />
   if (association.isError) return (
-    <div className="p-8 text-center text-sm text-danger">
+    <div className="p-8 text-center text-[12.5px] text-danger">
       <p>{association.error.message}</p>
       <Link className="mt-3 inline-block text-violet underline underline-offset-4" to="/settings/tracker">{t('Open tracker settings')}</Link>
     </div>
@@ -53,7 +53,7 @@ export function TrackerRoute() {
   // They must not mount a browser/watch without the corresponding credentials.
   if (association.data.association.connectionId) {
     if (connection.isPending) return <PageState text={t('Loading tracker…')} />
-    if (connection.isError) return <div role="alert" className="p-8 text-center text-sm">
+    if (connection.isError) return <div role="alert" className="p-8 text-center text-[12.5px]">
       <p>{t('Could not verify the tracker connection.')}</p>
       <Button className="mt-3" variant="outline" onClick={() => void connection.refetch()}>{t('Retry connection')}</Button>
     </div>
@@ -74,9 +74,9 @@ function SetupState() {
   return (
     <div className="mx-auto flex min-h-[55vh] max-w-lg flex-col items-center justify-center p-6 text-center">
       <TicketIcon className="size-8 text-muted-foreground" />
-      <h1 className="mt-3 text-lg font-semibold">{t('Connect an issue tracker')}</h1>
-      <p className="mt-1 text-sm text-muted-foreground">{t('Choose a project or team from your issue tracker in project settings.')}</p>
-      <Link className="mt-4 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground" to="/settings/tracker">{t('Open tracker settings')}</Link>
+      <h1 className="mt-3 text-[15px] font-semibold tracking-tight">{t('Connect an issue tracker')}</h1>
+      <p className="mt-1 text-[12.5px] text-muted-foreground">{t('Choose a project or team from your issue tracker in project settings.')}</p>
+      <Link className="mt-4 rounded-md bg-primary px-3 py-2 text-[12.5px] font-medium text-primary-foreground" to="/settings/tracker">{t('Open tracker settings')}</Link>
     </div>
   )
 }
@@ -116,12 +116,12 @@ function TrackerBrowse({ scopePending, association, selectedId, drafts, selectio
   }
 
   return <IssueBrowserLayout name="tracker" route="tracker" selected={selectedId !== undefined} list={<>
-    <header data-slot="tracker-header" className="sticky top-0 z-10 border-b border-border bg-background/95 px-4 pt-3 backdrop-blur">
+    <header data-slot="tracker-header" className="sticky top-0 z-10 border-b border-border bg-background/95 px-4 pt-3">
       <div className="flex min-w-0 items-center gap-2.5">
-        <h1 className="text-lg font-semibold">{provider}</h1>
+        <h1 className="text-[14px] font-semibold tracking-tight">{provider}</h1>
         <span className="min-w-0 truncate font-mono text-[11px] text-soft-foreground" title={association.externalName}>{association.externalName}</span>
         <Link to="/settings/tracker" aria-label={t('Connection settings')} title={t('Connection settings')} className="ml-auto shrink-0 text-soft-foreground hover:text-foreground"><SettingsIcon className="size-3.5" /></Link>
-        <button type="button" aria-label={t('Refresh')} title={t('Refresh from {provider}', { provider })} disabled={watch.checking || result.isFetching} onClick={() => void refresh()} className="flex shrink-0 items-center gap-1 rounded-full border border-border px-1.5 py-px text-[10px] font-medium text-soft-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-55">
+        <button type="button" aria-label={t('Refresh')} title={t('Refresh from {provider}', { provider })} disabled={watch.checking || result.isFetching} onClick={() => void refresh()} className="flex shrink-0 items-center gap-1 rounded-sm border border-border px-1.5 py-px text-[10px] font-medium text-soft-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-55">
           <RefreshCwIcon aria-hidden="true" className={cn('size-[9px]', (watch.checking || result.isFetching) && 'motion-safe:animate-spin')} />
           {watch.checkedAt ? t('synced {age} ago', { age: shortAge(watch.checkedAt) }) : t('refresh')}
         </button>
@@ -184,7 +184,7 @@ function TrackerRow({ scopePending, association, item, active }: { scopePending:
   return <li><Link to={`/tracker/${encodeURIComponent(item.id)}`} draggable onMouseEnter={preload} onFocus={preload} onDragStart={drag} data-slot="tracker-row" aria-current={active ? 'page' : undefined} title={t('Drag into the composer to prefill a task')} className={cn('flex flex-col gap-1 rounded-md px-2.5 py-2 transition-colors hover:bg-muted', active && 'bg-muted')}>
     <span className="flex min-w-0 items-center gap-2"><CircleDotIcon aria-hidden="true" className="size-3.5 shrink-0 text-violet" /><span className={cn('min-w-0 truncate text-[13px] font-medium', active && 'font-semibold')}>{item.title}</span></span>
     <span className="flex min-w-0 items-center gap-2 pl-[22px] font-mono text-[10.5px] text-muted-foreground"><span className="shrink-0">{item.id}</span><span className="min-w-0 truncate">{item.author}</span><span className="shrink-0" title={new Date(item.updatedAt).toLocaleString()}>{shortAge(item.updatedAt)}</span></span>
-    <span className="flex flex-wrap gap-1 pl-[22px]"><span className="rounded border border-border px-1.5 py-px text-[10px] text-muted-foreground">{item.status}</span>{item.labels.map(label => <span key={label} className="rounded-full border border-border px-1.5 py-px text-[10px] text-muted-foreground">{label}</span>)}</span>
+    <span className="flex flex-wrap gap-1 pl-[22px]"><span className="rounded border border-border px-1.5 py-px text-[10px] text-muted-foreground">{item.status}</span>{item.labels.map(label => <span key={label} className="rounded-sm border border-border px-1.5 py-px text-[10px] text-muted-foreground">{label}</span>)}</span>
   </Link></li>
 }
 
@@ -230,10 +230,10 @@ function TrackerDetail({ scopePending, association, id, selection, onSelectionCh
         <a className="inline-flex items-center gap-0.5 text-muted-foreground hover:text-foreground hover:underline" href={item.url} target="_blank" rel="noopener noreferrer">{t('open on {provider}', { provider: TRACKER_PROVIDERS[association.kind].label })}<ExternalLinkIcon aria-hidden="true" className="size-2.5" /></a>
       </p>
       <h2 className="mt-2 text-xl leading-snug font-semibold">{item.title}</h2>
-      <div className="mt-3 flex flex-wrap items-center gap-1.5"><span className="rounded border border-border px-1.5 py-px text-[10px] text-muted-foreground">{item.status}</span>{item.labels.map(label => <span key={label} className="rounded-full border border-border px-1.5 py-px text-[10px] text-muted-foreground">{label}</span>)}</div>
+      <div className="mt-3 flex flex-wrap items-center gap-1.5"><span className="rounded border border-border px-1.5 py-px text-[10px] text-muted-foreground">{item.status}</span>{item.labels.map(label => <span key={label} className="rounded-sm border border-border px-1.5 py-px text-[10px] text-muted-foreground">{label}</span>)}</div>
       {failure}
-      {trackerLosses(item).length ? <div className="mt-4 rounded-md border border-warning/50 bg-warning/10 p-3 text-sm"><AlertTriangleIcon className="mr-2 inline size-4" />{t('This snapshot is incomplete. Review the limitations in the handoff panel.')}</div> : null}
-      <section data-slot="tracker-body" className="mt-5 text-sm"><Markdown>{item.body.trim() || `*${t('No description was provided.')}*`}</Markdown></section>
+      {trackerLosses(item).length ? <div className="mt-4 rounded-md border border-warning/50 bg-warning/10 p-3 text-[12.5px]"><AlertTriangleIcon className="mr-2 inline size-4" />{t('This snapshot is incomplete. Review the limitations in the handoff panel.')}</div> : null}
+      <section data-slot="tracker-body" className="mt-5 text-[12.5px]"><Markdown>{item.body.trim() || `*${t('No description was provided.')}*`}</Markdown></section>
       <TrackerHandoff scopePending={scopePending} key={`${trackerAssociationKey(association)}:${item.id}`} item={item} detailUnavailable={detail.isError || !detail.data?.available} drafts={drafts} selection={selection} onSelectionChange={onSelectionChange} workflows={workflows.data?.workflows ?? []} skills={skills.data ?? []} />
     </article>
   )
@@ -248,11 +248,11 @@ function Failure({ reason, retry, retryAfterSeconds = 0, generation }: { reason:
     const timer = window.setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1_000)
     return () => window.clearInterval(timer)
   }, [cooldown > 0])
-  return <div className="mt-5 rounded-md border border-danger/30 bg-danger/5 p-4 text-sm"><p className="text-danger">{reason}</p><div className="mt-3 flex items-center gap-3"><Button variant="outline" disabled={cooldown > 0} onClick={retry}><RefreshCwIcon className="size-3.5" />{cooldown > 0 ? t('Retry in {seconds}s', { seconds: cooldown }) : t('Retry')}</Button><Link className="text-xs text-violet underline underline-offset-4" to="/settings/tracker">{t('Tracker settings')}</Link></div></div>
+  return <div className="mt-5 rounded-md border border-danger/30 bg-danger/5 p-4 text-[12.5px]"><p className="text-danger">{reason}</p><div className="mt-3 flex items-center gap-3"><Button variant="outline" disabled={cooldown > 0} onClick={retry}><RefreshCwIcon className="size-3.5" />{cooldown > 0 ? t('Retry in {seconds}s', { seconds: cooldown }) : t('Retry')}</Button><Link className="text-xs text-violet underline underline-offset-4" to="/settings/tracker">{t('Tracker settings')}</Link></div></div>
 }
 
 function PageState({ text, danger = false }: { text: string; danger?: boolean }) {
-  return <div className={`p-8 text-center text-sm ${danger ? 'text-danger' : 'text-muted-foreground'}`}>{text}</div>
+  return <div className={`p-8 text-center text-[12.5px] ${danger ? 'text-danger' : 'text-muted-foreground'}`}>{text}</div>
 }
 
 function DetailBackLink() {

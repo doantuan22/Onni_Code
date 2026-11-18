@@ -17,7 +17,7 @@ export function SkillsSection() {
 
   if (config.isPending) {
     return (
-      <p data-slot="skills-settings-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">
+      <p data-slot="skills-settings-loading" className="p-4 text-[12.5px] text-soft-foreground md:p-6">
         {t('Loading skill settings…')}
       </p>
     )
@@ -59,14 +59,14 @@ function SkillsForm({ config }: { config: WorkspaceConfigResponse }) {
   return (
     <div
       data-slot="skills-settings-section"
-      className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-6 md:pb-6"
+      className="flex w-full min-w-0 flex-col gap-4"
     >
       <section data-slot="org-skills-repos" className="flex flex-col gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-foreground">
+          <h2 className="text-[12.5px] font-semibold text-foreground">
             <label htmlFor="org-skills-repo">{t('Organisation skills repositories')}</label>
           </h2>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-[12.5px] text-muted-foreground">
             {t('Git repositories whose skills are available in every project, kept up to date from the remote. A project\'s own skills with the same name win. Use')}{' '}
             <code>owner/name</code>
             {t(', a git URL or a local path; access uses your existing git credentials.')}
@@ -77,7 +77,7 @@ function SkillsForm({ config }: { config: WorkspaceConfigResponse }) {
             {repos.map((r) => (
               <li
                 key={r.repo}
-                className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-1.5 text-[13px]"
+                className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-1.5 text-[12.5px]"
               >
                 <span className="truncate">
                   {r.repo} <span className="text-soft-foreground">@ {r.ref}</span>

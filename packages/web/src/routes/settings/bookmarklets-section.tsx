@@ -22,7 +22,7 @@ export function BookmarkletsSection() {
   // user "(no skills yet)" — a claim that is simply false while the fetch is still running.
   if (skillsQuery.isPending) {
     return (
-      <p data-slot="bookmarklets-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">
+      <p data-slot="bookmarklets-loading" className="p-4 text-[12.5px] text-soft-foreground md:p-6">
         {t('Loading bookmarklets…')}
       </p>
     )
@@ -40,7 +40,7 @@ export function BookmarkletsSection() {
   }
 
   return (
-    <div className="flex min-h-full flex-1 overflow-y-auto px-4 py-5 md:px-7">
+    <div className="flex w-full min-w-0 flex-col">
       <BookmarkletPanel skills={orderSkills(skillsQuery.data ?? [])} />
     </div>
   )
@@ -94,14 +94,14 @@ export function BookmarkletPanel({ skills }: { skills: readonly Skill[] }) {
   const shown = skills.filter((skill) => skill.name.toLowerCase().includes(needle))
 
   return (
-    <div data-slot="bookmarklet-panel" className="mx-auto w-full max-w-2xl">
-      <h2 className="text-base font-semibold">{t('Run from GitHub')}</h2>
-      <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+    <div data-slot="bookmarklet-panel" className="w-full">
+      <h2 className="text-[13.5px] font-semibold">{t('Run from GitHub')}</h2>
+      <p className="mt-2 text-[12.5px] leading-relaxed text-muted-foreground">
         {t("Drag a button below to your browser's bookmarks bar. On any GitHub PR or issue, click it to open this cockpit directly. The cockpit must be running:")}{' '}
         <span className="font-mono">onni</span>.
       </p>
 
-      <label className="mt-4 flex items-center gap-2 text-[13px] font-medium">
+      <label className="mt-4 flex items-center gap-2 text-[12.5px] font-medium">
         <input
           type="checkbox"
           data-slot="bm-auto"
@@ -128,7 +128,7 @@ export function BookmarkletPanel({ skills }: { skills: readonly Skill[] }) {
         aria-label={t('Filter bookmarklet skills')}
         value={filter}
         onChange={(event) => setFilter(event.target.value)}
-        className="mt-5 h-8 text-[13px]"
+        className="mt-5 h-8 text-[12.5px]"
       />
       <div data-slot="bm-list" className="mt-3 flex flex-col gap-2">
         {shown.length > 0 ? (

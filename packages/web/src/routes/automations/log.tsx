@@ -72,12 +72,12 @@ export function AutomationLog({ automationId, automation, timeZone, onBack }: {
 
   return (
     <div data-route="automations" data-slot="automation-log" className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-5">
+      <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center gap-3 border-b border-border bg-background px-4">
         <Button variant="ghost" size="icon-sm" aria-label={t('Back')} onClick={onBack}>
           <ArrowLeftIcon className="size-[15px]" />
         </Button>
-        <h1 className="m-0 text-base font-semibold">{automation ? automation.name : t('Automation')}</h1>
-        <span className="text-[13px] text-muted-foreground">{t('· execution log')}</span>
+        <h1 className="m-0 text-[14px] font-semibold tracking-tight">{automation ? automation.name : t('Automation')}</h1>
+        <span className="text-[12.5px] text-muted-foreground">{t('· execution log')}</span>
         <div className="flex flex-1 items-center justify-end gap-2">
           <Select value={result} onValueChange={(next) => setResult(next as AutomationLogResult | 'all')}>
             <SelectTrigger size="sm" aria-label={t('Filter by result')} className="text-[12.5px]">
@@ -167,7 +167,7 @@ function LogRow({ record, run, last, timeZone, retrying, onRetry }: {
     <div
       data-slot="log-row"
       data-result={record.result}
-      className={`grid ${AUTOMATION_COST_VISIBLE ? 'grid-cols-[90px_110px_1fr_auto_auto]' : 'grid-cols-[90px_110px_1fr_auto]'} items-center gap-x-3 gap-y-2 px-4 py-3 text-[13px] ${last ? '' : 'border-b border-border'}`}
+      className={`grid ${AUTOMATION_COST_VISIBLE ? 'grid-cols-[90px_110px_1fr_auto_auto]' : 'grid-cols-[90px_110px_1fr_auto]'} items-center gap-x-3 gap-y-2 px-4 py-3 text-[12.5px] ${last ? '' : 'border-b border-border'}`}
     >
       <span className="font-mono text-xs font-medium text-muted-foreground tabular-nums">{logTime(record.ts, timeZone)}</span>
       <Pill dot={tone} className="w-fit">{record.result}</Pill>
@@ -195,7 +195,7 @@ function LogRow({ record, run, last, timeZone, retrying, onRetry }: {
           {children.map((child) => (
             <div key={child.runId} data-slot="log-child" className={`grid ${AUTOMATION_COST_VISIBLE ? 'grid-cols-[14px_70px_1fr_auto_auto]' : 'grid-cols-[14px_70px_1fr_auto]'} items-center gap-2.5 text-[12.5px]`}>
               <span className="font-mono text-[11px] text-soft-foreground">└</span>
-              <span className="w-fit rounded-full bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground">{child.kind ?? 'implement'}</span>
+              <span className="w-fit rounded-sm bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground">{child.kind ?? 'implement'}</span>
               <span className="flex min-w-0 items-center gap-2">
                 <StatusDot tone={statusTone(child.status)} />
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap">{child.title}</span>

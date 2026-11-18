@@ -10,7 +10,7 @@ import { useConfigSave } from './use-config-save'
 import { AppSelect } from '@/components/ui/app-select'
 
 const selectClass =
-  'block w-full max-w-md rounded-md border border-input bg-card px-3 py-1.5 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50'
+  'block w-full max-w-md rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50'
 
 /** The trunk-based preset (spec 2026-10-20-trunk-based-projects). Each key stays adjustable on
  *  its own below; switching back to branch-per-task clears every key the preset set. */
@@ -106,12 +106,12 @@ export function TrunkBasedFields({ config }: { config: ConfigResponse }) {
               )
             }
           />
-          <span className="text-[13px] text-muted-foreground">
+          <span className="text-[12.5px] text-muted-foreground">
             {config.landing === 'auto' ? t('Auto-land on the base branch') : t('Review — nothing lands by itself (default)')}
           </span>
         </label>
         {config.landingBlocked ? (
-          <p data-slot="tasks-landing-blocked" className="mt-2 text-[13px] text-destructive">
+          <p data-slot="tasks-landing-blocked" className="mt-2 text-[12.5px] text-destructive">
             {config.landingBlocked}
           </p>
         ) : null}
@@ -159,7 +159,7 @@ export function TrunkBasedFields({ config }: { config: ConfigResponse }) {
             disabled={save.isPending}
             onCheckedChange={(checked) => save.mutate({ teamSkills: checked })}
           />
-          <span className="text-[13px] text-muted-foreground">{config.teamSkills ? t('On') : t('Off')}</span>
+          <span className="text-[12.5px] text-muted-foreground">{config.teamSkills ? t('On') : t('Off')}</span>
         </label>
       </SettingsField>
     </>
@@ -231,7 +231,7 @@ function RequiredChecksField({ config }: { config: ConfigResponse }) {
         disabled={save.isPending}
         onChange={(event) => setText(event.target.value)}
         onBlur={commit}
-        className="block w-full max-w-md rounded-md border border-input bg-card px-3 py-1.5 font-mono text-[13px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+        className="block w-full max-w-md rounded-md border border-input bg-card px-3 py-1.5 font-mono text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
       />
     </SettingsField>
   )

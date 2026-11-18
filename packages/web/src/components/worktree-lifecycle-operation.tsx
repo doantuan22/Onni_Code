@@ -62,7 +62,7 @@ export function LifecycleOperationCard({operationId, worktreePath, taskTitle}: {
   const frames = [...new Map((output.data?.pages.flatMap(page => page.items) ?? []).map(frame => [frame.seq, frame])).values()].sort((a,b) => a.seq - b.seq)
   const active = ['queued', 'running', 'committing'].includes(operation.state)
   const resolved = ['completed', 'bypassed', 'cancelled', 'kept'].includes(operation.state)
-  return <section data-slot="worktree-lifecycle-operation" className="rounded-lg border border-border bg-card p-3 text-sm">
+  return <section data-slot="worktree-lifecycle-operation" className="rounded-md border border-border bg-card p-3 text-[12.5px]">
     <h2 ref={status} tabIndex={-1} className="font-medium outline-none" aria-live="polite">{statusLabel(operation, t)}</h2>
     {taskTitle ? <p className="mt-1 break-words text-xs text-muted-foreground">{taskTitle}</p> : null}
     {worktreePath ? <p className="mt-1 break-all font-mono text-[11px] text-muted-foreground">{worktreePath}</p> : null}

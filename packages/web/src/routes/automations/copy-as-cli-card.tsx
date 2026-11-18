@@ -26,7 +26,7 @@ export function CopyAsCliCard({ definition }: { definition: CliDefinition }) {
           {t('Copy')}
         </Button>
       </div>
-      <pre className="m-0 rounded-lg border border-border bg-card-2 px-2.5 py-2 font-mono text-[11.5px] leading-[1.6] break-words whitespace-pre-wrap text-muted-foreground">
+      <pre className="m-0 rounded-md border border-border bg-card-2 px-2.5 py-2 font-mono text-[11.5px] leading-[1.6] break-words whitespace-pre-wrap text-muted-foreground">
         {line}
       </pre>
       <p className="mt-2 mb-0 text-[11.5px] leading-[1.5] text-soft-foreground">

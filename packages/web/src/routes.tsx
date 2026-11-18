@@ -13,6 +13,7 @@ import {
 import { useHealth, useProjects } from './api/queries'
 import { ProjectScopeProvider } from './api/project-scope-context'
 import { WorkspaceHost } from './components/workspace/workspace-host'
+import { LoadingSplash } from './components/loading-splash'
 import type { ViewId } from './routes/task-workspace/layout-state'
 import { useI18n } from './lib/i18n'
 import { lazyRoute } from './lib/lazy-route'
@@ -142,14 +143,14 @@ function ScopeResolving() {
   const { t } = useI18n()
   return (
     <div data-route="scope-resolving" className="flex min-h-full flex-col">
-      <p className="px-4 py-6 text-center text-xs text-soft-foreground">{t('Loading…')}</p>
+      <LoadingSplash title={t('Loading…')} />
     </div>
   )
 }
 
 function DashboardLoading() {
   const { t } = useI18n()
-  return <div role="status" className="p-6 text-sm text-muted-foreground">{t('Loading dashboard…')}</div>
+  return <LoadingSplash title={t('Loading dashboard…')} />
 }
 
 /**

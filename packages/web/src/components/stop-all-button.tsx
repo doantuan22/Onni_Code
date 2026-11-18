@@ -34,10 +34,11 @@ export function StopAllButton({ className }: { className?: string }) {
         data-slot="stop-all"
         disabled={stop.isPending}
         className={className}
+        aria-label={t('Stop all')}
         onClick={() => setConfirming(true)}
       >
         <OctagonXIcon className="size-[14px]" aria-hidden="true" />
-        {t('Stop all')}
+        <span className="hidden xl:inline">{t('Stop all')}</span>
       </Button>
       <ConfirmDialog
         open={confirming}

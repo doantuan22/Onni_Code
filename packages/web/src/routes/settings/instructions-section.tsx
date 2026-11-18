@@ -34,7 +34,7 @@ export function InstructionsSection() {
 
   if (config.isPending) {
     return (
-      <p data-slot="instructions-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">
+      <p data-slot="instructions-loading" className="p-4 text-[12.5px] text-soft-foreground md:p-6">
         {t('Loading instructions…')}
       </p>
     )
@@ -80,7 +80,7 @@ function InstructionsForm({ config }: { config: ConfigResponse }) {
   return (
     <div
       data-slot="instructions-section"
-      className="mx-auto flex w-full max-w-2xl flex-col gap-7 p-4 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-6 md:pb-6"
+      className="flex w-full min-w-0 flex-col gap-5"
     >
       <SettingsField
         title={t('System prompt')}

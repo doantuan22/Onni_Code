@@ -38,7 +38,7 @@ export const PERMISSION_LEVELS: readonly { id: AgentPermissionLevel; label: stri
 export function AgentPermissionsSection() {
   const { t } = useI18n()
   const config = useWorkspaceConfig()
-  if (config.isPending) return <p data-slot="agent-permissions-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">{t('Loading…')}</p>
+  if (config.isPending) return <p data-slot="agent-permissions-loading" className="p-4 text-[12.5px] text-soft-foreground md:p-6">{t('Loading…')}</p>
   if (config.isError) {
     return <CenteredState icon={<ShieldIcon />} tone="danger" title={t('Agent permission settings did not load')} subtitle={config.error.message} heading="h2" />
   }
@@ -62,7 +62,7 @@ function AgentPermissionsForm({ config }: { config: WorkspaceConfigResponse }) {
   }
 
   return (
-    <div data-slot="agent-permissions-section" className="mx-auto flex w-full max-w-2xl flex-col gap-7 p-4 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-6 md:pb-6">
+    <div data-slot="agent-permissions-section" className="flex w-full min-w-0 flex-col gap-5">
       <SettingsField
         title="Antigravity"
         hint={t('agy cannot ask you before running a command when Onni drives it, so what it may do is decided here. It applies to every project.')}
@@ -85,7 +85,7 @@ function AgentPermissionsForm({ config }: { config: WorkspaceConfigResponse }) {
                 className="mt-1"
               />
               <span className="flex flex-col gap-0.5">
-                <span className="text-[13px] font-medium text-foreground">{t(level.label)}</span>
+                <span className="text-[12.5px] font-medium text-foreground">{t(level.label)}</span>
                 <span className={`text-[12px] ${level.id === 'bypass' ? 'text-danger' : 'text-soft-foreground'}`}>{t(level.hint)}</span>
               </span>
             </label>

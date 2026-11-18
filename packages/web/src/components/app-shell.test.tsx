@@ -476,12 +476,12 @@ describe('AppShell', () => {
       expect(skin(dashboard())).toEqual(skin(allTasks()))
     })
 
-    it('gives both rows the touch height that relaxes to 36px on desktop', () => {
+    it('gives both rows the touch height that relaxes to 32px on desktop', () => {
       renderShell('/', { projectGroups: <p>groups</p> })
       for (const row of [dashboard(), allTasks()]) {
         expect(row.classList.contains('h-11')).toBe(true)
-        expect(row.classList.contains('md:h-9')).toBe(true)
-        // The drifted Dashboard row was `min-h-11` with no desktop override — 8px taller than
+        expect(row.classList.contains('md:h-8')).toBe(true)
+        // The drifted Dashboard row was `min-h-11` with no desktop override — 12px taller than
         // the row beneath it at every width above `md`.
         expect(row.classList.contains('min-h-11')).toBe(false)
       }

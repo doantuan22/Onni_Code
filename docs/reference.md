@@ -45,7 +45,8 @@ Three words, no jargon — **task**, **skill**, **chain**:
 Five moves that make the cockpit worth the browser tab:
 
 - 🗃️ **Queue + orchestration.** Start as many tasks as you like: OnniCode runs up to
-  `maxParallel` at once across every project (default **2**; a non-git directory
+  `maxParallel` at once across every project (default **2**, settable up to **50**, or
+  **Unlimited**; a non-git directory
   always runs one) and
   holds the rest in a FIFO queue with visible positions (`#1`, `#2`, …). Cancel a
   queued task before it starts; the queue even survives a cockpit restart —
@@ -938,7 +939,8 @@ Run data (`runs.json`, NDJSON event logs, worktrees, `todos.json`) is
 git-ignored automatically; your workflows and skills stay committable.
 
 Settings that belong to *you* rather than to a repo — the parallel cap
-(`maxParallel`, default **2**), the per-task memory ceiling and the checkout
+(`maxParallel`, default **2**, range **1–50**, plus an **Unlimited** switch that ignores
+the number while keeping it stored), the per-task memory ceiling and the checkout
 root — live once in `~/.onni/config.json`, alongside the
 [project registry](#multiple-projects-one-cockpit), and are edited from
 **Settings → Resources** and **Settings → Projects**. A `maxParallel` left over

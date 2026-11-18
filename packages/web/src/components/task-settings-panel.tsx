@@ -104,7 +104,7 @@ export function TaskSummary({
   return (
     <div
       data-slot="task-summary"
-      className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground"
+      className="mt-2.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 font-mono text-[11px] text-soft-foreground"
     >
       {segments.map((segment) => (
         <button
@@ -131,7 +131,7 @@ export function TaskSummary({
         title={t('Task settings')}
         disabled={disabled}
         onClick={() => onOpen('presets')}
-        className="ml-0.5 inline-flex size-6 items-center justify-center rounded-md text-soft-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none"
+        className="ml-0.5 inline-flex size-6 items-center justify-center rounded-sm text-soft-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none"
       >
         <SlidersHorizontalIcon aria-hidden="true" className="size-3.5" />
       </button>
@@ -241,10 +241,10 @@ function PanelBody({
     <>
       <header
         data-slot="task-settings-header"
-        className="flex shrink-0 items-center gap-2 border-b border-border px-6 py-3"
+        className="flex shrink-0 items-center gap-2 border-b border-border px-5 py-2.5"
       >
-        <SlidersHorizontalIcon aria-hidden="true" className="size-4 shrink-0 text-primary" />
-        <DialogTitle className="min-w-0 flex-1 text-sm">{t('Task settings')}</DialogTitle>
+        <SlidersHorizontalIcon aria-hidden="true" className="size-3.5 shrink-0 text-violet" />
+        <DialogTitle className="min-w-0 flex-1 font-mono text-[11px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">{t('Task settings')}</DialogTitle>
         <DialogDescription className="sr-only">{t('Choose how this task runs.')}</DialogDescription>
         <button
           type="button"
@@ -252,7 +252,7 @@ function PanelBody({
           aria-label={t('Collapse task settings')}
           title={t('Collapse task settings')}
           onClick={() => onOpenChange(false)}
-          className="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="inline-flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <XIcon aria-hidden="true" className="size-4" />
         </button>
@@ -277,13 +277,13 @@ function PanelBody({
                 aria-current={current ? 'true' : undefined}
                 onClick={() => jump(section)}
                 className={cn(
-                  'flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-2.5 py-1.5 text-left text-[13px] transition-colors md:whitespace-normal',
+                  'flex shrink-0 items-center gap-2 whitespace-nowrap rounded-sm px-2 py-1.5 text-left text-[12.5px] transition-colors md:whitespace-normal',
                   current
-                    ? 'bg-primary/10 font-medium text-foreground'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                    ? 'bg-muted font-medium text-foreground'
+                    : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
                 )}
               >
-                <Icon aria-hidden="true" className={cn('size-4 shrink-0', current && 'text-primary')} />
+                <Icon aria-hidden="true" className={cn('size-3.5 shrink-0', current && 'text-violet')} />
                 {t(sectionLabel(section))}
               </button>
             )
@@ -295,7 +295,7 @@ function PanelBody({
       <div
         ref={bodyRef}
         data-slot="task-settings-body"
-        className="@container flex min-h-0 flex-col gap-6 overflow-y-auto overscroll-contain p-6 [&_button.rounded-full:not([role=switch])]:h-8 [&_button.rounded-full:not([role=switch])]:rounded-lg"
+        className="@container flex min-h-0 flex-col gap-5 overflow-y-auto overscroll-contain p-5 [&_[data-slot=chip]]:h-8"
       >
         <Section id="presets" title="Presets" description="Start from a saved way of working.">
           <PresetList
@@ -316,7 +316,7 @@ function PanelBody({
         {/* One card for how the run is shaped; each group is a settings row inside it. */}
         <div
           data-slot="run-settings"
-          className="divide-y divide-border rounded-xl border border-border bg-background/40 px-4"
+          className="divide-y divide-border rounded-md border border-border bg-card-2/40 px-4"
         >
           <Section id="where" variant="row" title="Where it runs" description="An isolated worktree, or your checkout directly.">
             {where}
@@ -339,8 +339,8 @@ function PanelBody({
         </Section>
       </div>
       </div>
-      <footer data-slot="task-settings-footer" className="flex shrink-0 items-center justify-between gap-3 border-t border-border px-6 py-3">
-        <p className="text-xs text-soft-foreground">{t('Changes apply to this task as you make them.')}</p>
+      <footer data-slot="task-settings-footer" className="flex shrink-0 items-center justify-between gap-3 border-t border-border px-5 py-2.5">
+        <p className="text-[11px] text-soft-foreground">{t('Changes apply to this task as you make them.')}</p>
         <Button type="button" size="sm" data-slot="task-settings-done" onClick={() => onOpenChange(false)}>
           {t('Close')}
         </Button>
@@ -376,13 +376,13 @@ function Section({
   const collapsible = open !== undefined
   const heading = (
     <>
-      <Icon aria-hidden="true" className="size-4 shrink-0 text-soft-foreground" />
-      <span id={`task-settings-${id}-title`} className="text-sm font-semibold text-foreground">
+      <Icon aria-hidden="true" className="size-3.5 shrink-0 text-soft-foreground" />
+      <span id={`task-settings-${id}-title`} className="font-mono text-[10px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
         {t(title)}
       </span>
     </>
   )
-  const note = <p className="text-xs leading-snug text-soft-foreground">{t(description)}</p>
+  const note = <p className="text-[11.5px] leading-snug text-soft-foreground">{t(description)}</p>
 
   if (variant === 'row') {
     return (
@@ -412,7 +412,7 @@ function Section({
       data-section={id}
       tabIndex={-1}
       aria-labelledby={`task-settings-${id}-title`}
-      className="scroll-mt-2 rounded-xl border border-border bg-background/40 p-4 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      className="scroll-mt-2 rounded-md border border-border bg-card-2/40 p-4 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
     >
       {collapsible ? (
         <button
@@ -420,7 +420,7 @@ function Section({
           aria-expanded={open}
           aria-controls={`task-settings-${id}-body`}
           onClick={() => onOpenChange?.(!open)}
-          className="-m-2 flex w-[calc(100%+1rem)] items-center gap-2 rounded-lg p-2 text-left transition-colors hover:bg-muted/50"
+          className="-m-2 flex w-[calc(100%+1rem)] items-center gap-2 rounded-sm p-2 text-left transition-colors hover:bg-muted/50"
         >
           {heading}
           <ChevronDownIcon
@@ -485,7 +485,7 @@ function PresetList({
         <div
           data-slot="preset-modified-bar"
           role="status"
-          className="col-span-full flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/[0.06] px-3 py-2 text-xs"
+          className="col-span-full flex flex-wrap items-center gap-2 rounded-md border border-primary/30 bg-primary/[0.05] px-3 py-2 text-[11.5px]"
         >
           <span className="min-w-0 flex-1 text-muted-foreground">
             {t('You changed “{name}”. Keep the changes in the preset, or save them as a new one.', { name: changed.name })}
@@ -527,8 +527,8 @@ function PresetList({
             data-preset-id={preset.id}
             data-selected={selected ? 'true' : 'false'}
             className={cn(
-              'flex flex-col justify-center rounded-lg border px-3 py-2 transition-colors',
-              selected ? 'border-primary/60 bg-primary/[0.06]' : 'border-border bg-background',
+              'flex flex-col justify-center rounded-md border px-3 py-2 transition-colors',
+              selected ? 'border-primary/60 bg-primary/[0.05]' : 'border-border bg-background',
             )}
           >
             <div className="flex items-center gap-2">
@@ -538,7 +538,7 @@ function PresetList({
                 title={preset.unavailableReason}
                 aria-pressed={selected}
                 onClick={() => onApply(preset)}
-                className="flex min-w-0 flex-1 items-center gap-1.5 text-left text-xs font-medium text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-w-0 flex-1 items-center gap-1.5 text-left text-[12px] font-medium text-foreground disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {selected ? (
                   <CheckIcon aria-hidden="true" className="size-3 shrink-0 text-primary" />
@@ -690,7 +690,7 @@ function PresetList({
           data-slot="new-task-preset"
           disabled={disabled}
           onClick={() => setSaving(true)}
-          className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/[0.04] hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+          className="flex min-h-9 items-center justify-center gap-1.5 rounded-md border border-dashed border-border px-3 py-2 text-[11.5px] font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/[0.04] hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
         >
           <PlusIcon aria-hidden="true" className="size-3.5" />
           {t('Save current as preset')}

@@ -33,7 +33,7 @@ export function WorktreesSection() {
 
   if (config.isPending) {
     return (
-      <p data-slot="worktrees-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">
+      <p data-slot="worktrees-loading" className="p-4 text-[12.5px] text-soft-foreground md:p-6">
         {t('Loading worktree settings…')}
       </p>
     )
@@ -91,7 +91,7 @@ function WorktreesForm({ config }: { config: ConfigResponse }) {
   return (
     <div
       data-slot="worktrees-section"
-      className="mx-auto flex w-full max-w-2xl flex-col gap-7 p-4 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-6 md:pb-6"
+      className="flex w-full min-w-0 flex-col gap-5"
     >
       <SettingsField
         title={t('Keep last N worktrees')}
@@ -109,7 +109,7 @@ function WorktreesForm({ config }: { config: ConfigResponse }) {
             value={retention}
             disabled={save.isPending}
             onChange={(event) => setRetention(event.target.value)}
-            className="block w-32 rounded-md border border-input bg-card px-3 py-1.5 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+            className="block w-32 rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
           />
           <span className="text-xs text-soft-foreground">{t('worktrees')}</span>
           <Button

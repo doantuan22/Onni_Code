@@ -467,6 +467,13 @@ export const viSettings: Record<string, string> = {
   'Manager–worker settings did not load': 'Không tải được cài đặt quản lý–worker',
   'Mark as reviewed': 'Đánh dấu đã đánh giá',
   'Max parallel tasks': 'Số nhiệm vụ song song tối đa',
+  'Unlimited parallel tasks': 'Không giới hạn nhiệm vụ song song',
+  'No workspace-wide cap: every queued task starts as soon as its project allows.':
+    'Không giới hạn toàn workspace: mọi nhiệm vụ đang chờ sẽ bắt đầu ngay khi dự án của nó cho phép.',
+  'Every queued task may start; the workspace no longer caps parallel tasks':
+    'Mọi nhiệm vụ đang chờ có thể bắt đầu; workspace không còn giới hạn nhiệm vụ song song',
+  'The workspace parallel limit is back in effect':
+    'Giới hạn nhiệm vụ song song của workspace đã được áp dụng lại',
   Memory: 'Bộ nhớ',
   'Memory limit cleared': 'Đã xoá giới hạn bộ nhớ',
   'Memory limit set to {size} MiB': 'Đã đặt giới hạn bộ nhớ {size} MiB',
@@ -842,6 +849,7 @@ export const viSettings: Record<string, string> = {
   'type the project name to confirm': 'hãy gõ đúng tên dự án để xác nhận',
   'Subtasks per tree': 'Lượt gọi worker mỗi cây',
   'Unlimited worker calls': 'Không giới hạn lượt gọi worker',
+  Unlimited: 'Không giới hạn',
   'Concurrent workers': 'Worker chạy đồng thời',
   'Unlimited concurrent workers': 'Không giới hạn worker chạy đồng thời',
   'How many workers a manager may run at once. Applies when the task was not started with its own in-flight limit.':
@@ -1058,6 +1066,8 @@ export const viSettings: Record<string, string> = {
   'Default browse folder': 'Thư mục duyệt mặc định',
   'Default checkout folder': 'Thư mục checkout mặc định',
   'Inherit ({limit})': 'Kế thừa ({limit})',
+  "How many of this project's tasks may run at once — leave it empty to inherit the workspace setting, which is unlimited. Set a number to cap just this project.":
+    'Số nhiệm vụ của dự án này có thể chạy cùng lúc — để trống để kế thừa cài đặt workspace, hiện không giới hạn. Đặt một số để giới hạn riêng dự án này.',
   'Loading projects…': 'Đang tải dự án…',
   'Max parallel': 'Song song tối đa',
   'Max parallel tasks for {name}': 'Số nhiệm vụ song song tối đa cho {name}',

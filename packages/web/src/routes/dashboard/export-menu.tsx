@@ -90,34 +90,34 @@ export function DashboardExportMenu({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="min-h-11" disabled={busy}>
+        <Button variant="outline" disabled={busy}>
           <Download className="size-4" />
           {busy ? t('Preparing report…') : t('Export')}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="max-w-[calc(100vw-2rem)] space-y-3">
-        <p className="text-sm font-medium">{t('Export current dashboard')}</p>
+        <p className="text-[12.5px] font-medium">{t('Export current dashboard')}</p>
         <p className="text-xs text-muted-foreground">
           {t('Visible modules, current filters and loaded rows. Hidden metrics are excluded.')}
         </p>
         <label className="block space-y-1 text-xs text-muted-foreground">
           {t('Report title (optional)')}
           <input
-            className="min-h-11 w-full rounded-md border bg-background px-3 text-sm text-foreground"
+            className="h-8 w-full rounded-sm border bg-background px-3 text-[12.5px] text-foreground"
             placeholder={t('e.g. Fleet review for leadership')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
         </label>
-        <Button className="min-h-11 w-full" onClick={() => exportView('pdf')}>
+        <Button className="w-full" onClick={() => exportView('pdf')}>
           {t('PDF report…')}
         </Button>
         <p className="text-xs text-muted-foreground">{t('Choose Save as PDF in the print dialog.')}</p>
-        <Button variant="outline" className="min-h-11 w-full" onClick={() => exportView('csv')}>
+        <Button variant="outline" className="w-full" onClick={() => exportView('csv')}>
           {t('Download CSV')}
         </Button>
         {error && (
-          <p role="alert" className="text-sm">
+          <p role="alert" className="text-[12.5px]">
             {error}
           </p>
         )}

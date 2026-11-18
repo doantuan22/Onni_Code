@@ -877,8 +877,8 @@ export function NewTaskSurface({
       >
         <TwinkleBackdrop />
         <div data-slot="auto-starting" role="status" className="text-center">
-          <h1 className="motion-safe:animate-pulse text-lg font-semibold tracking-tight">{t('Starting task…')}</h1>
-          <p className="mt-1.5 text-[13.5px] text-muted-foreground">
+          <h1 className="motion-safe:animate-pulse text-[15px] font-semibold tracking-tight">{t('Starting task…')}</h1>
+          <p className="mt-1.5 font-mono text-[11.5px] text-soft-foreground">
             {t('Launched from a bookmarklet — taking you to the run.')}
           </p>
         </div>
@@ -919,13 +919,17 @@ export function NewTaskSurface({
       >
         <div data-slot="new-task-main" className="w-full min-w-0 max-w-[760px]">
           <header className="mb-6 text-center max-md:mb-4">
-            <h1 className="text-lg font-semibold tracking-tight max-md:text-base">
+            <span className="mb-2 inline-flex items-center gap-1.5 font-mono text-[10px] font-medium tracking-[0.14em] text-soft-foreground uppercase">
+              <span aria-hidden="true" className="text-violet">//</span>
+              {t('New task')}
+            </span>
+            <h1 className="text-[15px] font-semibold tracking-tight">
               {t('What should the agent work on?')}
             </h1>
             {/* Follows the resolved run mode (#793). Printing the isolation promise
                 unconditionally made this line false for every run the user opted out of — and
                 for a non-git folder, where there is no worktree to opt into. */}
-            <p data-slot="run-mode-note" className="mt-1.5 text-[13.5px] text-muted-foreground max-md:text-xs">
+            <p data-slot="run-mode-note" className="mt-1.5 text-[12.5px] text-muted-foreground max-md:text-xs">
               {t(composerRunModeNote({
                 worktree: worktreeOn,
                 hasGit,
@@ -939,16 +943,16 @@ export function NewTaskSurface({
           </header>
 
           {scheduleRecovery && (
-            <div role="alert" className="mb-4 rounded-lg border p-4 text-sm">
+            <div role="alert" className="mb-4 rounded-md border border-warning/30 bg-card px-3.5 py-3 text-[12.5px] leading-relaxed">
               <p>{t('The original task may already be scheduled. Recover it before starting another task.')}</p>
-              <p className="mt-2 whitespace-pre-wrap">{scheduleRecovery.task.task}</p>
-              <p className="mt-2">{t('Recovery uses the original prompt, settings and start time. Your current edits will not be submitted. If scheduling is disabled, restore it on the server and retry recovery; the original request is kept to prevent duplicates. Once recovered, you can manage the task in Scheduled.')}</p>
-              <button type="button" className="mt-3 underline" disabled={recovering} onClick={() => void recoverSchedule()}>
+              <p className="mt-2 whitespace-pre-wrap font-mono text-[11.5px] text-muted-foreground">{scheduleRecovery.task.task}</p>
+              <p className="mt-2 text-muted-foreground">{t('Recovery uses the original prompt, settings and start time. Your current edits will not be submitted. If scheduling is disabled, restore it on the server and retry recovery; the original request is kept to prevent duplicates. Once recovered, you can manage the task in Scheduled.')}</p>
+              <button type="button" className="mt-3 text-[12px] font-medium text-foreground underline underline-offset-4" disabled={recovering} onClick={() => void recoverSchedule()}>
                 {recovering ? t('Recovering original schedule…') : t('Recover original schedule')}
               </button>
             </div>
           )}
-          {recoveryError && <p role="alert" className="mb-3 text-sm">{recoveryError}</p>}
+          {recoveryError && <p role="alert" className="mb-3 text-[12.5px] text-danger">{recoveryError}</p>}
           <Composer
             ref={composerRef}
             onSubmit={submit}
@@ -1018,21 +1022,21 @@ export function NewTaskSurface({
                 {startChoice && scheduleLabel && !scheduleBlocked ? (
                   <button type="button" data-slot="schedule-summary" title={scheduleLabel.title}
                     onClick={() => setScheduleOpen(true)}
-                    className="flex max-w-[16rem] items-center gap-1 truncate rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground">
+                    className="flex max-w-[16rem] items-center gap-1 truncate rounded-sm px-1.5 py-1 font-mono text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground">
                     <Clock3Icon aria-hidden="true" className="size-3.5 shrink-0" />
                     <span className="truncate">{scheduleLabel.text}</span>
                   </button>
                 ) : null}
                 {startChoice && scheduleBlocked ? (
                   <span role="status" data-slot="schedule-blocked" title={scheduleBlocked}
-                    className="max-w-[16rem] truncate text-xs text-muted-foreground">
+                    className="max-w-[16rem] truncate text-[11.5px] text-soft-foreground">
                     {scheduleBlocked}
                   </span>
                 ) : null}
                 {!providersReady && !providers.isPending ? (
                   <Link
                     to="/settings/agents#providers"
-                    className="text-xs font-medium text-foreground underline underline-offset-4"
+                    className="text-[11.5px] font-medium text-foreground underline underline-offset-4"
                   >
                     {t('Configure providers')}
                   </Link>
@@ -1047,7 +1051,7 @@ export function NewTaskSurface({
             <p
               data-slot="account-signed-out"
               role="alert"
-              className="mt-2 rounded-md border border-destructive/30 bg-destructive/[0.07] px-3 py-1.5 text-xs text-muted-foreground"
+              className="mt-2 rounded-sm border border-danger/30 bg-danger/[0.05] px-3 py-1.5 text-[11.5px] text-muted-foreground"
             >
               {accountCheck.blocked}{' '}
               {/* Global settings sit outside every project scope — react-router's own Link. */}
@@ -1063,7 +1067,7 @@ export function NewTaskSurface({
           {dispatchOn && (dispatchSettingsOpen || dispatchHintFlash) ? (
             <p
               data-slot="dispatch-hint"
-              className="mt-2 rounded-md border border-primary/25 bg-primary/[0.07] px-3 py-1.5 text-xs text-muted-foreground"
+              className="mt-2 rounded-sm border border-primary/25 bg-primary/[0.05] px-3 py-1.5 text-[11.5px] leading-relaxed text-muted-foreground"
             >
               <strong className="font-semibold text-foreground">{t('Dispatch is on.')}</strong>{' '}
               {t('Splits this task into subtasks it runs as separate tasks. Worktree stays on. Its own limits are in Advanced.')}
@@ -1097,11 +1101,11 @@ export function NewTaskSurface({
                 data-active={!rosterMode ? 'true' : 'false'}
                 className={cn(
                   // The same "chosen card" look as Where it runs: a tinted, outlined block, not a bar.
-                  'flex flex-col gap-3 rounded-lg border p-4 transition-colors',
+                  'flex flex-col gap-3 rounded-md border p-3.5 transition-colors',
                   rosterMode ? 'border-border' : 'border-primary/60 bg-primary/[0.04]',
                 )}
               >
-                <div className="text-xs font-semibold text-foreground">
+                <div className="font-mono text-[10px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
                   {t('Single agent')}
                 </div>
                 {rosterMode ? (
@@ -1178,11 +1182,11 @@ export function NewTaskSurface({
                 data-slot="manager-worker"
                 data-active={rosterMode ? 'true' : 'false'}
                 className={cn(
-                  'flex flex-col gap-3 rounded-lg border p-4 transition-colors',
+                  'flex flex-col gap-3 rounded-md border p-3.5 transition-colors',
                   rosterMode ? 'border-primary/60 bg-primary/[0.04]' : 'border-border',
                 )}
               >
-                <div className="text-xs font-semibold text-foreground">
+                <div className="font-mono text-[10px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
                   {t('Manager and workers')}
                 </div>
                 {dispatchAvailable ? (
@@ -1339,16 +1343,16 @@ export function NewTaskSurface({
                 // its own here it read as an unlabelled, stretched bar.
                 <div
                   data-slot="dispatch-row"
-                  className="flex items-center justify-between gap-4 rounded-lg border border-border bg-background px-3 py-2 @xl:col-span-2"
+                  className="flex items-center justify-between gap-4 rounded-md border border-border bg-card px-3 py-2 @xl:col-span-2"
                 >
                   <div className="flex min-w-0 flex-col gap-0.5">
-                    <span className="text-xs font-medium text-foreground">
+                    <span className="text-[12px] font-medium text-foreground">
                       {t('Dispatch (subtasks)')}
-                      <span className="ml-1.5 font-normal text-soft-foreground">
+                      <span className="ml-1.5 font-mono text-[10px] font-normal tracking-[0.08em] text-soft-foreground uppercase">
                         {dispatchOn ? t('On') : t('Off')}
                       </span>
                     </span>
-                    <p className="text-xs leading-snug text-soft-foreground">
+                    <p className="text-[11.5px] leading-snug text-soft-foreground">
                       {t('Tap to turn it on; its own limits open from the arrow beside it.')}
                     </p>
                   </div>
@@ -1380,7 +1384,7 @@ export function NewTaskSurface({
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+      <span className="flex items-center gap-1 font-mono text-[10px] font-medium tracking-[0.1em] text-soft-foreground uppercase">
         {label}
         {hint ? (
           <IconTooltip label={hint}>
@@ -1423,12 +1427,12 @@ function WhereOption({
       title={disabled ? disabledReason : description}
       onClick={onSelect}
       className={cn(
-        'flex w-full flex-col items-start gap-0.5 rounded-lg border px-2.5 py-2 text-left transition-colors',
-        checked ? 'border-primary/60 bg-primary/[0.06]' : 'border-border bg-background hover:bg-muted/50',
+        'flex w-full flex-col items-start gap-1 rounded-md border px-3 py-2 text-left transition-colors',
+        checked ? 'border-primary/60 bg-primary/[0.05]' : 'border-border bg-background hover:bg-muted/50',
         disabled && 'cursor-not-allowed opacity-60',
       )}
     >
-      <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+      <span className="flex items-center gap-1.5 text-[12px] font-medium text-foreground">
         {checked ? (
           <CheckIcon aria-hidden="true" className="size-3 shrink-0 text-primary" />
         ) : (
@@ -1436,7 +1440,7 @@ function WhereOption({
         )}
         {title}
       </span>
-      <span className="pl-[22px] text-xs leading-snug text-soft-foreground">
+      <span className="pl-[22px] text-[11.5px] leading-snug text-soft-foreground">
         {disabled && disabledReason ? disabledReason : description}
       </span>
     </button>
@@ -1498,7 +1502,7 @@ function NewBranchToggle({
           value={name}
           placeholder={t('feat/… (auto)')}
           onChange={(event) => onNameChange(event.target.value)}
-          className="h-6 w-36 rounded-md border border-input bg-card px-2 font-mono text-[11px] outline-none focus-visible:border-ring"
+          className="h-6 w-36 rounded-sm border border-input bg-card px-2 font-mono text-[11px] outline-none focus-visible:border-ring"
         />
       ) : null}
     </span>
@@ -1748,14 +1752,14 @@ const SUGGESTIONS = [
 function SuggestedChips({ onPick }: { onPick: (text: string) => void }) {
   const { t } = useI18n()
   return (
-    <div className="mt-7 flex flex-wrap justify-center gap-2 max-md:justify-start">
+    <div className="mt-6 flex flex-wrap justify-center gap-1.5 max-md:justify-start">
       {SUGGESTIONS.map((suggestion) => (
         <button
           key={suggestion}
           type="button"
           data-slot="suggested-chip"
           onClick={() => onPick(suggestion)}
-          className="inline-flex h-[30px] items-center gap-1.5 rounded-full border border-border px-3 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="inline-flex h-7 items-center gap-1.5 rounded-sm border border-border px-2.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <SparklesIcon aria-hidden="true" className="size-3 shrink-0 text-soft-foreground" />
           {t(suggestion)}

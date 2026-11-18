@@ -35,9 +35,9 @@ export function MorningDigest({ now = Date.now() }: { now?: number }) {
     }
   }
   return (
-    <section data-slot="morning-digest" className="mb-5 rounded-lg border border-border bg-card p-4">
+    <section data-slot="morning-digest" className="mb-5 rounded-md border border-border bg-card p-4">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 className="text-sm font-semibold">{t('While you were away')}</h2>
+        <h2 className="text-[12.5px] font-semibold">{t('While you were away')}</h2>
         <label className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
           {t('last')}
           <AppSelect
@@ -98,7 +98,7 @@ export function MorningDigest({ now = Date.now() }: { now?: number }) {
                     <Link to={`/tasks/${run.id}`} className="min-w-0 flex-1 truncate font-medium hover:underline">{run.title}</Link>
                     <RunBackendBadge run={run} />
                     {run.status === 'failed' && run.failureClass === 'auth' ? (
-                      <span data-slot="digest-sign-in" className="rounded-full bg-danger/10 px-1.5 py-px text-[10px] font-medium text-danger">
+                      <span data-slot="digest-sign-in" className="rounded-sm bg-danger/10 px-1.5 py-px text-[10px] font-medium text-danger">
                         {t('needs sign-in')}
                       </span>
                     ) : null}
@@ -106,13 +106,13 @@ export function MorningDigest({ now = Date.now() }: { now?: number }) {
                       <span
                         data-slot="digest-denied"
                         title={run.deniedActions?.join('\n')}
-                        className="rounded-full bg-warning/10 px-1.5 py-px text-[10px] font-medium text-warning"
+                        className="rounded-sm bg-warning/10 px-1.5 py-px text-[10px] font-medium text-warning"
                       >
                         {t('{count} denied', { count: run.deniedActions!.length })}
                       </span>
                     ) : null}
                     {run.managerDidNotDelegate ? (
-                      <span data-slot="digest-not-delegated" className="rounded-full bg-warning/10 px-1.5 py-px text-[10px] font-medium text-warning">{t('manager did not delegate')}</span>
+                      <span data-slot="digest-not-delegated" className="rounded-sm bg-warning/10 px-1.5 py-px text-[10px] font-medium text-warning">{t('manager did not delegate')}</span>
                     ) : null}
                     <RunLimitMeter run={run} />
                     <span className="tabular-nums text-muted-foreground">

@@ -211,7 +211,7 @@ function FileEntryView({
  *  own, which would pin the sticky header to a card that never scrolls instead of to the column. */
 function Pane({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <section data-slot="file-preview" className={cn('overflow-clip rounded-lg border border-border bg-card', className)}>
+    <section data-slot="file-preview" className={cn('overflow-clip rounded-md border border-border bg-card', className)}>
       {children}
     </section>
   )

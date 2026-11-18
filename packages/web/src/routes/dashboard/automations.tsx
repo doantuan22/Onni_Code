@@ -62,14 +62,14 @@ export function DashboardAutomations() {
         </>
       )}
       {gate.off ? (
-        <p className="p-4 text-sm text-muted-foreground">
+        <p className="p-4 text-[12.5px] text-muted-foreground">
           {t('Automations are disabled in this workspace.')}
         </p>
       ) : (
         <>
-          {pending && <p className="p-4 text-sm text-muted-foreground">{t('Loading automations…')}</p>}
+          {pending && <p className="p-4 text-[12.5px] text-muted-foreground">{t('Loading automations…')}</p>}
           {failed && (
-            <div role="alert" className="p-4 text-sm">
+            <div role="alert" className="p-4 text-[12.5px]">
               <p>{t('Some automation data could not be refreshed. Available results are shown.')}</p>
               {errors.map((p) => (
                 <p key={p.id}>
@@ -82,7 +82,7 @@ export function DashboardAutomations() {
             </div>
           )}
           {!pending && !failed && rows.length === 0 && (
-            <p className="p-4 text-sm text-muted-foreground">
+            <p className="p-4 text-[12.5px] text-muted-foreground">
               {t("No enabled automations. Enable one in a project's Automations page.")}
             </p>
           )}
@@ -103,7 +103,7 @@ export function DashboardAutomations() {
                 className="border-b px-4 py-3 transition-colors last:border-0 hover:bg-muted/30"
               >
                 <Link
-                  className="block min-h-11 text-sm font-medium hover:underline"
+                  className="block text-[12.5px] font-medium hover:underline"
                   to={`/p/${encodeURIComponent(project.id)}/automations/${encodeURIComponent(a.id)}`}
                 >
                   {a.name}
@@ -145,14 +145,14 @@ export function DashboardAutomations() {
             )
           })}
           {rows.length > 3 && (
-            <Button variant="ghost" className="m-2 min-h-11" onClick={() => setAll(!all)}>
+            <Button variant="ghost" className="m-2" onClick={() => setAll(!all)}>
               {all ? t('Show fewer') : t('Show all {count} enabled', { count: rows.length })}
             </Button>
           )}
           {!pending && (
             <details className="border-t px-4 py-2 text-xs text-muted-foreground">
               <summary
-                className={`${disclosureSummary} min-h-11`}
+                className={`${disclosureSummary}`}
                 data-export-heading="Project automations"
               >
                 <DisclosureChevron />
@@ -161,7 +161,7 @@ export function DashboardAutomations() {
               {query.data?.map((p) => (
                 <Link
                   key={p.id}
-                  className="block min-h-11 py-3 hover:underline"
+                  className="block py-3 hover:underline"
                   to={`/p/${encodeURIComponent(p.id)}/automations`}
                 >
                   {p.name}

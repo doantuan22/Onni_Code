@@ -139,7 +139,7 @@ export function SkillEditor({
           ) : null}
 
           <label className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
-            <span className="text-sm font-medium">{t('Interactive')}</span>
+            <span className="text-[12.5px] font-medium">{t('Interactive')}</span>
             <Switch
               data-slot="skill-editor-interactive"
               aria-label={t('Interactive')}
@@ -167,7 +167,7 @@ export function SkillEditor({
             {preview ? (
               <div
                 data-slot="skill-editor-preview"
-                className="max-h-80 min-h-24 overflow-y-auto rounded-md border border-input bg-muted/20 px-3 py-2 text-sm"
+                className="max-h-80 min-h-24 overflow-y-auto rounded-md border border-input bg-muted/20 px-3 py-2 text-[12.5px]"
               >
                 <Markdown>{body || `# ${name || '…'}`}</Markdown>
               </div>

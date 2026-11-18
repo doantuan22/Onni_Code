@@ -1,6 +1,4 @@
-import { LoaderCircleIcon } from 'lucide-react'
-
-import { CenteredState } from '@/components/centered-state'
+import { LoadingSplash } from '@/components/loading-splash'
 import { useI18n } from '@/lib/i18n'
 
 /**
@@ -13,11 +11,9 @@ export function ThreadLoading() {
   const { t } = useI18n()
   return (
     <div data-route="task-thread" className="flex min-h-full flex-col">
-      <CenteredState
-        icon={<LoaderCircleIcon className="motion-safe:animate-spin" />}
-        tone="neutral"
+      <LoadingSplash
         title={t('Loading task…')}
-        subtitle={t('Fetching the run and its session transcript.')}
+        detail={t('Fetching the run and its session transcript.')}
       />
     </div>
   )

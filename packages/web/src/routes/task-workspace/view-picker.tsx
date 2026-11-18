@@ -203,12 +203,12 @@ export function ViewTiles({
     >
       <div className="my-auto flex w-full max-w-2xl flex-col gap-5">
         <div className="flex flex-col gap-1 text-center">
-          <h2 className="text-base font-medium text-foreground">
+          <h2 className="text-[13px] font-medium text-foreground">
             {scope === 'layout'
               ? t('What should this layout show?')
               : t('What should this window show?')}
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[12.5px] text-muted-foreground">
             {scope === 'layout'
               ? t('Pick a view to start. You can split it into more windows afterwards.')
               : t('Pick a view for the new window.')}
@@ -225,13 +225,13 @@ export function ViewTiles({
                 data-view={view}
                 data-view-action="create"
                 onClick={() => onPick(view)}
-                className="group/tile h-auto flex-col items-start justify-start gap-2.5 rounded-xl p-3 text-left whitespace-normal @lg:gap-3 @lg:p-4"
+                className="group/tile h-auto flex-col items-start justify-start gap-2.5 rounded-md p-3 text-left whitespace-normal @lg:gap-3 @lg:p-4"
               >
-                <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover/tile:bg-primary group-hover/tile:text-primary-foreground">
+                <span className="flex size-9 items-center justify-center rounded-sm bg-muted text-muted-foreground transition-colors group-hover/tile:bg-primary group-hover/tile:text-primary-foreground">
                   <Icon aria-hidden="true" className="size-[18px]" />
                 </span>
                 <span className="flex flex-col gap-0.5">
-                  <span className="text-sm font-medium text-foreground">{t(viewLabel(view))}</span>
+                  <span className="text-[12.5px] font-medium text-foreground">{t(viewLabel(view))}</span>
                   <span className="text-xs font-normal text-muted-foreground">{t(VIEW_HINTS[view])}</span>
                 </span>
               </Button>

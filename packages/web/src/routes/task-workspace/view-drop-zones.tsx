@@ -75,7 +75,7 @@ export function ViewDropZones({
                 onDrop(dropped, zone.at, zone.mode)
               }}
               className={cn(
-                'flex flex-col items-center justify-center rounded-lg border-[1.5px] border-dashed border-border bg-background/80 p-2 text-center text-xs font-medium text-muted-foreground transition-colors',
+                'flex flex-col items-center justify-center rounded-md border-[1.5px] border-dashed border-border bg-background/80 p-2 text-center text-xs font-medium text-muted-foreground transition-colors',
                 hot === zone.key && 'border-foreground/60 bg-muted text-foreground',
               )}
             >

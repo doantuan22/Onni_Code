@@ -23,7 +23,7 @@ import type { AutomationActions } from './use-automations'
  */
 
 const TH = 'h-[38px] border-b border-border px-[10px] text-left text-[11px] leading-none font-semibold tracking-[.05em] whitespace-nowrap text-soft-foreground uppercase'
-const TD = 'h-12 border-b border-border px-[10px] text-[13px] leading-none whitespace-nowrap'
+const TD = 'h-9 border-b border-border px-[10px] text-[12.5px] leading-none whitespace-nowrap'
 const WIDE = 'cz-auto-wide max-[1280px]:hidden'
 const DASH = <span className="text-xs text-soft-foreground">—</span>
 
@@ -118,12 +118,12 @@ function AutomationRow({
       <td className={cn(TD, 'max-w-0 min-w-[200px]')}>
         <span className="flex min-w-0 items-center gap-2">
           {github ? <GithubIcon className="size-3.5 shrink-0 text-soft-foreground" /> : automation.kind === 'tracker' ? <ZapIcon className="size-3.5 shrink-0 text-soft-foreground" /> : <Clock3Icon className="size-3.5 shrink-0 text-soft-foreground" />}
-          <span className="overflow-hidden text-[13px] font-medium text-ellipsis whitespace-nowrap">{automation.name}</span>
+          <span className="overflow-hidden text-[12.5px] font-medium text-ellipsis whitespace-nowrap">{automation.name}</span>
           {dispatch ? (
             <span
               data-slot="dispatch-badge"
               title={t('dispatch · up to {count} subtasks', { count: dispatch.maxSubtasks ?? 1 })}
-              className="inline-flex shrink-0 items-center gap-[3px] rounded-full bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground"
+              className="inline-flex shrink-0 items-center gap-[3px] rounded-sm bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground"
             >
               <GitForkIcon className="size-2.5" />×{dispatch.maxSubtasks ?? 1}
             </span>
@@ -171,7 +171,7 @@ function AutomationRow({
               to={`/tasks/${encodeURIComponent(automation.lastRun.runId)}`}
               data-slot="task-link"
               onClick={stop}
-              className="inline-flex items-center gap-0.5 rounded-full border border-violet/40 px-1.5 py-px font-mono text-[10.5px] font-semibold text-violet"
+              className="inline-flex items-center gap-0.5 rounded-sm border border-violet/40 px-1.5 py-px font-mono text-[10px] font-semibold text-violet"
             >
               {t('task')}
               <ArrowUpRightIcon className="size-[9px]" />

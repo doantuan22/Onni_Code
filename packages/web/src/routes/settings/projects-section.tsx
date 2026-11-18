@@ -60,7 +60,7 @@ type Confirming = ProjectListEntry | null
 
 /** Per-project concurrency bounds — mirror the workspace cap (resources-section.tsx). */
 const MAX_PARALLEL_MIN = 1
-const MAX_PARALLEL_MAX = 16
+const MAX_PARALLEL_MAX = 50
 
 /** Human wording for a registry status probe. `not-git` is fully usable (single-queue
  *  degraded mode), so it reads as a note rather than a fault; only `missing` is a problem.
@@ -86,7 +86,7 @@ export function ProjectsSection() {
 
   if (config.isPending || projects.isPending) {
     return (
-      <p data-slot="projects-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">
+      <p data-slot="projects-loading" className="p-4 text-[12.5px] text-soft-foreground md:p-6">
         {t('Loading projects…')}
       </p>
     )
@@ -116,11 +116,9 @@ function ProjectsPane({
   return (
     <div
       data-slot="projects-section"
-      // `max-w-4xl`, not the `max-w-2xl` the other settings panes use: this is the one section
-      // whose content is a six-column TABLE rather than a stack of form fields, and 2xl left the
-      // Tags cell narrow enough to break a long project tag across two lines. The fields above keep
-      // their own `max-w-sm`, so widening the column costs them nothing.
-      className="mx-auto flex w-full max-w-4xl flex-col gap-7 p-4 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-6 md:pb-6"
+      // Width comes from the section's `measure: 'wide'` frame; the table below is the reason
+      // this page is not a form column. The fields above keep their own `max-w-sm`.
+      className="flex w-full min-w-0 flex-col gap-5"
     >
       <WorkspaceRootField
         configKey="browseRoot"
@@ -143,7 +141,7 @@ function ProjectsPane({
         footer={t('Only affects new checkouts; projects already registered keep their location.')}
         refreshProjects
       />
-      <RegistryTable registry={registry} workspaceMax={config.resources.maxParallel} />
+      <RegistryTable registry={registry} workspaceMax={config.resources.maxParallelUnlimited ? null : config.resources.maxParallel} />
     </div>
   )
 }
@@ -221,7 +219,7 @@ function WorkspaceRootField({
             // the field, so leaving it up would be a lie about the current value.
             if (save.isError) save.reset()
           }}
-          className="block w-full max-w-sm rounded-md border border-input bg-card px-3 py-1.5 font-mono text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-danger disabled:opacity-50"
+          className="block w-full max-w-sm rounded-md border border-input bg-card px-3 py-1.5 font-mono text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-danger disabled:opacity-50"
         />
         <Button
           type="button"
@@ -256,7 +254,7 @@ function RegistryTable({
   workspaceMax,
 }: {
   registry: ProjectsResponse
-  workspaceMax: number
+  workspaceMax: number | null
 }) {
   const { t } = useI18n()
   const [confirming, setConfirming] = useState<Confirming>(null)
@@ -273,35 +271,37 @@ function RegistryTable({
   }
 
   return (
-    <SettingsField
-      title={t('Registered projects')}
-      hint={t("The folders you have added. While this list is empty the folder onni is serving is listed as “not registered” with an Add button; once you have projects, starting onni somewhere new neither registers nor lists that folder — use “Add project” when you want to keep it. “Tags” group connected repositories — give the API, the web app and the design system a shared “storefront” tag and the global Tasks page can show all three as one piece of work. “Max parallel” caps how many of that project's tasks run at once (leave it empty to inherit the workspace limit); the workspace limit ({max}) still applies as an overall ceiling, so a per-project value above it has no extra effect until the workspace limit is raised. Removing a project only unregisters it — no files on disk are deleted.", { max: workspaceMax })}
-    >
+    <section data-slot="settings-field" className="flex flex-col gap-3 border-b border-border pb-5">
+      <div className="flex flex-col gap-1.5">
+        <h2 className="text-[12.5px] font-semibold text-foreground">{t('Registered projects')}</h2>
+        {/* A data grid, not a form control: the label/hint column of `SettingsField` would
+            leave the six columns ~800px on a wide pane and clip Actions. */}
+        <p className="text-[12px] leading-[1.55] text-muted-foreground">{t("The folders you have added. While this list is empty the folder onni is serving is listed as “not registered” with an Add button; once you have projects, starting onni somewhere new neither registers nor lists that folder — use “Add project” when you want to keep it. “Tags” group connected repositories — give the API, the web app and the design system a shared “storefront” tag and the global Tasks page can show all three as one piece of work. “Max parallel” caps how many of that project's tasks run at once (leave it empty to inherit the workspace limit); the workspace limit ({max}) still applies as an overall ceiling, so a per-project value above it has no extra effect until the workspace limit is raised. Removing a project only unregisters it — no files on disk are deleted.", { max: workspaceMax === null ? t('Unlimited') : workspaceMax })}</p>
+      </div>
       {/* Defensive: `GET /api/v1/projects` names at least the folder this server is serving
           whenever the registry is empty (the unregistered row), and the registry's own rows
           otherwise — so today this branch cannot render. Kept because an empty table with
           headers and no rows would be a worse answer than a sentence if that ever changes. */}
       {registry.projects.length === 0 ? (
-        <p data-slot="projects-empty" className="text-[13px] text-soft-foreground">
+        <p data-slot="projects-empty" className="text-[12.5px] text-soft-foreground">
           {t('No projects registered yet.')}
         </p>
       ) : (
         <div className="relative overflow-x-auto rounded-md border border-border">
-          <table className="w-full border-collapse text-sm">
+          <table className="w-full min-w-[880px] table-fixed border-collapse text-[12.5px]">
             {/* Not "registered": this table also renders the folder onni is serving without
                 having saved it, whose only action is Add project. A screen-reader user was told
                 the list was registered projects and then met a row that is the opposite. */}
             <caption className="sr-only">{t('Projects in this workspace')}</caption>
-            {/* Explicit widths rather than letting the browser distribute them by content: Tags
-                is the one cell whose content GROWS with use, and auto-layout kept giving it
-                whatever the fixed-size controls left over — which was not enough for one chip. */}
+            {/* Fixed layout so the declared widths actually hold: auto-layout kept collapsing
+                Project to the width of its truncated text while Tags took the slack. */}
             <colgroup>
-              <col />
-              <col style={{ width: '104px' }} />
               <col style={{ width: '260px' }} />
+              <col style={{ width: '100px' }} />
+              <col />
               <col style={{ width: '150px' }} />
-              <col style={{ width: '72px' }} />
-              <col style={{ width: '92px' }} />
+              <col style={{ width: '76px' }} />
+              <col style={{ width: '152px' }} />
             </colgroup>
             <thead>
               <tr className="border-b border-border text-left text-[12px] text-soft-foreground">
@@ -334,7 +334,7 @@ function RegistryTable({
         onOpenChange={(open) => !open && setConfirming(null)}
         onConfirm={confirmRemoval}
       />
-    </SettingsField>
+    </section>
   )
 }
 
@@ -346,7 +346,7 @@ function ProjectRow({
   onRemove,
 }: {
   project: ProjectListEntry
-  workspaceMax: number
+  workspaceMax: number | null
   vocabulary: readonly string[]
   disabled: boolean
   onRemove: () => void
@@ -581,7 +581,7 @@ export function ProjectTagsEditor({
           data-slot="project-tag"
           // `whitespace-nowrap`: a hyphenated tag (`open-mercato`) was wrapping mid-word into a
           // two-line chip, which read as two tags.
-          className="inline-flex max-w-full items-center gap-1 rounded-full bg-violet/15 py-px pr-1 pl-2 text-[11px] font-medium whitespace-nowrap text-violet"
+          className="inline-flex max-w-full items-center gap-1 rounded-sm bg-violet/15 py-px pr-1 pl-2 text-[11px] font-medium whitespace-nowrap text-violet"
         >
           {tag}
           <button
@@ -740,7 +740,7 @@ export function ProjectTagsEditor({
 /**
  * Per-project "Max parallel tasks" stepper (spec 2026-07-22). An empty field is
  * the unset default — it inherits the workspace limit, which the placeholder
- * names; `1..16` pins a per-project ceiling. Bound to the server value
+ * names; `1..50` pins a per-project ceiling. Bound to the server value
  * (`project.maxParallel`) and saved on commit, mirroring the workspace
  * `Max parallel` control (resources-section.tsx) — a failed save reverts to the
  * server's value, and the hook invalidates the projects query so a success
@@ -752,10 +752,11 @@ export function MaxParallelStepper({
   workspaceMax,
 }: {
   project: ProjectListEntry
-  workspaceMax: number
+  workspaceMax: number | null
 }) {
   const { t, tn } = useI18n()
   const update = useUpdateProject()
+  const limit = workspaceMax === null ? t('Unlimited') : workspaceMax
   return (
     <IntegerStepper
       aria-label={t('Max parallel tasks for {name}', { name: project.name })}
@@ -764,8 +765,8 @@ export function MaxParallelStepper({
       min={MAX_PARALLEL_MIN}
       max={MAX_PARALLEL_MAX}
       allowEmpty
-      emptyStepFrom={Math.min(MAX_PARALLEL_MAX, Math.max(MAX_PARALLEL_MIN, workspaceMax))}
-      placeholder={t('Inherit ({limit})', { limit: workspaceMax })}
+      emptyStepFrom={workspaceMax === null ? MAX_PARALLEL_MAX : Math.min(MAX_PARALLEL_MAX, Math.max(MAX_PARALLEL_MIN, workspaceMax))}
+      placeholder={t('Inherit ({limit})', { limit })}
       className="w-40"
       onCommit={(next) =>
         update.mutateAsync(
@@ -774,7 +775,7 @@ export function MaxParallelStepper({
             onSuccess: () =>
               toast(
                 next === null
-                  ? t('{name} inherits the workspace limit ({limit})', { name: project.name, limit: workspaceMax })
+                  ? t('{name} inherits the workspace limit ({limit})', { name: project.name, limit })
                   : tn(next, '{name} runs at most {count} task at a time', '{name} runs at most {count} tasks at a time', { name: project.name }),
               ),
             onError: (error: Error) => toast(error.message, { tone: 'danger' }),

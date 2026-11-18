@@ -846,7 +846,7 @@ function WorkflowGraphEditor() {
                             e.dataTransfer.effectAllowed = 'move'
                           }}
                           onClick={() => addNode(entry.type)}
-                          className="flex w-full cursor-grab items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-left hover:bg-accent"
+                          className="flex w-full cursor-grab items-center gap-2.5 rounded-sm px-1.5 py-1.5 text-left hover:bg-accent"
                           title={t('{description} — drag onto the canvas, or click to add', { description: entry.description })}
                         >
                           <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-background">
@@ -885,7 +885,7 @@ function WorkflowGraphEditor() {
                         key={`${sk.source}:${sk.name}`}
                         type="button"
                         onClick={() => addNode('agent', undefined, sk.name)}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-1.5 py-1 text-left hover:bg-accent"
+                        className="flex w-full items-center gap-2.5 rounded-sm px-1.5 py-1 text-left hover:bg-accent"
                         title={sk.description ?? sk.name}
                       >
                         <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-background text-[11px] text-muted-foreground">
@@ -1122,7 +1122,7 @@ function SkillField({ value, onChange }: { value: string | undefined; onChange: 
   return (
     <Field label={t('skill')}>
       <AppSelect
-        className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className="w-full rounded-sm border border-input bg-card px-2 py-1 text-[12px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value || undefined)}
       >
@@ -1172,7 +1172,7 @@ function WorkflowSelect({
   return (
     <AppSelect
       aria-label={label}
-      className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      className="w-full rounded-sm border border-input bg-card px-2 py-1 text-[12px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
       value={value ?? ''}
       onChange={(e) => onChange(e.target.value || undefined)}
     >
@@ -1210,7 +1210,7 @@ function ConditionEditor({ condition, onChange }: { condition: ConditionValue; o
   return (
     <>
       <Field label={t('look at')}>
-        <AppSelect className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={condition.kind} onChange={(e) => switchKind(e.target.value as ConditionValue['kind'])}>
+        <AppSelect className="w-full rounded-sm border border-input bg-card px-2 py-1 text-[12px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={condition.kind} onChange={(e) => switchKind(e.target.value as ConditionValue['kind'])}>
           <option value="diff-lines">{t("the task's diff — changed lines")}</option>
           <option value="diff-files">{t("the task's diff — changed files")}</option>
           <option value="paths-changed">{t('which paths changed (glob)')}</option>
@@ -1220,7 +1220,7 @@ function ConditionEditor({ condition, onChange }: { condition: ConditionValue; o
       </Field>
       {(condition.kind === 'diff-lines' || condition.kind === 'diff-files') && (
         <div className="grid grid-cols-[5rem_1fr] gap-2">
-          <AppSelect className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" aria-label={t('operator')} value={condition.op} onChange={(e) => onChange({ ...condition, op: e.target.value as (typeof numericOps)[number] })}>
+          <AppSelect className="w-full rounded-sm border border-input bg-card px-2 py-1 text-[12px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" aria-label={t('operator')} value={condition.op} onChange={(e) => onChange({ ...condition, op: e.target.value as (typeof numericOps)[number] })}>
             {numericOps.map((o) => (
               <option key={o} value={o}>
                 {o}
@@ -1241,7 +1241,7 @@ function ConditionEditor({ condition, onChange }: { condition: ConditionValue; o
             <Input value={condition.ref} onChange={(e) => onChange({ ...condition, ref: e.target.value.trim() })} className="h-8 font-mono text-[11px]" />
           </Field>
           <div className="grid grid-cols-[7rem_1fr] gap-2">
-            <AppSelect className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" aria-label={t('operator')} value={condition.op} onChange={(e) => onChange({ ...condition, op: e.target.value as (typeof outputOps)[number] })}>
+            <AppSelect className="w-full rounded-sm border border-input bg-card px-2 py-1 text-[12px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" aria-label={t('operator')} value={condition.op} onChange={(e) => onChange({ ...condition, op: e.target.value as (typeof outputOps)[number] })}>
               {outputOps.map((o) => (
                 <option key={o} value={o}>
                   {o}
@@ -1254,7 +1254,7 @@ function ConditionEditor({ condition, onChange }: { condition: ConditionValue; o
       )}
       {condition.kind === 'branch' && (
         <div className="grid grid-cols-[7rem_1fr] gap-2">
-          <AppSelect className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" aria-label={t('operator')} value={condition.op} onChange={(e) => onChange({ ...condition, op: e.target.value as 'equals' | 'matches' })}>
+          <AppSelect className="w-full rounded-sm border border-input bg-card px-2 py-1 text-[12px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" aria-label={t('operator')} value={condition.op} onChange={(e) => onChange({ ...condition, op: e.target.value as 'equals' | 'matches' })}>
             <option value="equals">{t('equals')}</option>
             <option value="matches">{t('matches glob')}</option>
           </AppSelect>
@@ -1398,7 +1398,7 @@ function Inspector({
           <SkillField value={node.skill} onChange={(skill) => set({ skill })} />
           <div className="grid grid-cols-2 gap-2">
             <Field label="runner">
-              <AppSelect className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={node.runner ?? ''} onChange={(e) => set({ runner: e.target.value || undefined })}>
+              <AppSelect className="w-full rounded-sm border border-input bg-card px-2 py-1 text-[12px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={node.runner ?? ''} onChange={(e) => set({ runner: e.target.value || undefined })}>
                 <option value="">{t('task default')}</option>
                 {RUNNERS.map((r) => (
                   <option key={r} value={r}>
@@ -1453,7 +1453,7 @@ function Inspector({
               </Field>
               <Field label={t('session')}>
                 <AppSelect
-                  className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  className="w-full rounded-sm border border-input bg-card px-2 py-1 text-[12px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   value={node.session?.continue ?? ''}
                   onChange={(e) => set({ session: e.target.value ? { continue: e.target.value } : undefined })}
                 >
@@ -1540,7 +1540,7 @@ function Inspector({
           <div className="grid grid-cols-2 gap-2">
             <Field label="runner">
               <AppSelect
-                className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="w-full rounded-sm border border-input bg-card px-2 py-1 text-[12px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                 value={node.runner ?? ''}
                 onChange={(e) => set({ runner: e.target.value || undefined })}
               >
@@ -1603,7 +1603,7 @@ function Inspector({
         <>
           <Field label={t('branches — one agent each, all at once')}>
             <AppSelect
-              className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="w-full rounded-sm border border-input bg-card px-2 py-1 text-[12px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               value={node.branches}
               onChange={(e) => onGraphEdit((g) => setForkBranches(g, node.id, Number(e.target.value)))}
             >
@@ -1625,7 +1625,7 @@ function Inspector({
       {node.type === 'join' && (
         <Field label={t('wait for')}>
           <AppSelect
-            className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="w-full rounded-sm border border-input bg-card px-2 py-1 text-[12px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
             value={node.wait}
             onChange={(e) => set({ wait: e.target.value })}
           >
@@ -1705,7 +1705,7 @@ function Inspector({
 
       {node.type === 'end' && (
         <Field label={t('run status')}>
-          <AppSelect className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={node.status} onChange={(e) => set({ status: e.target.value })}>
+          <AppSelect className="w-full rounded-sm border border-input bg-card px-2 py-1 text-[12px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={node.status} onChange={(e) => set({ status: e.target.value })}>
             <option value="success">success</option>
             <option value="failed">failed</option>
           </AppSelect>

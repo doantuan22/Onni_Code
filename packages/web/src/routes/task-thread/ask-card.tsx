@@ -74,7 +74,7 @@ export function AskCard({ ask, run }: { ask: ThreadAsk; run: ApiRun }) {
       <div
         data-slot="ask-card"
         data-resolved="true"
-        className="rounded-lg border border-border bg-card px-3.5 py-2.5 text-xs text-muted-foreground"
+        className="rounded-md border border-border bg-card px-3.5 py-2.5 text-xs text-muted-foreground"
       >
         <span className="text-soft-foreground">{ask.resolved ? t('Answered') : t('Closed')}</span>
         {ask.answer ? (
@@ -131,7 +131,7 @@ function PendingAsk({ ask, run }: { ask: ThreadAsk; run: ApiRun }) {
       data-slot="ask-card"
       data-resolved="false"
       data-delivery={delivery.mode}
-      className="rounded-lg border border-primary/25 bg-primary/[0.04] px-4 pt-3.5 pb-3.5"
+      className="rounded-md border border-primary/25 bg-primary/[0.04] px-4 pt-3.5 pb-3.5"
     >
       <div className="mb-2.5 flex items-center gap-2">
         <span className="text-xs font-medium text-primary">
@@ -282,7 +282,7 @@ function AskQuestionBlock({
           <span className="ml-auto text-[10.5px] text-soft-foreground">{t('select all that apply')}</span>
         ) : null}
       </div>
-      <p className="mb-2.5 break-words text-sm font-semibold text-foreground">{question.question}</p>
+      <p className="mb-2.5 break-words text-[12.5px] font-semibold text-foreground">{question.question}</p>
       <div className="flex flex-col gap-2">
         {question.options.map((option) => (
           <AskChoice

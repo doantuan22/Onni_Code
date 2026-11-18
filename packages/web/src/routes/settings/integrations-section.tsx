@@ -10,8 +10,8 @@ import { TesterArmyE2eCard } from './tester-army-e2e-card'
 export function IntegrationsSection() {
   const { t } = useI18n()
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4 md:p-6" data-slot="integrations-settings">
-      <p className="text-sm text-muted-foreground">
+    <div className="flex w-full min-w-0 flex-col gap-4" data-slot="integrations-settings">
+      <p className="text-[12.5px] text-muted-foreground">
         {t('Tools onni can set up in this project for you — each one as a task you review and merge.')}
       </p>
       <Tabs defaultValue="test-frameworks">

@@ -85,13 +85,13 @@ export function KeyboardSection() {
   return (
     <div
       data-slot="keyboard-section"
-      className="mx-auto flex w-full max-w-2xl flex-col gap-7 p-4 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-6 md:pb-6"
+      className="flex w-full min-w-0 flex-col gap-5"
     >
       <section className="flex flex-col gap-2">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-sm font-semibold text-foreground">{t('Task shortcuts')}</h2>
-            <p className="text-[13px] text-muted-foreground">
+            <h2 className="text-[12.5px] font-semibold text-foreground">{t('Task shortcuts')}</h2>
+            <p className="text-[12.5px] text-muted-foreground">
               {t('Run a task’s commands from the keyboard while the task is open. {palette} lists them all; press {setShortcut} on a row there to set its shortcut. {modifier} chords also work while you type.', { palette: formatChord('Mod+P'), setShortcut: apple ? '⇧↵' : 'Shift+Enter', modifier: apple ? '⌘' : 'Ctrl' })}
             </p>
           </div>
@@ -117,7 +117,7 @@ export function KeyboardSection() {
               const changed = entry.id in keybindings.overrides
               return (
                 <li key={entry.id} data-slot="shortcut-row" data-command-id={entry.id} className="flex items-center gap-2 px-3 py-1.5">
-                  <span className="min-w-0 flex-1 truncate text-sm">{t(entry.label)}</span>
+                  <span className="min-w-0 flex-1 truncate text-[12.5px]">{t(entry.label)}</span>
                   {isRecording ? (
                     <span data-slot="shortcut-recording" className="text-xs text-primary">
                       {problem ?? t('Press keys… (esc cancels, ⌫ removes)')}

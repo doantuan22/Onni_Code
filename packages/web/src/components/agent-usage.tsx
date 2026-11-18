@@ -104,7 +104,7 @@ export function AgentUsage({ provider, now = Date.now() }: { provider: string; n
   }
 
   return (
-    <section data-slot="agent-usage" data-provider={provider} className="flex flex-col gap-3 rounded-lg border border-border bg-card/40 p-3.5">
+    <section data-slot="agent-usage" data-provider={provider} className="flex flex-col gap-3 rounded-md border border-border bg-card/40 p-3.5">
       <header className="flex items-center gap-2">
         <h3 className="text-[13px] font-semibold text-foreground">{t('Usage limits')}</h3>
         {entry?.observedAt ? <span className="text-[11px] text-soft-foreground">{t('updated {time} ago', { time: formatSpan(entry.observedAt, now) })}</span> : null}

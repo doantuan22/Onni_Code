@@ -60,7 +60,7 @@ export function NextRunsPreview({
         <p className="m-0 px-3.5 pb-1.5 text-[12.5px] leading-[1.5] text-muted-foreground">{schedule.type === 'once' ? t('This time has already passed.') : t('Nothing in the next nine days.')}</p>
       ) : (
         runs.map((ms) => (
-          <div key={ms} data-slot="next-run" className="flex gap-2.5 px-3.5 py-[5px] text-[13px]">
+          <div key={ms} data-slot="next-run" className="flex gap-2.5 px-3.5 py-[5px] text-[12.5px]">
             <span className="w-[82px] shrink-0 font-mono text-xs font-medium whitespace-nowrap text-foreground tabular-nums">
               {dayTime(ms, timeZone)}
             </span>

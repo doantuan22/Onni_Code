@@ -94,14 +94,14 @@ describe('ThemeToggle', () => {
     expect(document.documentElement.style.colorScheme).toBe('dark')
   })
 
-  it('starts from dark when the shared key holds an unknown value', () => {
+  it('starts from light when the shared key holds an unknown value', () => {
     localStorage.setItem(THEME_STORAGE_KEY, 'neon')
     const button = renderToggle()
 
-    expect(button.dataset.themePref).toBe('dark')
+    expect(button.dataset.themePref).toBe('light')
 
     fireEvent.click(button)
 
-    expect(button.dataset.themePref).toBe('system')
+    expect(button.dataset.themePref).toBe('dark')
   })
 })

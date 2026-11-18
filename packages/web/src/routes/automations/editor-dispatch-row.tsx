@@ -37,9 +37,9 @@ export function EditorDispatchRow({
       data-slot="editor-dispatch"
       data-enabled={enabled ? 'true' : undefined}
       title={t('Let this run start its own subtasks with onni task create — each in a worktree forked off its branch, reporting back into the parent session.')}
-      className="flex flex-wrap items-center gap-2.5 border-t border-border pt-3 text-[13px] text-muted-foreground"
+      className="flex flex-wrap items-center gap-2.5 border-t border-border pt-3 text-[12.5px] text-muted-foreground"
     >
-      <Label className="text-[13px] font-medium text-foreground">
+      <Label className="text-[12.5px] font-medium text-foreground">
         <GitForkIcon aria-hidden="true" className={cn('size-3.5', enabled ? 'text-violet' : 'text-soft-foreground')} />
         {t('Dispatch')}
         <Switch aria-label={t('Dispatch')} checked={enabled} onCheckedChange={(next) => onChange({ dispatch: next })} />
@@ -62,7 +62,7 @@ export function EditorDispatchRow({
             {t('subtasks')}
           </span>
           <span className="text-soft-foreground">·</span>
-          <Label className="text-[13px] font-normal text-muted-foreground">
+          <Label className="text-[12.5px] font-normal text-muted-foreground">
             <Switch size="sm" aria-label={t('Review child')} checked={reviewChild} onCheckedChange={(next) => onChange({ reviewChild: next })} />
             {t('review child')}
           </Label>

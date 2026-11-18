@@ -455,7 +455,7 @@ function CommentEditor({
           api.pendingText.set(editing.key, event.target.value)
         }}
         onKeyDown={onKeyDown}
-        className="block w-full resize-y rounded-md border border-ring/60 bg-background px-3 py-2 text-base leading-normal outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-[3px] focus:ring-ring/15 md:text-sm"
+        className="block w-full resize-y rounded-md border border-ring/60 bg-background px-3 py-2 text-base leading-normal outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-[3px] focus:ring-ring/15 md:text-[12.5px]"
       />
       <div className="flex items-center justify-end gap-1.5">
         <Button type="button" variant="ghost" size="sm" onClick={cancel}>

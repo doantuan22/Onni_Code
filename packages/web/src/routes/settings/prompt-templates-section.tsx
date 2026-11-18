@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { CheckIcon, ChevronDownIcon, NotebookPenIcon, PlusIcon, SparklesIcon, XIcon } from 'lucide-react'
-import { useRef, useState, type ReactNode } from 'react'
+import { useRef, useState } from 'react'
 
 import { putUiState } from '@/api/client'
 import { queryKeys, useSkills, useUiState } from '@/api/queries'
@@ -29,6 +29,7 @@ import {
 import { isProjectSkill, partitionSkillsForDisplay, searchSkills, skillKeywords } from '@/lib/skills'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
+import { SettingsField } from './settings-field'
 
 /**
  * Settings → Prompt templates (#413): "add the settings pane for editing these prompt templates
@@ -49,7 +50,7 @@ export function PromptTemplatesSection({ embedded = false }: { embedded?: boolea
 
   if (uiState.isPending) {
     return (
-      <p data-slot="prompt-templates-loading" className={embedded ? 'text-[13px] text-soft-foreground' : 'p-4 text-[13px] text-soft-foreground md:p-6'}>
+      <p data-slot="prompt-templates-loading" className={embedded ? 'text-[12.5px] text-soft-foreground' : 'p-4 text-[12.5px] text-soft-foreground md:p-6'}>
         {t('Loading prompt templates…')}
       </p>
     )
@@ -131,17 +132,17 @@ function PromptTemplatesForm({ initial, embedded }: { initial: PromptTemplate[];
       data-slot="prompt-templates-section"
       className={
         embedded
-          ? 'flex w-full flex-col gap-7'
-          : 'mx-auto flex w-full max-w-2xl flex-col gap-7 p-4 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-6 md:pb-6'
+          ? 'flex w-full min-w-0 flex-col gap-5'
+          : 'flex w-full min-w-0 flex-col gap-5'
       }
     >
-      <Field
+      <SettingsField
         title={t('Prompt templates')}
         hint={t('Reusable snippets you can insert into a prompt — the new-task composer, the GitHub hand-over, and the Inbox\'s “Add instructions” box all offer this list. Assign a template to a skill and it fills the prompt in for you when you pick that skill, as long as you have not typed anything yet.')}
       >
         <div data-slot="prompt-template-list" className="flex flex-col gap-3">
           {templates.length === 0 ? (
-            <p data-slot="prompt-templates-empty" className="text-[13px] text-soft-foreground">
+            <p data-slot="prompt-templates-empty" className="text-[12.5px] text-soft-foreground">
               {t('No templates. Add one below, or reset to the built-ins.')}
             </p>
           ) : (
@@ -178,7 +179,7 @@ function PromptTemplatesForm({ initial, embedded }: { initial: PromptTemplate[];
                   value={template.text}
                   maxLength={PROMPT_TEMPLATE_TEXT_LIMIT}
                   onChange={(event) => updateTemplate(template.id, { text: event.target.value })}
-                  className="min-h-14 text-[13px]"
+                  className="min-h-14 text-[12.5px]"
                 />
                 <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                   <TemplateSkillsPicker
@@ -198,7 +199,7 @@ function PromptTemplatesForm({ initial, embedded }: { initial: PromptTemplate[];
                       data-skill={name}
                       title={t('Stop applying “{label}” automatically with {skill}', { label: template.label, skill: name })}
                       onClick={() => toggleTemplateSkill(template.id, name)}
-                      className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-px font-mono text-[11px] font-medium text-foreground transition-colors hover:bg-danger/10 hover:text-danger"
+                      className="inline-flex items-center gap-1 rounded-sm border border-border bg-muted px-2 py-px font-mono text-[11px] font-medium text-foreground transition-colors hover:bg-danger/10 hover:text-danger"
                     >
                       {name}
                       <XIcon aria-hidden="true" className="size-3" />
@@ -229,7 +230,7 @@ function PromptTemplatesForm({ initial, embedded }: { initial: PromptTemplate[];
             value={newText}
             maxLength={PROMPT_TEMPLATE_TEXT_LIMIT}
             onChange={(event) => setNewText(event.target.value)}
-            className="min-h-14 text-[13px]"
+            className="min-h-14 text-[12.5px]"
           />
           <Button
             type="button"
@@ -272,7 +273,7 @@ function PromptTemplatesForm({ initial, embedded }: { initial: PromptTemplate[];
             </p>
           ) : null}
         </div>
-      </Field>
+      </SettingsField>
     </div>
   )
 }
@@ -353,7 +354,7 @@ function TemplateSkillsPicker({
           title={t('Pick the skills this template applies itself to')}
           disabled={skills.length === 0}
           className={cn(
-            'inline-flex h-[26px] items-center gap-1.5 rounded-full border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50',
+            'inline-flex h-[26px] items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50',
             selected.length > 0 && 'border-foreground/60 font-semibold text-foreground',
           )}
         >
@@ -398,15 +399,3 @@ function TemplateSkillsPicker({
   )
 }
 
-/** The Appearance/Agents sections' field chassis — same rhythm, so Settings reads as one surface. */
-function Field({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-2">
-      <div>
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-        <p className="text-[13px] text-muted-foreground">{hint}</p>
-      </div>
-      {children}
-    </section>
-  )
-}

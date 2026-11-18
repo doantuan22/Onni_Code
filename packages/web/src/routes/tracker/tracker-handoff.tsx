@@ -89,7 +89,7 @@ export function TrackerHandoff({ item, workflows, skills, selection, onSelection
   const canSubmit = !scopePending && !detailUnavailable && !start.isPending && resolved.canRun && composition.error === null && !skillChainOverLimit && (losses.length === 0 || acknowledgeLoss)
 
   return (
-    <section className="mt-7 rounded-lg border border-border bg-card p-4" data-slot="tracker-handoff">
+    <section className="mt-7 rounded-md border border-border bg-card p-4" data-slot="tracker-handoff">
       <h2 className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[.04em] text-soft-foreground uppercase">
         <ZapIcon className="size-3.5 text-violet" /> {t('Hand this to the agent')}
       </h2>
@@ -99,14 +99,14 @@ export function TrackerHandoff({ item, workflows, skills, selection, onSelection
         <EnginePills pick={engine} onChange={setEngine} accounts disabled={start.isPending || !resolved.canRun} />
         <AgentProviderGate resolved={resolved} dataSlot="tracker-provider-gate" />
       </div>
-      {validSkills.length ? <div className="mt-2.5 flex flex-wrap gap-1.5">{validSkills.map(name => <button type="button" key={name} aria-label={t('Remove skill {name}', { name })} onClick={() => toggleSkill(name)} className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-px font-mono text-[11px] font-medium text-foreground transition-colors hover:bg-danger/10 hover:text-danger">{name}<XIcon aria-hidden="true" className="size-3" /></button>)}</div> : null}
+      {validSkills.length ? <div className="mt-2.5 flex flex-wrap gap-1.5">{validSkills.map(name => <button type="button" key={name} aria-label={t('Remove skill {name}', { name })} onClick={() => toggleSkill(name)} className="inline-flex items-center gap-1 rounded-sm border border-border bg-muted px-2 py-px font-mono text-[11px] font-medium text-foreground transition-colors hover:bg-danger/10 hover:text-danger">{name}<XIcon aria-hidden="true" className="size-3" /></button>)}</div> : null}
       {workflow === null && validSkills.length >= MAX_CHAIN_STEPS ? (
         <p className={`mt-2 text-xs ${skillChainOverLimit ? 'text-danger' : 'text-muted-foreground'}`}>
           {t('Skill chains support at most {count} skills. Remove one before selecting another.', { count: MAX_CHAIN_STEPS })}
         </p>
       ) : null}
       {losses.length || emptyDescription ? (
-        <div className="mt-3 rounded-md border border-warning/50 bg-warning/10 p-3 text-sm">
+        <div className="mt-3 rounded-md border border-warning/50 bg-warning/10 p-3 text-[12.5px]">
           <p className="font-medium">{losses.length ? t('This provider snapshot lost some issue content.') : t('This issue has no description.')}</p>
           {losses.length ? <ul className="mt-1 list-disc pl-5 text-xs">{losses.map((loss) => <li key={loss}>{loss}</li>)}</ul> : <p className="mt-1 text-xs">{t('Add any context the agent needs before starting.')}</p>}
           {losses.length ? <a className="mt-2 inline-block text-xs text-violet underline underline-offset-4" href={item.url} target="_blank" rel="noreferrer">{t('Review the source issue')}</a> : null}

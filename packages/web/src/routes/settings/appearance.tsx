@@ -1,7 +1,7 @@
 import { MonitorIcon, MoonIcon, SunIcon, UploadIcon } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
-import type { ComponentType, KeyboardEvent, ReactNode, SVGProps } from 'react'
+import type { ComponentType, KeyboardEvent, SVGProps } from 'react'
 
 import { useProjects, useWorkspaceConfig, workspaceQueryKeys } from '@/api/queries'
 import type { WorkspaceConfigResponse } from '@onni/api-client'
@@ -16,6 +16,7 @@ import type { Theme } from '@/lib/theme'
 import { useI18n, type Language } from '@/lib/i18n'
 import { useProjectOrder } from '@/lib/use-project-order'
 import { toast } from '@/components/ui/toaster'
+import { SettingsField } from './settings-field'
 
 /**
  * Settings → Appearance (R6 Step 1.3, spec §"Settings").
@@ -104,7 +105,7 @@ function Segmented<V extends string>({
             onKeyDown={(event) => handleKeyDown(event, options.indexOf(option))}
             onClick={() => onChange(option.value)}
             className={cn(
-              'flex items-center gap-2 rounded-sm px-3 py-1.5 text-[13px] font-medium transition-colors',
+              'flex items-center gap-2 rounded-sm px-3 py-1.5 text-[12.5px] font-medium transition-colors',
               checked
                 ? 'bg-muted text-foreground'
                 : 'text-muted-foreground hover:text-foreground',
@@ -126,24 +127,13 @@ function Segmented<V extends string>({
   )
 }
 
-function Field({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-2">
-      <div>
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-        <p className="text-[13px] text-muted-foreground">{hint}</p>
-      </div>
-      {children}
-    </section>
-  )
-}
 
 /** English or Vietnamese for this browser. Text produced by the server, a run or an agent keeps
  *  its original wording — this is a UI layer, not a translating proxy. */
 function LanguageField() {
   const { language, setLanguage, t } = useI18n()
   return (
-    <Field
+    <SettingsField
       title={t('Language')}
       hint={t('Applies to this browser only. Server messages, run output and agent replies stay in English.')}
     >
@@ -154,7 +144,7 @@ function LanguageField() {
         options={LANGUAGE_OPTIONS}
         onChange={setLanguage}
       />
-    </Field>
+    </SettingsField>
   )
 }
 
@@ -173,7 +163,7 @@ function ProjectOrderField() {
   if (!multiProject || order.length === 0) return null
 
   return (
-    <Field
+    <SettingsField
       title={t('Project order')}
       hint={t('The sidebar is in the order you dragged it into. Reset puts it back to most-recently-opened first. Shared with every browser signed in to this onni.')}
     >
@@ -188,7 +178,7 @@ function ProjectOrderField() {
       >
         {t('Reset order')}
       </Button>
-    </Field>
+    </SettingsField>
   )
 }
 
@@ -225,7 +215,7 @@ function BrandingFields() {
     }
   }, [branding?.name])
   return <>
-    <Field title={t('Instance name')} hint={t('Shown in the sidebar and browser tab across this workspace.')}>
+    <SettingsField title={t('Instance name')} hint={t('Shown in the sidebar and browser tab across this workspace.')}>
       <div className="flex flex-wrap items-center gap-2">
         <input data-slot="branding-name" aria-label={t('Instance name')} maxLength={80} value={name} onChange={(event) => setName(event.currentTarget.value)}
           onBlur={() => {
@@ -234,16 +224,16 @@ function BrandingFields() {
             if (value !== branding?.name) save.mutate({ branding: { name: value } })
             setLastName(value)
           }}
-          className="h-9 w-64 rounded-md border border-border bg-background px-3 text-sm" />
+          className="h-8 w-64 rounded-sm border border-border bg-background px-2.5 text-[12.5px]" />
         <Button type="button" variant="outline" size="sm" disabled={!branding || branding.name === 'onni' || save.isPending}
           onClick={() => save.mutate({ branding: { name: null } })}>{t('Reset name')}</Button>
       </div>
-    </Field>
-    <Field title={t('Logo')} hint={t('PNG, JPEG, WebP, GIF, AVIF, or safe SVG up to 2 MB. Stored on this machine and shared by its browsers.')}>
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3">
+    </SettingsField>
+    <SettingsField title={t('Logo')} hint={t('PNG, JPEG, WebP, GIF, AVIF, or safe SVG up to 2 MB. Stored on this machine and shared by its browsers.')}>
+      <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-card p-3">
         {logoDraft ? <img src={logoDraft.url} alt={t('Logo preview')} className="size-10 rounded-md border border-border bg-background object-contain p-1" /> : branding?.logoUrl ? <img src={branding.logoUrl} alt={t('Current instance logo')} className="size-10 rounded-md border border-border bg-background object-contain p-1" /> : <span aria-hidden="true" className="size-10 rounded-md border border-dashed border-border bg-background" />}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-foreground">{logoDraft?.file.name ?? (branding?.logoUrl ? t('Current logo') : t('No logo selected'))}</p>
+          <p className="truncate text-[12.5px] font-medium text-foreground">{logoDraft?.file.name ?? (branding?.logoUrl ? t('Current logo') : t('No logo selected'))}</p>
           <p className="text-xs text-muted-foreground">{t('Choose an image to preview it before saving.')}</p>
         </div>
         <input ref={logoInput} data-slot="branding-logo" aria-label={t('Upload logo')} type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/avif,image/svg+xml" disabled={upload.isPending} hidden
@@ -261,7 +251,7 @@ function BrandingFields() {
           <Button type="button" variant="outline" size="sm" disabled={upload.isPending} onClick={() => setLogoDraft(null)}>{t('Cancel')}</Button>
         </> : branding?.logoUrl ? <Button type="button" variant="outline" size="sm" disabled={upload.isPending} onClick={() => upload.mutate(null)}>{t('Remove logo')}</Button> : null}
       </div>
-    </Field>
+    </SettingsField>
   </>
 }
 
@@ -275,27 +265,27 @@ export function AppearanceSection() {
   return (
     <div
       data-slot="appearance-section"
-      className="mx-auto flex w-full max-w-2xl flex-col gap-7 p-4 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-6 md:pb-6"
+      className="flex w-full min-w-0 flex-col gap-5"
     >
       <BrandingFields />
       <LanguageField />
-      <Field title={t('Theme')} hint={t('System follows your OS preference. Applies to this browser.')}>
+      <SettingsField title={t('Theme')} hint={t('System follows your OS preference. Applies to this browser.')}>
         <Segmented slot="appearance-theme" label={t('Theme')} value={theme} options={translateOptions(THEME_OPTIONS)} onChange={setTheme} />
-      </Field>
+      </SettingsField>
 
-      <Field
+      <SettingsField
         title={t('Density')}
         hint={t('Compact tightens spacing across the cockpit — text stays the same size.')}
       >
         <Segmented slot="appearance-density" label={t('Density')} value={density} options={translateOptions(DENSITY_OPTIONS)} onChange={setDensity} />
-      </Field>
+      </SettingsField>
 
-      <Field
+      <SettingsField
         title={t('Reading width')}
         hint={t('Full gives task sessions, commits, and skill content the whole available area. Narrow keeps a comfortable reading column. The Changes tab is always full-width.')}
       >
         <Segmented slot="appearance-width" label={t('Reading width')} value={width} options={translateOptions(WIDTH_OPTIONS)} onChange={setWidth} />
-      </Field>
+      </SettingsField>
 
       <ProjectOrderField />
     </div>

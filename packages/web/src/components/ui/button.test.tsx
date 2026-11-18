@@ -14,14 +14,14 @@ describe('Button', () => {
     expect(button.dataset.variant).toBe('primary')
     expect(button.dataset.size).toBe('default')
     expect(button.className).toContain('bg-primary')
-    expect(button.className).toContain('h-9')
+    expect(button.className).toContain('h-8')
   })
 
   describe('variant → class mapping', () => {
     it.each([
       { variant: 'primary', expected: ['bg-primary', 'text-primary-foreground'] },
       { variant: 'contrast', expected: ['bg-contrast', 'text-contrast-foreground'] },
-      { variant: 'outline', expected: ['border-border', 'bg-card'] },
+      { variant: 'outline', expected: ['border-border', 'bg-transparent'] },
       { variant: 'ghost', expected: ['text-muted-foreground'] },
       { variant: 'danger-ghost', expected: ['text-danger'] },
     ] as const)('$variant', ({ variant, expected }) => {
@@ -35,10 +35,10 @@ describe('Button', () => {
 
   describe('size → class mapping', () => {
     it.each([
-      { size: 'default', expected: ['h-9', 'px-3.5'] },
-      { size: 'sm', expected: ['h-[30px]', 'rounded-sm'] },
-      { size: 'icon', expected: ['size-9'] },
-      { size: 'icon-sm', expected: ['size-[30px]', 'rounded-sm'] },
+      { size: 'default', expected: ['h-8', 'px-3'] },
+      { size: 'sm', expected: ['h-7', 'rounded-sm'] },
+      { size: 'icon', expected: ['size-8'] },
+      { size: 'icon-sm', expected: ['size-7', 'rounded-sm'] },
     ] as const)('$size', ({ size, expected }) => {
       render(<Button size={size}>Label</Button>)
       const button = screen.getByRole('button')

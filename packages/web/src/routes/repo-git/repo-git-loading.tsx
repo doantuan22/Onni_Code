@@ -1,6 +1,4 @@
-import { LoaderCircleIcon } from 'lucide-react'
-
-import { CenteredState } from '@/components/centered-state'
+import { LoadingSplash } from '@/components/loading-splash'
 import { useI18n } from '@/lib/i18n'
 
 /** The repo view's loading surface — also the route's `Suspense` fallback (routes.tsx), so it
@@ -9,12 +7,7 @@ export function RepoGitLoading() {
   const { t } = useI18n()
   return (
     <div data-route="repo-git" className="flex min-h-full flex-col">
-      <CenteredState
-        icon={<LoaderCircleIcon className="motion-safe:animate-spin" />}
-        tone="neutral"
-        title={t('Loading repository…')}
-        subtitle={t("Fetching the repo's git state.")}
-      />
+      <LoadingSplash title={t('Loading repository…')} detail={t("Fetching the repo's git state.")} />
     </div>
   )
 }

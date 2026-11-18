@@ -68,7 +68,7 @@ export function SkillSourceTag({
             data-source={source}
             aria-label={description}
             className={cn(
-              'shrink-0 rounded-full border border-border px-2 py-px font-mono text-[10.5px]',
+              'shrink-0 rounded-sm border border-border px-2 py-px font-mono text-[10.5px]',
               project ? 'font-semibold text-foreground' : 'text-soft-foreground',
               className,
             )}
@@ -102,11 +102,11 @@ export function SkillDetailBody({
   const { t } = useI18n()
   return (
     <div data-slot="skill-detail" className="mx-auto w-full min-w-0 max-w-[var(--measure)]">
-      <section data-slot="skill-properties" className="rounded-lg border border-border bg-muted/20 p-4">
+      <section data-slot="skill-properties" className="rounded-md border border-border bg-muted/20 p-4">
         <div className="flex min-w-0 items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 flex-wrap items-center gap-2.5">
-              <Heading className="min-w-0 font-mono text-lg font-semibold break-all">{skill.name}</Heading>
+              <Heading className="min-w-0 font-mono text-[13px] font-semibold break-all">{skill.name}</Heading>
               <SkillSourceTag source={skill.source} teamRepo={skill.team?.repo} />
             </div>
             <p data-slot="skill-path" className="mt-1 font-mono text-[10.5px] break-all text-soft-foreground">
@@ -159,7 +159,7 @@ export function SkillDetailBody({
 
       <section data-slot="skill-content" className="mt-6 min-w-0 border-t border-border pt-5">
         <h3 className="text-[11px] font-semibold tracking-[.04em] text-soft-foreground uppercase">{t('Content')}</h3>
-        <div data-slot="skill-body" className="mt-3 text-sm">
+        <div data-slot="skill-body" className="mt-3 text-[12.5px]">
           <Markdown>{skill.body}</Markdown>
         </div>
       </section>

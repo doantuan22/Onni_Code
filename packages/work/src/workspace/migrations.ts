@@ -65,7 +65,7 @@ async function readRepoResourceKeys(
   const raw = await readRawObject(join(repoRoot, '.ai/onni', 'config.json'));
   const out: { maxParallel?: number; memoryLimitMb?: number } = {};
   const maxParallel = raw?.maxParallel;
-  if (typeof maxParallel === 'number' && Number.isInteger(maxParallel) && maxParallel >= 1 && maxParallel <= 16) {
+  if (typeof maxParallel === 'number' && Number.isInteger(maxParallel) && maxParallel >= 1 && maxParallel <= 50) {
     out.maxParallel = maxParallel;
   }
   const memoryLimitMb = raw?.memoryLimitMb;

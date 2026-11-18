@@ -430,16 +430,16 @@ export function GlobalTasksRoute() {
         onChange={(event) => setQueryDraft(event.target.value)}
         placeholder={t('Search every project…')}
         aria-label={t('Search tasks across projects')}
-        className="h-9 w-full rounded-md border border-input bg-card pr-3 pl-8 text-[13px] text-foreground outline-none placeholder:text-soft-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className="h-8 w-full rounded-sm border border-input bg-card pr-2.5 pl-8 text-[12.5px] text-foreground outline-none placeholder:text-soft-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
       />
     </div>
   )
 
   return (
     <div data-route="global-tasks" className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-10 hidden h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-5 md:flex">
-        <h1 className="text-base font-semibold">{t('All tasks')}</h1>
-        <div className="inline-flex gap-0.5 rounded-md bg-muted p-[3px]">
+      <header className="sticky top-0 z-10 hidden h-12 shrink-0 items-center gap-3 border-b border-border bg-background px-4 md:flex">
+        <h1 className="text-[14px] font-semibold tracking-tight">{t('All tasks')}</h1>
+        <div className="inline-flex gap-0.5 rounded-sm bg-muted p-0.5">
           <ViewTab view="active" current={view} onSelect={setView}>
             {t('Active')}
           </ViewTab>
@@ -448,13 +448,13 @@ export function GlobalTasksRoute() {
           </ViewTab>
         </div>
         <div className="flex-1" />
-        <span data-slot="global-tasks-count" className="text-[12.5px] text-soft-foreground tabular-nums">
+        <span data-slot="global-tasks-count" className="font-mono text-[11px] text-soft-foreground tabular-nums">
           {t('{shown} of {total}', { shown: visible.length, total: allTasks.length })}
         </span>
         {search}
       </header>
 
-      <div className="flex flex-1 flex-col gap-3 p-3 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-5 md:pb-5">
+      <div className="flex flex-1 flex-col gap-3 p-3 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-4 md:pb-4">
         {/* Below `md` the header above is hidden, so the search box rides here instead. */}
         <div className="md:hidden">{search}</div>
 
@@ -504,7 +504,7 @@ export function GlobalTasksRoute() {
             {groups.map((group) => (
               <section key={group.key} data-slot="task-group" data-group-key={group.key}>
                 {groupBy === 'none' ? null : (
-                  <h2 className="mb-1.5 flex items-center gap-2 text-[12px] font-semibold tracking-[0.04em] text-soft-foreground uppercase">
+                  <h2 className="mb-1.5 flex items-center gap-2 font-mono text-[10px] font-semibold tracking-[0.12em] text-soft-foreground uppercase">
                     {/* A project heading is a DOOR, not a label: that project's own Tasks page is
                         the better version of "just this project" (live SSE, the full column set,
                         the composer), which is why there is no project filter here at all. */}
@@ -567,8 +567,8 @@ function ViewTab({
       aria-pressed={isActive}
       onClick={() => onSelect(view)}
       className={cn(
-        'flex h-7 items-center justify-center rounded-[7px] px-3 text-[12.5px] font-medium text-muted-foreground',
-        isActive && 'bg-card font-semibold text-foreground shadow-xs',
+        'flex h-6 items-center justify-center rounded-sm px-2.5 text-[12px] font-medium text-muted-foreground',
+        isActive && 'bg-card-2 font-semibold text-foreground',
       )}
     >
       {children}
@@ -649,7 +649,7 @@ function FilterBar({
   return (
     <div
       data-slot="global-tasks-filters"
-      className="flex flex-col gap-2 rounded-lg border border-border bg-card p-2.5 shadow-xs"
+      className="flex flex-col gap-2 rounded-md border border-border bg-card p-2.5"
     >
       <div className="flex flex-wrap items-center gap-1.5">
         <Segmented
@@ -688,33 +688,39 @@ function FilterBar({
             .map(withCount(counts.workflows))}
           emptyLabel={t('No tasks to filter')}
         />
-        <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
-        <span className="text-[11px] font-medium text-soft-foreground">{t('Group by')}</span>
-        {/* Pressing the pressed one releases it — see `toggleGroupBy`, which is why there is
-            no "None" button to hunt for. */}
-        <SegmentedControl
-          slot="group-by"
-          label={t('Group tasks by')}
-          value={groupBy}
-          options={GROUP_BY_OPTIONS.map((option) => ({ ...option, label: t(option.label) }))}
-          onChange={(picked) => onGroupByChange(toggleGroupBy(groupBy, picked))}
-        />
+        {/* Each labelled control is one wrap unit, so a narrow bar never strands "Sort by"
+            above its own buttons. */}
+        <div className="flex items-center gap-1.5">
+          <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+          <span className="text-[11px] font-medium text-soft-foreground">{t('Group by')}</span>
+          {/* Pressing the pressed one releases it — see `toggleGroupBy`, which is why there is
+              no "None" button to hunt for. */}
+          <SegmentedControl
+            slot="group-by"
+            label={t('Group tasks by')}
+            value={groupBy}
+            options={GROUP_BY_OPTIONS.map((option) => ({ ...option, label: t(option.label) }))}
+            onChange={(picked) => onGroupByChange(toggleGroupBy(groupBy, picked))}
+          />
+        </div>
         {/* Same labelled-segmented grammar as Group by beside it. */}
-        <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
-        <span className="text-[11px] font-medium text-soft-foreground">{t('Sort by')}</span>
-        <Segmented
-          slot="sort-by"
-          label={t('Sort tasks by')}
-          value={sortBy}
-          options={SORT_OPTIONS.map((option) => ({ ...option, label: t(option.label) }))}
-          onChange={onSortByChange}
-        />
+        <div className="flex items-center gap-1.5">
+          <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+          <span className="text-[11px] font-medium text-soft-foreground">{t('Sort by')}</span>
+          <Segmented
+            slot="sort-by"
+            label={t('Sort tasks by')}
+            value={sortBy}
+            options={SORT_OPTIONS.map((option) => ({ ...option, label: t(option.label) }))}
+            onChange={onSortByChange}
+          />
+        </div>
         {canReset({ filters, groupBy }) ? (
           <button
             type="button"
             data-action="clear-filters"
             onClick={onClearAll}
-            className="ml-auto inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="ml-auto inline-flex h-6 items-center gap-1 rounded-sm px-1.5 text-[11.5px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <XIcon className="size-3" aria-hidden="true" />
             {t('Clear ({count})', { count: resetCount({ filters, groupBy }) })}
@@ -838,7 +844,7 @@ function TaskTable({
       data-slot="global-tasks-table"
       // `relative`: the screen-reader-only labels in the cells are absolutely positioned; without a
       // positioned scroller they escaped its clip and widened the whole page (QA: +197 px at 1280).
-      className="relative overflow-x-auto rounded-lg border border-border bg-card shadow-xs"
+      className="relative overflow-x-auto rounded-md border border-border bg-card"
     >
       <TooltipProvider>
         <table className="w-full border-collapse" aria-rowcount={tableWindow.ariaRowCount}>
@@ -881,7 +887,7 @@ function Th({ children, className }: { children: React.ReactNode; className?: st
     <th
       scope="col"
       className={cn(
-        'h-[38px] border-b border-border px-2.5 text-left text-[11px] font-semibold tracking-[0.05em] whitespace-nowrap text-soft-foreground uppercase first:pl-4 last:pr-4',
+        'h-8 border-b border-border px-2.5 text-left text-[10px] font-semibold tracking-[0.1em] whitespace-nowrap text-soft-foreground uppercase first:pl-4 last:pr-4',
         className,
       )}
     >
@@ -890,7 +896,7 @@ function Th({ children, className }: { children: React.ReactNode; className?: st
   )
 }
 
-const TD_BASE = 'h-11 border-b border-border px-2.5 whitespace-nowrap first:pl-4 last:pr-4'
+const TD_BASE = 'h-9 border-b border-border px-2.5 whitespace-nowrap first:pl-4 last:pr-4'
 
 /**
  * One cross-project run.
@@ -989,7 +995,7 @@ const TaskRow = React.memo(function TaskRow({
             to={to}
             title={runTitle(run)}
             className={cn(
-              'min-w-0 truncate text-[13px]',
+              'min-w-0 truncate text-[12.5px]',
               unread
                 ? 'font-semibold text-foreground'
                 : readDone
@@ -1004,7 +1010,7 @@ const TaskRow = React.memo(function TaskRow({
           {dispatchKind ? (
             <span
               data-slot="dispatch-kind"
-              className="shrink-0 rounded-full bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground"
+              className="shrink-0 rounded-sm bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground"
             >
               {t(dispatchKind)}
             </span>
@@ -1252,7 +1258,7 @@ export function TagChip({ tag, className }: { tag: string; className?: string })
     <span
       data-slot="project-tag"
       className={cn(
-        'inline-flex max-w-full items-center truncate rounded-full bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground',
+        'inline-flex max-w-full items-center truncate rounded-sm bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground',
         className,
       )}
     >

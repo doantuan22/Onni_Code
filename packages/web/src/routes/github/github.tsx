@@ -565,9 +565,9 @@ export function GithubRoute({
 
   return (
     <IssueBrowserLayout name="gh" route="github" selected={n !== undefined} list={<>
-        <header data-slot="gh-header" className="sticky top-0 z-10 border-b border-border bg-background/95 px-4 pt-3 backdrop-blur">
+        <header data-slot="gh-header" className="sticky top-0 z-10 border-b border-border bg-background/95 px-4 pt-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <h1 className="text-lg font-semibold">{t('GitHub')}</h1>
+            <h1 className="text-[14px] font-semibold tracking-tight">{t('GitHub')}</h1>
             {gh.repo ? (
               <span data-slot="gh-repo" className="min-w-0 truncate font-mono text-[11px] text-soft-foreground">
                 {gh.repo}
@@ -590,7 +590,7 @@ export function GithubRoute({
               // The automations link owns the `ml-auto` that pushes this cluster right; with the
               // link gated away this button inherits it, so the header does not re-flow.
               className={cn(
-                'flex shrink-0 items-center gap-1 rounded-full border border-border px-1.5 py-px text-[10px] font-medium text-soft-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-55',
+                'flex shrink-0 items-center gap-1 rounded-sm border border-border px-1.5 py-px text-[10px] font-medium text-soft-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-55',
                 !automationsAvailable && 'ml-auto',
               )}
             >
@@ -658,7 +658,7 @@ export function GithubRoute({
           // search found, is finding, or could not do. No verdict to report (the hits below are
           // the answer) means no wrapper at all, so its padding cannot leave a gap.
           emptyState && (
-            <div data-slot="gh-empty" className="px-4 py-4 text-sm text-soft-foreground">
+            <div data-slot="gh-empty" className="px-4 py-4 text-[12.5px] text-soft-foreground">
               {emptyState}
             </div>
           )
@@ -1009,7 +1009,7 @@ function LabelChip({ label, color }: { label: string; color: string | undefined 
       data-slot="gh-label"
       data-label={label}
       style={labelChipStyle(color)}
-      className="rounded-full border px-1.5 py-px text-[10px] font-medium"
+      className="rounded-sm border px-1.5 py-px text-[10px] font-medium"
     >
       {label}
     </span>
@@ -1106,7 +1106,7 @@ function GithubDetail({
       ) : null}
 
       {changes && item.kind === 'pr' ? <GithubPrChanges item={item} /> : <>
-      <div data-slot="gh-body" className="mt-5 text-sm">
+      <div data-slot="gh-body" className="mt-5 text-[12.5px]">
         {detailBody ? (
           <Markdown>{detailBody}</Markdown>
         ) : (
@@ -1188,7 +1188,7 @@ function GithubMergeBox({ number }: { number: number }) {
   }
   if (!state) {
     return (
-      <section data-slot="gh-merge-unavailable" className="mt-6 rounded-lg border border-border bg-card p-4 text-sm">
+      <section data-slot="gh-merge-unavailable" className="mt-6 rounded-md border border-border bg-card p-4 text-[12.5px]">
         <p className="font-medium">{t('Merge status unavailable')}</p>
         <p className="mt-1 text-xs text-soft-foreground">
           {mergeState.data?.available === false ? mergeState.data.reason : t('GitHub could not load merge requirements.')}
@@ -1215,7 +1215,7 @@ function GithubMergeBox({ number }: { number: number }) {
   const mergeEnabled = Boolean(selectedMethod && (state.canMerge || (state.canOverride && overrideRules)))
 
   return (
-    <section data-slot="gh-merge-box" aria-live="polite" className="mt-6 rounded-lg border border-border bg-card p-4">
+    <section data-slot="gh-merge-box" aria-live="polite" className="mt-6 rounded-md border border-border bg-card p-4">
       <div className="flex items-start gap-3">
         {state.canMerge ? (
           <CheckIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-success" />
@@ -1297,7 +1297,7 @@ function GithubMergeBox({ number }: { number: number }) {
                 aria-label={t('Merge method')}
                 value={selectedMethod ?? ''}
                 onChange={(event) => setMethod(event.target.value as GithubMergeMethod)}
-                className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 {state.methods.map((candidate) => <option key={candidate} value={candidate}>{t(mergeLabels[candidate])}</option>)}
               </AppSelect>
@@ -1317,7 +1317,7 @@ function GithubMergeBox({ number }: { number: number }) {
               {overrideRules && state.canOverride ? ` ${t('You are asking GitHub to bypass unmet repository requirements; GitHub may refuse if your permissions do not allow it.')}` : ''}
             </DialogDescription>
           </DialogHeader>
-          {merge.error ? <p className="text-sm text-danger">{merge.error.message}</p> : null}
+          {merge.error ? <p className="text-[12.5px] text-danger">{merge.error.message}</p> : null}
           <DialogFooter>
             <Button variant="outline" disabled={merge.isPending} onClick={() => setConfirming(false)}>{t('Cancel')}</Button>
             <Button disabled={merge.isPending} onClick={() => merge.mutate()}>
@@ -1353,9 +1353,9 @@ function GithubPrChanges({ item }: { item: GithubItem }) {
       toast(t('The reviewed revision changed.'))
     }
   }
-  if (query.isPending) return <p aria-live="polite" className="mt-6 text-sm text-muted-foreground">{t('Loading changed files…')}</p>
-  if (query.isError || !data) return <p className="mt-6 text-sm text-danger">{t('Changed files could not be loaded.')}</p>
-  if (!data.available) return <p className="mt-6 text-sm text-muted-foreground">{data.reason}</p>
+  if (query.isPending) return <p aria-live="polite" className="mt-6 text-[12.5px] text-muted-foreground">{t('Loading changed files…')}</p>
+  if (query.isError || !data) return <p className="mt-6 text-[12.5px] text-danger">{t('Changed files could not be loaded.')}</p>
+  if (!data.available) return <p className="mt-6 text-[12.5px] text-muted-foreground">{data.reason}</p>
   const diffFiles: DiffFileChange[] = files.map((file) => ({
     path: file.path,
     ...(file.previousPath ? { oldPath: file.previousPath } : {}),
@@ -1379,8 +1379,8 @@ function GithubPrChanges({ item }: { item: GithubItem }) {
       {data.truncated ? <p role="status" className="mt-3 rounded-md border border-warning/40 bg-warning/10 p-3 text-xs">{data.reason ?? t('This response is incomplete.')} {fallback ? <a href={fallback} target="_blank" rel="noopener noreferrer" className="underline">{t('Open all files on GitHub')}</a> : null}</p> : null}
       <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="min-w-0">
-          <input aria-label={t('Filter changed files')} value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t('Filter files…')} className="min-h-11 w-full rounded-md border border-input bg-background px-3 text-sm" />
-          <AppSelect aria-label={t('Select changed file')} value={selected ?? ''} onChange={(e) => setSelected(e.target.value)} className="mt-2 min-h-11 w-full rounded-md border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 lg:hidden">
+          <input aria-label={t('Filter changed files')} value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t('Filter files…')} className="min-h-11 w-full rounded-md border border-input bg-background px-3 text-[12.5px]" />
+          <AppSelect aria-label={t('Select changed file')} value={selected ?? ''} onChange={(e) => setSelected(e.target.value)} className="mt-2 min-h-11 w-full rounded-md border border-input bg-background px-2 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 lg:hidden">
             {files.map((file) => <option key={file.path}>{file.path}</option>)}
           </AppSelect>
           <ul className="mt-2 hidden max-h-[60vh] overflow-auto lg:block">
@@ -1392,7 +1392,7 @@ function GithubPrChanges({ item }: { item: GithubItem }) {
             <Button aria-label={t('Previous file')} variant="outline" size="icon" className="min-h-11 min-w-11" disabled={current <= 0} onClick={() => setSelected(files[current - 1]?.path ?? null)}><ChevronLeftIcon /></Button>
             <Button aria-label={t('Next file')} variant="outline" size="icon" className="min-h-11 min-w-11" disabled={current < 0 || current >= files.length - 1} onClick={() => setSelected(files[current + 1]?.path ?? null)}><ChevronRightIcon /></Button>
           </div>
-          {files.length === 0 ? <p className="text-sm text-muted-foreground">{t('No changed files match this filter.')}</p> : <>
+          {files.length === 0 ? <p className="text-[12.5px] text-muted-foreground">{t('No changed files match this filter.')}</p> : <>
             <Diff files={diffFiles.filter((file) => file.path === selected)} wrap className="min-w-0" />
             {active && !active.patch ? <p className="rounded-b border border-border p-3 text-xs text-muted-foreground">{t('Patch unavailable: {reason}.', { reason: active.patchUnavailableReason ?? 'not-provided' })}</p> : null}
           </>}
@@ -1695,7 +1695,7 @@ function EventPhrase({ event, colors }: { event: GithubTimelineEvent; colors: Re
             <span
               data-slot="gh-event-label"
               style={labelChipStyle(event.label.color ?? colors[event.label.name])}
-              className="max-w-[12rem] truncate rounded-full border px-1.5 py-px font-sans text-[10px]"
+              className="max-w-[12rem] truncate rounded-sm border px-1.5 py-px font-sans text-[10px]"
             >
               {event.label.name}
             </span>
@@ -1774,7 +1774,7 @@ function ThreadEntry({ comment }: { comment: GithubComment }) {
           <span
             data-slot="gh-review-chip"
             data-review-state={comment.reviewState}
-            className={cn('rounded-full border px-1.5 py-px font-sans text-[10px] font-medium', chip.tone)}
+            className={cn('rounded-sm border px-1.5 py-px font-sans text-[10px] font-medium', chip.tone)}
           >
             {t(chip.label)}
           </span>
@@ -1789,7 +1789,7 @@ function ThreadEntry({ comment }: { comment: GithubComment }) {
           <ExternalLinkIcon aria-hidden="true" className="size-2.5" />
         </a>
       </div>
-      <div data-slot="gh-thread-body" className="text-sm">
+      <div data-slot="gh-thread-body" className="text-[12.5px]">
         {comment.body ? <Markdown>{comment.body}</Markdown> : <p className="text-soft-foreground">{t('(no body)')}</p>}
       </div>
     </li>

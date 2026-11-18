@@ -142,7 +142,7 @@ function CompareView({
   return (
     <div data-route="compare" className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-5 md:px-6">
       <header className="flex flex-col gap-1">
-        <h1 className="flex items-center gap-2 text-xl font-semibold">
+        <h1 className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
           <ScaleIcon className="size-5 shrink-0 text-violet" aria-hidden="true" />
           <span className="min-w-0 truncate" title={title}>
             {title}
@@ -241,7 +241,7 @@ function VariantColumn({
     <article
       data-slot="variant-column"
       data-variant={variant.variant}
-      className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-3.5 shadow-xs"
+      className="flex min-w-0 flex-col gap-3 rounded-md border border-border bg-card p-3.5"
     >
       <div className="flex items-center gap-2">
         <span
@@ -333,7 +333,7 @@ function VariantDiff({ variant }: { variant: GroupVariant }) {
       onOpenChange={setOpen}
       data-slot="variant-diff"
       data-variant={variant.variant}
-      className="min-w-0 overflow-hidden rounded-lg border border-border bg-card"
+      className="min-w-0 overflow-hidden rounded-md border border-border bg-card"
     >
       <CollapsibleTrigger className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13px] font-medium hover:bg-muted/50">
         <ChevronRightIcon

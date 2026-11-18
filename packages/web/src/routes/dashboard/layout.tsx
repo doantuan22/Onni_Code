@@ -53,7 +53,7 @@ function Module({ id, children, wide }: { id: TileId; children: ReactNode; wide:
         {...listeners}
         aria-label={t('Move {module}', { module: t(names[id]) })}
       >
-        <span className="flex h-4 w-8 items-center justify-center rounded-full border bg-card text-muted-foreground shadow-xs">
+        <span className="flex h-4 w-8 items-center justify-center rounded-sm border bg-card text-muted-foreground">
           <GripHorizontal className="size-3.5" aria-hidden="true" />
         </span>
       </Button>
@@ -137,7 +137,7 @@ export function DashboardLayout({
       }}
     >
       <SortableContext items={visible} strategy={rectSortingStrategy}>
-        <div className="grid items-start gap-5 lg:grid-cols-2">
+        <div className="grid items-start gap-4 lg:grid-cols-2">
           {visible.map((id) => (
             <Module key={id} id={id} wide={wide.has(id)}>
               {modules[id]}

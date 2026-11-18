@@ -393,7 +393,7 @@ function WorkspaceHostPane({
               className={cn(
                 'group flex h-8 items-center gap-2 rounded-md px-2.5 font-medium transition-colors cursor-pointer select-none',
                 state.active === paneA.paneId
-                  ? 'bg-background text-foreground shadow-xs ring-1 ring-border'
+                  ? 'bg-background text-foreground ring-1 ring-border'
                   : 'text-muted-foreground hover:bg-background/50 hover:text-foreground',
               )}
               onClick={() => activate(paneA.paneId)}
@@ -428,7 +428,7 @@ function WorkspaceHostPane({
               className={cn(
                 'group flex h-8 items-center gap-2 rounded-md px-2.5 font-medium transition-colors cursor-pointer select-none',
                 state.active === paneB.paneId
-                  ? 'bg-background text-foreground shadow-xs ring-1 ring-border'
+                  ? 'bg-background text-foreground ring-1 ring-border'
                   : 'text-muted-foreground hover:bg-background/50 hover:text-foreground',
               )}
               onClick={() => activate(paneB.paneId)}

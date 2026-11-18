@@ -122,14 +122,14 @@ export function TrackerSection() {
   ))
 
 
-  if (association.isPending) return <p className="p-6 text-sm text-muted-foreground">{t('Loading tracker settings…')}</p>
-  if (association.isError) return <p className="p-6 text-sm text-danger">{association.error.message}</p>
+  if (association.isPending) return <p className="p-6 text-[12.5px] text-muted-foreground">{t('Loading tracker settings…')}</p>
+  if (association.isError) return <p className="p-6 text-[12.5px] text-danger">{association.error.message}</p>
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-4 md:p-6" data-slot="tracker-settings">
-      <section className="rounded-lg border border-border bg-card p-4">
-        <h2 className="text-sm font-semibold">{t('Issue tracker')}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+    <div className="flex w-full min-w-0 flex-col gap-6" data-slot="tracker-settings">
+      <section className="rounded-md border border-border bg-card p-4">
+        <h2 className="text-[12.5px] font-semibold">{t('Issue tracker')}</h2>
+        <p className="mt-1 text-[12.5px] text-muted-foreground">
           {t('Connect a project or team from your issue tracker. Credentials belong only to this project and are stored locally outside the repository. Server-wide environment keys are not used.')}
         </p>
         {scopeConnected && association.data.association ? (
@@ -144,15 +144,15 @@ export function TrackerSection() {
               <UnplugIcon className="size-3.5" /> {t('Disconnect')}
             </Button>
           </div>
-        ) : <p className="mt-4 text-sm font-medium">{connection.isPending ? t('Loading connection…') : connection.isError ? t('Connection status unavailable.') : t('No tracker connected.')}</p>}
+        ) : <p className="mt-4 text-[12.5px] font-medium">{connection.isPending ? t('Loading connection…') : connection.isError ? t('Connection status unavailable.') : t('No tracker connected.')}</p>}
       </section>
 
-      {savedAssociation && currentConnection && !connection.isError && !connection.data?.demo && !scopeConnected ? <p className="text-sm text-warning">{t("This scope needs reconnection with this project's credentials. Configure a connection, then browse and select its scope again.")}</p> : null}
-      {connection.data?.error ? <p role="alert" className="text-sm text-danger">{connection.data.error}</p> : null}
+      {savedAssociation && currentConnection && !connection.isError && !connection.data?.demo && !scopeConnected ? <p className="text-[12.5px] text-warning">{t("This scope needs reconnection with this project's credentials. Configure a connection, then browse and select its scope again.")}</p> : null}
+      {connection.data?.error ? <p role="alert" className="text-[12.5px] text-danger">{connection.data.error}</p> : null}
       <p className="text-xs text-muted-foreground">{t('For local credential cleanup, run')} <code>onni tracker-connections list</code>{t(', then')} <code>onni tracker-connections remove &lt;id&gt;</code>{t('. Local deletion does not revoke the vendor token.')}</p>
-      {connection.isError ? <p className="text-sm text-danger">{t('Could not load project connection.')} <button onClick={() => void connection.refetch()}>{t('Retry')}</button></p> : null}
-      <section className="rounded-lg border border-border bg-card p-4">
-        <h2 className="text-sm font-semibold">{t('Connect a provider')}</h2>
+      {connection.isError ? <p className="text-[12.5px] text-danger">{t('Could not load project connection.')} <button onClick={() => void connection.refetch()}>{t('Retry')}</button></p> : null}
+      <section className="rounded-md border border-border bg-card p-4">
+        <h2 className="text-[12.5px] font-semibold">{t('Connect a provider')}</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {trackerProviders.map((provider) => {
             const ready = !connection.isError && (connection.data?.demo === true || connection.data?.connection?.kind === provider.kind)
@@ -179,41 +179,41 @@ export function TrackerSection() {
 
       {connection.data?.connection ? <Button variant="outline" disabled={credentialBusy} onClick={() => removeCredentials.mutate()}>{t('Remove project credentials')}</Button> : null}
       {credentialKind ? (
-        <form className="rounded-lg border border-border bg-card p-4" onSubmit={event => { event.preventDefault(); saveCredentials.mutate() }} autoComplete="off">
+        <form className="rounded-md border border-border bg-card p-4" onSubmit={event => { event.preventDefault(); saveCredentials.mutate() }} autoComplete="off">
           <h2 className="font-medium">{t('{provider} credentials for this project', { provider: TRACKER_PROVIDERS[credentialKind].label })}</h2>
           <p className="mt-2 text-xs text-muted-foreground">{t("Saved in a private .env file for this project, without encryption. Use read-only access limited to this project's data. Saving replaces this project's connection and requires selecting its scope again.")}</p>
           {credentialKind === 'jira' ? <>
-            <label className="mt-3 block text-sm">{t('Jira site URL')}<input aria-label={t('Jira site URL')} type="url" required value={origin} onChange={event => setOrigin(event.target.value)} placeholder="https://your-site.atlassian.net" className="mt-1 block w-full rounded border bg-background p-2" /></label>
-            <label className="mt-3 block text-sm">{t('Account email')}<input aria-label={t('Account email')} type="email" required value={email} onChange={event => setEmail(event.target.value)} className="mt-1 block w-full rounded border bg-background p-2" /></label>
+            <label className="mt-3 block text-[12.5px]">{t('Jira site URL')}<input aria-label={t('Jira site URL')} type="url" required value={origin} onChange={event => setOrigin(event.target.value)} placeholder="https://your-site.atlassian.net" className="mt-1 block w-full rounded border bg-background p-2" /></label>
+            <label className="mt-3 block text-[12.5px]">{t('Account email')}<input aria-label={t('Account email')} type="email" required value={email} onChange={event => setEmail(event.target.value)} className="mt-1 block w-full rounded border bg-background p-2" /></label>
           </> : null}
-          <label className="mt-3 block text-sm">{t('API token')}<input aria-label={t('API token')} type="password" autoComplete="new-password" required maxLength={8192} value={secret} onChange={event => setSecret(event.target.value)} className="mt-1 block w-full rounded border bg-background p-2" /></label>
+          <label className="mt-3 block text-[12.5px]">{t('API token')}<input aria-label={t('API token')} type="password" autoComplete="new-password" required maxLength={8192} value={secret} onChange={event => setSecret(event.target.value)} className="mt-1 block w-full rounded border bg-background p-2" /></label>
           <div className="mt-3 flex gap-2"><Button type="submit" disabled={credentialBusy}>{t('Save project credentials')}</Button><Button type="button" variant="outline" disabled={credentialBusy} onClick={resetSecrets}>{t('Cancel')}</Button></div>
         </form>
       ) : null}
 
       {pickerOpen ? (
-        <section className="rounded-lg border border-violet/40 bg-card p-4" aria-label={t('{provider} picker', { provider: TRACKER_PROVIDERS[kind].label })}>
+        <section className="rounded-md border border-violet/40 bg-card p-4" aria-label={t('{provider} picker', { provider: TRACKER_PROVIDERS[kind].label })}>
           <label className="text-xs font-medium" htmlFor="tracker-candidate-search">{t('Search {scopes}', { scopes: TRACKER_PROVIDERS[kind].scopeLabel })}</label>
           <input
             id="tracker-candidate-search"
-            className="mt-2 h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
+            className="mt-2 h-8 w-full rounded-sm border border-border bg-background px-2.5 text-[12.5px]"
             value={search}
             onChange={(event) => { setSearch(event.target.value); setSelected(null) }}
             placeholder={t('Search by name…')}
           />
           <div className="mt-3 max-h-64 space-y-1 overflow-auto">
-            {candidates.isPending ? <p className="text-sm text-muted-foreground">{t('Loading…')}</p> : null}
+            {candidates.isPending ? <p className="text-[12.5px] text-muted-foreground">{t('Loading…')}</p> : null}
             {candidates.isError ? <CandidateFailure reason={candidates.error.message} generation={candidates.errorUpdatedAt} retry={() => void candidates.refetch()} /> : null}
             {candidateFailure && !candidateFailure.available ? <CandidateFailure reason={candidateFailure.reason} generation={candidates.dataUpdatedAt} retryAfterSeconds={candidateFailure.code === 'rate_limited' ? candidateFailure.retryAfterSeconds : undefined} retry={() => void candidates.refetch()} /> : null}
             {options.map((candidate) => (
               <button
                 key={candidate.id}
                 type="button"
-                className={`block w-full rounded-md border px-3 py-2 text-left text-sm ${selected?.id === candidate.id ? 'border-violet bg-violet/10' : 'border-border'}`}
+                className={`block w-full rounded-md border px-3 py-2 text-left text-[12.5px] ${selected?.id === candidate.id ? 'border-violet bg-violet/10' : 'border-border'}`}
                 onClick={() => setSelected(candidate)}
               >{candidate.name}</button>
             ))}
-            {!candidates.isPending && !candidates.isError && !candidateFailure && options.length === 0 ? <p className="py-3 text-sm text-muted-foreground">{t('No projects or teams match.')}</p> : null}
+            {!candidates.isPending && !candidates.isError && !candidateFailure && options.length === 0 ? <p className="py-3 text-[12.5px] text-muted-foreground">{t('No projects or teams match.')}</p> : null}
             {candidates.hasNextPage ? (
               <Button variant="ghost" onClick={() => void candidates.fetchNextPage()} disabled={candidates.isFetchingNextPage}>{t('Load more')}</Button>
             ) : null}
@@ -237,5 +237,5 @@ function CandidateFailure({ reason, retry, retryAfterSeconds = 0, generation }: 
     const timer = window.setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1_000)
     return () => window.clearInterval(timer)
   }, [cooldown > 0])
-  return <div className="rounded-md border border-danger/30 bg-danger/5 p-3 text-sm"><p className="text-danger">{reason}</p><Button className="mt-2" variant="outline" disabled={cooldown > 0} onClick={retry}>{cooldown > 0 ? t('Retry in {count}s', { count: cooldown }) : t('Retry')}</Button></div>
+  return <div className="rounded-md border border-danger/30 bg-danger/5 p-3 text-[12.5px]"><p className="text-danger">{reason}</p><Button className="mt-2" variant="outline" disabled={cooldown > 0} onClick={retry}>{cooldown > 0 ? t('Retry in {count}s', { count: cooldown }) : t('Retry')}</Button></div>
 }

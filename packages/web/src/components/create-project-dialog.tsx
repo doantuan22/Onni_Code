@@ -252,7 +252,7 @@ export function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onO
               data-slot="create-start"
               className="grid gap-3 rounded-md border border-border p-3 md:flex md:min-h-0 md:flex-1 md:flex-col"
             >
-              <span id="create-start-label" className="text-sm font-medium">
+              <span id="create-start-label" className="text-[12.5px] font-medium">
                 {t('Start with')}
               </span>
               <div role="radiogroup" aria-labelledby="create-start-label" className="grid gap-2 sm:grid-cols-2">
@@ -378,14 +378,14 @@ function OwnerPicker({
                 }
               }}
               className={cn(
-                'flex w-full items-center gap-3 rounded-lg border bg-card px-3 py-2.5 text-left outline-none transition-colors',
+                'flex w-full items-center gap-3 rounded-md border bg-card px-3 py-2.5 text-left outline-none transition-colors',
                 'focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50',
                 selected ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50',
               )}
             >
               <OwnerAvatar owner={o} />
               <span className="grid min-w-0 flex-1 gap-0.5">
-                <span className="flex items-center gap-1.5 truncate text-sm font-semibold">
+                <span className="flex items-center gap-1.5 truncate text-[12.5px] font-semibold">
                   {o.login}
                   {selected ? <CircleCheckIcon className="size-4 shrink-0 text-primary" aria-hidden="true" /> : null}
                 </span>
@@ -433,7 +433,7 @@ function StartOption({
         checked ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50',
       )}
     >
-      <span className="text-sm font-medium">{title}</span>
+      <span className="text-[12.5px] font-medium">{title}</span>
       <span className="text-[12px] text-muted-foreground">{hint}</span>
     </button>
   )
@@ -448,7 +448,7 @@ function OwnerPickerLoading() {
         {t('Select organization')}
       </span>
       {[0, 1].map((i) => (
-        <div key={i} className="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5">
+        <div key={i} className="flex items-center gap-3 rounded-md border border-border px-3 py-2.5">
           <span className="size-9 shrink-0 motion-safe:animate-pulse rounded-full bg-muted" />
           <span className="h-3 w-24 motion-safe:animate-pulse rounded bg-muted" />
         </div>
@@ -480,7 +480,7 @@ function OwnerAvatar({ owner }: { owner: GithubOwner }) {
     <span
       aria-hidden="true"
       className={cn(
-        'flex size-9 shrink-0 items-center justify-center bg-muted text-sm font-semibold text-muted-foreground uppercase',
+        'flex size-9 shrink-0 items-center justify-center bg-muted text-[12.5px] font-semibold text-muted-foreground uppercase',
         shape,
       )}
     >

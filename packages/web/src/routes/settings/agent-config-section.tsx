@@ -68,7 +68,7 @@ export function AgentConfigSection() {
 
   if (listing.isPending) {
     return (
-      <p data-slot="agent-config-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">
+      <p data-slot="agent-config-loading" className="p-4 text-[12.5px] text-soft-foreground md:p-6">
         {t('Loading agent config…')}
       </p>
     )
@@ -104,7 +104,7 @@ function AgentConfigView({ listing, installed }: { listing: AgentConfigListing; 
       {!listing.editable && (
         <div
           data-slot="agent-config-readonly"
-          className="rounded-md border border-border bg-muted/40 px-3 py-2 text-[13px] text-soft-foreground"
+          className="rounded-md border border-border bg-muted/40 px-3 py-2 text-[12.5px] text-soft-foreground"
         >
           {t('Read-only: agent config is edited from the machine that owns the checkout (this cockpit runs in hosted mode). You can still see every file and which one wins.')}
         </div>
@@ -122,7 +122,7 @@ function AgentConfigView({ listing, installed }: { listing: AgentConfigListing; 
             data-selected={d.id === agent.id}
             onClick={() => pickAgent(d.id)}
             className={cn(
-              'flex items-center gap-2 rounded-md px-3 py-1.5 text-[13px] transition-colors',
+              'flex items-center gap-2 rounded-md px-3 py-1.5 text-[12.5px] transition-colors',
               d.id === agent.id ? 'bg-background font-semibold shadow-sm' : 'hover:bg-muted/60',
             )}
           >
@@ -156,7 +156,7 @@ function AgentConfigView({ listing, installed }: { listing: AgentConfigListing; 
           {selected ? (
             <FileEditor key={selected.id} file={selected} />
           ) : (
-            <div className="flex h-full min-h-40 items-center justify-center rounded-md border border-dashed border-border text-[13px] text-soft-foreground">
+            <div className="flex h-full min-h-40 items-center justify-center rounded-md border border-dashed border-border text-[12.5px] text-soft-foreground">
               {t('Select a config file to view or edit it.')}
             </div>
           )}
@@ -199,7 +199,7 @@ function AgentPane({
                     data-selected={file.id === selectedId}
                     onClick={() => onSelect(file.id)}
                     className={cn(
-                      'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors',
+                      'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12.5px] transition-colors',
                       file.id === selectedId ? 'bg-primary/15 text-foreground' : 'hover:bg-muted/60',
                     )}
                   >
@@ -306,7 +306,7 @@ export function FileEditor({ file }: { file: AgentConfigFile }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-mono text-[13px]">{file.label}</span>
+        <span className="font-mono text-[12.5px]">{file.label}</span>
         <Badge variant="outline" className="text-[10px] uppercase">
           {file.format}
         </Badge>
@@ -329,9 +329,9 @@ export function FileEditor({ file }: { file: AgentConfigFile }) {
       </p>
 
       {fileQuery.isPending ? (
-        <p className="text-[13px] text-soft-foreground">{t('Loading file…')}</p>
+        <p className="text-[12.5px] text-soft-foreground">{t('Loading file…')}</p>
       ) : fileQuery.isError ? (
-        <p className="text-[13px] text-destructive">{fileQuery.error.message}</p>
+        <p className="text-[12.5px] text-destructive">{fileQuery.error.message}</p>
       ) : (
         <CodeEditor
           value={content}

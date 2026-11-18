@@ -307,7 +307,7 @@ export const GraphNodeView = memo(function GraphNodeView({
       ? 'rounded-l-[32px] rounded-r-xl'
       : node.type === 'end'
         ? 'rounded-full'
-        : 'rounded-xl'
+        : 'rounded-md'
 
   return (
     <div
@@ -362,7 +362,7 @@ export const GraphNodeView = memo(function GraphNodeView({
           />
         )}
         {node.type === 'loop' && loopCount ? (
-          <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 rounded-full border border-border bg-background px-1.5 text-[9px] leading-4 text-muted-foreground">
+          <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 rounded-sm border border-border bg-background px-1.5 text-[9px] leading-4 text-muted-foreground">
             {loopCount}/{node.max}
           </span>
         ) : null}

@@ -102,23 +102,25 @@
 :root {
   color-scheme: dark;
 
-  /* neutral ramp — elevation comes from surface steps, not shadows */
-  --background: #0d0d0d;
-  --foreground: #ffffff;
-  --card: #171717;
-  --card-2: #1c1c1c;
+  /* Neutral ramp — terminal surfaces. One near-black canvas, surfaces separated by a single
+   * step and a hairline border, never by elevation: this is what keeps the cockpit reading as
+   * an instrument panel rather than a stack of cards. */
+  --background: #090909;
+  --foreground: #ededed;
+  --card: #111111;
+  --card-2: #151515;
   /* The sidebar's surface. Its own token because the two themes disagree about what it is:
-   * dark wants the card step, light wants a tint *below* the white card so the rail reads as
-   * chrome rather than page. See the `.light` block. */
-  --sidebar: var(--card);
-  --muted: #262626;
-  --muted-foreground: #a3a3a3;
+   * dark wants chrome *below* the page so the rail recedes, light wants a tint below the white
+   * card. See the `.light` block. */
+  --sidebar: #0b0b0b;
+  --muted: #1b1b1b;
+  --muted-foreground: #a1a1a1;
   /* AA (4.5:1) against every dark surface it sits on, down to --card-2; pinned by theme-contrast.test.ts. */
-  --soft-foreground: #8f8f8f;
-  --border: #262626;
-  --input: #262626;
-  --contrast: #ebebeb;
-  --contrast-foreground: #171717;
+  --soft-foreground: #8a8a8a;
+  --border: #242424;
+  --input: #242424;
+  --contrast: #ededed;
+  --contrast-foreground: #101010;
 
   /* Violet is the cockpit's single interactive accent. Keep every semantic use pointed at this
    * family so links, active tabs and focus treatments cannot drift apart. */
@@ -222,9 +224,9 @@
   --muted-foreground: #5c5c5c;
   /* #a3a3a3 was 2.4:1 on the light surfaces. #6b6b6b clears AA on background, card, --sidebar and --muted. */
   --soft-foreground: #6b6b6b;
-  --border: #e8e8e8;
-  --input: #ebebeb;
-  --contrast: #262626;
+  --border: #e4e4e4;
+  --input: #e4e4e4;
+  --contrast: #1f1f1f;
   --contrast-foreground: #ffffff;
 
   /* This light-theme violet clears AA as page ink and as a fill behind white text. */
@@ -366,18 +368,20 @@
  */
 
 @theme static {
+  /* Tight radii: 4px for chips and inputs, 6px for controls, 8px only for floating panels.
+   * Large rounded corners read as a consumer chat app; a terminal reads square. */
   --radius-*: initial;
-  --radius-sm: 8px;
-  --radius: 10px; /* default control radius — no namespace suffix, so it makes no utility of its own */
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --radius-sm: 4px;
+  --radius: 6px; /* default control radius — no namespace suffix, so it makes no utility of its own */
+  --radius-lg: 8px;
+  --radius-xl: 10px;
 
-  /* restrained by design — borders carry most of the separation */
+  /* Borders carry the separation; shadows exist only to lift overlays off the canvas. */
   --shadow-*: initial;
-  --shadow-xs: 0 1px 2px 0 rgba(10, 13, 20, 0.03);
-  --shadow-sm: 0 2px 4px 0 rgba(27, 28, 29, 0.04);
-  --shadow-md: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
-  --shadow-modal: 0 16px 48px 0 rgba(0, 0, 0, 0.45);
+  --shadow-xs: 0 1px 1px 0 rgba(0, 0, 0, 0.18);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.28);
+  --shadow-md: 0 12px 32px -12px rgba(0, 0, 0, 0.45);
+  --shadow-modal: 0 24px 64px 0 rgba(0, 0, 0, 0.55);
 }
 
 /* ---------- Tailwind theme: utilities point at the tokens above ----------
@@ -505,8 +509,16 @@
     background: var(--background);
     color: var(--foreground);
     font-family: var(--sans);
+    letter-spacing: -0.006em; /* terminal density: Inter at 13px reads loose without it */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Selecting text is part of reading a transcript all day; the browser default is a bright
+   * system blue that belongs to no token. */
+  ::selection {
+    background: color-mix(in oklab, var(--violet) 32%, transparent);
+    color: var(--foreground);
   }
 
   code,
@@ -532,12 +544,15 @@
 
   /* Slim scrollbars — the cockpit is dense and the default chrome is heavy. */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--muted);
+    background: var(--border);
     border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
   }
   ::-webkit-scrollbar-track {
     background: transparent;
@@ -569,6 +584,29 @@
   }
 }
 
+/* ---------- loading sweep (LoadingSplash, the boot placeholder in index.html) ----------
+ * The loading surface's whole motion: one violet bar crossing a hairline track. Reduced-motion
+ * readers get a solid, half-lit bar instead of a moving one. */
+
+.loading-sweep {
+  animation: loading-sweep 1.5s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+@keyframes loading-sweep {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(360%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-sweep {
+    animation: none;
+    width: 100%;
+    opacity: 0.45;
+  }
+}
+
 /* ---------- ghost code (new-task hero backdrop) ----------
  * The `/new` hero's "someone is quietly writing code" texture (ghost-code-backdrop.tsx).
  * Character-by-character reveal is the classic CSS typewriter: the line clips at `width`,
@@ -583,6 +621,9 @@
   width: calc(var(--n) * 1ch);
   overflow: hidden;
   white-space: pre;
+  /* The typing animation relayouts its line every step; containment keeps that layout and
+   * repaint inside the one line instead of reaching the whole hero backdrop. */
+  contain: layout paint;
 }
 .ghost-code-block {
   opacity: 0.3;
@@ -777,10 +818,10 @@
  * which the API treats as an instant swap. */
 
 ::view-transition-old(.route-fade) {
-  animation: route-fade-out var(--duration-slow) var(--ease-out) both;
+  animation: route-fade-out var(--duration-base) var(--ease-out) both;
 }
 ::view-transition-new(.route-fade) {
-  animation: route-fade-in var(--duration-slow) var(--ease-out) both;
+  animation: route-fade-in var(--duration-base) var(--ease-out) both;
 }
 @keyframes route-fade-out {
   to {

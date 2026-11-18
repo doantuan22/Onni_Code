@@ -180,7 +180,7 @@ export function RepoBranchesSection({ repo, info }: { repo: RepoResponse; info: 
           value={repo.baseBranch ?? ''}
           disabled={setBase.isPending}
           onChange={(event) => setBase.mutate(event.target.value === '' ? null : event.target.value)}
-          className="mt-1.5 block w-full rounded-md border border-input bg-card px-3 py-1.5 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+          className="mt-1.5 block w-full rounded-sm border border-input bg-card px-2.5 py-1 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
         >
           <option value="">{t('follow checked-out branch (default)')}</option>
           {repo.branches.map((name) => (

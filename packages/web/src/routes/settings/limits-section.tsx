@@ -43,7 +43,7 @@ export function LimitsPanel({ config }: { config: WorkspaceConfigResponse }) {
   const safety = config.safety
 
   return (
-    <div data-slot="limits-section" className="flex flex-col gap-7">
+    <div data-slot="limits-section" className="flex flex-col gap-5">
       <SettingsField
         title={t('Run limits')}
         hint={t('The default for new runs. Capped applies only the numbers you enter (blank = no limit on that axis); Unlimited applies none. Each run keeps the values it started with, and a task tree shares its root\'s ceilings.')}
@@ -65,7 +65,7 @@ export function LimitsPanel({ config }: { config: WorkspaceConfigResponse }) {
       </SettingsField>
 
       <details data-slot="limits-advanced" className="rounded-md border border-border p-3">
-        <summary className="cursor-pointer text-sm font-semibold">{t('Advanced')}</summary>
+        <summary className="cursor-pointer text-[12.5px] font-semibold">{t('Advanced')}</summary>
         <p className="mt-1 text-[12px] text-muted-foreground">
           {t('These stay on whichever mode you choose: they stop a night-long task from hanging or fanning out.')}
         </p>
@@ -87,7 +87,7 @@ export function LimitsPanel({ config }: { config: WorkspaceConfigResponse }) {
                 <Switch aria-label={t('Unlimited worker calls')} data-slot="safety-subtasks-unlimited"
                   checked={safety.dispatchUnlimitedSubtasks}
                   onCheckedChange={(checked) => save.mutateAsync({ safety: { dispatchUnlimitedSubtasks: checked } })} />
-                <span className="text-[13px] text-muted-foreground">{t('Unlimited worker calls')}</span>
+                <span className="text-[12.5px] text-muted-foreground">{t('Unlimited worker calls')}</span>
               </label>
             </div>
           </SettingsField>
@@ -100,7 +100,7 @@ export function LimitsPanel({ config }: { config: WorkspaceConfigResponse }) {
                 <Switch aria-label={t('Unlimited concurrent workers')} data-slot="safety-concurrent-unlimited"
                   checked={safety.dispatchUnlimitedConcurrent === true}
                   onCheckedChange={(checked) => save.mutateAsync({ safety: { dispatchUnlimitedConcurrent: checked } })} />
-                <span className="text-[13px] text-muted-foreground">{t('Unlimited concurrent workers')}</span>
+                <span className="text-[12.5px] text-muted-foreground">{t('Unlimited concurrent workers')}</span>
               </label>
             </div>
           </SettingsField>

@@ -13,13 +13,13 @@ function chipOf(ui: React.ReactElement) {
 }
 
 describe('Chip', () => {
-  it('is a 26px bordered pill button by default', () => {
+  it('is a 26px bordered chip button by default', () => {
     const chip = chipOf(<Chip>quick-task</Chip>)
 
     expect(chip.tagName).toBe('BUTTON')
     expect(chip.type).toBe('button')
     expect(chip.className).toContain('h-[26px]')
-    expect(chip.className).toContain('rounded-full')
+    expect(chip.className).toContain('rounded-sm')
     expect(chip.className).toContain('border-border')
     expect(chip.getAttribute('data-active')).toBeNull()
   })

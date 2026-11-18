@@ -52,7 +52,7 @@ function setupLine(
 
 function Row({ ok, children }: { ok: boolean; children: React.ReactNode }) {
   return (
-    <li className="flex items-center gap-2 text-sm" data-ok={ok}>
+    <li className="flex items-center gap-2 text-[12.5px]" data-ok={ok}>
       {ok ? <CheckIcon className="size-4 text-success" aria-hidden /> : <MinusIcon className="size-4 text-muted-foreground" aria-hidden />}
       <span className={ok ? undefined : 'text-muted-foreground'}>{children}</span>
     </li>
@@ -110,16 +110,16 @@ export function TesterArmyE2eCard() {
   const badge = inFlight ? t('Setting up') : installed ? t('Installed') : t('Not set up')
   return (
     <div className="flex flex-col gap-4" data-slot="e2e-settings">
-      <section className="rounded-lg border border-border bg-card p-4">
+      <section className="rounded-md border border-border bg-card p-4">
         <div className="flex items-start gap-3">
           <img src={testerArmyLogo} alt="" width={40} height={40} className="size-10 shrink-0 rounded-md" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-sm font-semibold">TesterArmy e2e</h2>
+              <h2 className="text-[12.5px] font-semibold">TesterArmy e2e</h2>
               <span data-slot="e2e-badge" data-state={inFlight ? 'setting-up' : installed ? 'installed' : 'none'}
                 className={installed && !inFlight
-                  ? 'rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success'
-                  : 'rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground'}>
+                  ? 'rounded-sm bg-success/10 px-2 py-0.5 text-xs font-medium text-success'
+                  : 'rounded-sm bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground'}>
                 {badge}
               </span>
             </div>
@@ -130,12 +130,12 @@ export function TesterArmyE2eCard() {
             tester-army/e2e <ExternalLinkIcon className="size-3" aria-hidden />
           </a>
         </div>
-        <p className="mt-3 text-sm text-muted-foreground">
+        <p className="mt-3 text-[12.5px] text-muted-foreground">
           {t('onni installs it for this project, points it at your dev server, writes a smoke test and an')}
           {' '}<code>implement-and-e2e</code> {t('workflow, proves it all passes in a real browser and opens a draft PR for you to merge.')}
         </p>
-        {status.isPending ? <p className="mt-4 text-sm text-muted-foreground">{t('Loading…')}</p> : null}
-        {status.isError ? <p role="alert" className="mt-4 text-sm text-danger">{status.error.message}</p> : null}
+        {status.isPending ? <p className="mt-4 text-[12.5px] text-muted-foreground">{t('Loading…')}</p> : null}
+        {status.isError ? <p role="alert" className="mt-4 text-[12.5px] text-danger">{status.error.message}</p> : null}
         {status.data ? (
           <ul className="mt-4 flex flex-col gap-1.5" aria-label={t('e2e status')}>
             <Row ok={Boolean(status.data.configFile)}>{status.data.configFile ? <>{t('Configured')} (<code>{status.data.configFile}</code>)</> : t('Not configured in this checkout')}</Row>
@@ -148,7 +148,7 @@ export function TesterArmyE2eCard() {
           </ul>
         ) : null}
         {status.data?.setup && setupStatus ? (
-          <p className="mt-3 text-sm" data-slot="e2e-setup-run" data-status={setupStatus}>
+          <p className="mt-3 text-[12.5px]" data-slot="e2e-setup-run" data-status={setupStatus}>
             {setupLine(setupStatus, Boolean(status.data.configFile), setupRun.data?.branch, prUrl, t)}{' '}
             {prUrl && !status.data.configFile ? (
               <><a className="underline" href={prUrl} target="_blank" rel="noreferrer">{t('Open the draft PR')}</a>{' · '}</>
@@ -158,9 +158,9 @@ export function TesterArmyE2eCard() {
         ) : null}
       </section>
 
-      <form className="rounded-lg border border-border bg-card p-4" autoComplete="off" onSubmit={(event) => { event.preventDefault(); starting.mutate() }}>
-        <h2 className="text-sm font-semibold">{installed ? t('Set up again') : t('Set up e2e')}</h2>
-        <label className="mt-3 block text-sm">{t('Model provider')}
+      <form className="rounded-md border border-border bg-card p-4" autoComplete="off" onSubmit={(event) => { event.preventDefault(); starting.mutate() }}>
+        <h2 className="text-[12.5px] font-semibold">{installed ? t('Set up again') : t('Set up e2e')}</h2>
+        <label className="mt-3 block text-[12.5px]">{t('Model provider')}
           <AppSelect aria-label={t('Model provider')} value={provider} onChange={(event) => setProvider(event.target.value as E2eCredentialName)}
             className="mt-1 block w-full rounded border border-border bg-background p-2 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50">
             {E2E_CREDENTIAL_NAMES.map((name) => (
@@ -168,7 +168,7 @@ export function TesterArmyE2eCard() {
             ))}
           </AppSelect>
         </label>
-        <label className="mt-3 block text-sm">{t('API key')} <span className="text-muted-foreground">{t('(optional)')}</span>
+        <label className="mt-3 block text-[12.5px]">{t('API key')} <span className="text-muted-foreground">{t('(optional)')}</span>
           <input aria-label={t('API key')} type="password" autoComplete="off" value={key} onChange={(event) => setKey(event.target.value)}
             placeholder={credentials.includes(provider) ? t('stored — leave empty to keep it') : ''}
             className="mt-1 block w-full rounded border border-border bg-background p-2" />
@@ -176,7 +176,7 @@ export function TesterArmyE2eCard() {
         <p className="mt-1 text-xs text-muted-foreground">
           {t('Stored encrypted as a project secret for check steps only — never handed to an agent session.')}
         </p>
-        {error ? <p role="alert" className="mt-2 text-sm text-danger">{error}</p> : null}
+        {error ? <p role="alert" className="mt-2 text-[12.5px] text-danger">{error}</p> : null}
         <div className="mt-3">
           <Button type="submit" disabled={starting.isPending || inFlight || !status.data}>
             {inFlight ? t('Setup in progress…') : installed ? t('Set up again') : t('Set up e2e')}

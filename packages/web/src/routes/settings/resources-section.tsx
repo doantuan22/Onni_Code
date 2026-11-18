@@ -15,6 +15,7 @@ import { LimitsPanel } from './limits-section'
 import { MachineCard } from './machine-card'
 import { SettingsField, SettingsGroup } from './settings-field'
 import { AppSelect } from '@/components/ui/app-select'
+import { Switch } from '@/components/ui/switch'
 
 /**
  * Global settings → Resources: how hard the MACHINE works. `maxParallel` caps concurrent tasks
@@ -34,7 +35,7 @@ import { AppSelect } from '@/components/ui/app-select'
  */
 
 const MAX_PARALLEL_MIN = 1
-const MAX_PARALLEL_MAX = 16
+const MAX_PARALLEL_MAX = 50
 const MAX_MONITORING_MAX = 16
 const IDLE_TIMEOUT_MAX = 1440
 const WAKE_INTERVAL_MIN = 1
@@ -48,7 +49,7 @@ export function ResourcesSection() {
 
   if (config.isPending) {
     return (
-      <p data-slot="resources-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">
+      <p data-slot="resources-loading" className="p-4 text-[12.5px] text-soft-foreground md:p-6">
         {t('Loading resource settings…')}
       </p>
     )
@@ -78,6 +79,18 @@ function ResourcesForm({ config }: { config: WorkspaceConfigResponse }) {
   })
 
   // Memory edits locally and saves explicitly — an empty field means "no limit".
+  // Memory edits locally and saves explicitly — an empty field means "no limit".
+  const unlimited = config.resources.maxParallelUnlimited
+  const saveUnlimited = (on: boolean) => save.mutate(
+    { resources: { maxParallelUnlimited: on } },
+    {
+      onSuccess: () => toast(
+        on
+          ? t('Every queued task may start; the workspace no longer caps parallel tasks')
+          : t('The workspace parallel limit is back in effect'),
+      ),
+    },
+  )
   const [memory, setMemory] = useState(
     config.resources.memoryLimitMb ? String(config.resources.memoryLimitMb) : '',
   )
@@ -143,16 +156,30 @@ function ResourcesForm({ config }: { config: WorkspaceConfigResponse }) {
       <SettingsGroup title={t('Parallel runs')} description={t('How many tasks and monitoring sessions run at the same time.')}>
       <SettingsField
         title={t('Max parallel tasks')}
-        hint={t('How many tasks run at once across every project. The rest wait in the queue. A non-git directory always runs one at a time.')}
+        hint={unlimited
+          ? t('No workspace-wide cap: every queued task starts as soon as its project allows.')
+          : t('How many tasks run at once across every project. The rest wait in the queue. A non-git directory always runs one at a time.')}
       >
-        <IntegerStepper
-          aria-label={t('Max parallel tasks')}
-          data-slot="resources-max-parallel"
-          value={config.resources.maxParallel}
-          min={MAX_PARALLEL_MIN}
-          max={MAX_PARALLEL_MAX}
-          onCommit={(maxParallel) => save.mutateAsync({ resources: { maxParallel: maxParallel ?? MAX_PARALLEL_MIN } })}
-        />
+        <div className="flex flex-wrap items-center gap-4">
+          <IntegerStepper
+            aria-label={t('Max parallel tasks')}
+            data-slot="resources-max-parallel"
+            value={config.resources.maxParallel}
+            min={MAX_PARALLEL_MIN}
+            max={MAX_PARALLEL_MAX}
+            disabled={unlimited}
+            onCommit={(maxParallel) => save.mutateAsync({ resources: { maxParallel: maxParallel ?? MAX_PARALLEL_MIN } })}
+          />
+          <label className="flex items-center gap-2">
+            <Switch
+              aria-label={t('Unlimited parallel tasks')}
+              data-slot="resources-max-parallel-unlimited"
+              checked={unlimited}
+              onCheckedChange={saveUnlimited}
+            />
+            <span className="text-[12.5px] text-muted-foreground">{t('Unlimited parallel tasks')}</span>
+          </label>
+        </div>
         <p className="text-[11px] text-soft-foreground">
           {t('Need a different limit for one project?')}{' '}
           <Link
@@ -180,7 +207,7 @@ function ResourcesForm({ config }: { config: WorkspaceConfigResponse }) {
         />
         <p className="text-[11px] text-soft-foreground">
           {t('Capacity: {active} active + {monitoring} monitoring. Set 0 to make monitoring share active slots.', {
-            active: config.resources.maxParallel,
+            active: unlimited ? t('Unlimited') : config.resources.maxParallel,
             monitoring: config.resources.maxMonitoringSessions ?? 2,
           })}
         </p>
@@ -220,7 +247,7 @@ function ResourcesForm({ config }: { config: WorkspaceConfigResponse }) {
             disabled={save.isPending}
             placeholder={t('no limit')}
             onChange={(event) => setMemory(event.target.value)}
-            className="block w-40 rounded-md border border-input bg-card px-3 py-1.5 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+            className="block w-40 rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
           />
           <span className="text-xs text-soft-foreground">MiB</span>
           <Button
@@ -255,7 +282,7 @@ function ResourcesForm({ config }: { config: WorkspaceConfigResponse }) {
             value={wakeMode}
             disabled={save.isPending}
             onChange={(event) => setWakeMode(event.target.value as 'park' | 'interval')}
-            className="rounded-md border border-input bg-card px-3 py-1.5 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+            className="rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
           >
             <option value="park">{t('Park until resumed')}</option>
             <option value="interval">{t('Re-check on an interval')}</option>
@@ -271,7 +298,7 @@ function ResourcesForm({ config }: { config: WorkspaceConfigResponse }) {
                 value={wakeInterval}
                 disabled={save.isPending}
                 onChange={(event) => setWakeInterval(event.target.value)}
-                className="block w-24 rounded-md border border-input bg-card px-3 py-1.5 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+                className="block w-24 rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
               />
               <span className="text-xs text-soft-foreground">{t('minutes')}</span>
             </>
@@ -295,7 +322,7 @@ function ResourcesForm({ config }: { config: WorkspaceConfigResponse }) {
           value={autoResume ? 'on' : 'off'}
           disabled={save.isPending}
           onChange={(event) => saveAutoResume(event.target.value === 'on')}
-          className="block w-28 rounded-md border border-input bg-card px-3 py-1.5 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+          className="block w-28 rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
         >
           <option value="on">{t('On')}</option>
           <option value="off">{t('Off')}</option>
@@ -311,14 +338,14 @@ function ResourcesForm({ config }: { config: WorkspaceConfigResponse }) {
         hint={t('Set stable composer defaults across projects. Explicit choices and run-shape constraints still win.')}
       >
         <div className="grid gap-4 sm:grid-cols-2" data-slot="resources-composer-defaults">
-          <label className="grid gap-1.5 text-sm">
+          <label className="grid gap-1.5 text-[12.5px]">
             <span className="font-medium">{t('Autonomous by default')}</span>
             <AppSelect
               aria-label={t('Autonomous by default')}
               value={composerDefaults.autonomous === null ? 'inherit' : composerDefaults.autonomous ? 'on' : 'off'}
               disabled={save.isPending}
               onChange={(event) => saveComposerDefault('autonomous', event.target.value)}
-              className="rounded-md border border-input bg-card px-3 py-1.5 shadow-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="rounded-md border border-input bg-card px-3 py-1.5 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
               <option value="inherit">{t('Inherit environment')}</option>
               <option value="on">{t('On')}</option>
@@ -330,14 +357,14 @@ function ResourcesForm({ config }: { config: WorkspaceConfigResponse }) {
                 : composerDefaults.inheritedAutonomous ? t('On') : t('Off')}
             </span>
           </label>
-          <label className="grid gap-1.5 text-sm">
+          <label className="grid gap-1.5 text-[12.5px]">
             <span className="font-medium">{t('Use a worktree by default')}</span>
             <AppSelect
               aria-label={t('Use a worktree by default')}
               value={composerDefaults.worktree === null ? 'inherit' : composerDefaults.worktree ? 'on' : 'off'}
               disabled={save.isPending}
               onChange={(event) => saveComposerDefault('worktree', event.target.value)}
-              className="rounded-md border border-input bg-card px-3 py-1.5 shadow-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="rounded-md border border-input bg-card px-3 py-1.5 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
               <option value="inherit">{t('Inherit environment')}</option>
               <option value="on">{t('On')}</option>

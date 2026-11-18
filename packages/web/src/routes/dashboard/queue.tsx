@@ -41,7 +41,7 @@ export function Queue({
       live.connected &&
       snapshot.counts.questions + snapshot.counts.reviews === 0 &&
       snapshot.coverage.projects.every((p) => p.state === 'complete') ? (
-        <p className="flex items-center gap-2.5 px-4 py-8 text-sm text-muted-foreground">
+        <p className="flex items-center gap-2.5 px-3.5 py-6 text-[12.5px] text-muted-foreground">
           <StatusDot tone="success" />
           {t('All caught up — no tasks need your input')}
         </p>
@@ -81,14 +81,14 @@ function QueueSection({
       <h3
         ref={heading}
         tabIndex={-1}
-        className="border-b bg-card-2 px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
+        className="border-b bg-card-2 px-3.5 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
       >
         {group === 'questions' ? t('Questions') : t('Reviews')} · {initial.total}
       </h3>
       {staged.updates > 0 && (
         <Button
           variant="ghost"
-          className="m-2 min-h-11"
+          className="m-2"
           onClick={() => {
             staged.show()
             heading.current?.focus()
@@ -111,11 +111,11 @@ function QueueSection({
         />
       ))}
       {(query.isError || displaced.isError) && (
-        <p role="alert" className="p-4 text-sm">
+        <p role="alert" className="p-4 text-[12.5px]">
           {t('Could not check current task state.')}{' '}
           <Button
             variant="ghost"
-            className="min-h-11"
+           
             onClick={() => {
               void query.refetch()
               void displaced.refetch()
@@ -128,7 +128,7 @@ function QueueSection({
       {wanted < initial.total && (
         <Button
           variant="ghost"
-          className="m-2 min-h-11"
+          className="m-2"
           disabled={query.isFetching}
           onClick={() => more(group, wanted + Math.min(20, initial.total - wanted))}
         >

@@ -100,7 +100,7 @@ export interface SettingsSection {
   /** Declared but not yet implemented: no nav entry, no route (the URL is honestly a 404). */
   hidden?: boolean
   /** The column the body centres in, so the page header can start where the content starts.
-   *  `form` (default) is `max-w-2xl`, `wide` is `max-w-4xl`, `full` is a layout that spans the pane. */
+   *  `form` (default) is `max-w-3xl`, `wide` is `max-w-5xl`, `full` is a layout that spans the pane. */
   measure?: 'form' | 'wide' | 'full'
 }
 

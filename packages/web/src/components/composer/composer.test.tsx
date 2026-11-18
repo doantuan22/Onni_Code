@@ -115,9 +115,9 @@ describe('submit shortcuts', () => {
 
     expect(textarea.rows).toBe(1)
     expect(classes).toContain('min-h-11')
-    expect(classes).toContain('md:min-h-[54px]')
+    expect(classes).toContain('md:min-h-[46px]')
     expect(classes).toContain('text-base')
-    expect(classes).toContain('md:text-sm')
+    expect(classes).toContain('md:text-[13.5px]')
   })
 
   it('autosizing while typing keeps the surrounding scroller where it was', () => {

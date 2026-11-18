@@ -74,9 +74,9 @@ export function TemplatePalette({ onPick }: { onPick: (template: TemplatePick) =
             <div
               key={item.key}
               data-slot="template-card"
-              className="flex flex-col gap-1.5 rounded-[10px] border border-border bg-card-2 px-3 py-2.5"
+              className="flex flex-col gap-1.5 rounded-md border border-border bg-card-2 px-3 py-2.5"
             >
-              <div className="flex items-center gap-2 text-[13px] font-semibold">
+              <div className="flex items-center gap-2 text-[12.5px] font-semibold">
                 {item.kind === 'github'
                   ? <GithubIcon aria-hidden="true" className="size-[13px] shrink-0 text-soft-foreground" />
                   : <Clock3Icon aria-hidden="true" className="size-[13px] shrink-0 text-soft-foreground" />}
@@ -111,7 +111,7 @@ function PaletteTab({ active, onClick, children }: { active: boolean; onClick: (
       aria-selected={active}
       onClick={onClick}
       className={cn(
-        '-mb-px flex h-8 items-center rounded-t-md border-b-2 px-3 text-[13px] font-medium',
+        '-mb-px flex h-7 items-center border-b-2 px-2 text-[12px] font-medium',
         active
           ? 'border-foreground font-semibold text-foreground'
           : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground',

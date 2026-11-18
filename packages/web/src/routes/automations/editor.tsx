@@ -172,11 +172,11 @@ export function AutomationEditor({ data, automation, actions, onBack, onSaved, o
     <div data-route="automations" data-slot="automation-editor" className="flex min-h-full flex-col">
       {/* The kit's 56px header. Below `md` it may wrap onto a second row: a phone cannot fit the
           title, the template toggle and both actions on one line, and Save must stay reachable. */}
-      <header className="sticky top-0 z-10 flex min-h-14 shrink-0 flex-wrap items-center gap-3 border-b border-border bg-background px-5 max-md:py-2 md:h-14 md:flex-nowrap">
+      <header className="sticky top-0 z-10 flex min-h-12 shrink-0 flex-wrap items-center gap-3 border-b border-border bg-background px-4 max-md:py-2 md:h-12 md:flex-nowrap">
         <Button variant="ghost" size="icon-sm" aria-label={t('Back')} onClick={onBack}>
           <ArrowLeftIcon aria-hidden="true" className="size-[15px]" />
         </Button>
-        <h1 className="truncate text-base font-semibold">{automation ? t('Edit automation') : t('New automation')}</h1>
+        <h1 className="truncate text-[14px] font-semibold tracking-tight">{automation ? t('Edit automation') : t('New automation')}</h1>
         {automation ? (
           <Pill dot={automation.enabled ? 'success' : 'neutral'}>{automation.enabled ? t('enabled') : t('paused')}</Pill>
         ) : null}
@@ -195,7 +195,7 @@ export function AutomationEditor({ data, automation, actions, onBack, onSaved, o
         <div className="grid w-full max-w-[1080px] grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="flex min-w-0 flex-col gap-4">
             {conflict ? (
-              <div role="alert" data-slot="editor-conflict" className="flex flex-wrap items-center gap-3 rounded-lg border border-danger/40 bg-danger/10 px-3.5 py-2.5 text-[13px] text-foreground">
+              <div role="alert" data-slot="editor-conflict" className="flex flex-wrap items-center gap-3 rounded-md border border-danger/40 bg-danger/10 px-3.5 py-2.5 text-[12.5px] text-foreground">
                 {t('Edited elsewhere — reload to see the latest version')}
                 <Button variant="outline" size="sm" className="ml-auto" onClick={reload}>{t('Reload')}</Button>
               </div>
@@ -273,7 +273,7 @@ export function AutomationEditor({ data, automation, actions, onBack, onSaved, o
                 placeholder={t(PLACEHOLDER[draft.kind])}
                 value={draft.prompt}
                 onChange={(event) => patch({ prompt: event.target.value })}
-                className="min-h-[104px] text-sm leading-[1.55] md:text-sm"
+                className="min-h-[104px] text-[12.5px] leading-[1.55] md:text-[12.5px]"
               />
               {unenforcedLogins.length > 0 ? (
                 <div role="status" data-slot="editor-prompt-condition" className="flex flex-wrap items-center gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-[12.5px] text-foreground">
@@ -316,7 +316,7 @@ export function AutomationEditor({ data, automation, actions, onBack, onSaved, o
             </Section>
 
             <Section title="Enable">
-              <Label className="text-[13px] font-medium">
+              <Label className="text-[12.5px] font-medium">
                 <Switch aria-label={t('Enabled')} checked={draft.enabled} onCheckedChange={(enabled) => patch({ enabled })} />
                 {t('Enabled')}
                 {draft.kind !== 'schedule' ? (
@@ -350,7 +350,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   const { t } = useI18n()
   return (
     <Card data-slot="editor-section" className="gap-0 px-6 py-0">
-      <div className="pt-4 pb-1 text-sm font-semibold">{t(title)}</div>
+      <div className="pt-4 pb-1 text-[12.5px] font-semibold">{t(title)}</div>
       <div className="flex flex-col gap-3.5 pt-2.5 pb-5">{children}</div>
     </Card>
   )
@@ -410,8 +410,8 @@ function KindSegment({ value, editing, githubAvailable, githubReason, onChange }
           title={option.title}
           onClick={() => { if (option.value !== value) onChange(option.value) }}
           className={cn(
-            'flex h-7 items-center justify-center gap-1.5 rounded-[7px] px-3 text-[12.5px] font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50',
-            option.value === value && 'bg-card font-semibold text-foreground shadow-xs',
+            'flex h-6 items-center justify-center gap-1.5 rounded-sm px-2.5 text-[12px] font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50',
+            option.value === value && 'bg-card-2 font-semibold text-foreground',
           )}
         >
           {t(option.label)}

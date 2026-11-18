@@ -62,7 +62,7 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          "fixed z-50 flex flex-col gap-4 bg-background shadow-modal transition ease-in-out motion-safe:data-[state=closed]:animate-out data-[state=closed]:duration-200 motion-safe:data-[state=open]:animate-in data-[state=open]:duration-250 data-[state=open]:ease-spring",
+          "fixed z-50 flex flex-col gap-3 border-border bg-background shadow-modal transition ease-in-out motion-safe:data-[state=closed]:animate-out data-[state=closed]:duration-200 motion-safe:data-[state=open]:animate-in data-[state=open]:duration-250 data-[state=open]:ease-spring",
           // The close button is positioned absolutely, so nothing else reserves its footprint and
           // header text wraps straight underneath it. Pad the header past `right-4` + the button's
           // 44px target. This has to come from here rather than SheetHeader's own base classes:
@@ -121,7 +121,7 @@ function SheetTitle({
   return (
     <SheetPrimitive.Title
       data-slot="sheet-title"
-      className={cn("font-semibold text-foreground", className)}
+      className={cn("text-[14px] font-semibold tracking-tight text-foreground", className)}
       {...props}
     />
   )
@@ -134,7 +134,7 @@ function SheetDescription({
   return (
     <SheetPrimitive.Description
       data-slot="sheet-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("text-[12.5px] leading-relaxed text-muted-foreground", className)}
       {...props}
     />
   )

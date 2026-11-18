@@ -69,7 +69,7 @@ function SheetBody({
           {agent.agentType !== undefined ? (
             <span
               data-slot="agent-type"
-              className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10.5px] font-semibold tracking-[0.05em] text-muted-foreground uppercase"
+              className="shrink-0 rounded-sm bg-muted px-2 py-0.5 text-[10.5px] font-semibold tracking-[0.05em] text-muted-foreground uppercase"
             >
               {agent.agentType}
             </span>
@@ -116,7 +116,7 @@ function StatusPill({ status }: { status: SubagentSummary['status'] }) {
       data-slot="subagent-status"
       data-status={status}
       className={cn(
-        'rounded-full px-2 py-0.5 text-[10.5px] font-semibold tracking-[0.05em] uppercase',
+        'rounded-sm px-2 py-0.5 text-[10.5px] font-semibold tracking-[0.05em] uppercase',
         status === 'completed' && 'bg-success/15 text-success',
         (status === 'failed' || status === 'declined') && 'bg-danger/15 text-danger',
         (status === 'running' || status === 'pending') && 'bg-muted text-muted-foreground',

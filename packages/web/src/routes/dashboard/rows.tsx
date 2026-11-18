@@ -40,7 +40,7 @@ export function TaskRow({
   return (
     <div
       data-dashboard-row={taskKey(row)}
-      className="min-w-0 border-b px-4 py-3 transition-colors last:border-0 hover:bg-muted/30"
+      className="min-w-0 border-b px-3.5 py-2.5 transition-colors last:border-0 hover:bg-muted/30"
     >
       <ExportRows
         rows={[
@@ -74,7 +74,7 @@ export function TaskRow({
               if (inactive) e.preventDefault()
             }}
             to={`/p/${encodeURIComponent(row.projectId)}/tasks/${encodeURIComponent(row.id)}`}
-            className="block break-words text-sm font-medium leading-relaxed hover:underline no-hover:min-h-11"
+            className="block break-words text-[13px] font-medium leading-relaxed hover:underline no-hover:min-h-11"
           >
             {row.titleSummary || row.title}
           </Link>
@@ -124,7 +124,7 @@ export function Coverage({
   const { t } = useI18n()
   if (!unavailable.length) return null
   return (
-    <div className="rounded-lg border border-pending/40 bg-card-2 p-3 text-sm" role="status">
+    <div className="rounded-md border border-pending/40 bg-card-2 p-3 text-[12px]" role="status">
       <p>
         {count !== undefined
           ? `${t('{count} tasks need you in the available data. Complete coverage: {available} of {total} projects.', {
@@ -140,7 +140,7 @@ export function Coverage({
           : t('{count} projects have incomplete coverage.', { count: unavailable.length })}
       </p>
       <details className="mt-2">
-        <summary className={`${disclosureSummary} min-h-11`}>
+        <summary className={`${disclosureSummary}`}>
           <DisclosureChevron />
           {t('View unavailable {kind}', {
             kind: unavailable.length === 1 ? t('project') : t('projects'),
@@ -153,7 +153,7 @@ export function Coverage({
           </p>
         ))}
       </details>
-      <Button variant="outline" onClick={retry} className="min-h-11">
+      <Button variant="outline" onClick={retry}>
         {t('Retry')}
       </Button>
     </div>

@@ -1,8 +1,9 @@
-import { LoaderCircleIcon, SearchXIcon, TriangleAlertIcon } from 'lucide-react'
+import { SearchXIcon, TriangleAlertIcon } from 'lucide-react'
 import { Link } from '@/lib/project-router'
 
 import { ApiError } from '@/api/client'
 import { CenteredState } from '@/components/centered-state'
+import { LoadingSplash } from '@/components/loading-splash'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/lib/i18n'
 
@@ -27,12 +28,7 @@ export function GitTabLoading({ tab }: { tab: Exclude<RunTab, 'session'> }) {
   const { t } = useI18n()
   return (
     <div data-route={`task-${tab}`} className="flex min-h-full flex-col">
-      <CenteredState
-        icon={<LoaderCircleIcon className="motion-safe:animate-spin" />}
-        tone="neutral"
-        title={LOADING_TITLE[tab]}
-        subtitle={t('Fetching the run record.')}
-      />
+      <LoadingSplash title={LOADING_TITLE[tab]} detail={t('Fetching the run record.')} />
     </div>
   )
 }

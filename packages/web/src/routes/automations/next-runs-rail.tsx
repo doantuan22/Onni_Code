@@ -64,7 +64,7 @@ export function NextRunsRail({
         className="w-[360px] gap-0 sm:max-w-[360px]"
       >
         <SheetHeader className="px-4 pt-4 pb-2">
-          <SheetTitle className="inline-flex items-center gap-2 text-sm">
+          <SheetTitle className="inline-flex items-center gap-2 text-[12.5px]">
             <CalendarClockIcon className="size-4" />
             {t('Next runs')}
           </SheetTitle>
@@ -86,10 +86,10 @@ export function NextRunsRail({
                   onOpenChange(false)
                   navigate(`/automations/${encodeURIComponent(run.automation.id)}`)
                 }}
-                className="grid w-full cursor-pointer grid-cols-[76px_1fr_auto] items-center gap-2 px-4 py-2 text-left text-[13px] hover:bg-muted"
+                className="grid w-full cursor-pointer grid-cols-[76px_1fr_auto] items-center gap-2 px-4 py-2 text-left text-[12.5px] hover:bg-muted"
               >
                 <span className="font-mono text-xs font-medium whitespace-nowrap text-muted-foreground tabular-nums">{time}</span>
-                <span className="overflow-hidden text-[13px] font-medium text-ellipsis whitespace-nowrap">{run.automation.name}</span>
+                <span className="overflow-hidden text-[12.5px] font-medium text-ellipsis whitespace-nowrap">{run.automation.name}</span>
                 <span className="text-[11px] whitespace-nowrap text-soft-foreground">{relativeIn(run.at, now)}</span>
               </button>
             )

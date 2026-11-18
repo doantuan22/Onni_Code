@@ -445,7 +445,7 @@ function Shell({
     >
       <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">{icon}</span>
       <div className="flex max-w-md flex-col gap-1">
-        <h2 className="text-sm font-medium text-foreground">{title}</h2>
+        <h2 className="text-[12.5px] font-medium text-foreground">{title}</h2>
         <p className="text-xs text-muted-foreground">{subtitle}</p>
       </div>
       {children}

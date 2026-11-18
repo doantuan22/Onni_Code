@@ -1,6 +1,4 @@
-import { LoaderCircleIcon } from 'lucide-react'
-
-import { CenteredState } from '@/components/centered-state'
+import { LoadingSplash } from '@/components/loading-splash'
 import { useI18n } from '@/lib/i18n'
 
 /**
@@ -13,12 +11,7 @@ export function GithubLoading() {
   const { t } = useI18n()
   return (
     <div data-route="github" className="flex min-h-full flex-col">
-      <CenteredState
-        icon={<LoaderCircleIcon className="motion-safe:animate-spin" />}
-        tone="neutral"
-        title={t('Loading GitHub…')}
-        subtitle={t('Fetching open issues and pull requests.')}
-      />
+      <LoadingSplash title={t('Loading GitHub…')} detail={t('Fetching open issues and pull requests.')} />
     </div>
   )
 }

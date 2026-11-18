@@ -8,10 +8,10 @@ import { AppSelect, type AppSelectProps } from '@/components/ui/app-select'
 // A pseudo-element keeps it out of textContent (tests, the export's module titles); its empty
 // alt text keeps it out of the accessible name.
 export const widgetHeading =
-  'section-mark font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground'
+  'section-mark font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground'
 // One header bar for every module, so the cards line up as a single system.
 export const widgetHeader =
-  'flex min-h-12 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b px-4 py-2.5'
+  'flex min-h-9 flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b px-3 py-2'
 // A <details> summary without the browser's triangle: a chevron that turns when the
 // disclosure opens. The rotation keys off `details[open] > summary`, the chevron's own
 // disclosure, so an open outer <details> never turns a nested one.
@@ -35,7 +35,7 @@ export function FilterSelect({ className = '', ...props }: AppSelectProps) {
 // Flat tile, status carried by a hairline rule on top (`metricAccents`) instead of a
 // full-surface gradient — the gradients read as mud on the near-black background.
 export const metricSurface =
-  'relative min-w-0 overflow-hidden rounded-lg border bg-card-2 p-4 transition-colors before:absolute before:inset-x-0 before:top-0 before:h-px before:opacity-80 hover:border-foreground/20 hover:bg-muted/40 sm:p-5'
+  'relative min-w-0 overflow-hidden rounded-md border bg-card-2 p-3.5 transition-colors before:absolute before:inset-x-0 before:top-0 before:h-px before:opacity-80 hover:border-foreground/20 hover:bg-muted/40'
 export const metricAccents = {
   violet: 'before:bg-violet',
   info: 'before:bg-info',
@@ -58,17 +58,17 @@ export function MetricContent({
   return (
     <>
       <span className="flex w-full items-center justify-between gap-2">
-        <span className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+        <span className="font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
           {label}
         </span>
         <span className="text-soft-foreground" aria-hidden="true">
           {icon}
         </span>
       </span>
-      <span className="mt-4 block text-4xl font-semibold leading-none tracking-tight tabular-nums">
+      <span className="mt-3 block text-3xl font-semibold leading-none tracking-tight tabular-nums">
         {value}
       </span>
-      <span className="mt-3 block text-xs text-soft-foreground">{children}</span>
+      <span className="mt-2 block text-[11.5px] text-soft-foreground">{children}</span>
     </>
   )
 }

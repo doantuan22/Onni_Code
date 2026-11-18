@@ -255,7 +255,7 @@ export function SwipeLaunchSheet({
             </LaunchGroup>
           ) : null}
           {shownWorkflows.length === 0 && shownSkills.length === 0 ? (
-            <p className="px-2 py-3 text-sm text-soft-foreground">
+            <p className="px-2 py-3 text-[12.5px] text-soft-foreground">
               {t('Nothing matches “{query}”.', { query: query.trim() })}
             </p>
           ) : null}

@@ -89,7 +89,7 @@ export function SplitTabStrip({
                 className={cn(
                   'group flex h-8 items-center gap-2 rounded-md px-2.5 font-medium transition-colors cursor-pointer select-none',
                   active
-                    ? 'bg-background text-foreground shadow-xs ring-1 ring-border'
+                    ? 'bg-background text-foreground ring-1 ring-border'
                     : 'text-muted-foreground hover:bg-background/50 hover:text-foreground',
                 )}
                 onClick={() => onActivate(pane.paneId)}

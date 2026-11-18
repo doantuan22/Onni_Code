@@ -106,11 +106,11 @@ export function MachineCard() {
     <section
       data-slot="machine-card"
       aria-labelledby="machine-card-title"
-      className="rounded-xl border border-border bg-card/60 p-5"
+      className="rounded-md border border-border bg-card/60 p-4"
     >
       <header className="flex min-w-0 items-center gap-2">
         <StatusDot tone={live ? 'success' : 'neutral'} pulse={live} />
-        <h2 id="machine-card-title" className="text-base font-semibold">
+        <h2 id="machine-card-title" className="text-[13.5px] font-semibold">
           {t('Machine')}
         </h2>
         <span data-slot="machine-card-mode" className="text-[11px] text-soft-foreground">
@@ -144,7 +144,7 @@ export function MachineCard() {
 
       <div className="mt-4 grid gap-5">
         <div data-slot="machine-card-cpu" className="grid grid-cols-1 items-start gap-1.5">
-          <span className="text-[13px] font-medium text-soft-foreground">
+          <span className="text-[12.5px] font-medium text-soft-foreground">
             {t('CPU')}{view?.cpuIsEffective === true ? ` ${t('(effective)')}` : ''}
           </span>
           <div className="min-w-0">
@@ -192,7 +192,7 @@ export function MachineCard() {
               data-slot="machine-card-memory"
               className="grid grid-cols-1 items-center gap-1.5"
             >
-              <span className="text-[13px] font-medium text-soft-foreground">
+              <span className="text-[12.5px] font-medium text-soft-foreground">
                 {t('Memory')}{view.memIsEffective ? ` ${t('(effective)')}` : ''}
               </span>
               <div className="flex min-w-0 items-center gap-3">
@@ -215,7 +215,7 @@ export function MachineCard() {
                 className="grid grid-cols-[86px_1fr] items-center gap-3"
               >
                 <span className="text-[12.5px] text-soft-foreground">{t('Swap')}</span>
-                <span className="text-[13px] tabular-nums">
+                <span className="text-[12.5px] tabular-nums">
                   {formatMem(sample.swapUsedBytes)} / {formatMem(sample.swapTotalBytes)}
                 </span>
               </div>
@@ -227,7 +227,7 @@ export function MachineCard() {
                 className="grid grid-cols-[86px_1fr] items-center gap-3"
               >
                 <span className="text-[12.5px] text-soft-foreground">{t('Load average')}</span>
-                <span className="flex items-center gap-2 text-[13px] tabular-nums">
+                <span className="flex items-center gap-2 text-[12.5px] tabular-nums">
                   {sample.loadAvg.one.toFixed(2)} · {sample.loadAvg.five.toFixed(2)} ·{' '}
                   {sample.loadAvg.fifteen.toFixed(2)}
                   {/* One rule: host load pairs with the host core count, so with a container it

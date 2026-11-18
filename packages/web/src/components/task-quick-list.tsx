@@ -101,7 +101,7 @@ export function TaskQuickList({
       {/* Sticky, not scrolled away: the tabs say what you are looking at, and a long Recent list
           must not be able to hide that the view is filtered. */}
       <div className="sticky top-0 z-10 bg-sidebar pt-2 pb-1">
-        <div className="inline-flex w-full gap-0.5 rounded-md bg-muted p-[3px]">
+        <div className="inline-flex w-full gap-0.5 rounded-sm bg-muted p-0.5">
           <ViewTab view="active" current={view} onSelect={onViewChange} count={counts.active}>
             {t('Active')}
             {/* The one reason to look at a tab you are not on. */}
@@ -393,8 +393,8 @@ function ViewTab({
       aria-pressed={isActive}
       onClick={() => onSelect(view)}
       className={cn(
-        'flex h-7 flex-1 items-center justify-center gap-1.5 rounded-[7px] text-[12.5px] font-medium text-muted-foreground',
-        isActive && 'bg-card font-semibold text-foreground shadow-xs'
+        'flex h-7 flex-1 items-center justify-center gap-1.5 rounded-sm text-[12px] font-medium text-muted-foreground',
+        isActive && 'bg-card-2 font-semibold text-foreground'
       )}
     >
       {children}
@@ -484,7 +484,7 @@ function Row({
           {/* Same width-priority rule as `RunRow`: the shared title has a floor, and the `×N`
               badge and the compare link give way before it does. */}
           <span className="min-w-[7rem] flex-1 truncate text-[13px] font-medium">{row.title}</span>
-          <span className="shrink-0 rounded-full bg-muted px-1.5 py-px font-mono text-[10.5px] font-semibold text-muted-foreground">
+          <span className="shrink-0 rounded-sm bg-muted px-1.5 py-px font-mono text-[10px] font-semibold text-muted-foreground">
             ×{row.members.length}
           </span>
         </button>
@@ -712,7 +712,7 @@ const RunRow = React.memo(function RunRow({
         className={cn('flex min-w-0 flex-1 items-center gap-2 py-[7px]', hasActions ? 'pr-0.5' : 'pr-2.5')}
       >
         {variant ? (
-          <span className="inline-flex size-[15px] shrink-0 items-center justify-center rounded-full bg-violet/15 font-mono text-[9.5px] font-semibold text-violet">
+          <span className="inline-flex size-[15px] shrink-0 items-center justify-center rounded-sm bg-violet/15 font-mono text-[9.5px] font-semibold text-violet">
             {run.variant ?? '?'}
           </span>
         ) : null}
@@ -740,7 +740,7 @@ const RunRow = React.memo(function RunRow({
             {dispatchKind ? (
               <span
                 data-slot="dispatch-kind"
-                className="shrink-0 rounded-full bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground"
+                className="shrink-0 rounded-sm bg-muted px-1.5 py-px font-mono text-[10px] font-medium text-muted-foreground"
               >
                 {dispatchKind}
               </span>
@@ -773,7 +773,7 @@ const RunRow = React.memo(function RunRow({
               <span
                 data-slot="subtask-count"
                 title={subtasks}
-                className="hidden shrink-0 rounded-full bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground @min-[19rem]/sidebar:inline"
+                className="hidden shrink-0 rounded-sm bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground @min-[19rem]/sidebar:inline"
               >
                 {childCount}
               </span>

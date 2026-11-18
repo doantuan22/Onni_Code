@@ -109,7 +109,7 @@ export function EventBlock({
       title={`${automation.name} · ${time}`}
       onClick={() => navigate(`/automations/${encodeURIComponent(automation.id)}`)}
       className={cn(
-        'absolute right-[3px] left-[3px] flex cursor-pointer overflow-hidden rounded-[6px] border border-border bg-card text-left text-[11.5px] leading-[1.3] font-medium text-foreground shadow-xs',
+        'absolute right-[3px] left-[3px] flex cursor-pointer overflow-hidden rounded-sm border border-border bg-card text-left text-[11.5px] leading-[1.3] font-medium text-foreground',
         wide ? 'h-12 flex-col items-start gap-[3px] px-2 py-[5px]' : 'h-6 flex-row items-center gap-1.5 px-1.5',
         !automation.enabled && 'opacity-50',
       )}
@@ -188,7 +188,7 @@ export function PollBand({ automations }: { automations: readonly AutomationList
           <div
             key={automation.id}
             data-slot="poll-row"
-            className="flex h-[22px] min-w-0 items-center gap-2 overflow-hidden rounded-[6px] border border-violet/25 bg-violet/8 px-2 text-[11.5px] font-medium"
+            className="flex h-[22px] min-w-0 items-center gap-2 overflow-hidden rounded-sm border border-violet/25 bg-violet/8 px-2 text-[11.5px] font-medium"
           >
             <GithubIcon className="size-3 shrink-0 text-violet" />
             <span className="overflow-hidden text-ellipsis whitespace-nowrap">{automation.name}</span>

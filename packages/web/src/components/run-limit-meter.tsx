@@ -15,7 +15,7 @@ export function RunLimitMeter({ run }: { run: RunRecord }) {
       <span
         data-slot="run-limit-hit"
         title={run.error ?? t('A run ceiling ended this task')}
-        className="rounded-full bg-danger/10 px-1.5 py-px text-[10px] font-medium text-danger"
+        className="rounded-sm bg-danger/10 px-1.5 py-px text-[10px] font-medium text-danger"
       >
         {t('limit: {kind}', { kind: run.limitHit.kind })}
       </span>
@@ -43,7 +43,7 @@ export function RunLimitMeter({ run }: { run: RunRecord }) {
       title={rows.map(describeRow).join('\n')}
       className="flex items-center gap-1 text-[10px] tabular-nums text-soft-foreground"
     >
-      <span className="h-1 w-10 overflow-hidden rounded-full bg-border" aria-hidden="true">
+      <span className="h-1 w-10 overflow-hidden rounded-sm bg-border" aria-hidden="true">
         <span
           className={`block h-full ${percent >= 90 ? 'bg-danger' : percent >= 70 ? 'bg-warning' : 'bg-foreground/50'}`}
           style={{ width: `${percent}%` }}

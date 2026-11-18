@@ -106,7 +106,7 @@ const ActivityCard = memo(function ActivityCard({ data }: NodeProps<Node<CardDat
         data-slot="activity-node"
         data-state="done"
         style={{ width: NODE_WIDTH, height: NODE_HEIGHT }}
-        className="activity-node flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-success/50 bg-card/70 px-4 text-center"
+        className="activity-node flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-success/50 bg-card/70 px-4 text-center"
       >
         {handles}
         <UsersIcon className="size-5 text-success" aria-hidden="true" />
@@ -129,7 +129,7 @@ const ActivityCard = memo(function ActivityCard({ data }: NodeProps<Node<CardDat
       title={`${spec.title} · ${t(meta.label)}`}
       style={{ width: NODE_WIDTH, height: NODE_HEIGHT }}
       className={cn(
-        'activity-node flex flex-col gap-1.5 rounded-xl border bg-card px-3.5 py-3 text-left shadow-sm',
+        'activity-node flex flex-col gap-1.5 rounded-md border bg-card px-3.5 py-3 text-left shadow-sm',
         meta.tone,
         manager && 'ring-2 ring-primary/35',
       )}
@@ -141,7 +141,7 @@ const ActivityCard = memo(function ActivityCard({ data }: NodeProps<Node<CardDat
           {spec.runner}
           {spec.model ? <span className="font-normal text-muted-foreground"> · {spec.model}</span> : null}
         </span>
-        <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-px text-[10.5px] font-medium', meta.tone)}>
+        <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-sm border px-1.5 py-px text-[10px] font-medium', meta.tone)}>
           <Icon className={cn('size-3', meta.spin && 'motion-safe:animate-spin')} aria-hidden="true" />
           {t(meta.label)}
         </span>

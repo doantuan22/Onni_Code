@@ -88,7 +88,7 @@ export function UsageCosts({ visibility }: { visibility: UsageMetricVisibility }
         <h2 className={widgetHeading}>{t('Usage & cost')}</h2>
       </div>
       {!visibility.cost && !visibility.tokens ? (
-        <p className="p-4 text-sm">{t('Usage metrics are hidden by workspace settings')}</p>
+        <p className="p-4 text-[12.5px]">{t('Usage metrics are hidden by workspace settings')}</p>
       ) : (
         <CostContent key={`${visibility.cost}:${visibility.tokens}`} visibility={visibility} />
       )}
@@ -170,7 +170,7 @@ function CostPeriod({
   const coverageChanged = JSON.stringify(data?.coverage) !== JSON.stringify(latest?.coverage)
   const empty = data?.totals.tasks === 0 && !partial && !currentPartial
   return (
-    <div className="space-y-4 p-4 text-sm">
+    <div className="space-y-4 p-4 text-[12.5px]">
       {data && (
         <ExportRows
           rows={
@@ -212,7 +212,7 @@ function CostPeriod({
           <details className="mt-1 text-xs text-muted-foreground">
             <summary
               data-export-heading="Metric definitions"
-              className={`${disclosureSummary} min-h-11`}
+              className={`${disclosureSummary}`}
             >
               <DisclosureChevron />
               {t('How these metrics work')}
@@ -245,7 +245,7 @@ function CostPeriod({
       {query.isError && (
         <p role="alert">
           {data ? t('Showing stale usage. Could not refresh.') : t('Could not load usage.')}{' '}
-          <Button className="min-h-11" onClick={() => void query.refetch()}>
+          <Button onClick={() => void query.refetch()}>
             {t('Retry')}
           </Button>
         </p>
@@ -256,7 +256,7 @@ function CostPeriod({
         </p>
       )}
       {changed && (
-        <Button className="min-h-11" variant="outline" onClick={() => setAccepted(latest)}>
+        <Button variant="outline" onClick={() => setAccepted(latest)}>
           {t('Updates available — Show')}
         </Button>
       )}
@@ -331,7 +331,7 @@ function CostPeriod({
                 currentProjects={latest?.projects ?? []}
                 onSelect={openPanel}
               />
-              <Button data-usage-trigger className="min-h-11" variant="outline" onClick={() => openPanel('')}>
+              <Button data-usage-trigger variant="outline" onClick={() => openPanel('')}>
                 {t('View tasks')}
               </Button>
             </>
@@ -455,20 +455,20 @@ function CostTaskPage({
   const coverageChanged = JSON.stringify(data?.coverage) !== JSON.stringify(query.data?.coverage)
   const validProject = !projectId || snapshot.projects.some((p) => p.projectId === projectId)
   return (
-    <div className="space-y-3 p-4 text-sm" data-sheet-loading={query.isFetching}>
+    <div className="space-y-3 p-4 text-[12.5px]" data-sheet-loading={query.isFetching}>
       <SortSelect value={effectiveSort} onChange={setSort} visibility={policy} />
       {query.isPending && <p>{t('Loading tasks…')}</p>}
       {query.isError && (
         <p role="alert">
           {t('Could not refresh tasks.')} {data ? t('Showing stale usage.') : ''}{' '}
-          <Button className="min-h-11" onClick={() => void query.refetch()}>
+          <Button onClick={() => void query.refetch()}>
             {t('Retry')}
           </Button>
         </p>
       )}
       {changed && (
         <Button
-          className="min-h-11"
+         
           onClick={() => {
             setAccepted(query.data)
             setAcceptedCount(count)
@@ -525,7 +525,7 @@ function CostTaskPage({
           ))}
           {data.tasks.nextOffset !== null && (
             <Button
-              className="min-h-11"
+             
               disabled={query.isFetching}
               onClick={() => {
                 setPagingSnapshot(data)

@@ -60,7 +60,7 @@ export function ProjectGeneral({ capabilities }: { capabilities?: Partial<Pick<C
 
   if (projects.isPending) {
     return (
-      <p data-slot="project-general-loading" className="text-[13px] text-soft-foreground">
+      <p data-slot="project-general-loading" className="text-[12.5px] text-soft-foreground">
         {t('Loading project…')}
       </p>
     )
@@ -72,7 +72,7 @@ export function ProjectGeneral({ capabilities }: { capabilities?: Partial<Pick<C
   // so a silent `null` would leave the whole pane blank with no hint that anything went wrong.
   if (projects.isError) {
     return (
-      <p data-slot="project-general-error" className="text-[13px] text-danger">
+      <p data-slot="project-general-error" className="text-[12.5px] text-danger">
         {t('Could not read the project registry — {message}', { message: projects.error.message })}
       </p>
     )
@@ -89,7 +89,7 @@ export function ProjectGeneral({ capabilities }: { capabilities?: Partial<Pick<C
   const managesRegistry = capabilities?.singleProject !== true && project.unregistered !== true
 
   return (
-    <div data-slot="project-general" className="mx-auto flex w-full max-w-2xl flex-col gap-7">
+    <div data-slot="project-general" className="flex w-full min-w-0 flex-col gap-5">
       <ProjectFolderField />
       <ProjectFacts project={project} canRemove={managesRegistry} />
       <WebhookCard />
@@ -108,16 +108,21 @@ export function ProjectGeneral({ capabilities }: { capabilities?: Partial<Pick<C
             title={t('Max parallel tasks')}
             hint={
               config.data
-                ? t("How many of this project's tasks may run at once — leave it empty to inherit the workspace limit. The workspace limit ({limit}) still applies as an overall ceiling, so a higher value here has no extra effect until that one is raised.", { limit: config.data.resources.maxParallel })
+                ? config.data.resources.maxParallelUnlimited
+                  ? t("How many of this project's tasks may run at once — leave it empty to inherit the workspace setting, which is unlimited. Set a number to cap just this project.")
+                  : t("How many of this project's tasks may run at once — leave it empty to inherit the workspace limit. The workspace limit ({limit}) still applies as an overall ceiling, so a higher value here has no extra effect until that one is raised.", { limit: config.data.resources.maxParallel })
                 : t("How many of this project's tasks may run at once — leave it empty to inherit the workspace limit. The workspace limit still applies as an overall ceiling.")
             }
           >
             {config.data ? (
-              <MaxParallelStepper project={project} workspaceMax={config.data.resources.maxParallel} />
+              <MaxParallelStepper
+                project={project}
+                workspaceMax={config.data.resources.maxParallelUnlimited ? null : config.data.resources.maxParallel}
+              />
             ) : (
               // The stepper's "Inherit (N)" placeholder has to name N, and guessing it would be
               // the one thing this control must not do.
-              <p className="text-[13px] text-soft-foreground">{t('Loading the workspace limit…')}</p>
+              <p className="text-[12.5px] text-soft-foreground">{t('Loading the workspace limit…')}</p>
             )}
           </SettingsField>
           <RemoveProject project={project} bootProject={registry.bootProject} />
@@ -139,7 +144,7 @@ function ProjectFacts({ project, canRemove }: { project: ProjectListEntry; canRe
     >
       <dl
         data-slot="project-facts"
-        className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 rounded-md border border-border bg-card p-3 text-[13px]"
+        className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 rounded-md border border-border bg-card p-3 text-[12.5px]"
       >
         <dt className="text-muted-foreground">{t('Name')}</dt>
         <dd className="min-w-0 truncate text-foreground">{project.name}</dd>

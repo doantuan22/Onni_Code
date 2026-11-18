@@ -84,8 +84,8 @@ export function InboxRoute() {
   return (
     <div data-route="inbox" className="flex min-h-full flex-col">
       {/* Desktop header — below `md` the shell's top bar already says "Inbox". */}
-      <header className="sticky top-0 z-10 hidden h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-5 md:flex">
-        <h1 className="text-base font-semibold">{t('Inbox')}</h1>
+      <header className="sticky top-0 z-10 hidden h-12 shrink-0 items-center gap-3 border-b border-border bg-background px-4 md:flex">
+        <h1 className="text-[14px] font-semibold tracking-tight">{t('Inbox')}</h1>
         <p className="text-[13px] text-soft-foreground">
           {inboxOff
             ? t('Disabled for this server; per-task Notes still run.')
@@ -238,7 +238,7 @@ function TodoCard({
     <li
       data-slot="todo-card"
       data-id={todo.id}
-      className="flex flex-col gap-2.5 rounded-lg border border-border bg-card p-4 shadow-xs"
+      className="flex flex-col gap-2.5 rounded-md border border-border bg-card p-4"
     >
       <div className="flex items-start gap-3">
         <StatusDot
@@ -248,7 +248,7 @@ function TodoCard({
           className="mt-[5px]"
         />
         <div className="min-w-0 flex-1">
-          <p data-slot="todo-summary" className="text-sm leading-snug font-medium text-foreground">
+          <p data-slot="todo-summary" className="text-[12.5px] leading-snug font-medium text-foreground">
             {todo.summary}
           </p>
           <div

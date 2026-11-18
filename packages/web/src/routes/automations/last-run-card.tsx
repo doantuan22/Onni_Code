@@ -29,7 +29,7 @@ export function LastRunCard({
   return (
     <Card flush data-slot="last-run-card" className="px-3.5 py-3">
       <div className="mb-2 text-[11px] font-semibold tracking-[.05em] uppercase text-soft-foreground">{t('Last run')}</div>
-      <div className="flex items-center gap-2 text-[13px]">
+      <div className="flex items-center gap-2 text-[12.5px]">
         <StatusDot tone={statusTone(lastRun.status)} />
         {t(statusLabel(lastRun.status))}
         <span className="text-[11.5px] text-soft-foreground">{shortAge(lastRun.ts, now)}</span>

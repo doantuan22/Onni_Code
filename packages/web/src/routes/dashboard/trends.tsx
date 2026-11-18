@@ -143,7 +143,7 @@ function TrendMetricChart({
   const field = fields[metric]
   const reported = series.reduce((n, p) => n + (p[field]?.reportedTasks ?? 0), 0)
   return (
-    <div className="rounded-xl border p-3">
+    <div className="rounded-md border p-3">
       <p className={`text-xs font-medium ${accent.text}`}>{t(labels[metric])}</p>
       <div className="mt-2">
         <BarRow
@@ -186,7 +186,7 @@ function ThroughputChart({ series }: { series: DashboardCostSeriesPoint[] }) {
   const timed = series.reduce((n, p) => n + (p.cycleReportedTasks ?? p.completed), 0)
   const avgCycleHours = timed ? weightedHours / timed : null
   return (
-    <div className="rounded-xl border p-3">
+    <div className="rounded-md border p-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-xs font-medium text-success">{t('Completed tasks')}</p>
         <p className="text-xs text-muted-foreground">
@@ -269,7 +269,7 @@ export function Trends({ visibility }: { visibility: UsageMetricVisibility }) {
           </FilterSelect>
         </label>
       </div>
-      <div className="space-y-4 p-4 text-sm">
+      <div className="space-y-4 p-4 text-[12.5px]">
         {data && (
           <ExportRows
             rows={
@@ -331,7 +331,7 @@ export function Trends({ visibility }: { visibility: UsageMetricVisibility }) {
         {query.isError && (
           <p role="alert">
             {data ? t('Showing stale trends. Could not refresh.') : t('Could not load trends.')}{' '}
-            <Button className="min-h-11" onClick={() => void query.refetch()}>
+            <Button onClick={() => void query.refetch()}>
               {t('Retry')}
             </Button>
           </p>
@@ -357,10 +357,10 @@ export function Trends({ visibility }: { visibility: UsageMetricVisibility }) {
               )}
               <ThroughputChart series={data.series} />
             </div>
-            <details className="group rounded-lg border bg-muted/20 print:block">
+            <details className="group rounded-md border bg-muted/20 print:block">
               <summary
                 data-export-heading="Daily data"
-                className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-xs font-medium text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden"
+                className="flex cursor-pointer list-none items-center gap-2 px-3 text-xs font-medium text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden"
               >
                 <Table2 className="size-4" aria-hidden="true" /> {t('View data table')}
                 <ChevronDown

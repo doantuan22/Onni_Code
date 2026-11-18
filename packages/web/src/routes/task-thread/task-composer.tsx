@@ -207,15 +207,15 @@ export function TaskDock({
       data-floating={floating || undefined}
       style={style}
       className={cn(
-        'sticky bottom-[var(--kb,0px)] z-10 bg-background px-3 pt-1 pb-2 max-md:border-t max-md:border-border md:px-6 md:pt-1.5 md:pb-4',
-        floating && 'pointer-events-none bg-transparent max-md:border-t-0 [&_[data-slot=composer]]:shadow-lg',
+        'sticky bottom-[var(--kb,0px)] z-10 bg-background px-3 pt-1 pb-2 max-md:border-t max-md:border-border md:px-5 md:pt-1.5 md:pb-3',
+        floating && 'pointer-events-none bg-transparent max-md:border-t-0 [&_[data-slot=composer]]:shadow-modal',
         className,
       )}
     >
       {overlay}
       <div
         className={cn(
-          'mx-auto flex w-full max-w-[var(--measure)] flex-col gap-1.5 md:gap-2.5',
+          'mx-auto flex w-full max-w-[var(--measure)] flex-col gap-1.5 md:gap-2',
           floating && 'pointer-events-auto',
         )}
       >

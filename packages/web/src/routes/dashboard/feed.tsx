@@ -72,7 +72,7 @@ export function Feed({
       data-export-context={`Results source: ${filter}; Last 7 days; loaded ${Math.min(count, rows.length)} rows`}
       className="min-w-0 gap-0 overflow-hidden py-0"
     >
-      <div className="space-y-2 border-b px-4 pt-2.5 pb-2">
+      <div className="space-y-2 border-b px-3.5 pt-2 pb-2">
         <div className="flex min-h-9 flex-wrap items-center justify-between gap-2">
           <h2 ref={heading} tabIndex={-1} className={widgetHeading}>
             {tasksOnly ? t('Recent results') : t('Recent results & GitHub')}
@@ -133,7 +133,7 @@ export function Feed({
               {!noGithub && (
                 <Button
                   variant="ghost"
-                  className="min-h-11 px-0"
+                  className="px-0"
                   disabled={query.githubFetching}
                   onClick={() => {
                     void query.refetch()
@@ -165,10 +165,9 @@ export function Feed({
         className="max-h-80 overflow-y-auto overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
         {query.isError && (
-          <p role="alert" className="p-4 text-sm">
+          <p role="alert" className="p-4 text-[12.5px]">
             {t('Could not load results.')}{' '}
             <Button
-              className="min-h-11"
               onClick={() => {
                 void query.retryFailed()
               }}
@@ -177,11 +176,11 @@ export function Feed({
             </Button>
           </p>
         )}
-        {query.isPending && <p className="p-4 text-sm">{t('Loading results…')}</p>}
+        {query.isPending && <p className="p-4 text-[12.5px]">{t('Loading results…')}</p>}
         {updates > 0 && (
           <Button
             variant="ghost"
-            className="m-2 min-h-11"
+            className="m-2"
             onClick={() => {
               staged.show()
               heading.current?.focus()
@@ -204,7 +203,7 @@ export function Feed({
               }
             />
           ) : (
-            <div key={row.key} className="border-b px-4 py-3 transition-colors hover:bg-muted/30">
+            <div key={row.key} className="border-b px-3.5 py-2.5 transition-colors hover:bg-muted/30">
               <ExportRows
                 rows={[
                   {
@@ -218,14 +217,14 @@ export function Feed({
                 ]}
               />
               <a
-                className="block break-words text-sm font-medium hover:underline no-hover:min-h-11"
+                className="block break-words text-[13px] font-medium hover:underline no-hover:min-h-11"
                 href={row.url}
                 target="_blank"
                 rel="noreferrer"
               >
                 {row.title}
               </a>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-[11px] text-muted-foreground">
                 {row.repo} · {row.itemKind === 'pr' ? 'PR' : 'Issue'} #{row.number} {t('created')} ·{' '}
                 {shortAge(row.at)}
               </p>
@@ -240,10 +239,10 @@ export function Feed({
           !errors.length &&
           !loading &&
           query.data.coverage.projects.every((p) => p.state === 'complete') && (
-            <p className="px-4 py-8 text-sm text-muted-foreground">{t('No results in the last 7 days')}</p>
+            <p className="px-4 py-8 text-[12.5px] text-muted-foreground">{t('No results in the last 7 days')}</p>
           )}
         {count < rows.length && (
-          <Button variant="ghost" className="m-2 min-h-11" onClick={more}>
+          <Button variant="ghost" className="m-2" onClick={more}>
             {t('Show {count} more results', { count: Math.min(20, rows.length - count) })}
           </Button>
         )}
@@ -258,7 +257,7 @@ export function Feed({
         )}
         {!tasksOnly && query.data?.sources.some((s) => s.state !== 'ready' || s.truncated) && (
           <details className="p-4 text-xs">
-            <summary className={`${disclosureSummary} min-h-11`}>
+            <summary className={`${disclosureSummary}`}>
               <DisclosureChevron />
               {t('Source details')}
             </summary>

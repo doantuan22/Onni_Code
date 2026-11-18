@@ -1,3 +1,4 @@
+import { LoadingSplash } from '@/components/loading-splash'
 import { useI18n } from '@/lib/i18n'
 
 /**
@@ -9,13 +10,11 @@ export function SkillsLoading() {
   const { t } = useI18n()
   return (
     <div data-route="skills" className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-10 hidden h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-5 md:flex">
-        <h1 className="text-base font-semibold">{t('Skills')}</h1>
+      <header className="sticky top-0 z-10 hidden h-12 shrink-0 items-center gap-3 border-b border-border bg-background px-4 md:flex">
+        <h1 className="text-[14px] font-semibold tracking-tight">{t('Skills')}</h1>
         <p className="text-[13px] text-muted-foreground">{t('Markdown playbooks agents can follow.')}</p>
       </header>
-      <p data-slot="skills-loading" className="px-4 py-6 text-center text-xs text-soft-foreground md:px-6">
-        {t('Loading skills…')}
-      </p>
+      <LoadingSplash as="span" wordmark={false} title={t('Loading skills…')} />
     </div>
   )
 }

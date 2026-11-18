@@ -42,7 +42,7 @@ export function ProviderBanner({
       <div
         data-slot="provider-banner"
         role="alert"
-        className="flex min-h-9 items-center gap-2 border-b border-border bg-destructive/10 px-4 text-sm text-foreground"
+        className="flex min-h-9 items-center gap-2 border-b border-border bg-destructive/10 px-4 text-[12.5px] text-foreground"
       >
         <StatusDot tone="danger" />
         <span>
@@ -87,7 +87,7 @@ export function ProviderBanner({
     <div
       data-slot="provider-banner"
       role="status"
-      className="flex min-h-9 items-center gap-2 border-b border-border bg-muted/50 px-4 text-sm text-muted-foreground"
+      className="flex min-h-9 items-center gap-2 border-b border-border bg-muted/50 px-4 text-[12.5px] text-muted-foreground"
     >
       <StatusDot tone={uncertain ? 'danger' : 'pending'} />
       <span>{message}</span>

@@ -1,6 +1,4 @@
-import { LoaderCircleIcon } from 'lucide-react'
-
-import { CenteredState } from '@/components/centered-state'
+import { LoadingSplash } from '@/components/loading-splash'
 import { useI18n } from '@/lib/i18n'
 
 /**
@@ -13,11 +11,9 @@ export function WorkflowsLoading() {
   const { t } = useI18n()
   return (
     <div data-route="workflows" className="flex min-h-full flex-col">
-      <CenteredState
-        icon={<LoaderCircleIcon className="motion-safe:animate-spin" />}
-        tone="neutral"
+      <LoadingSplash
         title={t('Loading workflows…')}
-        subtitle={t('Fetching the saved workflows and the node catalog.')}
+        detail={t('Fetching the saved workflows and the node catalog.')}
       />
     </div>
   )

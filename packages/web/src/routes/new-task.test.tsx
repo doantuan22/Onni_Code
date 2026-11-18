@@ -186,6 +186,7 @@ const WORKSPACE_CONFIG: WorkspaceConfigResponse = {
   },
   resources: {
     maxParallel: 2,
+    maxParallelUnlimited: false,
     maxMonitoringSessions: 2,
     idleTimeoutMinutes: 15,
     monitoringWakeIntervalMinutes: null,

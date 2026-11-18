@@ -82,7 +82,7 @@ export function ClearProjectData({ project }: { project: ProjectListEntry }) {
               {t('This cannot be undone. Every finished, failed or cancelled task of this project is deleted with its chat, notes, worktree and branch. Tasks that are still running are kept.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <label className="flex flex-col gap-1.5 text-[13px]">
+          <label className="flex flex-col gap-1.5 text-[12.5px]">
             <span className="text-muted-foreground">
               {t('Type the project name to confirm:')} <strong className="font-mono text-foreground">{project.name}</strong>
             </span>

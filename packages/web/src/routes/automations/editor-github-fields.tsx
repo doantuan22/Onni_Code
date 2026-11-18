@@ -56,10 +56,10 @@ export function EditorGithubFields({
           </Chip>
         ))}
       </div>
-      <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-muted-foreground">
         {t('poll every')}
         <Select value={String(Math.round(intervalSeconds / 60))} onValueChange={(value) => onChange({ intervalSeconds: Number(value) * 60 })}>
-          <SelectTrigger size="sm" aria-label={t('Poll interval')} className="text-[13px]">
+          <SelectTrigger size="sm" aria-label={t('Poll interval')} className="text-[12.5px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -122,7 +122,7 @@ function FilterField({ id, label, value, invalid = false, onChange }: {
         placeholder={t('comma-separated')}
         aria-invalid={invalid || undefined}
         onChange={(event) => onChange(event.target.value)}
-        className="h-8 text-[13px]"
+        className="h-8 text-[12.5px]"
       />
     </div>
   )
@@ -147,7 +147,7 @@ function NumberField({ id, label, value, min, max, onChange }: {
         max={max}
         value={value}
         onChange={(event) => onChange(clamp(Number(event.target.value), min, max))}
-        className="h-8 w-28 font-mono text-[13px] tabular-nums"
+        className="h-8 w-28 font-mono text-[12.5px] tabular-nums"
       />
     </div>
   )

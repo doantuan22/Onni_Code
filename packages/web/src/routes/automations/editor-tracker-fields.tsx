@@ -54,7 +54,7 @@ export function EditorTrackerFields({ trigger, intervalSeconds, onChange, onVali
   const wantsStatuses = trigger?.events.includes('issue.status_changed')
   const wantsLabels = trigger?.events.some(event => event === 'issue.labeled' || event === 'issue.unlabeled')
   const searchLabel = wantsStatuses && wantsLabels ? 'Search tracker statuses and labels' : wantsLabels ? 'Search tracker labels' : 'Search tracker statuses'
-  return <div data-slot="editor-tracker" className="flex flex-col gap-3 text-sm">
+  return <div data-slot="editor-tracker" className="flex flex-col gap-3 text-[12.5px]">
     {metadata.isPending ? <p>{t('Loading tracker events…')}</p> : null}
     {metadata.isError || (first && !first.available) ? <div role="alert">
       <p>{first && !first.available ? first.reason : t('Could not load tracker events.')} {t('Check the project’s Issue tracker settings.')}</p>

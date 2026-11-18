@@ -278,15 +278,19 @@ export function TasksOverview({
   // nowhere to show its result — and one that outlives the view, since un-archiving would then
   // drop the task at the top of the active list by a click that looked like it did nothing.
   const pinToggle = view === 'archived' ? undefined : onTogglePin
+  // The table is the one branch that turns the filter row into its own toolbar. States that are
+  // not a table (first run, filtered-to-nothing, loading) keep the filters as a standalone card.
+  const showTable =
+    runs !== undefined && !(hasScheduledTasks && all.length === 0) && visible.length > 0
 
   return (
     <LiveNowProvider intervalMs={AGE_TICK_MS} now={now}>
-    <div data-route="tasks" className="flex min-h-full min-w-0 flex-col">
+    <div data-route="tasks" className="flex min-h-full min-w-0 flex-col md:h-full md:min-h-0 md:overflow-hidden">
       {/* Desktop header. Below `md` the shell's top bar already says "Tasks", and the drawer
           carries the shared Active/Archived tabs — repeating them here would be a third copy. */}
-      <header className="sticky top-0 z-10 hidden h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-5 md:flex">
-        <h1 className="text-base font-semibold">{t('Tasks')}</h1>
-        <div className="inline-flex gap-0.5 rounded-md bg-muted p-[3px]">
+      <header className="sticky top-0 z-10 hidden h-12 shrink-0 items-center gap-3 border-b border-border bg-background px-4 md:flex">
+        <h1 className="shrink-0 text-[14px] font-semibold tracking-tight">{t('Tasks')}</h1>
+        <div className="inline-flex shrink-0 gap-0.5 rounded-sm bg-muted p-0.5">
           <OverviewTab view="active" current={view} onSelect={onViewChange} count={counts.active}>
             {t('Active')}
           </OverviewTab>
@@ -305,10 +309,11 @@ export function TasksOverview({
             variant="ghost"
             size="sm"
             data-slot="mark-all-read"
+            aria-label={t('Mark all read')}
             onClick={onMarkAllRead}
           >
             <CheckCheckIcon className="size-3.5" aria-hidden="true" />
-            {t('Mark all read')}
+            <span className="hidden xl:inline">{t('Mark all read')}</span>
           </Button>
         ) : null}
         {/* Only when there is something to sweep, like the legacy header's count-gated broom. */}
@@ -318,13 +323,14 @@ export function TasksOverview({
             variant="ghost"
             size="sm"
             data-slot="archive-finished"
+            aria-label={t('Archive finished')}
             onClick={onArchiveFinished}
           >
             <ArchiveIcon className="size-3.5" aria-hidden="true" />
-            {t('Archive finished')}
+            <span className="hidden xl:inline">{t('Archive finished')}</span>
           </Button>
         ) : null}
-        <div className="relative w-60">
+        <div className="relative w-44 shrink-0 xl:w-60">
           <SearchIcon
             className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-soft-foreground"
             aria-hidden="true"
@@ -335,29 +341,39 @@ export function TasksOverview({
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t('Search tasks…')}
             aria-label={t('Search tasks')}
-            className="h-9 w-full rounded-md border border-input bg-card pr-3 pl-8 text-[13px] text-foreground outline-none placeholder:text-soft-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="h-8 w-full rounded-sm border border-input bg-card pr-3 pl-8 text-[12.5px] text-foreground outline-none placeholder:text-soft-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
           />
         </div>
       </header>
       {scheduledTasks}
 
-      <div className="flex min-w-0 flex-1 flex-col p-3 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-5 md:pb-5">
-        {/* No bar over the first-run hero: with nothing to narrow, filters are noise. */}
+      <div className="flex min-w-0 flex-1 flex-col p-3 pb-[calc(90px+env(safe-area-inset-bottom))] md:min-h-0 md:p-4 md:pb-4">
+        {/* No bar over the first-run hero: with nothing to narrow, filters are noise. Over the
+            table it is the panel's toolbar row — one surface, hairline between them. */}
         {all.length > 0 ? (
-          <TasksFilterBar
-            runs={all}
-            view={view}
-            origin={origin}
-            onOriginChange={onOriginChange}
-            filters={filters}
-            onFiltersChange={setFilters}
-            automations={automations}
-            automationNames={automationNames}
-            sortBy={sortBy}
-            onSortByChange={setSortBy}
-          />
+          <div
+            data-slot="tasks-filter-bar"
+            data-toolbar={showTable ? 'true' : undefined}
+            className={cn(
+              'mb-3 shrink-0 rounded-md border border-border bg-card px-2.5 py-2',
+              showTable && 'md:mb-0 md:rounded-b-none md:border-b-0 md:py-1.5',
+            )}
+          >
+            <TasksFilterBar
+              runs={all}
+              view={view}
+              origin={origin}
+              onOriginChange={onOriginChange}
+              filters={filters}
+              onFiltersChange={setFilters}
+              automations={automations}
+              automationNames={automationNames}
+              sortBy={sortBy}
+              onSortByChange={setSortBy}
+            />
+          </div>
         ) : null}
-        {runs === undefined ? null : hasScheduledTasks && all.length === 0 ? <p className="text-sm text-muted-foreground">{t('No tasks have started yet.')}</p> : visible.length === 0 ? (
+        {runs === undefined ? null : hasScheduledTasks && all.length === 0 ? <p className="text-[12.5px] text-muted-foreground">{t('No tasks have started yet.')}</p> : visible.length === 0 ? (
           <TasksEmptyState
             view={view}
             query={query}
@@ -375,10 +391,12 @@ export function TasksOverview({
             {/* ≥md: the table. */}
             <div
               data-slot="tasks-table"
-              className="relative hidden overflow-x-auto rounded-lg border border-border bg-card shadow-xs md:block"
+              data-toolbar={all.length > 0 ? 'true' : undefined}
+              className="relative hidden min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-card md:flex data-[toolbar=true]:rounded-t-none data-[toolbar=true]:border-t-0"
             >
+              <div className="min-h-0 flex-1 overflow-auto">
               <TooltipProvider>
-                <table className="w-full border-collapse" aria-rowcount={tableWindow.ariaRowCount}>
+                <table className="w-full border-separate border-spacing-0" aria-rowcount={tableWindow.ariaRowCount}>
                   <colgroup>
                     {columns.map((column) => {
                       const expanded = isColumnExpanded(column.id, expandedColumns)
@@ -448,6 +466,7 @@ export function TasksOverview({
                   </tbody>
                 </table>
               </TooltipProvider>
+              </div>
             </div>
 
             {/* <md: the same runs as stacked cards. */}
@@ -489,7 +508,7 @@ export function TasksOverview({
             key={group.groupId}
             data-slot="compare-strip"
             data-group-id={group.groupId}
-            className="mt-3.5 flex flex-wrap items-center gap-2.5 rounded-lg border border-border bg-card px-3.5 py-2.5 text-[12.5px] text-muted-foreground shadow-xs"
+            className="mt-3 flex flex-wrap items-center gap-2.5 rounded-md border border-border bg-card px-3 py-2 text-[12px] text-muted-foreground"
           >
             <ScaleIcon className="size-[15px] shrink-0 text-soft-foreground" aria-hidden="true" />
             <span>
@@ -728,7 +747,7 @@ function TasksFilterBar({
   const { t } = useI18n()
 
   return (
-    <div data-slot="tasks-filters" className="mb-3 flex flex-wrap items-center gap-1.5">
+    <div data-slot="tasks-filters" className="flex flex-wrap items-center gap-1.5">
       <Segmented
         slot="task-origin"
         label={t('Show tasks started by')}
@@ -787,22 +806,25 @@ function TasksFilterBar({
           type="button"
           data-action="clear-filters"
           onClick={() => onFiltersChange(() => NO_TASK_FILTERS)}
-          className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="inline-flex h-6 items-center gap-1 rounded-sm px-1.5 text-[11.5px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
         >
           <XIcon className="size-3" aria-hidden="true" />
           {t('Clear ({count})', { count: active })}
         </button>
       ) : null}
-      {/* The all-projects bar's labelled-segmented grammar (its Group by and Sort by). */}
-      <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
-      <span className="text-[11px] font-medium text-soft-foreground">{t('Sort by')}</span>
-      <Segmented
-        slot="sort-by"
-        label={t('Sort tasks by')}
-        value={sortBy}
-        options={SORT_OPTIONS.map((option) => ({ ...option, label: t(option.label) }))}
-        onChange={onSortByChange}
-      />
+      {/* The all-projects bar's labelled-segmented grammar (its Group by and Sort by). One
+          wrap unit, so a narrow bar never strands the label above its own buttons. */}
+      <div className="flex items-center gap-1.5">
+        <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+        <span className="text-[11px] font-medium text-soft-foreground">{t('Sort by')}</span>
+        <Segmented
+          slot="sort-by"
+          label={t('Sort tasks by')}
+          value={sortBy}
+          options={SORT_OPTIONS.map((option) => ({ ...option, label: t(option.label) }))}
+          onChange={onSortByChange}
+        />
+      </div>
     </div>
   )
 }
@@ -831,8 +853,8 @@ function OverviewTab({
       aria-pressed={isActive}
       onClick={() => onSelect(view)}
       className={cn(
-        'flex h-7 items-center justify-center gap-1.5 rounded-[7px] px-3 text-[12.5px] font-medium text-muted-foreground',
-        isActive && 'bg-card font-semibold text-foreground shadow-xs'
+        'flex h-6 shrink-0 items-center justify-center gap-1.5 rounded-sm px-2.5 text-[12px] font-medium whitespace-nowrap text-muted-foreground',
+        isActive && 'bg-card-2 font-semibold text-foreground'
       )}
     >
       {children}
@@ -858,7 +880,7 @@ function Th({
       data-column-id={columnId}
       data-folded={folded || undefined}
       className={cn(
-        'h-[38px] border-b border-border px-2.5 text-left text-[11px] font-semibold tracking-[0.05em] whitespace-nowrap text-soft-foreground uppercase first:pl-4 last:pr-4',
+        'sticky top-0 z-[1] h-8 border-b border-border bg-card px-2.5 text-left text-[10px] font-semibold tracking-[0.05em] whitespace-nowrap text-soft-foreground uppercase first:pl-4 last:pr-4',
         right && 'text-right',
         folded && 'px-0 first:pl-0 last:pr-0',
       )}
@@ -953,7 +975,7 @@ function TaskColumnIconView({ icon }: { icon?: TaskColumnIcon }) {
 /** A section header's label — the sidebar's bucket header, so `Pinned` reads the same in both. */
 const SECTION_LABEL_CLASS = 'text-[11px] font-semibold tracking-[0.04em] text-soft-foreground uppercase'
 
-const TD_BASE = 'h-11 border-b border-border px-2.5 whitespace-nowrap first:pl-4 last:pr-4'
+const TD_BASE = 'h-9 border-b border-border px-2.5 whitespace-nowrap first:pl-4 last:pr-4'
 
 /**
  * One run, one row.
@@ -1284,7 +1306,7 @@ function TitleCell({
       {dispatchKind ? (
         <span
           data-slot="dispatch-kind"
-          className="shrink-0 rounded-full bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground"
+          className="shrink-0 rounded-sm bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground"
         >
           {t(dispatchKind)}
         </span>
@@ -1425,7 +1447,7 @@ const TaskCard = React.memo(function TaskCard({
         if ((event.target as Element).closest('a, button')) return
         navigate(to)
       }}
-      className="cursor-pointer rounded-lg border border-border bg-card px-3.5 py-3 shadow-xs"
+      className="cursor-pointer rounded-md border border-border bg-card px-3 py-2.5"
     >
       <div className="flex items-start gap-2.5">
         <Pill dot={attention.tone} pulse={attention.pulse} className="mt-px shrink-0" title={scheduled?.title}>
@@ -1446,7 +1468,7 @@ const TaskCard = React.memo(function TaskCard({
         {dispatchKind ? (
           <span
             data-slot="dispatch-kind"
-            className="mt-px shrink-0 rounded-full bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground"
+            className="mt-px shrink-0 rounded-sm bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground"
           >
             {t(dispatchKind)}
           </span>
@@ -1550,7 +1572,7 @@ function Sep() {
 
 function BranchChip({ branch }: { branch: string }) {
   return (
-    <span className="rounded-[6px] bg-muted px-1.5 py-0.5 font-mono text-[11.5px] font-medium text-muted-foreground">
+    <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[11.5px] font-medium text-muted-foreground">
       {branch}
     </span>
   )

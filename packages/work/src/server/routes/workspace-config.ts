@@ -161,6 +161,7 @@ export function workspaceConfigRoutes(deps: WorkspaceConfigRouteDeps) {
     },
     resources: {
       maxParallel: config.resources.maxParallel,
+      maxParallelUnlimited: config.resources.maxParallelUnlimited,
       maxMonitoringSessions: config.resources.maxMonitoringSessions,
       idleTimeoutMinutes: config.resources.idleTimeoutMinutes,
       monitoringWakeIntervalMinutes: config.resources.monitoringWakeIntervalMinutes,
@@ -279,6 +280,9 @@ export function workspaceConfigRoutes(deps: WorkspaceConfigRouteDeps) {
             config.composerDefaults.worktree = composerDefaults.worktree;
           }
           if (resources?.maxParallel !== undefined) config.resources.maxParallel = resources.maxParallel;
+          if (resources?.maxParallelUnlimited !== undefined) {
+            config.resources.maxParallelUnlimited = resources.maxParallelUnlimited;
+          }
           if (resources?.maxMonitoringSessions !== undefined) {
             config.resources.maxMonitoringSessions = resources.maxMonitoringSessions;
           }

@@ -100,7 +100,7 @@ export function TaskEditor({
       {!hasOpenFile ? (
         <div
           data-slot="editor-empty"
-          className="flex min-h-0 flex-1 items-center justify-center px-4 text-center text-sm text-soft-foreground"
+          className="flex min-h-0 flex-1 items-center justify-center px-4 text-center text-[12.5px] text-soft-foreground"
         >
           Open a file from the tree
         </div>

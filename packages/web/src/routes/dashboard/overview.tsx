@@ -106,9 +106,9 @@ export function Overview({
           </FilterSelect>
         </label>
       </div>
-      <div className="space-y-4 p-4">
+      <div className="space-y-3.5 p-3.5">
         {query.isPending && (
-          <p role="status" className="text-sm text-muted-foreground">
+          <p role="status" className="text-[12.5px] text-muted-foreground">
             {t('Loading overview…')}
           </p>
         )}
@@ -123,7 +123,7 @@ export function Overview({
         )}
         {data && (
           <>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-[12.5px] text-muted-foreground">
               {data.metrics.needsYou
                 ? t('{count} tasks require your input or review.', { count: data.metrics.needsYou })
                 : complete && live.connected && !query.isError
@@ -147,7 +147,7 @@ export function Overview({
                     data-outcome-trigger
                     data-export-keep
                     variant="outline"
-                    className={`${metricSurface} group/metric h-auto min-h-24 flex-col items-start gap-0 whitespace-normal text-left font-normal ${value === 0 ? metricAccents.neutral : metricTints[group]}`}
+                    className={`${metricSurface} group/metric h-auto min-h-20 flex-col items-start gap-0 whitespace-normal text-left font-normal ${value === 0 ? metricAccents.neutral : metricTints[group]}`}
                     onClick={(event) => {
                       if (onCurrent && (group === 'running' || group === 'needs-you'))
                         onCurrent(group, event.currentTarget)
@@ -180,7 +180,7 @@ export function Overview({
             </div>
             <OutcomeInsights period={period} active={active} />
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t pt-3">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-[12.5px] text-muted-foreground">
                 {t('Median cycle time')}{' '}
                 <strong className="font-mono font-semibold text-foreground">
                   {cycleText(data.metrics.medianCycleHours, t)}
@@ -192,7 +192,7 @@ export function Overview({
                 })}{' '}
                 <Button
                   variant="ghost"
-                  className="h-auto px-1.5 py-1 text-sm text-foreground underline-offset-4 hover:underline"
+                  className="h-auto px-1.5 py-1 text-[12.5px] text-foreground underline-offset-4 hover:underline"
                   onClick={() => open('completed')}
                 >
                   {t('Inspect completed tasks')}
@@ -243,7 +243,7 @@ export function Overview({
         <div className={widgetHeader}>
           <h2 className={widgetHeading}>{t('Projects')}</h2>
         </div>
-        <p className="px-4 pt-3 text-xs text-muted-foreground">
+        <p className="px-3.5 pt-2.5 text-[11.5px] text-muted-foreground">
           {t('Current workload and outcomes for the selected period. Sorted by tasks needing you, then running tasks. Counts include subtasks.')}
         </p>
         <div
@@ -252,7 +252,7 @@ export function Overview({
           aria-label={t('Project outcomes')}
           tabIndex={0}
         >
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-[12.5px]">
             <thead>
               <tr>
                 {['Project', 'Needs you', 'Running', 'Completed', 'Failed', 'Median cycle'].map(
@@ -292,7 +292,7 @@ export function Overview({
                         <Button
                           data-export-keep
                           variant="ghost"
-                          className="min-h-11 tabular-nums"
+                          className="tabular-nums"
                           aria-label={`${projectName(project.projectId)}: ${t(labels[group])}: ${source?.state === 'unavailable' ? t('Unavailable') : project[group === 'needs-you' ? 'needsYou' : group]}`}
                           disabled={source?.state === 'unavailable'}
                           onClick={() => open(group, project.projectId)}
@@ -488,7 +488,7 @@ function OutcomeTask({
         onClick={(event) => {
           if (inactive) event.preventDefault()
         }}
-        className="block min-h-11 font-medium hover:underline"
+        className="block font-medium hover:underline"
         to={`/p/${encodeURIComponent(row.projectId)}/tasks/${encodeURIComponent(row.id)}`}
       >
         {row.titleSummary || row.title}

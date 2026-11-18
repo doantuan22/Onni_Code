@@ -23,7 +23,7 @@ export function TasksSection() {
 
   if (config.isPending) {
     return (
-      <p data-slot="tasks-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">
+      <p data-slot="tasks-loading" className="p-4 text-[12.5px] text-soft-foreground md:p-6">
         {t('Loading task settings…')}
       </p>
     )
@@ -50,7 +50,7 @@ function TasksForm({ config }: { config: ConfigResponse }) {
   return (
     <div
       data-slot="tasks-section"
-      className="mx-auto flex w-full max-w-2xl flex-col gap-7 p-4 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-6 md:pb-6"
+      className="flex w-full min-w-0 flex-col gap-5"
     >
       <TrunkBasedFields config={config} />
 
@@ -65,7 +65,7 @@ function TasksForm({ config }: { config: ConfigResponse }) {
             value={config.baseBranch ?? ''}
             disabled={save.isPending}
             onChange={(event) => save.mutate({ baseBranch: event.target.value || null })}
-            className="block w-full max-w-md rounded-md border border-input bg-card px-3 py-1.5 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+            className="block w-full max-w-md rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
           >
             <option value="">{t('follow checked-out branch (default)')}</option>
             {repo.data.branches.map((name) => (
@@ -75,7 +75,7 @@ function TasksForm({ config }: { config: ConfigResponse }) {
             ))}
           </AppSelect>
         ) : (
-          <p data-slot="tasks-base-branch-unavailable" className="text-[13px] text-soft-foreground">
+          <p data-slot="tasks-base-branch-unavailable" className="text-[12.5px] text-soft-foreground">
             {repo.isPending ? t('Loading branches…') : t('Not a git repository — tasks run in place, no branching.')}
           </p>
         )}
@@ -98,7 +98,7 @@ function TasksForm({ config }: { config: ConfigResponse }) {
               )
             }
           />
-          <span className="text-[13px] text-muted-foreground">
+          <span className="text-[12.5px] text-muted-foreground">
             {(config.reviewGate ?? false) ? t('On') : t('Off')}
             {config.reviewGate === null && ` ${t('(default)')}`}
           </span>
@@ -122,7 +122,7 @@ function TasksForm({ config }: { config: ConfigResponse }) {
               )
             }
           />
-          <span className="text-[13px] text-muted-foreground">
+          <span className="text-[12.5px] text-muted-foreground">
             {(config.liveTitleUpdates ?? true) ? t('On') : t('Off')}
             {config.liveTitleUpdates === null && ` ${t('(default)')}`}
           </span>

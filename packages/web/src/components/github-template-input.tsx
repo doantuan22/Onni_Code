@@ -120,7 +120,7 @@ export function GithubTemplateInput({
                 )}
               >
                 <span className="flex min-w-0 items-baseline justify-between gap-2">
-                  <span className="flex shrink-0 items-center gap-1.5 text-sm font-medium">
+                  <span className="flex shrink-0 items-center gap-1.5 text-[12.5px] font-medium">
                     {s.label}
                     {chosen ? <CircleCheckIcon className="size-3.5 shrink-0 text-primary" aria-hidden="true" /> : null}
                   </span>

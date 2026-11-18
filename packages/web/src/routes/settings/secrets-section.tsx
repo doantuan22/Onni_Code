@@ -81,19 +81,19 @@ function SecretsSection({ scope, list, save, remove, invalidate }: SecretsSectio
   const secrets = list.data?.secrets ?? []
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-4 md:p-6" data-slot="secrets-settings" data-scope={scope}>
-      <section className="rounded-lg border border-border bg-card p-4">
-        <h2 className="text-sm font-semibold">{t(title)}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{t(intro)}</p>
-        {list.isPending ? <p className="mt-4 text-sm text-muted-foreground">{t('Loading…')}</p> : null}
-        {list.isError ? <p role="alert" className="mt-4 text-sm text-danger">{list.error?.message}</p> : null}
-        {list.data && secrets.length === 0 ? <p className="mt-4 text-sm text-muted-foreground">{t('No secrets stored.')}</p> : null}
+    <div className="flex w-full min-w-0 flex-col gap-6" data-slot="secrets-settings" data-scope={scope}>
+      <section className="rounded-md border border-border bg-card p-4">
+        <h2 className="text-[12.5px] font-semibold">{t(title)}</h2>
+        <p className="mt-1 text-[12.5px] text-muted-foreground">{t(intro)}</p>
+        {list.isPending ? <p className="mt-4 text-[12.5px] text-muted-foreground">{t('Loading…')}</p> : null}
+        {list.isError ? <p role="alert" className="mt-4 text-[12.5px] text-danger">{list.error?.message}</p> : null}
+        {list.data && secrets.length === 0 ? <p className="mt-4 text-[12.5px] text-muted-foreground">{t('No secrets stored.')}</p> : null}
         {list.data && secrets.length > 0 ? (
           <ul className="mt-4 divide-y divide-border rounded-md border border-border" aria-label={scope === 'project' ? t('Stored project secrets') : t('Stored workspace secrets')}>
             {secrets.map((stored) => (
               <li key={stored.name} className="flex items-center justify-between gap-3 px-3 py-2">
                 <div className="min-w-0">
-                  <code className="text-sm">{stored.name}</code>
+                  <code className="text-[12.5px]">{stored.name}</code>
                   <p className="text-xs text-muted-foreground">{stored.audiences.map((a) => t(AUDIENCE_LABELS[a]?.split(' (')[0] ?? a)).join(' · ')}</p>
                 </div>
                 <Button variant="outline" aria-label={t('Delete {name}', { name: stored.name })} disabled={removing.isPending} onClick={() => removing.mutate(stored.name)}>
@@ -106,29 +106,29 @@ function SecretsSection({ scope, list, save, remove, invalidate }: SecretsSectio
         {list.data ? <p className="mt-3 text-xs text-muted-foreground" data-slot="key-backend">{t(keyBackendNote(list.data.keyBackend))}</p> : null}
       </section>
 
-      <form className="rounded-lg border border-border bg-card p-4" autoComplete="off" onSubmit={(event) => { event.preventDefault(); submit() }}>
-        <h2 className="text-sm font-semibold">{t('Add or replace a secret')}</h2>
-        <label className="mt-3 block text-sm">{t('Name')}
+      <form className="rounded-md border border-border bg-card p-4" autoComplete="off" onSubmit={(event) => { event.preventDefault(); submit() }}>
+        <h2 className="text-[12.5px] font-semibold">{t('Add or replace a secret')}</h2>
+        <label className="mt-3 block text-[12.5px]">{t('Name')}
           <input aria-label={t('Name')} value={name} onChange={(event) => { setName(event.target.value.toUpperCase()); setError(null) }}
             autoComplete="off" spellCheck={false} placeholder="AI_GATEWAY_API_KEY" aria-invalid={nameIssue ? true : undefined}
             className="mt-1 block w-full rounded border border-border bg-background p-2 font-mono" />
         </label>
         {nameIssue ? <p className="mt-1 text-xs text-danger">{nameIssue}</p> : null}
-        <label className="mt-3 block text-sm">{t('Value')}
+        <label className="mt-3 block text-[12.5px]">{t('Value')}
           <input aria-label={t('Value')} type="password" autoComplete="off" required value={value} onChange={(event) => setValue(event.target.value)}
             className="mt-1 block w-full rounded border border-border bg-background p-2" />
         </label>
         <fieldset className="mt-3">
-          <legend className="text-sm">{t('Who may read it')}</legend>
+          <legend className="text-[12.5px]">{t('Who may read it')}</legend>
           {SECRET_AUDIENCES.map((audience) => (
-            <label key={audience} className="mt-1 flex items-center gap-2 text-sm">
+            <label key={audience} className="mt-1 flex items-center gap-2 text-[12.5px]">
               <input type="checkbox" aria-label={t(AUDIENCE_LABELS[audience])} checked={audiences.includes(audience)} onChange={() => toggleAudience(audience)} />
               {t(AUDIENCE_LABELS[audience])}
             </label>
           ))}
           <p className="mt-1 text-xs text-muted-foreground">{t('Agents are never an audience: a secret cannot be handed to a Claude Code, Codex or OpenCode session.')}</p>
         </fieldset>
-        {error && error !== nameIssue ? <p role="alert" className="mt-2 text-sm text-danger">{error}</p> : null}
+        {error && error !== nameIssue ? <p role="alert" className="mt-2 text-[12.5px] text-danger">{error}</p> : null}
         <div className="mt-3">
           <Button type="submit" disabled={saving.isPending || name === '' || value === '' || audiences.length === 0 || !!nameIssue}>{t('Save secret')}</Button>
         </div>

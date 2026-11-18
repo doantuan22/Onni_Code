@@ -198,7 +198,7 @@ export function PickerPill({
                   event.stopPropagation()
                 }
               }}
-              className="h-full min-w-48 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              className="h-full min-w-48 bg-transparent text-[12.5px] outline-none placeholder:text-muted-foreground"
             />
           </div>
         ) : null}

@@ -262,7 +262,7 @@ export function ProjectTerminalRoute() {
       </p>
 
       {error ? (
-        <p role="alert" className="shrink-0 px-3 py-2 text-sm text-destructive">
+        <p role="alert" className="shrink-0 px-3 py-2 text-[12.5px] text-destructive">
           {error}
         </p>
       ) : null}
@@ -273,9 +273,9 @@ export function ProjectTerminalRoute() {
             <Loader2Icon className="size-5 motion-safe:animate-spin" />
           </div>
         ) : unavailable ? (
-          <p className="p-6 text-sm text-muted-foreground">{unavailable}</p>
+          <p className="p-6 text-[12.5px] text-muted-foreground">{unavailable}</p>
         ) : sessions.length === 0 ? (
-          <p className="p-6 text-sm text-muted-foreground">
+          <p className="p-6 text-[12.5px] text-muted-foreground">
             {t('No terminals yet. Use “New terminal” to open a shell or start an agent.')}
           </p>
         ) : (

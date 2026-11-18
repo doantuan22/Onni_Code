@@ -79,13 +79,13 @@ afterEach(() => {
 })
 
 describe('ThemeProvider', () => {
-  it('defaults to dark with nothing stored', () => {
+  it('defaults to light with nothing stored', () => {
     mockMatchMedia(false)
     renderProvider()
 
-    expect(screen.getByTestId('probe').textContent).toBe('dark/dark')
-    expect(root().classList.contains('light')).toBe(false)
-    expect(root().style.colorScheme).toBe('dark')
+    expect(screen.getByTestId('probe').textContent).toBe('light/light')
+    expect(root().classList.contains('light')).toBe(true)
+    expect(root().style.colorScheme).toBe('light')
   })
 
   it('seeds an explicit stored preference and stamps the root', () => {
@@ -180,7 +180,7 @@ describe('ThemeProvider', () => {
     mockMatchMedia(true)
 
     expect(() => renderProvider()).not.toThrow()
-    expect(seen).toEqual({ theme: 'dark', resolvedTheme: 'dark' })
+    expect(seen).toEqual({ theme: 'light', resolvedTheme: 'light' })
   })
 
   it('keeps working when storage is unreadable', () => {

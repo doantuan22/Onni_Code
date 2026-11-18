@@ -82,8 +82,8 @@ export function SkillsRoute() {
   return (
     <div data-route="skills" className="flex min-h-full flex-col">
       {/* Desktop header — below `md` the shell's top bar already says "Skills". */}
-      <header className="sticky top-0 z-10 hidden h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-5 md:flex">
-        <h1 className="text-base font-semibold">{t('Skills')}</h1>
+      <header className="sticky top-0 z-10 hidden h-12 shrink-0 items-center gap-3 border-b border-border bg-background px-4 md:flex">
+        <h1 className="text-[14px] font-semibold tracking-tight">{t('Skills')}</h1>
         <p className="text-[13px] text-muted-foreground">{t('Markdown playbooks agents can follow.')}</p>
       </header>
       <SkillsCatalog />
@@ -213,9 +213,9 @@ function SkillsCatalog() {
         data-slot="skills-list"
         className={cn(
           'w-full flex-col border-border md:flex md:w-96 md:shrink-0 md:border-r',
-          // Pin the pane below the sticky h-14 header so the ROWS scroll inside it (the #384
+          // Pin the pane below the sticky h-12 header so the ROWS scroll inside it (the #384
           // stable-scroll surface) — `var(--spacing)*14` tracks the density token.
-          'md:sticky md:top-14 md:max-h-[calc(100dvh-(var(--spacing)*14))]',
+          'md:sticky md:top-12 md:max-h-[calc(100dvh-(var(--spacing)*12))]',
           param === null || !selected ? 'flex' : 'hidden md:flex',
         )}
       >
@@ -410,7 +410,7 @@ function SkillsCatalog() {
             <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
             <AlertDialogAction
               data-slot="skill-delete-confirm-action"
-              className="bg-danger text-white hover:bg-danger/90"
+              className="bg-danger text-danger-foreground hover:bg-danger/90"
               onClick={() => {
                 if (deleting) removeSkill.mutate(deleting.name)
                 setDeleting(null)

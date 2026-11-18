@@ -20,19 +20,19 @@ describe('Segmented', () => {
     const buttons = group.querySelectorAll('button')
     expect(buttons).toHaveLength(3)
     expect(buttons[0]?.getAttribute('aria-pressed')).toBe('true')
-    expect(buttons[0]?.className).toContain('bg-card')
+    expect(buttons[0]?.className).toContain('bg-card-2')
     expect(buttons[0]?.querySelector('small')?.textContent).toBe('7')
     expect(buttons[1]?.getAttribute('aria-pressed')).toBe('false')
     expect(buttons[1]?.querySelector('small')).toBeNull()
   })
 
-  it('uses the kit metrics: 28px buttons in a 3px well', () => {
+  it('uses the kit metrics: 24px buttons in a 2px well', () => {
     render(<Segmented slot="view" label="View" value="list" options={OPTIONS} onChange={() => {}} />)
 
     const group = screen.getByRole('group', { name: 'View' })
-    expect(group.className).toContain('p-[3px]')
-    expect(group.querySelector('button')?.className).toContain('h-7')
-    expect(group.querySelector('button')?.className).toContain('text-[12.5px]')
+    expect(group.className).toContain('p-0.5')
+    expect(group.querySelector('button')?.className).toContain('h-6')
+    expect(group.querySelector('button')?.className).toContain('text-[12px]')
   })
 
   it('reports a pick and ignores a re-click of the pressed option', () => {

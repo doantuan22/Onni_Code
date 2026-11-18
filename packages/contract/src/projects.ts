@@ -133,7 +133,7 @@ export const PROJECT_TAGS_MAX = 20;
  * happened (and cost a full config rewrite to do nothing).
  *
  * - `maxParallel` (spec 2026-07-22-per-project-concurrency): `null` clears the override back to
- *   "inherit the workspace cap"; an integer `1..16` pins it. The bounds mirror
+ *   "inherit the workspace cap"; an integer `1..50` pins it. The bounds mirror
  *   `workspaceProjectSchema` exactly, so a value this schema accepts can never be degraded away
  *   by the next load's `.catch`.
  * - `tags`: the whole list, replaced wholesale — there is no add-one/remove-one spelling,
@@ -145,7 +145,7 @@ export const PROJECT_TAGS_MAX = 20;
  */
 export const updateProjectInputSchema = z
   .object({
-    maxParallel: z.number().int().min(1).max(16).nullable().optional(),
+    maxParallel: z.number().int().min(1).max(50).nullable().optional(),
     tags: z
       .array(z.string().trim().min(1).max(PROJECT_TAG_MAX_LENGTH))
       .max(PROJECT_TAGS_MAX)

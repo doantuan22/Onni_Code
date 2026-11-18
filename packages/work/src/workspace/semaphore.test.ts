@@ -222,6 +222,28 @@ describe('WorkspaceSemaphore', () => {
     expect(sem.projectMaxParallel('/tmp/whatever')).toBe(6);
   });
 
+  it('maxParallelUnlimited removes the workspace cap but a project override still applies', async () => {
+    const dirs = mkdtempSync(join(tmpdir(), 'onni-sema-'));
+    const capped = join(dirs, 'capped');
+    mkdirSync(capped, { recursive: true });
+    try {
+      const sem = new WorkspaceSemaphore({
+        load: () => Promise.resolve({
+          maxParallel: 4,
+          maxParallelUnlimited: true,
+          memoryLimitMb: null,
+          projectLimits: new Map<string, number>([[realpathSync(capped), 2]]),
+        }),
+      });
+      await sem.refresh();
+      expect(sem.maxParallel()).toBe(Number.POSITIVE_INFINITY);
+      expect(sem.projectMaxParallel(capped)).toBe(2);
+      expect(sem.projectMaxParallel(join(dirs, 'open'))).toBe(Number.POSITIVE_INFINITY);
+    } finally {
+      rmSync(dirs, { recursive: true, force: true });
+    }
+  });
+
   it('projectMaxParallel resolves a manager keyed by a symlinked root to the registry entry (spec Q7)', async () => {
     // The spec's normalization guard: the registry stores the realpath'd root,
     // but a manager may hold a *symlinked* spelling of the same directory. The

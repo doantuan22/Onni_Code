@@ -21,7 +21,7 @@ export function ScheduledTasks({ compact = false, enabled = true }: { compact?: 
   return <section aria-label={t('Scheduled tasks')} className={compact ? 'px-2 py-3' : 'border-b p-4 md:px-5'}>
     <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('Scheduled · {count}', { count: items.length })}</h2>
     {startedRuns.length > 0 && <p role="status">{t('This scheduled task already started.')} {startedRuns.map((id, index) => <Link key={id} to={`/tasks/${id}`} className="mr-3 underline">{t('View run {count}', { count: index + 1 })}</Link>)}</p>}
-    {compact ? items.map(item => <Link key={item.id} to={`/#scheduled-${item.id}`} className="block truncate rounded px-2 py-1.5 text-sm">◷ {item.name}</Link>) :
+    {compact ? items.map(item => <Link key={item.id} to={`/#scheduled-${item.id}`} className="block truncate rounded px-2 py-1.5 text-[12.5px]">◷ {item.name}</Link>) :
       <div className="grid gap-3">{items.map(item => <ScheduledTask key={item.id} item={item} onAlreadyStarted={setStartedRuns} />)}</div>}
   </section>
 }
@@ -68,9 +68,9 @@ function ScheduledTask({ item, onAlreadyStarted }: { item: AutomationListEntry; 
   const workflowLabel = item.task.workflow ?? (inlineSkills.length ? t('Skills: {skills}', { skills: inlineSkills.join(', ') }) : t('Inline steps'))
   const modelLabel = state.binding.models?.map(m => `${m.step ? `${m.step}: ` : ''}${m.runner} / ${m.model ?? t('Provider default')}`).join('; ') ?? item.task.model ?? t('Resolved step models unavailable')
   const label = state.status === 'failed' ? t("Couldn't start") : state.status === 'missed' ? t('Missed') : state.status === 'launching' ? t('Starting…') : state.holdUntil ? t('Waiting for reset') : t('Scheduled')
-  return <details id={anchor} open={open} onToggle={e => setOpen(e.currentTarget.open)} className="rounded-lg border p-3">
-    <summary className="cursor-pointer text-sm"><span className="font-medium">{item.name}</span><span className="ml-2 text-muted-foreground">{label} · {new Date(state.notBefore).toLocaleString('en-GB', { timeZone: state.timeZone })} · {state.timeZone}</span></summary>
-    <div className="mt-3 space-y-3 text-sm">
+  return <details id={anchor} open={open} onToggle={e => setOpen(e.currentTarget.open)} className="rounded-md border p-3">
+    <summary className="cursor-pointer text-[12.5px]"><span className="font-medium">{item.name}</span><span className="ml-2 text-muted-foreground">{label} · {new Date(state.notBefore).toLocaleString('en-GB', { timeZone: state.timeZone })} · {state.timeZone}</span></summary>
+    <div className="mt-3 space-y-3 text-[12.5px]">
       <p className="whitespace-pre-wrap break-words">{item.task.prompt}</p>
       <p className="text-muted-foreground">{workflowLabel} · {modelLabel} · {state.binding.accounts.map(a => `${a.runner} / ${a.id}`).join(', ')}</p>
       <p className="text-muted-foreground">{t('The server must be running. This is the earliest start; account holds and queue limits still apply.')}</p>

@@ -415,7 +415,7 @@ export function TerminalDrawer({
         // The screen sits on its own soft surface, inset from the drawer's edges.
         <div
           data-slot="terminal-surface"
-          className="relative mx-2 mb-2 min-h-0 flex-1 overflow-hidden rounded-lg border border-border/70 bg-card-2"
+          className="relative mx-2 mb-2 min-h-0 flex-1 overflow-hidden rounded-md border border-border/70 bg-card-2"
         >
           {sessions.map((session) => (
             <TerminalPane key={session.id} runId={runId} session={session} active={session.id === activeId} />

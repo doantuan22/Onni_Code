@@ -20,7 +20,7 @@ export function RunBackendBadge({ run }: { run: Pick<RunRecord, 'runner' | 'mode
       data-slot="run-backend-badge"
       data-backend={backend}
       title={`${roleLabel ? `${roleLabel}: ` : ''}${backend}${run.model ? ` (${run.model})` : ''}`}
-      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-1.5 py-px font-mono text-[10px] font-medium text-soft-foreground"
+      className="inline-flex shrink-0 items-center gap-1 rounded-sm border border-border px-1.5 py-px font-mono text-[10px] font-medium text-soft-foreground"
     >
       {role === 'manager' ? '★ ' : ''}
       {backend}
@@ -30,7 +30,7 @@ export function RunBackendBadge({ run }: { run: Pick<RunRecord, 'runner' | 'mode
       <span
         data-slot="manager-full-access-badge"
         title={t('This manager may merge (Full manager access)')}
-        className="inline-flex shrink-0 items-center rounded-full border border-danger/50 bg-danger/10 px-1.5 py-px text-[10px] font-semibold text-danger"
+        className="inline-flex shrink-0 items-center rounded-sm border border-danger/50 bg-danger/10 px-1.5 py-px text-[10px] font-semibold text-danger"
       >
         {t('full access')}
       </span>

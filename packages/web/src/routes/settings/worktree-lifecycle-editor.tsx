@@ -18,7 +18,7 @@ const variables = [
   ['worktree_id', 'Stable onni-prefixed resource identity'],
   ['task_id', 'The original task ID'],
 ] as const
-const control = 'w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50'
+const control = 'w-full rounded-md border border-input bg-card px-3 py-2 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50'
 
 /** Local drafts survive validation/conflict failures. Saving config never resumes a parked task. */
 export function WorktreeLifecycleEditor({ config }: { config: ConfigResponse }) {
@@ -118,12 +118,12 @@ export function WorktreeLifecycleEditor({ config }: { config: ConfigResponse }) 
   const pending = lifecycle.data?.worktrees.filter(worktree => worktree.operation && worktree.needsAttention) ?? []
 
   return <div id="worktree-lifecycle-scripts" className="flex min-w-0 flex-col gap-5" data-slot="worktree-lifecycle-editor">
-    <div className="rounded-md border border-border bg-muted/30 p-3 text-[13px] text-muted-foreground">
+    <div className="rounded-md border border-border bg-muted/30 p-3 text-[12.5px] text-muted-foreground">
       <p>{t('Scripts apply only to this project. Saving commands opts in to running them as the Onni host user, with that user’s local privileges.')}</p>
       <p className="mt-1">{t('Runtime: noninteractive Bash, in the isolated worktree directory. Bash must be installed on the host. Commands run in order; the default timeout is 30 minutes.')}</p>
       <p className="mt-1" id="lifecycle-variable-help">{t('Values are shell-escaped; do not wrap variable tokens in quotes. Use')} <code>{'\\{{'}</code> {t('for literal double braces, for example')} <code>{"docker inspect --format '\\{{.State.Status}}' container"}</code>.</p>
     </div>
-    <label className="flex flex-col gap-1 text-sm">{t('Preview context')}
+    <label className="flex flex-col gap-1 text-[12.5px]">{t('Preview context')}
       <AppSelect value={previewWorktree} className={control} onChange={event => { setPreviewWorktree(event.target.value); setPreviews({}) }}>
         <option value="">{t('Example values (illustrative)')}</option>
         {lifecycle.data?.worktrees.filter(worktree => worktree.onDisk).map(worktree => <option key={worktree.worktreeId} value={worktree.worktreeId}>{worktree.task?.title ?? t('Orphan {id}', { id: worktree.runId.slice(0, 8) })}</option>)}
@@ -152,7 +152,7 @@ export function WorktreeLifecycleEditor({ config }: { config: ConfigResponse }) 
       </fieldset>)}
       <Button type="button" variant="outline" size="sm" className="self-start" disabled={draft[phase].length >= 32 || save.isPending} onClick={() => { setDraft(current => ({ ...current, [phase]: [...current[phase], { id: crypto.randomUUID(), command: '' }] })); setMessage('') }}>{phase === 'afterCreate' ? t('Add setup command') : t('Add cleanup command')}</Button>
     </SettingsField>)}
-    {(errors.form || save.error) && <p role="alert" className="text-sm text-danger">{errors.form ?? save.error?.message}</p>}
+    {(errors.form || save.error) && <p role="alert" className="text-[12.5px] text-danger">{errors.form ?? save.error?.message}</p>}
     <div className="flex flex-wrap gap-2"><Button type="button" disabled={!dirty || save.isPending} onClick={() => save.mutate()}>{save.isPending ? t('Saving…') : t('Save scripts')}</Button>{save.isError && <Button type="button" variant="outline" onClick={() => void reload()}>{t('Reload saved scripts')}</Button>}</div>
     {message && <p role="status" className="text-xs text-muted-foreground">{message}</p>}
     {pending.length > 0 && <div className="text-xs text-muted-foreground"><p>{t('Paused scripts wait for an explicit recovery choice.')}</p>{pending.map(worktree => <a key={worktree.worktreeId} className="mt-1 block text-primary underline" href={`#lifecycle-operation-${worktree.operation!.id}`}>{t('Return to {task} and Retry', { task: worktree.task?.title ?? t('orphan worktree') })}</a>)}</div>}

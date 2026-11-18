@@ -37,6 +37,8 @@ import { DEFAULT_IDLE_TIMEOUT_MINUTES, DEFAULT_MONITORING_WAKE_MINUTES, loadWork
 export interface WorkspaceResourceLimits {
   /** Workspace-wide cap on concurrently *running* agent runs. */
   maxParallel: number;
+  /** Ignore `maxParallel`: every queued task may start (per-project overrides still cap). */
+  maxParallelUnlimited?: boolean;
   /** Durable monitoring sessions that do not consume active-task capacity. */
   maxMonitoringSessions?: number;
   /** Plain waiting/ASK session idle timeout in minutes; null/0 disables it. */
@@ -119,6 +121,7 @@ export interface SemaphoreParticipant {
 
 const DEFAULT_LIMITS: WorkspaceResourceLimits = {
   maxParallel: 2,
+  maxParallelUnlimited: false,
   maxMonitoringSessions: 2,
   idleTimeoutMinutes: DEFAULT_IDLE_TIMEOUT_MINUTES,
   monitoringWakeIntervalMinutes: DEFAULT_MONITORING_WAKE_MINUTES,
@@ -140,6 +143,7 @@ async function loadResourceLimits(): Promise<WorkspaceResourceLimits> {
   }
   return {
     maxParallel: resources.maxParallel,
+    maxParallelUnlimited: resources.maxParallelUnlimited,
     maxMonitoringSessions: resources.maxMonitoringSessions,
     idleTimeoutMinutes: resources.idleTimeoutMinutes,
     monitoringWakeIntervalMinutes: resources.monitoringWakeIntervalMinutes,
@@ -201,9 +205,10 @@ export class WorkspaceSemaphore {
     return total;
   }
 
-  /** Cached workspace-wide parallel cap. */
+  /** Cached workspace-wide parallel cap. `Infinity` when the operator turned the cap off; the
+   *  stored number stays in the config so switching the toggle back restores it. */
   maxParallel(): number {
-    return this.limits.maxParallel;
+    return this.limits.maxParallelUnlimited ? Number.POSITIVE_INFINITY : this.limits.maxParallel;
   }
 
   maxMonitoringSessions(): number {

@@ -623,8 +623,8 @@ describe('the settings shell', () => {
   })
 
   it.each([
-    ['/settings/agents', 'max-w-2xl'],
-    ['/settings/global/projects', 'max-w-4xl'],
+    ['/settings/agents', 'max-w-3xl'],
+    ['/settings/global/projects', 'max-w-5xl'],
   ])('starts the page header in the body column on %s', (entry, width) => {
     renderAt(entry, { projects: REGISTRY })
     const inner = document.querySelector('[data-slot="settings-header-inner"]')!

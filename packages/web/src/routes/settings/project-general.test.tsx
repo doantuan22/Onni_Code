@@ -104,6 +104,7 @@ function seededClient({
     },
     resources: {
       maxParallel: 4,
+      maxParallelUnlimited: false,
       maxMonitoringSessions: 2,
       monitoringWakeIntervalMinutes: null,
       memoryLimitMb: null,

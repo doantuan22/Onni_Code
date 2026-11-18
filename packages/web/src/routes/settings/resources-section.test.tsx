@@ -46,6 +46,7 @@ function serve(resources: Partial<WorkspaceConfigResponse['resources']> = {}) {
     },
     resources: {
       maxParallel: 2,
+      maxParallelUnlimited: false,
       maxMonitoringSessions: 2,
       idleTimeoutMinutes: 15,
       monitoringWakeIntervalMinutes: null,
@@ -194,10 +195,26 @@ describe('Global settings → Resources', () => {
     serve({ maxParallel: 2 })
     renderResources()
     await waitFor(() => expect(parallelSelect()).not.toBeNull())
-    fireEvent.change(parallelSelect()!, { target: { value: '40' } })
+    fireEvent.change(parallelSelect()!, { target: { value: '51' } })
     fireEvent.blur(parallelSelect()!)
-    expect(screen.getByText('Enter a whole number from 1 to 16.')).not.toBeNull()
+    expect(screen.getByText('Enter a whole number from 1 to 50.')).not.toBeNull()
     expect(puts()).toHaveLength(0)
+  })
+
+  it('turns the workspace cap off without losing the stored number', async () => {
+    serve({ maxParallel: 5, maxParallelUnlimited: false })
+    renderResources()
+    const toggle = () =>
+      document.querySelector<HTMLElement>('[data-slot="resources-max-parallel-unlimited"]')
+    await waitFor(() => expect(toggle()).not.toBeNull())
+    expect(parallelSelect()!.value).toBe('5')
+
+    fireEvent.click(toggle()!)
+    await waitFor(() => expect(puts()).toHaveLength(1))
+    expect(puts()[0]?.body).toEqual({ resources: { maxParallelUnlimited: true } })
+    await waitFor(() => expect(parallelSelect()!.disabled).toBe(true))
+    expect(parallelSelect()!.value).toBe('5')
+    expect(screen.getByText(/Capacity: Unlimited active \+ 2 monitoring/)).not.toBeNull()
   })
 
   it('keeps wake-ups parked by default and saves an explicit interval', async () => {

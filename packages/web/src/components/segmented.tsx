@@ -52,7 +52,7 @@ export function Segmented<T extends string>({
       data-full={full ? 'true' : undefined}
       role="group"
       aria-label={t(label)}
-      className={cn('inline-flex gap-0.5 rounded-md bg-muted p-[3px]', full && 'flex w-full', className)}
+      className={cn('inline-flex gap-0.5 rounded-sm bg-muted p-0.5', full && 'flex w-full', className)}
     >
       {options.map((option) => {
         const isActive = option.value === value
@@ -69,9 +69,9 @@ export function Segmented<T extends string>({
               onChange(option.value)
             }}
             className={cn(
-              'flex h-7 items-center justify-center gap-1.5 rounded-[7px] px-3 text-[12.5px] font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground',
+              'flex h-6 items-center justify-center gap-1.5 rounded-sm px-2.5 text-[12px] font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground',
               full && 'flex-1',
-              isActive && 'bg-card font-semibold text-foreground shadow-xs',
+              isActive && 'bg-card-2 font-semibold text-foreground',
             )}
           >
             {option.label}

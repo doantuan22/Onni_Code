@@ -91,7 +91,7 @@ function ReviewDiff({ run, diffComments }: { run: ApiRun; diffComments?: DiffCom
       <div
         data-slot="review-diff-error"
         role="alert"
-        className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm"
+        className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-[12.5px]"
       >
         <p className="font-medium">{t('Could not load the changes')}</p>
         <p className="mt-1 text-muted-foreground">{changes.error.message}</p>
@@ -392,7 +392,7 @@ export function AcceptCelebration({ status }: { status: RunStatus }) {
     >
       <TwinkleBackdrop />
       <div className="flex justify-center pt-24">
-        <span className="rounded-full border border-violet/30 bg-violet/15 px-4 py-1.5 text-[13px] font-medium text-violet shadow-modal">
+        <span className="rounded-sm border border-violet/30 bg-violet/15 px-4 py-1.5 text-[13px] font-medium text-violet shadow-modal">
           {t('✓ Changes accepted')}
         </span>
       </div>

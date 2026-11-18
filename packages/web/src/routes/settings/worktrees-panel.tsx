@@ -85,14 +85,14 @@ export function WorktreesPanel() {
 
   if (worktrees.isPending) {
     return (
-      <p data-slot="worktrees-loading" className="text-[13px] text-soft-foreground">
+      <p data-slot="worktrees-loading" className="text-[12.5px] text-soft-foreground">
         {t('Loading worktrees…')}
       </p>
     )
   }
   if (worktrees.isError) {
     return (
-      <p data-slot="worktrees-error" className="text-[13px] text-danger">
+      <p data-slot="worktrees-error" className="text-[12.5px] text-danger">
         {t('Worktrees did not load: {message}', { message: worktrees.error.message })}
       </p>
     )
@@ -111,12 +111,12 @@ export function WorktreesPanel() {
   return (
     <div data-slot="worktrees-panel" className="flex flex-col gap-3">
       {rows.length === 0 ? (
-        <p data-slot="worktrees-empty" className="text-[13px] text-soft-foreground">
+        <p data-slot="worktrees-empty" className="text-[12.5px] text-soft-foreground">
           {t('No task worktrees on disk.')}
         </p>
       ) : (
         <div className="relative overflow-x-auto rounded-md border border-border">
-          <table className="w-full border-collapse text-sm">
+          <table className="w-full border-collapse text-[12.5px]">
             <caption className="sr-only">{t('Task worktrees currently materialized on disk')}</caption>
             <thead>
               <tr className="border-b border-border text-left text-[12px] text-soft-foreground">
@@ -163,7 +163,7 @@ export function WorktreesPanel() {
 
       {lifecycle.isError && <p className="text-xs text-danger" role="alert">{t('Lifecycle state could not be loaded: {message}', { message: lifecycle.error.message })}</p>}
       {managed.filter(item => item.operation || item.autoCleanupSuppressed || item.needsAttention || !item.task).map(item => <section key={item.worktreeId} className="min-w-0 rounded-md border border-border p-3" data-slot="lifecycle-worktree-row">
-        <h3 className="text-sm font-medium">{item.task?.title ?? t('Orphan worktree {id}', { id: item.runId.slice(0, 8) })}</h3>
+        <h3 className="text-[12.5px] font-medium">{item.task?.title ?? t('Orphan worktree {id}', { id: item.runId.slice(0, 8) })}</h3>
         <p className="break-all font-mono text-[11px] text-muted-foreground">{item.worktreePath}</p>
         {item.error && <p className="mt-1 text-xs text-danger">{item.error}</p>}
         {item.needsAttention && <p className="mt-1 text-xs text-danger">{item.operation?.phase === 'setup' ? t('Setup needs attention') : t('Cleanup needs attention')} — {t('worktree retained.')}</p>}

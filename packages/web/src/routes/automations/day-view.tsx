@@ -37,7 +37,7 @@ export function DayView({ data }: { data: AutomationsResponse }) {
   if (start === null || end === null || !parts || !today) {
     return (
       <div data-slot="day-view" className="p-5">
-        <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+        <p className="rounded-md border border-dashed p-8 text-center text-[12.5px] text-muted-foreground">
           {t('Cannot draw the day: unknown time zone “{zone}”.', { zone: timeZone })}
         </p>
       </div>
@@ -59,7 +59,7 @@ export function DayView({ data }: { data: AutomationsResponse }) {
           <Button variant="ghost" size="icon-sm" aria-label={t('Next day')} onClick={() => setOffset((value) => value + 1)}>
             <ChevronRightIcon className="size-3.5" />
           </Button>
-          <span data-slot="day-title" className="text-sm font-semibold whitespace-nowrap">{title}</span>
+          <span data-slot="day-title" className="text-[12.5px] font-semibold whitespace-nowrap">{title}</span>
           {isToday ? <Pill dot="success">{t('today')}</Pill> : null}
           <span className="ml-auto text-xs whitespace-nowrap text-muted-foreground">
             {tn(events.length, '{count} scheduled run', '{count} scheduled runs')}{polls.length ? ` · ${tn(polls.length, '{count} GitHub poll', '{count} GitHub polls')}` : ''}
@@ -95,7 +95,7 @@ export function DayView({ data }: { data: AutomationsResponse }) {
           >
             <span className="font-mono text-[10.5px] font-medium text-soft-foreground">{t('poll')}</span>
             <span className="min-w-0">
-              <span className="flex items-center gap-2 text-[13px] font-medium">
+              <span className="flex items-center gap-2 text-[12.5px] font-medium">
                 <GithubIcon className="size-3 shrink-0 text-violet" />
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap">{automation.name}</span>
               </span>
@@ -121,7 +121,7 @@ export function DayView({ data }: { data: AutomationsResponse }) {
                 {hm(occurrence.parts.hour, occurrence.parts.minute)}
               </span>
               <span className="min-w-0">
-                <span className={cn('flex items-center gap-2 text-[13px] font-medium', past && 'text-muted-foreground')}>
+                <span className={cn('flex items-center gap-2 text-[12.5px] font-medium', past && 'text-muted-foreground')}>
                   <StatusDot tone={past && automation.lastRun ? statusTone(automation.lastRun.status) : 'neutral'} />
                   <span className="overflow-hidden text-ellipsis whitespace-nowrap">{automation.name}</span>
                 </span>

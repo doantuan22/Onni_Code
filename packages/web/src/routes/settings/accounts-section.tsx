@@ -140,7 +140,7 @@ export function AccountsSection() {
 
   if (profiles.isPending) {
     return (
-      <p data-slot="accounts-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">
+      <p data-slot="accounts-loading" className="p-4 text-[12.5px] text-soft-foreground md:p-6">
         {t('Loading agent accounts…')}
       </p>
     )
@@ -182,10 +182,10 @@ function AccountsPane({ data }: { data: AgentProfilesResponse }) {
     return (
       <div
         data-slot="accounts-section"
-        className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4 md:p-6"
+        className="flex w-full min-w-0 flex-col gap-4"
       >
-        <h2 className="text-sm font-semibold text-foreground">{t('Agent accounts')}</h2>
-        <p data-slot="accounts-hosted" className="text-[13px] text-soft-foreground">
+        <h2 className="text-[12.5px] font-semibold text-foreground">{t('Agent accounts')}</h2>
+        <p data-slot="accounts-hosted" className="text-[12.5px] text-soft-foreground">
           {t('Agent accounts are disabled for remote access. On a trusted, authenticated self-hosted deployment, set ONNI_REMOTE_AGENT_ACCOUNTS=1 and restart onni.')}
         </p>
       </div>
@@ -195,11 +195,11 @@ function AccountsPane({ data }: { data: AgentProfilesResponse }) {
   return (
     <div
       data-slot="accounts-section"
-      className="mx-auto flex w-full max-w-4xl flex-col gap-5 p-4 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-6 md:pb-6"
+      className="flex w-full min-w-0 flex-col gap-5"
     >
       <div>
-        <h2 className="text-sm font-semibold text-foreground">{t('Agent accounts')}</h2>
-        <p className="text-[13px] text-muted-foreground">
+        <h2 className="text-[12.5px] font-semibold text-foreground">{t('Agent accounts')}</h2>
+        <p className="text-[12.5px] text-muted-foreground">
           {t('One list of agents: pick one to see whether it is installed, which logins you have and its defaults. Add a second config folder to keep a work account beside a personal one; each project picks which it uses in its own Agents settings.')}
         </p>
       </div>
@@ -211,7 +211,7 @@ function AccountsPane({ data }: { data: AgentProfilesResponse }) {
         <TabsList
           variant="line"
           data-slot="accounts-tabs"
-          className="flex h-auto w-full flex-col gap-0.5 rounded-lg border border-border bg-card p-1.5 md:w-60 md:shrink-0"
+          className="flex h-auto w-full flex-col gap-0.5 rounded-sm border border-border bg-card p-1 md:w-60 md:shrink-0"
         >
           {providers.map((provider) => (
             <TabsTrigger key={provider} value={provider} data-provider={provider} className="h-8 w-full flex-none justify-start">
@@ -312,7 +312,7 @@ function AgentTab({
     <div data-slot="accounts-provider" data-provider={provider} className="flex flex-col gap-4">
       {/* Facts about the BINARY, not about any one account: a version and an install are shared by
           every login of the same CLI, so they belong here rather than repeated on each row. */}
-      <dl className="divide-y divide-border/60 overflow-hidden rounded-md border border-border bg-card text-[13px]">
+      <dl className="divide-y divide-border/60 overflow-hidden rounded-md border border-border bg-card text-[12.5px]">
         <Row label={t('Installed')}>
           {check === undefined ? (
             <span className="text-muted-foreground">{t('Checking…')}</span>
@@ -341,7 +341,7 @@ function AgentTab({
       </dl>
 
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-[13px] font-semibold text-foreground">{t('Logins')}</h3>
+        <h3 className="text-[12.5px] font-semibold text-foreground">{t('Logins')}</h3>
         {canCarryAccounts ? (
           <Button
             type="button"
@@ -414,10 +414,10 @@ function AgentDefaults({ provider, profiles }: { provider: ProviderId; profiles:
   const catalogStatus = modelCatalogStatus(provider, catalog.data, catalog.isError)
 
   return (
-    <section data-slot="accounts-defaults" className="flex flex-col gap-4 rounded-lg border border-border bg-card/40 p-3.5">
+    <section data-slot="accounts-defaults" className="flex flex-col gap-4 rounded-md border border-border bg-card/40 p-3.5">
       <div>
-        <h3 className="text-[13px] font-semibold text-foreground">{t('Defaults for new projects')}</h3>
-        <p className="text-[13px] text-muted-foreground">
+        <h3 className="text-[12.5px] font-semibold text-foreground">{t('Defaults for new projects')}</h3>
+        <p className="text-[12.5px] text-muted-foreground">
           {t('What a project runs when it has not chosen for itself — set once instead of per repository. A project that has chosen keeps its own.')}
         </p>
       </div>
@@ -464,7 +464,7 @@ function AgentDefaults({ provider, profiles }: { provider: ProviderId; profiles:
               },
             })
           }
-          className="block w-full max-w-xs rounded-md border border-input bg-card px-3 py-1.5 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+          className="block w-full max-w-xs rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
         >
           {modelsForRunner(provider, catalog.data, [model]).map((m) => (
             <option key={m.id} value={m.id}>
@@ -509,7 +509,7 @@ function AccountRow({ account, onRemove }: { account: AgentProfile; onRemove: ()
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-medium text-foreground">{account.label}</span>
+            <span className="text-[12.5px] font-medium text-foreground">{account.label}</span>
             {account.isDefault ? (
               <Badge variant="ghost" className="shrink-0 text-[10px] text-muted-foreground">
                 {t('discovered')}

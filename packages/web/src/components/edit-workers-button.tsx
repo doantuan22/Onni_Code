@@ -101,8 +101,8 @@ export function EditWorkersButton({ run, iconOnly = false }: EditWorkersButtonPr
             <DialogDescription>{t('Changes apply to future dispatches. Existing workers keep running.')}</DialogDescription>
           </DialogHeader>
           {draft ? <RosterEditor draft={draft} onChange={setDraft} connected={connected} disabled={!editable || saving} managerLocked /> : null}
-          {parsed && !parsed.ok ? <p role="alert" className="text-sm text-danger">{parsed.error}</p> : null}
-          {error ? <p role="alert" data-slot="roster-save-error" className="text-sm text-danger">{error}</p> : null}
+          {parsed && !parsed.ok ? <p role="alert" className="text-[12.5px] text-danger">{parsed.error}</p> : null}
+          {error ? <p role="alert" data-slot="roster-save-error" className="text-[12.5px] text-danger">{error}</p> : null}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t('Cancel')}</Button>
             <Button type="button" data-slot="save-workers" disabled={!editable || !parsed?.ok || saving} onClick={() => void save()}>{t('Save workers')}</Button>

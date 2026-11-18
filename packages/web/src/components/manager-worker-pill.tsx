@@ -96,6 +96,7 @@ export function ManagerWorkerPill({
   }, [rosterNow, onRoster])
 
   const maxParallel = config.data?.resources.maxParallel
+  const unlimited = config.data?.resources.maxParallelUnlimited === true
   const on = draft !== null
   const gone = rosterNow ? disconnectedBackends(rosterNow, connected) : []
   const toggle = (next: boolean) => {
@@ -165,7 +166,7 @@ export function ManagerWorkerPill({
           />
           {parsed && !parsed.ok ? <p data-slot="roster-error" className="text-[12px] text-danger">{parsed.error}</p> : null}
           {gone.length > 0 ? <p className="text-[12px] text-danger">{t('Not connected: {backends} — the task would be refused.', { backends: gone.join(', ') })}</p> : null}
-          {rosterNow && maxParallel !== undefined && totalConcurrency(rosterNow) > maxParallel ? (
+          {!unlimited && rosterNow && maxParallel !== undefined && totalConcurrency(rosterNow) > maxParallel ? (
             <p data-slot="roster-capacity-note" className="text-[12px] text-warning">
               {t('Workers may run {workers} at once but the workspace runs {max} tasks in parallel.', { workers: totalConcurrency(rosterNow), max: maxParallel })}{' '}
               <Link to="/settings/global/resources" className="underline">{t('Change it in Settings → Resources')}</Link>.

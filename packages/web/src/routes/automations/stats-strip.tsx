@@ -63,7 +63,7 @@ function Stat({ label, value, danger = false }: { label: string; value: string; 
   const { t } = useI18n()
   return (
     <span data-slot="stat" data-label={label} className="inline-flex shrink-0 items-baseline gap-[5px] whitespace-nowrap">
-      <b className={cn('font-mono text-sm font-semibold tabular-nums', danger ? 'text-danger' : 'text-foreground')}>{value}</b>
+      <b className={cn('font-mono text-[12.5px] font-semibold tabular-nums', danger ? 'text-danger' : 'text-foreground')}>{value}</b>
       {t(label)}
     </span>
   )

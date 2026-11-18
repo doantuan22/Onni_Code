@@ -1,5 +1,4 @@
 import { BotIcon } from 'lucide-react'
-import type { ReactNode } from 'react'
 
 import {
   useAgentProfiles,
@@ -23,6 +22,7 @@ import {
 import { modelCatalogStatus, modelsForRunner, RUNNERS } from '@/routes/new-task-form'
 import { useI18n } from '@/lib/i18n'
 import { ProviderSettings } from './provider-settings'
+import { SettingsField } from './settings-field'
 import { useConfigSave } from './use-config-save'
 import { AppSelect } from '@/components/ui/app-select'
 
@@ -50,7 +50,7 @@ export function AgentsSection() {
 
   if (config.isPending) {
     return (
-      <p data-slot="agents-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">
+      <p data-slot="agents-loading" className="p-4 text-[12.5px] text-soft-foreground md:p-6">
         {t('Loading agent settings…')}
       </p>
     )
@@ -84,7 +84,7 @@ function AgentsForm({
   return (
     <div
       data-slot="agents-section"
-      className="mx-auto flex w-full max-w-2xl flex-col gap-7 p-4 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-6 md:pb-6"
+      className="flex w-full min-w-0 flex-col gap-5"
     >
       <ProviderSettings />
 
@@ -95,7 +95,7 @@ function AgentsForm({
         onPick={(runner) => save.mutate({ defaultRunner: runner })}
       />
 
-      <Field
+      <SettingsField
         title={t('Default models')}
         hint={
           config.modelsLocked
@@ -139,7 +139,7 @@ function AgentsForm({
                     data-slot="agents-model"
                     data-runner={runner.id}
                     title={t('Model selection is locked to native coding-agent settings.')}
-                    className="block w-full rounded-md border border-input bg-card px-3 py-1.5 text-sm shadow-xs"
+                    className="block w-full rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px]"
                   >
                     {configuredModelLabel}
                   </output>
@@ -165,7 +165,7 @@ function AgentsForm({
                         >,
                       })
                     }
-                    className="block w-full rounded-md border border-input bg-card px-3 py-1.5 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+                    className="block w-full rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
                   >
                     {modelOptions.map((model) => (
                       <option key={model.id} value={model.id}>
@@ -179,7 +179,7 @@ function AgentsForm({
             )
           })}
         </div>
-      </Field>
+      </SettingsField>
     </div>
   )
 }
@@ -235,7 +235,7 @@ function DefaultAgentField({
   const hasAccounts = hasAgentAccounts(rows)
 
   return (
-    <Field
+    <SettingsField
       title={hasAccounts ? t('Default agent') : t('Default runner')}
       hint={
         hasAccounts
@@ -267,28 +267,16 @@ function DefaultAgentField({
       {!providerStatus.isPending &&
       !providerStatus.isError &&
       providerStatusFor(providerStatus.data, defaultRunner)?.enabled === false ? (
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-[12.5px] text-muted-foreground">
           {t('This provider is disabled. Enable it above or choose another provider.')}
         </p>
       ) : null}
       {hasAccounts ? (
-        <p className="max-w-md text-[13px] text-muted-foreground">
+        <p className="max-w-md text-[12.5px] text-muted-foreground">
           {t('Tasks already started under another account can’t be resumed here — their sessions live in that account’s folder.')}
         </p>
       ) : null}
-    </Field>
+    </SettingsField>
   )
 }
 
-/** The Appearance section's field chassis — same rhythm, so Settings reads as one surface. */
-function Field({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-2">
-      <div>
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-        <p className="text-[13px] text-muted-foreground">{hint}</p>
-      </div>
-      {children}
-    </section>
-  )
-}

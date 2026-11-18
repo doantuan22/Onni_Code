@@ -6,44 +6,37 @@
     <meta name="color-scheme" content="dark light" />
     <title>OnniCode</title>
     <style>
-      /* The cockpit's own tokens (packages/web/src/styles/index.css) — dark is the cockpit's
-         default, light follows the system. The splash cannot read the cockpit's saved theme
-         (different origin), so this is the closest honest match. The accent is the brand mark:
-         azure on black, a deeper blue on paper. */
+      /* The boot surface, in the same grammar as the cockpit's loading splash
+         (packages/web/src/components/loading-splash.tsx): the mark, the wordmark, one status
+         line, and a hairline track with a single violet sweep. Dark is the cockpit's default,
+         light follows the system — the splash cannot read the cockpit's saved theme (different
+         origin), so this is the closest honest match. Tokens mirror styles/index.css. */
       :root {
-        --bg: #070809;
-        --fg: #f4f7f2;
-        --muted: #9ba49b;
-        --soft: #66706a;
-        --line: rgba(255, 255, 255, 0.07);
-        --line-strong: rgba(255, 255, 255, 0.13);
-        --panel: rgba(255, 255, 255, 0.035);
-        --accent: #006afe;
-        --accent-bright: #3b9bff;
-        --accent-ink: #00142e;
-        --accent-glow: rgba(0, 106, 254, 0.28);
-        --accent-line: rgba(0, 106, 254, 0.6);
-        --mark-shadow: rgba(0, 106, 254, 0.3);
-        --vignette: rgba(0, 0, 0, 0.32);
+        --bg: #090909;
+        --fg: #ededed;
+        --muted: #8a8a8a;
+        --soft: #6b6b6b;
+        --line: #242424;
+        --panel: rgba(255, 255, 255, 0.03);
+        --violet: #8f86e8;
+        --on-violet: #0d0d0d;
+        --tile: #ffffff;
+        --danger: #ff8a7a;
         --sans: 'Inter Variable', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
         --mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
       }
       @media (prefers-color-scheme: light) {
         :root {
-          --bg: #f4f6ef;
-          --fg: #15180f;
-          --muted: #5d6558;
-          --soft: #8b9385;
-          --line: rgba(21, 24, 15, 0.08);
-          --line-strong: rgba(21, 24, 15, 0.15);
-          --panel: rgba(255, 255, 255, 0.7);
-          --accent: #006afe;
-          --accent-bright: #0052c6;
-          --accent-ink: #ffffff;
-          --accent-glow: rgba(0, 106, 254, 0.2);
-          --accent-line: rgba(0, 82, 198, 0.55);
-          --mark-shadow: rgba(0, 82, 198, 0.24);
-          --vignette: rgba(21, 24, 15, 0.05);
+          --bg: #fafafa;
+          --fg: #171717;
+          --muted: #6b6b6b;
+          --soft: #8a8a8a;
+          --line: #e4e4e4;
+          --panel: rgba(0, 0, 0, 0.025);
+          --violet: #6d5fd6;
+          --on-violet: #ffffff;
+          --tile: transparent;
+          --danger: #c2412d;
         }
       }
       html,
@@ -66,179 +59,64 @@
         z-index: 3;
       }
 
-      /* ---- backdrop ---------------------------------------------------------------- */
-      .backdrop {
-        position: fixed;
-        inset: 0;
-        overflow: hidden;
-        pointer-events: none;
-      }
-      /* A single quiet wash behind the mark: the hero is the mark, not the wallpaper. */
-      .backdrop::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: radial-gradient(900px 520px at 50% -6%, var(--accent-glow), transparent 64%);
-        opacity: 0.5;
-      }
-      .vignette {
-        position: absolute;
-        inset: 0;
-        background: radial-gradient(ellipse at center, transparent 52%, var(--vignette) 100%);
-      }
-
-      /* ---- stage ------------------------------------------------------------------- */
       main {
-        position: relative;
-        z-index: 1;
         height: 100%;
         display: grid;
         place-items: center;
-        padding: 44px 24px 76px;
+        padding: 44px 24px 60px;
         box-sizing: border-box;
       }
       .stage {
-        width: min(620px, 100%);
+        width: min(360px, 100%);
         display: flex;
         flex-direction: column;
         align-items: center;
         text-align: center;
+        animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
       }
-      .stage > * {
-        animation: rise 0.65s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-      }
-      .stage > :nth-child(1) { animation-delay: 0.04s; }
-      .stage > :nth-child(2) { animation-delay: 0.1s; }
-      .stage > :nth-child(3) { animation-delay: 0.16s; }
-      .stage > :nth-child(4) { animation-delay: 0.22s; }
-      .stage > :nth-child(5) { animation-delay: 0.28s; }
-      .stage > :nth-child(n + 6) { animation-delay: 0.32s; }
 
-      .eyebrow {
-        display: inline-flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 28px;
-        color: var(--soft);
-        font: 600 10px/1 var(--sans);
-        letter-spacing: 0.24em;
-        text-transform: uppercase;
-      }
-      .eyebrow::before,
-      .eyebrow::after {
-        content: '';
-        width: 28px;
-        height: 1px;
-      }
-      .eyebrow::before { background: linear-gradient(90deg, transparent, var(--line-strong)); }
-      .eyebrow::after { background: linear-gradient(90deg, var(--line-strong), transparent); }
-
-      .mark-wrap {
-        position: relative;
-        width: 96px;
-        height: 96px;
-        display: grid;
-        place-items: center;
-        margin-bottom: 30px;
-      }
-      /* The azure under-glow breathes behind the glyph — the loading "heartbeat". */
-      .mark-glow {
-        position: absolute;
-        inset: -26px;
-        border-radius: 50%;
-        background: radial-gradient(circle, var(--accent-glow) 0%, transparent 62%);
-        animation: glow-breathe 3.6s ease-in-out infinite;
-      }
       .mark {
-        position: relative;
-        width: 84px;
-        height: 84px;
-        animation: float 6s ease-in-out infinite;
+        width: 64px;
+        height: 64px;
+        border-radius: 14px;
+        background: var(--tile);
       }
-      /* The mark is a transparent glyph (no tile), so a box-shadow would paint a rectangle
-         behind it; drop-shadow follows the glyph's alpha and keeps the failure state's red glow. */
-      .mark-glyph {
-        width: 100%;
-        height: 100%;
-        display: block;
-        filter: drop-shadow(0 18px 30px var(--mark-shadow));
-      }
-      /* A light glint sweeps across the glyph every few seconds — the one intentional accent,
-         clipped to the mark's own alpha so it reads as a reflection off the logo. */
-      .mark-shine {
-        position: absolute;
-        inset: 0;
-        overflow: hidden;
-        pointer-events: none;
-        -webkit-mask-image: url('icon.svg');
-        mask-image: url('icon.svg');
-        -webkit-mask-size: 100% 100%;
-        mask-size: 100% 100%;
-        -webkit-mask-repeat: no-repeat;
-        mask-repeat: no-repeat;
-      }
-      .mark-shine::before {
-        content: '';
-        position: absolute;
-        top: -60%;
-        bottom: -60%;
-        left: 0;
-        width: 36%;
-        background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.9), transparent);
-        transform: translateX(-260%) skewX(-16deg);
-        animation: glint-sweep 4.6s cubic-bezier(0.55, 0.06, 0.2, 0.95) infinite;
-        will-change: transform;
-      }
-
-      h1 {
-        margin: 0;
-        font-size: 24px;
-        line-height: 1.25;
-        font-weight: 600;
-        letter-spacing: -0.022em;
+      .name {
+        margin: 18px 0 0;
+        font: 600 17px/1 var(--sans);
+        letter-spacing: -0.01em;
         color: var(--fg);
       }
-      .detail {
-        margin: 12px 0 0;
-        max-width: min(520px, 82vw);
-        padding: 7px 12px;
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        background: var(--panel);
+      h1 {
+        margin: 14px 0 0;
+        font: 500 12px/1.5 var(--mono);
+        letter-spacing: 0;
         color: var(--muted);
-        font: 11px/1.5 var(--mono);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        direction: ltr;
-        unicode-bidi: plaintext;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
       }
-      /* Every failure page: the error sentence wraps instead of a path ellipsis. */
-      body.failed .detail {
-        white-space: normal;
-        overflow: visible;
-        border-radius: 12px;
-        text-align: left;
+      .detail {
+        margin: 4px 0 0;
+        max-width: 100%;
+        color: var(--soft);
+        font: 11.5px/1.55 var(--sans);
+        overflow-wrap: anywhere;
       }
 
       .progress {
         position: relative;
-        width: min(300px, 62vw);
-        height: 4px;
-        margin-top: 28px;
+        width: 160px;
+        height: 2px;
+        margin-top: 16px;
         border-radius: 999px;
-        background: var(--line-strong);
+        background: var(--line);
         overflow: hidden;
-        box-shadow: 0 0 20px var(--accent-glow);
       }
       .progress .track {
-        position: absolute;
-        inset: 0;
-        width: 42%;
+        display: block;
+        width: 40%;
+        height: 100%;
         border-radius: inherit;
-        background: linear-gradient(90deg, transparent, var(--accent-bright), transparent);
-        animation: sweep 1.9s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        background: var(--violet);
+        animation: sweep 1.5s cubic-bezier(0.65, 0, 0.35, 1) infinite;
       }
 
       pre {
@@ -247,10 +125,10 @@
         text-align: left;
         width: 100%;
         box-sizing: border-box;
-        margin: 22px 0 0;
+        margin: 18px 0 0;
         padding: 12px 14px;
         border: 1px solid var(--line);
-        border-radius: 12px;
+        border-radius: 10px;
         background: var(--panel);
         color: var(--muted);
         font: 11px/1.6 var(--mono);
@@ -259,231 +137,114 @@
         max-height: 32vh;
         overflow: auto;
         scrollbar-width: thin;
-        scrollbar-color: var(--line-strong) transparent;
+        scrollbar-color: var(--line) transparent;
       }
       .actions {
         display: flex;
         gap: 8px;
-        margin-top: 22px;
+        margin-top: 18px;
       }
       .button {
         appearance: none;
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        height: 38px;
-        padding: 0 16px;
-        border-radius: 10px;
-        border: 1px solid var(--line-strong);
+        height: 34px;
+        padding: 0 14px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
         background: var(--panel);
         color: var(--fg);
-        font: 600 12.5px/1 var(--sans);
+        font: 600 12px/1 var(--sans);
         cursor: pointer;
-        transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+        transition: background 0.15s ease;
       }
       .button.restart {
         border-color: transparent;
-        background: linear-gradient(180deg, var(--accent-bright), var(--accent));
-        color: var(--accent-ink);
-        box-shadow: 0 14px 30px -14px var(--accent-glow);
+        background: var(--violet);
+        color: var(--on-violet);
       }
       .button:hover {
-        transform: translateY(-1px);
+        background: color-mix(in oklab, var(--violet) 12%, transparent);
       }
-      .button:active {
-        transform: translateY(0);
+      .button.restart:hover {
+        filter: brightness(1.08);
       }
       .button:focus-visible {
-        outline: 2px solid var(--accent);
+        outline: 2px solid var(--violet);
         outline-offset: 2px;
       }
       .button[disabled] {
         opacity: 0.6;
         cursor: default;
-        transform: none;
       }
       .hidden {
         display: none !important;
       }
 
-      /* ---- footer ------------------------------------------------------------------ */
-      .footer {
-        position: fixed;
-        inset: auto 0 22px;
-        z-index: 1;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-        color: var(--muted);
-        opacity: 0.85;
-        font: 500 11px/1 var(--sans);
-        letter-spacing: 0.02em;
-        pointer-events: none;
-      }
-      .footer .chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 9px;
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        background: var(--panel);
-        color: var(--muted);
-        font-weight: 600;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        font-size: 9.5px;
-      }
-      .footer .dot {
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        background: var(--accent);
-        box-shadow: 0 0 8px var(--accent-glow);
-        animation: blink 2.4s ease-in-out infinite;
-      }
-      .footer .sep {
-        opacity: 0.45;
-      }
-
       /* ---- failure state ----------------------------------------------------------- */
-      body.failed {
-        --accent: #ff8a7a;
-        --accent-bright: #ffb3a7;
-        --accent-ink: #1a0a07;
-        --accent-glow: rgba(255, 106, 85, 0.2);
-        --accent-line: rgba(255, 138, 122, 0.55);
-        --mark-shadow: rgba(255, 106, 85, 0.2);
+      body.failed .name {
+        color: var(--danger);
       }
-      @media (prefers-color-scheme: light) {
-        body.failed {
-          --accent: #c2412d;
-          --accent-bright: #e05a43;
-          --accent-ink: #ffffff;
-          --accent-glow: rgba(255, 106, 85, 0.18);
-          --accent-line: rgba(194, 65, 45, 0.55);
-          --mark-shadow: rgba(194, 65, 45, 0.2);
-        }
-      }
-      body.failed .backdrop::before {
+      body.failed .progress .track {
+        animation: none;
+        width: 100%;
         opacity: 0.45;
+        background: var(--danger);
       }
-      body.failed .mark,
-      body.failed .mark-glow,
-      body.failed .mark-shine::before {
-        animation-play-state: paused;
-      }
-      body.failed .mark-glow {
-        opacity: 0.5;
+      /* Every failure page: the error sentence wraps instead of truncating. */
+      body.failed .detail {
+        white-space: normal;
+        font-family: var(--mono);
+        font-size: 11px;
+        text-align: left;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--panel);
       }
 
-      /* ---- motion ------------------------------------------------------------------ */
-      @keyframes glow-breathe {
-        0%,
-        100% {
-          opacity: 0.55;
-          transform: scale(0.94);
-        }
-        50% {
-          opacity: 1;
-          transform: scale(1.06);
-        }
-      }
-      @keyframes float {
-        0%,
-        100% {
-          transform: translateY(0);
-        }
-        50% {
-          transform: translateY(-5px);
-        }
-      }
-      @keyframes glint-sweep {
-        0% {
-          transform: translateX(-260%) skewX(-16deg);
-        }
-        45%,
-        100% {
-          transform: translateX(440%) skewX(-16deg);
-        }
-      }
       @keyframes sweep {
-        0% {
-          transform: translateX(-130%);
+        from {
+          transform: translateX(-110%);
         }
-        100% {
-          transform: translateX(330%);
+        to {
+          transform: translateX(360%);
         }
       }
       @keyframes rise {
         from {
           opacity: 0;
-          transform: translateY(10px);
+          transform: translateY(6px);
         }
         to {
           opacity: 1;
           transform: none;
         }
       }
-      @keyframes blink {
-        0%,
-        100% {
-          opacity: 0.45;
-        }
-        50% {
-          opacity: 1;
-        }
-      }
       @media (prefers-reduced-motion: reduce) {
-        .backdrop::before,
-        .mark-glow,
-        .mark,
-        .mark-shine::before,
-        .progress .track,
-        .footer .dot {
+        .stage {
           animation: none;
-        }
-        .stage > * {
-          animation: none;
-        }
-        .mark-shine {
-          opacity: 0;
         }
         .progress .track {
+          animation: none;
           width: 100%;
-          opacity: 0.6;
-        }
-        .footer .dot {
-          opacity: 0.9;
+          opacity: 0.45;
         }
       }
 
       /* ---- compact windows --------------------------------------------------------- */
       @media (max-height: 560px), (max-width: 640px) {
         main {
-          padding-bottom: 36px;
-        }
-        .footer {
-          display: none;
-        }
-        .eyebrow {
-          margin-bottom: 18px;
-        }
-        .mark-wrap {
-          width: 76px;
-          height: 76px;
-          margin-bottom: 18px;
+          padding-bottom: 32px;
         }
         .mark {
-          width: 66px;
-          height: 66px;
+          width: 52px;
+          height: 52px;
+          border-radius: 12px;
         }
-        .mark-glow {
-          inset: -20px;
-        }
-        h1 {
-          font-size: 19px;
+        .name {
+          margin-top: 14px;
         }
         pre {
           max-height: 38vh;
@@ -493,38 +254,22 @@
   </head>
   <body>
     <div class="titlebar" data-tauri-drag-region></div>
-    <div class="backdrop" aria-hidden="true">
-      <div class="vignette"></div>
-    </div>
     <main>
       <section class="stage" aria-live="polite">
-        <span class="eyebrow">Local cockpit</span>
-        <div class="mark-wrap" aria-hidden="true">
-          <div class="mark-glow"></div>
-          <div class="mark">
-            <img class="mark-glyph" src="icon.svg" alt="" />
-            <span class="mark-shine"></span>
-          </div>
-        </div>
+        <img class="mark" src="icon.svg" alt="" aria-hidden="true" width="64" height="64" />
+        <p class="name">OnniCode</p>
         <h1 id="title">Starting OnniCode…</h1>
         <p id="detail" class="detail">Launching the local cockpit.</p>
         <div id="spinner" class="progress" role="progressbar" aria-label="Starting OnniCode"><span class="track"></span></div>
         <pre id="log" class="hidden"></pre>
         <div id="actions" class="actions hidden">
           <button id="retry" class="button restart" type="button">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
             <span id="retry-label">Restart OnniCode</span>
           </button>
         </div>
-        <p id="hint" class="hidden"></p>
       </section>
     </main>
-    <footer class="footer">
-      <span class="chip"><span class="dot"></span>Local-first</span>
-      <span>Runs entirely on this machine</span>
-      <span class="sep">·</span>
-      <span>No account, no cloud</span>
-    </footer>
     <script>
       // The Rust side drives this page through `eval` — no Tauri IPC is needed for a splash.
       window.onniSplash = {

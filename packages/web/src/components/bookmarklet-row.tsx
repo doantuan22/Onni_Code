@@ -45,7 +45,7 @@ export function BookmarkletRow({
           event.preventDefault()
           toast(t('Drag me to your bookmarks bar'))
         }}
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 font-mono text-xs font-medium text-foreground shadow-xs transition-colors hover:bg-muted"
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 font-mono text-xs font-medium text-foreground transition-colors hover:bg-muted"
       >
         {showIcon ? <ZapIcon aria-hidden="true" className="size-3 text-primary" /> : null}
         {label}

@@ -144,7 +144,7 @@ export function ToolsMenu({ health, forge }: { health: HealthResponse | undefine
           type="button"
           data-slot="tools-menu-trigger"
           title={toolsTooltip(health, t)}
-          className="flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="flex items-center gap-1.5 rounded-sm border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <StatusDot tone={blocker || disk ? 'pending' : 'success'} />
           {t('Tools')}

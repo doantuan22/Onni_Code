@@ -268,7 +268,7 @@ describe('ToolCard — states', () => {
     render(<ToolCard item={item} />)
     expect(card().getAttribute('data-status')).toBe('failed')
     // A faint danger tint still identifies it, but the loud outline and auto-open are gone.
-    expect(card().className).toContain('border-danger')
+    expect(card().className).toContain('bg-danger/[0.04]')
     expect(screen.getByText('failed')).toBeTruthy()
     // Calm by default: the red error body only appears once the reader opens the card.
     expect(document.querySelector('[data-slot="tool-error"]')).toBeNull()

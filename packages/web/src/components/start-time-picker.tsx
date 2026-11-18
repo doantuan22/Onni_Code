@@ -241,26 +241,26 @@ export function StartTimePicker({ task, value, onChange, disabledReason, onBlock
       }} />{t('Pick date & time')}</label>
       <label className="flex items-center gap-2"><input type="radio" name={groupName} aria-describedby={resetReason ? eligibilityId : describedBy} disabled={!!resetReason} checked={value?.start.kind === 'usage-reset'} onChange={() => pick({ start: { kind: 'usage-reset' } })} />{t('After usage limit resets')}</label>
       </fieldset>
-      {resetReason && !disabledReason && <p id={eligibilityId} className="text-sm text-muted-foreground">{resetReason}</p>}
+      {resetReason && !disabledReason && <p id={eligibilityId} className="text-[12.5px] text-muted-foreground">{resetReason}</p>}
       {optionsError && <Button type="button" variant="outline" onClick={() => setOptionsAttempt(n => n + 1)}>{t('Retry options')}</Button>}
-      {disabledReason && <p id={eligibilityId} role="status" className="text-sm text-muted-foreground">{disabledReason}</p>}
+      {disabledReason && <p id={eligibilityId} role="status" className="text-[12.5px] text-muted-foreground">{disabledReason}</p>}
       {value?.start.kind === 'at' && <div className="space-y-2">
-        <p className="text-sm text-muted-foreground">{currentOptions ? t('Server time zone: {zone}', { zone: currentOptions.timeZone }) : t('Loading server time zone…')}</p>
-        <label className="block text-sm">{t('Date')}<Input aria-describedby={describedBy} onBlur={() => setTouched(true)} aria-invalid={(touched && errors.date) || timeError ? true : undefined} type="date" max="9999-12-31" value={value.start.date} onChange={e => onChange({ start: { ...value.start as AtStart, date: e.target.value } })} /></label>
-        <label className="block text-sm">{t('Time (server time zone)')}<Input aria-describedby={describedBy} onBlur={() => setTouched(true)} aria-invalid={(touched && errors.time) || timeError ? true : undefined} type="time" value={validTime(value.start) ? `${pad(value.start.hour)}:${pad(value.start.minute)}` : ''} onChange={e => { const [hour, minute] = e.target.value ? e.target.value.split(':').map(Number) : [-1, -1]; onChange({ start: { ...value.start as AtStart, hour: hour ?? -1, minute: minute ?? -1 } }) }} /></label>
+        <p className="text-[12.5px] text-muted-foreground">{currentOptions ? t('Server time zone: {zone}', { zone: currentOptions.timeZone }) : t('Loading server time zone…')}</p>
+        <label className="block text-[12.5px]">{t('Date')}<Input aria-describedby={describedBy} onBlur={() => setTouched(true)} aria-invalid={(touched && errors.date) || timeError ? true : undefined} type="date" max="9999-12-31" value={value.start.date} onChange={e => onChange({ start: { ...value.start as AtStart, date: e.target.value } })} /></label>
+        <label className="block text-[12.5px]">{t('Time (server time zone)')}<Input aria-describedby={describedBy} onBlur={() => setTouched(true)} aria-invalid={(touched && errors.time) || timeError ? true : undefined} type="time" value={validTime(value.start) ? `${pad(value.start.hour)}:${pad(value.start.minute)}` : ''} onChange={e => { const [hour, minute] = e.target.value ? e.target.value.split(':').map(Number) : [-1, -1]; onChange({ start: { ...value.start as AtStart, hour: hour ?? -1, minute: minute ?? -1 } }) }} /></label>
       </div>}
       {value && !disabledReason && <>
-        {value.start.kind === 'usage-reset' && currentOptions?.usageReset.available && <p className="text-sm text-muted-foreground">{currentOptions.usageReset.provider === 'claude'
+        {value.start.kind === 'usage-reset' && currentOptions?.usageReset.available && <p className="text-[12.5px] text-muted-foreground">{currentOptions.usageReset.provider === 'claude'
           ? t('The task waits until your Claude usage limit resets, then starts. Onni knows the reset time from limits your earlier Claude tasks hit.')
           : t('The task waits until your Codex usage limit resets, then starts. Onni reads the reset time from Codex.')}</p>}
-        {value.start.kind === 'usage-reset' && !resetReason && !ready && !message && <p role="status" className="text-sm text-muted-foreground">{blocked}</p>}
+        {value.start.kind === 'usage-reset' && !resetReason && !ready && !message && <p role="status" className="text-[12.5px] text-muted-foreground">{blocked}</p>}
         {value.start.kind === 'usage-reset' && !resetReason && (ready || (message && retry)) && <Button type="button" variant="outline" size="sm" disabled={busy || !task.task.trim()} onClick={() => void check()}>{message ? t('Try again') : t('Refresh')}</Button>}
         {value.start.kind === 'at' && retry && <Button type="button" variant="outline" disabled={busy || !!fieldMessage || !task.task.trim()} onClick={() => void check()}>{t('Retry')}</Button>}
-        {value.start.kind === 'at' && !ready && !message && !fieldMessage && <p role="status" className="text-sm text-muted-foreground">{blocked}</p>}
-        {ready && <div role="status" className="space-y-1 text-sm"><p>{t('Earliest start: {when} · {zone}', { when: new Date(ready.notBefore).toLocaleString('en-GB', { timeZone: ready.timeZone }), zone: ready.timeZone })}</p>{ready.observation && <p>{ready.observation}</p>}<p className="text-muted-foreground">{t('The server must be running. Scheduling does not reserve allowance; account holds and queue limits still apply.')}</p></div>}
+        {value.start.kind === 'at' && !ready && !message && !fieldMessage && <p role="status" className="text-[12.5px] text-muted-foreground">{blocked}</p>}
+        {ready && <div role="status" className="space-y-1 text-[12.5px]"><p>{t('Earliest start: {when} · {zone}', { when: new Date(ready.notBefore).toLocaleString('en-GB', { timeZone: ready.timeZone }), zone: ready.timeZone })}</p>{ready.observation && <p>{ready.observation}</p>}<p className="text-muted-foreground">{t('The server must be running. Scheduling does not reserve allowance; account holds and queue limits still apply.')}</p></div>}
       </>}
-      {!touched && fieldMessage && !message && <p id={errorId} className="text-sm text-muted-foreground">{fieldMessage}</p>}
-      {(message || visibleFieldMessage) && <p id={errorId} role="alert" className="text-sm text-destructive">{message || visibleFieldMessage}</p>}
+      {!touched && fieldMessage && !message && <p id={errorId} className="text-[12.5px] text-muted-foreground">{fieldMessage}</p>}
+      {(message || visibleFieldMessage) && <p id={errorId} role="alert" className="text-[12.5px] text-destructive">{message || visibleFieldMessage}</p>}
     </PopoverContent>
   </Popover>
 }

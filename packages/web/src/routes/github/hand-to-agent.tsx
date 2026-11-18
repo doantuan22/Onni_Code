@@ -231,7 +231,7 @@ export function HandToAgent({
     )
 
   return (
-    <section data-slot="gh-hand" className="mt-7 rounded-lg border border-border bg-card p-4">
+    <section data-slot="gh-hand" className="mt-7 rounded-md border border-border bg-card p-4">
       <h3 className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[.04em] text-soft-foreground uppercase">
         <ZapIcon aria-hidden="true" className="size-3.5 text-violet" />
         {t('Hand this to the agent')}
@@ -271,7 +271,7 @@ export function HandToAgent({
               data-skill={name}
               onClick={() => toggleSkill(name)}
               title={t('Remove this skill')}
-              className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-px font-mono text-[11px] font-medium text-foreground transition-colors hover:bg-danger/10 hover:text-danger"
+              className="inline-flex items-center gap-1 rounded-sm border border-border bg-muted px-2 py-px font-mono text-[11px] font-medium text-foreground transition-colors hover:bg-danger/10 hover:text-danger"
             >
               {name}
               <XIcon aria-hidden="true" className="size-3" />

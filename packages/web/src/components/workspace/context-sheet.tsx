@@ -80,7 +80,7 @@ export function ContextSheet({
           data-slot="context-sheet-header"
           className="flex h-[var(--header-h,48px)] shrink-0 flex-row items-center justify-between border-b border-border bg-muted/40 px-4 py-0 pr-16"
         >
-          <SheetTitle data-slot="context-sheet-title" className="text-sm font-medium truncate">
+          <SheetTitle data-slot="context-sheet-title" className="text-[12.5px] font-medium truncate">
             {title ? `${title} — ${t('Context')}` : t('Context area')}
           </SheetTitle>
           <SheetDescription className="sr-only">
@@ -112,7 +112,7 @@ export function ContextSheet({
                 className={cn(
                   'flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2.5 font-medium transition-colors cursor-pointer select-none',
                   isTabActive
-                    ? 'bg-background text-foreground shadow-xs ring-1 ring-border'
+                    ? 'bg-background text-foreground ring-1 ring-border'
                     : 'text-muted-foreground hover:bg-background/50 hover:text-foreground',
                 )}
                 onClick={() => handleSelectView(view)}

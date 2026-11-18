@@ -196,7 +196,7 @@ function RunHeaderView({
     <ReferenceStatusProvider projectId={refs.projectId} requests={refs.requests}>
       <header
         data-slot="run-header"
-        className="relative z-20 border-b border-border bg-background/95 px-3 pt-2 backdrop-blur md:sticky md:top-0 md:px-6 md:pt-3"
+        className="relative z-20 border-b border-border bg-background/95 px-3 pt-2 md:sticky md:top-0 md:px-6 md:pt-3"
       >
         <div className={cn('mx-auto w-full', !wide && 'max-w-[var(--measure)]')}>
           {/* `min-h-[30px]` is the git button's own height (Button size `sm`): the row keeps it

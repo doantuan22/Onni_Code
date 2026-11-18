@@ -147,17 +147,18 @@ function useEscapeToLeave(leave: () => void): void {
   }, [leave])
 }
 
-/** The app sidebar's nav row, verbatim (h-[34px], 13.5px, muted → foreground on hover).
+/** The app sidebar's nav row, verbatim (h-8, 13px, muted → foreground on hover).
  *  `shrink-0` is load-bearing: the rows live in a SCROLLING flex column, and a flex item with a
  *  fixed height still shrinks to its text height when the column overflows — which is exactly
  *  what an open project tree does — so without it every row quietly lost a third of its height
  *  on project pages and the whole nav had to scroll anyway. */
 const navRowClass = (active: boolean, touch = false) =>
   cn(
-    'flex h-[34px] shrink-0 items-center gap-2.5 rounded-md px-2.5 text-[13.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
+    'relative flex h-8 shrink-0 items-center gap-2 rounded-sm px-2 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
     // In the phone drawer every row is a touch target: 44px, the shell's mobile rule.
     touch && 'h-11',
-    active && 'bg-muted font-semibold text-foreground',
+    active &&
+      'bg-muted font-semibold text-foreground before:absolute before:top-1/2 before:left-0 before:h-3.5 before:w-[2px] before:-translate-y-1/2 before:rounded-full before:bg-violet',
   )
 
 /** True inside the phone drawer, where the identical content must meet the 44px touch rule
@@ -166,7 +167,7 @@ const TouchTargetsContext = React.createContext(false)
 
 function GroupLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="shrink-0 px-2.5 pt-1 pb-1 text-[10.5px] font-semibold tracking-wide text-soft-foreground uppercase">
+    <p className="shrink-0 px-2 pt-2 pb-1 font-mono text-[10px] font-semibold tracking-[0.08em] text-soft-foreground uppercase">
       {children}
     </p>
   )
@@ -198,7 +199,7 @@ function ProjectSectionLinks({
         end
         data-slot="settings-project-general"
         data-project={project.id}
-        className={cn(navRowClass(active && activeId === null, touch), !touch && 'h-[30px]', 'text-[13px]')}
+        className={cn(navRowClass(active && activeId === null, touch), !touch && 'h-[30px]', 'text-[12.5px]')}
       >
         <SlidersHorizontalIcon aria-hidden="true" className="size-3.5 shrink-0" />
         {t('General')}
@@ -211,7 +212,7 @@ function ProjectSectionLinks({
             to={scopeTo(project.id, settingsSectionPath('project', section.id))}
             data-project-section={section.id}
             data-project={project.id}
-            className={cn(navRowClass(current, touch), !touch && 'h-[30px]', 'text-[13px]')}
+            className={cn(navRowClass(current, touch), !touch && 'h-[30px]', 'text-[12.5px]')}
           >
             <section.icon aria-hidden="true" className="size-3.5 shrink-0" />
             {t(section.title)}
@@ -239,12 +240,12 @@ function MissingProjectRow({ project, indent }: { project: TreeProject; indent: 
       data-project={project.id}
       data-status="missing"
       title={hint}
-      className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium opacity-55"
+      className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12.5px] font-medium opacity-55"
     >
       {indent ? <span className="w-3 shrink-0" aria-hidden="true" /> : null}
       <span className="truncate">{project.name}</span>
       <span className="sr-only">{hint}</span>
-      <span className="ml-auto shrink-0 rounded-full bg-danger/15 px-[7px] py-px text-[10px] font-medium text-danger">
+      <span className="ml-auto shrink-0 rounded-sm bg-danger/15 px-[7px] py-px font-mono text-[9.5px] font-medium text-danger">
         {t('folder not found')}
       </span>
     </div>
@@ -328,7 +329,7 @@ function ProjectTreeRow({
             data-slot="settings-project-link"
             title={t("Open {name}'s {section}", { name: project.name, section: openTitle ? t(openTitle) : t('General') })}
             className={cn(
-              'flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1.5 pr-2 text-left text-[13px] font-semibold text-muted-foreground transition-colors hover:text-foreground',
+              'flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1.5 pr-2 text-left text-[12.5px] font-semibold text-muted-foreground transition-colors hover:text-foreground',
               touch && 'min-h-11',
             )}
           >
@@ -344,7 +345,7 @@ function ProjectTreeRow({
           aria-controls={expanded ? bodyId : undefined}
             data-slot="settings-project-toggle"
             className={cn(
-              'flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1.5 pr-2 text-left text-[13px] font-semibold transition-colors',
+              'flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1.5 pr-2 text-left text-[12.5px] font-semibold transition-colors',
               touch && 'min-h-11',
               active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
             )}
@@ -603,7 +604,7 @@ function SectionPills({
   const NavLink = scope === 'global' ? RouterNavLink : ScopedNavLink
   const pillClass = (active: boolean) =>
     cn(
-      'rounded-full border px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors',
+      'rounded-sm border px-3 py-1.5 text-[12px] font-medium whitespace-nowrap transition-colors',
       active ? 'border-transparent bg-contrast text-contrast-foreground' : 'border-border bg-card text-muted-foreground',
     )
   return (
@@ -680,7 +681,7 @@ function PageTitle({ title, projectName, as: Heading }: {
   projectName: string | null
   as: 'h1' | 'span'
 }) {
-  const size = Heading === 'h1' ? 'text-base' : 'text-[14.5px]'
+  const size = Heading === 'h1' ? 'text-[14px]' : 'text-[13.5px]'
   return (
     <span className="flex min-w-0 items-baseline gap-2">
       {/* Breadcrumb shape, owner's call: `project / view`. The project leads because it is the
@@ -702,7 +703,7 @@ function PageTitle({ title, projectName, as: Heading }: {
 
 /** The page header: the current page's title (with its project) and one-liner. Desktop only —
  *  below `md` the mobile bar already titles the page, and saying it twice one row apart is what
- *  the first cut did. `h-14` is measured by the density e2e. */
+ *  the first cut did. `h-12` matches every other route header. */
 function PageHeader({
   scope,
   section,
@@ -718,23 +719,23 @@ function PageHeader({
   return (
     <header
       data-slot="settings-header"
-      className="sticky top-0 z-10 hidden h-14 shrink-0 border-b border-border bg-background px-5 md:flex"
+      className="sticky top-0 z-10 hidden h-12 shrink-0 border-b border-border bg-background px-4 md:flex md:px-6"
     >
-      {/* Same column as the body (`mx-auto max-w-*` + its 24px inset), so the title does not sit
-          ~250px left of the form it heads. The bar and its rule stay full-width. */}
+      {/* Same box as the body column, inset included: the bar and its rule stay full-width, the
+          title starts on the form's first field. */}
       <div
         data-slot="settings-header-inner"
         className={cn(
           'flex min-w-0 flex-1 items-center gap-3',
-          section?.measure !== 'full' && section !== null && 'mx-auto px-6',
-          section?.measure === 'wide' ? 'max-w-4xl' : section?.measure !== 'full' && section !== null && 'max-w-2xl',
+          section?.measure !== 'full' && 'mx-auto w-full',
+          section?.measure === 'wide' ? 'max-w-5xl' : section?.measure !== 'full' && 'max-w-3xl',
         )}
       >
         <PageTitle title={title} projectName={beside} as="h1" />
         {section ? (
-          <p className="min-w-0 truncate text-[13px] text-soft-foreground">{t(section.description)}</p>
+          <p className="min-w-0 truncate text-[12px] text-soft-foreground">{t(section.description)}</p>
         ) : scope === 'project' ? (
-          <p className="text-[13px] text-soft-foreground">{t('Project settings')}</p>
+          <p className="text-[12px] text-soft-foreground">{t('Project settings')}</p>
         ) : null}
       </div>
     </header>
@@ -777,7 +778,24 @@ function SettingsFrame({
           <MobileBar title={title} projectName={beside} />
           <PageHeader scope={scope} section={section} title={title} beside={beside} />
           {section ? <SectionPills scope={scope} activeId={section.id} capabilities={capabilities} /> : null}
-          <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+          {/* The frame owns the page width, padding and bottom gutter; a section is only its
+              content. One measure per section — `wide` for tables and registries, `full` for a
+              page that lays out its own columns (Resources). */}
+          {section?.measure === 'full' ? (
+            <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+          ) : (
+            <div className="w-full px-4 pt-4 pb-[calc(90px+env(safe-area-inset-bottom))] md:px-6 md:pt-5 md:pb-8">
+              <div
+                data-slot="settings-body"
+                className={cn(
+                  'mx-auto flex w-full min-w-0 flex-col',
+                  section?.measure === 'wide' ? 'max-w-5xl' : 'max-w-3xl',
+                )}
+              >
+                {children}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </Sheet>
@@ -808,7 +826,7 @@ export function SettingsSectionRoute({
 }
 
 const cardClass =
-  'flex items-center gap-3.5 rounded-lg border border-border bg-card p-4 shadow-xs transition-colors hover:bg-card-2'
+  'flex items-center gap-3.5 rounded-md border border-border bg-card p-3.5 transition-colors hover:bg-card-2'
 
 function SectionCard({ section }: { section: SettingsSection }) {
   const { t } = useI18n()
@@ -819,7 +837,7 @@ function SectionCard({ section }: { section: SettingsSection }) {
           <section.icon aria-hidden="true" className="size-4" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-medium text-foreground">{t(section.title)}</span>
+          <span className="block text-[12.5px] font-medium text-foreground">{t(section.title)}</span>
           <span className="block text-xs text-soft-foreground">{t(section.description)}</span>
         </span>
         <ChevronRightIcon aria-hidden="true" className="size-4 shrink-0 text-soft-foreground" />
@@ -853,11 +871,11 @@ export function SettingsIndexRoute({ scope, capabilities }: {
   }
   return (
     <SettingsFrame scope={scope} section={null} capabilities={capabilities} routeName="settings">
-      <div className="flex min-w-0 flex-1 flex-col p-3 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-5 md:pb-5">
+      <div className="flex min-w-0 flex-1 flex-col">
         <ProjectGeneral capabilities={capabilities} />
         {/* On desktop the sidebar already lists every section; the cards would be the same
             menu twice. */}
-        <ul data-slot="settings-index" className="mx-auto mt-7 flex w-full max-w-2xl flex-col gap-2.5 md:hidden">
+        <ul data-slot="settings-index" className="mt-7 flex w-full flex-col gap-2.5 md:hidden">
           {sections.map((section) => (
             <SectionCard key={section.id} section={section} />
           ))}

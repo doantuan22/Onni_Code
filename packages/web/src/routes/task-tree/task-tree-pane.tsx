@@ -85,7 +85,7 @@ function BackendChip({ run }: { run: ApiRun }) {
   return (
     <span
       data-slot="backend-chip"
-      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-1.5 py-px font-mono text-[10px] font-medium text-soft-foreground"
+      className="inline-flex shrink-0 items-center gap-1 rounded-sm border border-border px-1.5 py-px font-mono text-[10px] font-medium text-soft-foreground"
     >
       {runner}
       {run.model ? <span className="text-muted-foreground">· {run.model}</span> : null}
@@ -456,7 +456,7 @@ export function TaskTreePane({
                       {agent.agentType ? (
                         <span
                           data-slot="subagent-type"
-                          className="shrink-0 rounded-full border border-border px-1.5 py-px font-mono text-[10px] text-muted-foreground"
+                          className="shrink-0 rounded-sm border border-border px-1.5 py-px font-mono text-[10px] text-muted-foreground"
                         >
                           {agent.agentType}
                         </span>

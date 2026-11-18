@@ -123,6 +123,7 @@ function serve(answers: Answers = {}) {
     },
     resources: {
       maxParallel: 2,
+      maxParallelUnlimited: false,
       maxMonitoringSessions: 2,
       idleTimeoutMinutes: 15,
       monitoringWakeIntervalMinutes: null,

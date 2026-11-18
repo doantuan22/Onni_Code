@@ -26,7 +26,7 @@ export function ReviewCommentsBlock({ items }: { items: readonly ReviewItem[] })
         <div
           key={index}
           data-slot="review-comment"
-          className="overflow-hidden rounded-lg border border-border bg-background/60"
+          className="overflow-hidden rounded-md border border-border bg-background/60"
         >
           <div className="flex min-w-0 items-center gap-1.5 border-b border-border/60 px-2.5 py-1.5 text-[12px]">
             <FileIcon aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />

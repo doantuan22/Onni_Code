@@ -19,7 +19,7 @@ describe('Pill', () => {
 
     expect(pill.textContent).toBe('3 running')
     expect(pill.className).toContain('bg-muted')
-    expect(pill.className).toContain('rounded-full')
+    expect(pill.className).toContain('rounded-sm')
   })
 
   it('has no dot unless one is requested', () => {

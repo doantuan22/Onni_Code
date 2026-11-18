@@ -24,7 +24,7 @@ import { useDashboardFilter } from './url-filter'
 type Period = DashboardInsights['period']
 const periodText = (period: Period) => `Last ${period === '7d' ? 7 : 30} calendar days`
 const bandLabel = 'font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground'
-const panel = 'min-w-0 rounded-lg border bg-card-2 p-4'
+const panel = 'min-w-0 rounded-md border bg-card-2 p-4'
 const th =
   'whitespace-nowrap px-3 py-2 font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-soft-foreground'
 
@@ -60,13 +60,13 @@ function InsightState({ query }: { query: ReturnType<typeof useDashboardInsights
   const { t } = useI18n()
   if (query.isPending)
     return (
-      <p role="status" className="text-sm text-muted-foreground">
+      <p role="status" className="text-[12.5px] text-muted-foreground">
         {t('Loading insights…')}
       </p>
     )
   if (!query.isError) return null
   return (
-    <p role="alert" className="text-sm">
+    <p role="alert" className="text-[12.5px]">
       {query.data ? `${t('Showing previous results.')} ` : ''}
       {t('Could not refresh insights.')}{' '}
       <Button variant="outline" onClick={() => void query.refetch()}>
@@ -189,7 +189,7 @@ function FailureReasons({ data }: { data: DashboardInsights }) {
         )}
       </div>
       {total === 0 ? (
-        <span className="mt-4 flex items-center gap-2.5 text-sm text-muted-foreground">
+        <span className="mt-4 flex items-center gap-2.5 text-[12.5px] text-muted-foreground">
           <StatusDot tone="success" />
           {t('No failed outcomes in this period')}
         </span>
@@ -222,7 +222,7 @@ function FailureReason({
   const { latest } = reason
   return (
     <li className="min-w-0">
-      <div className="flex items-baseline justify-between gap-3 text-sm">
+      <div className="flex items-baseline justify-between gap-3 text-[12.5px]">
         <span className="min-w-0 truncate font-medium" title={reason.label}>
           {reason.label}
         </span>
@@ -279,7 +279,7 @@ export function BackendComparison() {
             <Coverage coverage={data.coverage} retry={() => void query.refetch()} />
             {data.backends.length ? (
               <div className="relative overflow-x-auto" role="region" aria-label={t('Backend comparison')} tabIndex={0}>
-                <table className="w-full text-left text-sm">
+                <table className="w-full text-left text-[12.5px]">
                   <thead>
                     <tr>
                       <th className={th}>{t('Backend')}</th>
@@ -298,7 +298,7 @@ export function BackendComparison() {
                 </table>
               </div>
             ) : (
-              <p className="py-4 text-sm text-muted-foreground">{t('No finished tasks in this period.')}</p>
+              <p className="py-4 text-[12.5px] text-muted-foreground">{t('No finished tasks in this period.')}</p>
             )}
             <span className="block font-mono text-[11px] text-soft-foreground">
               <Freshness at={data.asOf} />
@@ -435,7 +435,7 @@ export function AutomationOutcomes() {
       </div>
       <div className="space-y-3 p-4">
         {gate.off ? (
-          <p className="text-sm text-muted-foreground">{t('Automations are disabled in this workspace.')}</p>
+          <p className="text-[12.5px] text-muted-foreground">{t('Automations are disabled in this workspace.')}</p>
         ) : (
           <>
             <InsightState query={query} />
@@ -446,7 +446,7 @@ export function AutomationOutcomes() {
                 </p>
                 <Coverage coverage={data.coverage} retry={() => void query.refetch()} />
                 {detailsFailed && (
-                  <p role="alert" className="text-sm">
+                  <p role="alert" className="text-[12.5px]">
                     {t('Some automation details could not be loaded. Their outcomes are shown by id.')}{' '}
                     <Button variant="ghost" onClick={definitions.retry}>
                       {t('Retry automations')}
@@ -455,7 +455,7 @@ export function AutomationOutcomes() {
                 )}
                 {sorted.length ? (
                   <div className="relative overflow-x-auto" role="region" aria-label={t('Automation outcomes')} tabIndex={0}>
-                    <table className="w-full text-left text-sm">
+                    <table className="w-full text-left text-[12.5px]">
                       <thead>
                         <tr>
                           <th className={th}>{t('Automation')}</th>
@@ -480,7 +480,7 @@ export function AutomationOutcomes() {
                     </table>
                   </div>
                 ) : (
-                  <p className="py-4 text-sm text-muted-foreground">
+                  <p className="py-4 text-[12.5px] text-muted-foreground">
                     {t("No automations yet. Create one in a project's Automations page.")}
                   </p>
                 )}

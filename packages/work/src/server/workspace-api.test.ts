@@ -99,6 +99,7 @@ describe('the workspace settings API (step 2.7)', () => {
       },
       resources: {
         maxParallel: 2,
+        maxParallelUnlimited: false,
         maxMonitoringSessions: 2,
         idleTimeoutMinutes: 15,
         monitoringWakeIntervalMinutes: 5,
@@ -300,6 +301,7 @@ describe('the workspace settings API (step 2.7)', () => {
       },
       resources: {
         maxParallel: 5,
+        maxParallelUnlimited: false,
         maxMonitoringSessions: 3,
         idleTimeoutMinutes: 15,
         monitoringWakeIntervalMinutes: 5,
@@ -328,6 +330,21 @@ describe('the workspace settings API (step 2.7)', () => {
     // asks, not just the file.
     expect(semaphore.autoResumeOnUsageLimit()).toBe(false);
     expect(semaphore.memoryLimitMb()).toBe(2048);
+  });
+
+  it('PUT maxParallelUnlimited removes the live cap and keeps the numeric value for toggling back', async () => {
+    const enabled = await putConfig({ resources: { maxParallel: 50, maxParallelUnlimited: true } });
+    expect(enabled.status).toBe(200);
+    expect(((await enabled.json()) as WorkspaceConfigResponse).resources).toMatchObject({
+      maxParallel: 50,
+      maxParallelUnlimited: true,
+    });
+    expect(semaphore.maxParallel()).toBe(Number.POSITIVE_INFINITY);
+
+    const disabled = await putConfig({ resources: { maxParallelUnlimited: false } });
+    expect(disabled.status).toBe(200);
+    expect((rawConfig().resources as Record<string, unknown>).maxParallel).toBe(50);
+    expect(semaphore.maxParallel()).toBe(50);
   });
 
   it('#1232 PUT idle timeout persists, reloads, and reaches the live semaphore', async () => {
@@ -366,6 +383,7 @@ describe('the workspace settings API (step 2.7)', () => {
     await putConfig({ resources: { worktreeRetentionDefault: 3 } });
     expect(((await (await getConfig()).json()) as WorkspaceConfigResponse).resources).toEqual({
       maxParallel: 5,
+      maxParallelUnlimited: false,
       maxMonitoringSessions: 2,
       idleTimeoutMinutes: 15,
       monitoringWakeIntervalMinutes: 5,
@@ -437,7 +455,7 @@ describe('the workspace settings API (step 2.7)', () => {
   });
 
   it('rejects out-of-bounds resources with 400 and writes nothing', async () => {
-    for (const resources of [{ maxParallel: 0 }, { maxParallel: 17 }, { memoryLimitMb: -1 }]) {
+    for (const resources of [{ maxParallel: 0 }, { maxParallel: 51 }, { memoryLimitMb: -1 }]) {
       const res = await putConfig({ resources });
       expect(res.status, JSON.stringify(resources)).toBe(400);
       expect((await res.json()) as { error: string }).toHaveProperty('error');

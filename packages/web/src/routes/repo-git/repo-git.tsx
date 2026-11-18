@@ -78,10 +78,10 @@ function RepoView({ repo, info, tab }: { repo: RepoResponse; info: RepoInfo; tab
     <div data-route="repo-git" className={cn('flex min-h-full flex-col', tab === 'changes' && 'md:h-full')}>
       <header
         data-slot="repo-header"
-        className="sticky top-0 z-20 border-b border-border bg-background/95 px-4 pt-3 backdrop-blur md:px-6"
+        className="sticky top-0 z-20 border-b border-border bg-background/95 px-4 pt-3 md:px-6"
       >
         <div className="flex min-w-0 items-center gap-2.5">
-          <h1 className="text-lg font-semibold">{t('Git')}</h1>
+          <h1 className="text-[14px] font-semibold tracking-tight">{t('Git')}</h1>
           <BranchChip branch={info.branch} />
           {info.remote ? (
             <span data-slot="repo-remote" className="hidden min-w-0 truncate text-[11px] text-soft-foreground md:inline">

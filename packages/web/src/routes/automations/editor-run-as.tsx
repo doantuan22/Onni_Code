@@ -61,7 +61,7 @@ export function EditorRunAs({
         onPick={() => undefined}
       />
       <span className="flex-1" />
-      <Label className="text-[13px] font-medium">
+      <Label className="text-[12.5px] font-medium">
         {t('Autonomous')}
         <Switch aria-label={t('Autonomous')} checked={autonomous} onCheckedChange={onAutonomous} />
       </Label>

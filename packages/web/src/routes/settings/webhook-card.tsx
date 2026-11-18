@@ -15,7 +15,7 @@ export function WebhookCard() {
   const inactive = rows.filter(row => row.state === 'inactive').length
   const pending = rows.reduce((total, row) => total + row.pendingCount, 0)
   return <SettingsField title={t('Webhooks')} hint={t('Task updates sent to your own endpoint.')}>
-    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md border border-border bg-card p-3 text-[13px]">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md border border-border bg-card p-3 text-[12.5px]">
       <div className="min-w-0">
         {health.isError ? <p>{t('Status unavailable — could not load server health.')}</p>
           : !health.data ? <p>{t('Loading webhook status…')}</p>

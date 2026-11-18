@@ -390,7 +390,7 @@ describe('workspace branding logo client', () => {
       branding: { name: 'Acme', logoUrl: '/api/v1/workspace/branding-logo?v=abc' },
       browseRoot: '~/source', projectsDir: '~/projects',
       composerDefaults: { autonomous: null, worktree: null, inheritedAutonomous: 'source-dependent', inheritedWorktree: true },
-      resources: { maxParallel: 2, maxMonitoringSessions: 2, idleTimeoutMinutes: 15, monitoringWakeIntervalMinutes: 5, autoResumeOnUsageLimit: true, memoryLimitMb: null, worktreeRetentionDefault: 10 },
+      resources: { maxParallel: 2, maxParallelUnlimited: false, maxMonitoringSessions: 2, idleTimeoutMinutes: 15, monitoringWakeIntervalMinutes: 5, autoResumeOnUsageLimit: true, memoryLimitMb: null, worktreeRetentionDefault: 10 },
       agentDefaults: {},
     })
     const config = await getWorkspaceConfig()
@@ -447,6 +447,7 @@ describe('response parsing', () => {
     },
     resources: {
       maxParallel: 2,
+      maxParallelUnlimited: false,
       maxMonitoringSessions: 2,
       monitoringWakeIntervalMinutes: 5,
       autoResumeOnUsageLimit: true,

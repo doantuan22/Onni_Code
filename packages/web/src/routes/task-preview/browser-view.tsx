@@ -775,7 +775,7 @@ export function BrowserView({
             {designActive && status === 'idle' && !noteVisible && adrift.length === 0 && !designTray ? (
               <p
                 data-slot="browser-design-hint"
-                className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full border border-border bg-background/95 px-3 py-1 text-xs whitespace-nowrap text-soft-foreground shadow-sm"
+                className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-sm border border-border bg-background/95 px-3 py-1 text-xs whitespace-nowrap text-soft-foreground shadow-sm"
               >
                 {hasNote
                   ? t('Click an element to write a note about it · Esc to stop')

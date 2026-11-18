@@ -10,8 +10,8 @@ describe('Card', () => {
     const { container } = render(<Card>body</Card>)
     const card = container.querySelector('[data-slot="card"]')
 
-    expect(card?.className).toContain('py-6')
-    expect(card?.className).toContain('gap-6')
+    expect(card?.className).toContain('py-4')
+    expect(card?.className).toContain('gap-4')
     expect(card?.getAttribute('data-flush')).toBeNull()
   })
 
@@ -22,6 +22,6 @@ describe('Card', () => {
     expect(card?.getAttribute('data-flush')).toBe('true')
     expect(card?.className).toContain('py-0')
     expect(card?.className).toContain('overflow-hidden')
-    expect(card?.className).not.toContain('py-6')
+    expect(card?.className).not.toContain('py-4')
   })
 })

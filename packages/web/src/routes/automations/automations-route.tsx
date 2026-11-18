@@ -91,5 +91,5 @@ function viewOf(raw: string | null): AutomationsView {
 }
 
 export function PageState({ text }: { text: string }) {
-  return <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">{text}</div>
+  return <div className="rounded-md border border-dashed p-8 text-center text-[12.5px] text-muted-foreground">{text}</div>
 }

@@ -322,7 +322,7 @@ function ProjectGrip({
         // Full row height, so the touch target is the 44px the drawer's mobile rules ask for
         // even though the column itself stays narrow — 24px of a 264px drawer, 16px on desktop
         // where the pointer is precise.
-        'flex h-11 w-6 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground opacity-0 outline-none transition-opacity md:h-[34px] md:w-4',
+        'flex h-11 w-6 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground opacity-0 outline-none transition-opacity md:h-8 md:w-4',
         // `touch-none` is load-bearing, not decorative: without it a drag inside the mobile sheet
         // scrolls the sheet instead of lifting the group.
         'touch-none focus-visible:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50',
@@ -506,13 +506,13 @@ function ProjectGroup({
           <div
             data-slot="project-group-header"
             title={t('{path} is gone — remove it in Global settings → Projects', { path: project.root })}
-            className="flex h-11 min-w-0 flex-1 items-center gap-[7px] rounded-lg px-2 text-[13px] font-semibold opacity-55 md:h-[34px]"
+            className="flex h-11 min-w-0 flex-1 items-center gap-1.5 rounded-sm px-2 text-[13px] font-semibold opacity-55 md:h-8"
           >
             <span className="w-3 shrink-0" aria-hidden="true" />
             <span className="truncate">{project.name}</span>
             <span
               data-slot="project-missing"
-              className="ml-auto shrink-0 rounded-full bg-danger/15 px-[7px] py-px text-[10px] font-medium text-danger"
+              className="ml-auto shrink-0 rounded-sm bg-danger/15 px-[7px] py-px text-[10px] font-medium text-danger"
             >
               {t('folder not found')}
             </span>
@@ -566,7 +566,7 @@ function ProjectGroup({
         <div
           data-slot="project-group-row"
           className={cn(
-            'flex min-w-0 flex-1 items-center rounded-lg transition-colors hover:bg-muted',
+            'flex min-w-0 flex-1 items-center rounded-sm transition-colors hover:bg-muted',
             active && 'bg-muted',
           )}
         >
@@ -581,7 +581,7 @@ function ProjectGroup({
               // Exactly the width the chevron and its left padding used to occupy inside the
               // header, so the disclosure affordance stays on the vertical the body's rail hangs
               // off and nothing in the row visibly moved.
-              'flex h-11 w-[27px] shrink-0 items-center justify-center rounded-lg md:h-[34px]',
+              'flex h-11 w-[27px] shrink-0 items-center justify-center rounded-sm md:h-8',
             )}
           >
             <ChevronDownIcon
@@ -610,7 +610,7 @@ function ProjectGroup({
             className={cn(
               // 44px touch target in the drawer, the mockup's 34px row on desktop — the same
               // relaxation the flat nav makes.
-              'flex h-11 min-w-0 flex-1 items-center gap-[7px] rounded-lg pr-2 text-left text-[13px] font-semibold md:h-[34px]',
+              'flex h-11 min-w-0 flex-1 items-center gap-1.5 rounded-sm pr-2 text-left text-[13px] font-semibold md:h-8',
               active && 'text-foreground',
             )}
           >
@@ -622,7 +622,7 @@ function ProjectGroup({
               <span
                 data-slot="project-unregistered"
                 title={t('onni is serving this folder — it is not in your saved projects. Add it from this project\'s Settings.')}
-                className="shrink-0 rounded-full bg-muted px-[7px] py-px text-[10px] font-medium text-soft-foreground"
+                className="shrink-0 rounded-sm bg-muted px-1.5 py-px font-mono text-[10px] font-medium text-soft-foreground"
               >
                 {t('not saved')}
               </span>
@@ -631,7 +631,7 @@ function ProjectGroup({
               <span
                 data-slot="project-attention"
                 title={tn(waiting, '{count} task needs you', '{count} tasks need you', { count: waiting })}
-                className="shrink-0 rounded-full bg-violet px-1.5 py-px text-[10.5px] font-semibold text-violet-foreground"
+                className="shrink-0 rounded-sm bg-violet px-1.5 py-px font-mono text-[10px] font-semibold text-violet-foreground"
               >
                 {waiting}
               </span>
@@ -683,8 +683,9 @@ function ProjectGroup({
                   onClick={onNavigate}
                   aria-current={isActive ? 'page' : undefined}
                   className={cn(
-                    'flex h-11 w-full items-center gap-2.5 rounded-md px-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:h-[30px]',
-                    isActive && 'bg-muted font-semibold text-foreground',
+                    'relative flex h-11 w-full items-center gap-2 rounded-sm px-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:h-7',
+                    isActive &&
+                      'bg-muted font-semibold text-foreground before:absolute before:top-1/2 before:left-0 before:h-3 before:w-[2px] before:-translate-y-1/2 before:rounded-sm before:bg-violet',
                   )}
                 >
                   <Icon className="size-3.5 shrink-0" aria-hidden="true" />
@@ -695,7 +696,7 @@ function ProjectGroup({
                   {item.badge === 'inbox-count' && active && inboxCount ? (
                     <span
                       data-slot="nav-badge"
-                      className="ml-auto rounded-full bg-violet px-1.5 py-px text-[10.5px] font-semibold text-violet-foreground"
+                      className="ml-auto rounded-sm bg-violet px-1.5 py-px font-mono text-[10px] font-semibold text-violet-foreground"
                     >
                       {inboxCount}
                     </span>
@@ -734,7 +735,7 @@ function ProjectGroup({
             to={scopeTo(project.id, '/')}
             onClick={onNavigate}
             data-slot="project-group-more"
-            className="flex h-9 items-center rounded-md px-3 text-[12px] text-muted-foreground transition-colors hover:text-foreground md:h-7"
+            className="flex h-9 items-center rounded-sm px-2 text-[12px] text-muted-foreground transition-colors hover:text-foreground md:h-7"
           >
             {t('More…')}
           </Link>

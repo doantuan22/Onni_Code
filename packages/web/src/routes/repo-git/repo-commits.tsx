@@ -116,7 +116,7 @@ function CommitDiffView({ sha }: { sha: string }) {
       ) : (
         <>
           <div data-slot="commit-meta" className="border-b border-border px-4 py-3 md:px-6">
-            <h2 className="text-sm font-semibold">{commit.data.subject}</h2>
+            <h2 className="text-[12.5px] font-semibold">{commit.data.subject}</h2>
             <p className="mt-0.5 text-[11px] text-soft-foreground">
               {commit.data.author} · {commit.data.when} ·{' '}
               <span className="font-mono select-all">{commit.data.sha}</span>

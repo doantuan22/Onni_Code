@@ -194,7 +194,7 @@ export function UserBubble({
       <div
         data-slot="user-bubble"
         data-editing="true"
-        className="max-w-[78%] self-end rounded-2xl rounded-br-md bg-muted px-[15px] py-2.5 text-[13.5px] leading-[1.55] md:max-w-[70%]"
+        className="max-w-[85%] self-end rounded-sm border-l-2 border-violet/60 bg-muted/60 px-3 py-2 text-[13.5px] leading-[1.6] md:max-w-[75%]"
       >
         <textarea
           autoFocus
@@ -212,7 +212,7 @@ export function UserBubble({
               void save()
             }
           }}
-          className="block max-h-[220px] min-h-[60px] w-full resize-none rounded-md bg-background px-2 py-1.5 text-[13.5px] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="block max-h-[220px] min-h-[60px] w-full resize-none rounded-sm bg-background px-2 py-1.5 text-[13.5px] outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         />
         <span className="mt-1.5 flex justify-end gap-1.5">
           <button
@@ -240,8 +240,11 @@ export function UserBubble({
   return (
     <div
       data-slot="user-bubble"
-      className="group max-w-[78%] min-w-0 self-end rounded-2xl rounded-br-md bg-muted px-[15px] py-2.5 text-[13.5px] leading-[1.55] md:max-w-[70%]"
+      className="group max-w-[85%] min-w-0 self-end rounded-sm border-l-2 border-violet/60 bg-muted/60 px-3 py-2 text-[13.5px] leading-[1.6] md:max-w-[75%]"
     >
+      <span className="mb-1 block font-mono text-[10px] font-medium tracking-[0.08em] text-violet uppercase">
+        {t('You')}
+      </span>
       {onEdit || onRemove ? (
         <span
           data-slot="bubble-actions"
@@ -334,7 +337,7 @@ function UserText({ text }: { text: string }) {
 /** An assistant message item, as markdown. */
 export function AssistantMessage({ text }: { text: string }) {
   return (
-    <div data-slot="assistant-message" className="min-w-0 text-[15px] leading-[1.65]">
+    <div data-slot="assistant-message" className="min-w-0 text-[14px] leading-[1.7]">
       <Markdown>{text}</Markdown>
     </div>
   )
@@ -347,7 +350,7 @@ export function NoteLine({ note }: { note: ThreadNote }) {
     <div
       data-slot="note-line"
       data-tone={note.tone}
-      className={cn('px-0.5 text-xs', note.tone === 'danger' ? 'text-danger' : 'text-soft-foreground')}
+      className={cn('px-0.5 font-mono text-[11px] leading-relaxed', note.tone === 'danger' ? 'text-danger' : 'text-soft-foreground')}
     >
       {note.tone === 'danger' ? '✗ ' : '· '}
       {translateNote(note.text, t)}
@@ -527,7 +530,7 @@ export function ReasoningItem({ text }: { text: string }) {
     <Collapsible data-slot="reasoning" className="group/reasoning min-w-0">
       <div
         id={previewId}
-        className="relative flex w-full items-center gap-1.5 rounded-md p-0.5 text-left text-[13px] text-soft-foreground hover:text-muted-foreground"
+        className="relative flex w-full items-center gap-1.5 rounded-sm p-0.5 text-left text-[12.5px] text-soft-foreground hover:text-muted-foreground"
       >
         <ChevronRightIcon
           aria-hidden
@@ -542,11 +545,11 @@ export function ReasoningItem({ text }: { text: string }) {
             button overlays the preview without inheriting invalid block descendants. */}
         <CollapsibleTrigger
           aria-labelledby={previewId}
-          className="absolute inset-0 rounded-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+          className="absolute inset-0 rounded-sm focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
         />
       </div>
       <CollapsibleContent>
-        <div className="px-6 py-1.5 text-[13px] leading-[1.6] text-soft-foreground">
+        <div className="px-5 py-1.5 text-[12.5px] leading-[1.65] text-soft-foreground">
           <Markdown>{text}</Markdown>
         </div>
       </CollapsibleContent>
@@ -652,7 +655,7 @@ function ToolOutput({ text, streaming }: { text: string; streaming: boolean }) {
             clamped && 'max-h-[216px] overflow-y-hidden',
           )}
         >
-          <pre className="px-4 py-3 font-mono text-xs leading-[1.7] whitespace-pre text-muted-foreground">{text}</pre>
+          <pre className="px-3 py-2 font-mono text-[11.5px] leading-[1.65] whitespace-pre text-muted-foreground">{text}</pre>
         </div>
         {clamped ? (
           <div
@@ -667,7 +670,7 @@ function ToolOutput({ text, streaming }: { text: string; streaming: boolean }) {
           type="button"
           data-slot="tool-output-toggle"
           onClick={() => setExpanded((value) => !value)}
-          className="block w-full border-t border-border/50 px-4 py-1.5 text-left text-[11px] font-medium text-soft-foreground hover:text-foreground"
+          className="block w-full border-t border-border/50 px-3 py-1.5 text-left font-mono text-[10.5px] font-medium text-soft-foreground hover:text-foreground"
         >
           {expanded ? t('Show less') : t('Show all {count} lines', { count: lines })}
         </button>
@@ -686,20 +689,20 @@ export function InlineDiffPreview({ diffs }: { diffs: FileDiff[] }) {
     <>
       {diffs.map((diff, index) => (
         <div key={`${diff.path}:${index}`} data-slot="diff-preview" className="min-w-0">
-          <div className="border-b border-border/50 px-4 py-1.5 font-mono text-[11px] text-soft-foreground">
+          <div className="border-b border-border/50 px-3 py-1.5 font-mono text-[10.5px] text-soft-foreground">
             {diff.path}
           </div>
-          <pre className="overflow-x-auto py-2 font-mono text-xs leading-[1.7] whitespace-pre">
+          <pre className="overflow-x-auto py-1.5 font-mono text-[11.5px] leading-[1.65] whitespace-pre">
             {diff.unified !== undefined
               ? diff.unified.split('\n').map((line, i) => <DiffLine key={i} text={line} />)
               : [
                   ...diffLines(diff.oldText).map((line, i) => (
-                    <span key={`old-${i}`} className="block bg-diff-del px-4 text-muted-foreground">
+                    <span key={`old-${i}`} className="block bg-diff-del px-3 text-muted-foreground">
                       - {line}
                     </span>
                   )),
                   ...diffLines(diff.newText).map((line, i) => (
-                    <span key={`new-${i}`} className="block bg-diff-add px-4">
+                    <span key={`new-${i}`} className="block bg-diff-add px-3">
                       + {line}
                     </span>
                   )),
@@ -721,7 +724,7 @@ function DiffLine({ text }: { text: string }) {
   return (
     <span
       className={cn(
-        'block px-4',
+        'block px-3',
         text.startsWith('+') && 'bg-diff-add',
         text.startsWith('-') && 'bg-diff-del text-muted-foreground',
         text.startsWith('@@') && 'text-soft-foreground',
@@ -836,17 +839,17 @@ export function ToolCard({
       open={open}
       onOpenChange={setUserOpen}
       className={cn(
-        // A failed card wears a FAINT danger tint so it reads at a glance, not the loud outline it
-        // used to — the exit code and `failed` label carry the signal, the red stays in the body.
-        'min-w-0 overflow-hidden rounded-md border bg-card',
-        item.status === 'failed' ? 'border-danger/25' : 'border-border',
+        // Flat, gutter-led rows: the timeline is a log, so a tool never draws a card of its own.
+        // A failure keeps a faint tint and the exit chip carries the signal.
+        'min-w-0 overflow-hidden rounded-sm',
+        item.status === 'failed' && 'bg-danger/[0.04]',
       )}
     >
       <div className="flex min-w-0 items-start">
       <CollapsibleTrigger
         disabled={!hasDetail}
         className={cn(
-          'group flex min-h-[28px] w-full min-w-0 gap-1.5 px-2.5 py-0.5 text-left text-[13px] enabled:hover:bg-muted',
+          'group flex min-h-7 w-full min-w-0 gap-1.5 rounded-sm px-2 py-0.5 text-left text-[13px] enabled:hover:bg-muted',
           // A wrapped multi-line command pins the chevron, verb and chips to its first line.
           expandedCommand !== undefined ? 'items-start [&>svg]:mt-[7px] [&>span]:mt-[2px]' : 'items-center',
         )}
@@ -891,7 +894,7 @@ export function ToolCard({
             <span
               data-slot="tool-exit"
               className={cn(
-                'rounded-full px-2 py-px font-mono text-[10.5px] font-semibold',
+                'rounded-sm px-1.5 py-px font-mono text-[10px] font-semibold',
                 item.exitCode === 0 ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger',
               )}
             >
@@ -903,7 +906,7 @@ export function ToolCard({
       {expandedCommand !== undefined ? <CopyCommandButton command={expandedCommand} /> : null}
       </div>
       <CollapsibleContent>
-        <div className="border-t border-border bg-card-2 empty:hidden">
+        <div className="border-t border-border/60 bg-card-2/60 empty:hidden">
           {item.error !== undefined && item.error !== '' ? (
             <div data-slot="tool-error" className="px-4 py-3 font-mono text-xs leading-[1.7] whitespace-pre-wrap text-danger">
               {item.error}
@@ -934,7 +937,7 @@ export function ContextGroup({ group, scope }: { group: ContextGroupBlock; scope
   ].filter((part): part is string => part !== null)
   return (
     <Collapsible data-slot="ctx-group" className="min-w-0">
-      <CollapsibleTrigger className="group flex h-[34px] w-full items-center gap-2 rounded-md px-2 -mx-2 text-left text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+      <CollapsibleTrigger className="group -mx-2 flex h-8 w-full items-center gap-2 rounded-sm px-2 text-left text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
         <ChevronRightIcon
           aria-hidden
           className="size-3.5 shrink-0 text-soft-foreground transition-transform group-data-[state=open]:rotate-90"
@@ -958,7 +961,7 @@ export function ToolStreak({ count, children }: { count: number; children: React
   const { tn } = useI18n()
   return (
     <Collapsible data-slot="tool-streak" className="min-w-0">
-      <CollapsibleTrigger className="group flex items-center gap-1.5 rounded-md p-0.5 text-left text-xs text-soft-foreground hover:text-muted-foreground">
+      <CollapsibleTrigger className="group flex items-center gap-1.5 rounded-sm p-0.5 text-left font-mono text-[11px] text-soft-foreground hover:text-muted-foreground">
         <ChevronRightIcon
           aria-hidden
           className="size-3.5 shrink-0 transition-transform group-data-[state=open]:rotate-90"
@@ -980,7 +983,7 @@ export function ImageItem({ image }: { image: ThreadImage }) {
       data-slot="thread-image"
       src={image.url}
       alt={image.name ?? t('image from the agent session')}
-      className="max-h-72 max-w-full self-start rounded-lg border border-border"
+      className="max-h-72 max-w-full self-start rounded-md border border-border"
     />
   )
 }

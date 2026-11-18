@@ -4,6 +4,7 @@ import './activity-graph.css'
 import {
   Background,
   BackgroundVariant,
+  BaseEdge,
   Controls,
   Handle,
   MarkerType,
@@ -14,6 +15,7 @@ import {
   ReactFlowProvider,
   useReactFlow,
   type Edge,
+  type EdgeProps,
   type Node,
   type NodeProps,
 } from '@xyflow/react'
@@ -33,7 +35,7 @@ import {
   XCircleIcon,
   type LucideIcon,
 } from 'lucide-react'
-import { memo, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
 import { useRuns } from '@/api/queries'
 import type { ApiRun } from '@onni/api-client'
@@ -46,6 +48,7 @@ import {
   NODE_WIDTH,
   rootOf,
   type ActivityEdgeSpec,
+  type ActivityGraph,
   type ActivityNodeSpec,
   type ActivityState,
 } from '@/lib/activity-graph'
@@ -91,15 +94,24 @@ function Elapsed({ startedAt, finishedAt }: { startedAt?: string; finishedAt?: s
   return <span className="tabular-nums">{text}</span>
 }
 
+/**
+ * Four invisible anchors, so every edge uses the side it means: an assignment leaves the
+ * manager's bottom and lands on a worker's top, and `--after` joins two siblings side to side.
+ * Anonymous handles would make a return edge leave the worker's BOTTOM and enter the manager's
+ * TOP, looping the whole subtree.
+ */
+const handles = (
+  <>
+    <Handle id="assign-out" type="source" position={Position.Bottom} className="!size-1 !border-0 !bg-transparent" isConnectable={false} />
+    <Handle id="assign-in" type="target" position={Position.Top} className="!size-1 !border-0 !bg-transparent" isConnectable={false} />
+    <Handle id="after-out" type="source" position={Position.Right} className="!size-1 !border-0 !bg-transparent" isConnectable={false} />
+    <Handle id="after-in" type="target" position={Position.Left} className="!size-1 !border-0 !bg-transparent" isConnectable={false} />
+  </>
+)
+
 const ActivityCard = memo(function ActivityCard({ data }: NodeProps<Node<CardData>>) {
   const { t } = useI18n()
   const { spec, fresh, onExpand } = data
-  const handles = (
-    <>
-      <Handle type="target" position={Position.Top} className="!size-1 !border-0 !bg-transparent" isConnectable={false} />
-      <Handle type="source" position={Position.Bottom} className="!size-1 !border-0 !bg-transparent" isConnectable={false} />
-    </>
-  )
   if (spec.kind === 'group') {
     return (
       <div
@@ -159,22 +171,155 @@ const ActivityCard = memo(function ActivityCard({ data }: NodeProps<Node<CardDat
 
 const nodeTypes = { activity: ActivityCard }
 
-function edgeFor(spec: ActivityEdgeSpec): Edge {
-  const color = spec.kind === 'assign' ? 'var(--primary)' : spec.kind === 'report' ? 'var(--success)' : 'var(--muted-foreground)'
-  return {
-    id: spec.id,
-    source: spec.source,
-    target: spec.target,
-    type: 'smoothstep',
-    className: spec.active ? 'activity-edge-flow' : undefined,
-    style: {
-      stroke: color,
-      strokeWidth: spec.active ? 2.25 : 1.5,
-      opacity: spec.active ? 1 : spec.kind === 'after' ? 0.7 : 0.45,
-      strokeDasharray: spec.kind === 'after' ? '2 5' : spec.kind === 'report' && !spec.active ? '5 4' : undefined,
-    },
-    markerEnd: { type: MarkerType.ArrowClosed, color, width: 14, height: 14 },
+type ActivityEdgeData = { kind: 'assign' | 'after'; fan: number; bus: number; gutter: number; multiRow: boolean }
+
+const EDGE_HANDLES = {
+  assign: { sourceHandle: 'assign-out', targetHandle: 'assign-in' },
+  after: { sourceHandle: 'after-out', targetHandle: 'after-in' },
+} as const
+
+/** An orthogonal path through `points` with rounded corners of at most `radius`. */
+function roundedPath(points: Array<[number, number]>, radius = 9): string {
+  const clean = points.filter((point, index) => {
+    const previous = points[index - 1]
+    return index === 0 || point[0] !== previous![0] || point[1] !== previous![1]
+  })
+  const first = clean[0]
+  if (!first) return ''
+  let d = `M ${first[0]},${first[1]}`
+  for (let i = 1; i < clean.length - 1; i++) {
+    const [px, py] = clean[i - 1]!
+    const [cx, cy] = clean[i]!
+    const [nx, ny] = clean[i + 1]!
+    const inLength = Math.hypot(cx - px, cy - py)
+    const outLength = Math.hypot(nx - cx, ny - cy)
+    const r = Math.min(radius, inLength / 2, outLength / 2)
+    const ax = cx + ((px - cx) / inLength) * r
+    const ay = cy + ((py - cy) / inLength) * r
+    const bx = cx + ((nx - cx) / outLength) * r
+    const by = cy + ((ny - cy) / outLength) * r
+    d += ` L ${ax},${ay} Q ${cx},${cy} ${bx},${by}`
   }
+  const last = clean[clean.length - 1]!
+  return `${d} L ${last[0]},${last[1]}`
+}
+
+/**
+ * Route one edge. Siblings fan out across the manager's bottom edge by `fan`, so every pair has
+ * its own rail and no two strokes paint the same trunk; each then steps onto its own `bus` line
+ * before turning toward the worker. When a group wraps onto several rows, the turn happens in the
+ * `gutter` left of the target column and the trunk runs beside the cards instead of through them,
+ * with a short hook into each card's top edge. A return edge reuses its assignment's geometry, so
+ * the corridor never carries a second, looping line.
+ */
+function routeActivityEdge(kind: ActivityEdgeData['kind'], sx: number, sy: number, tx: number, ty: number, fan: number, bus: number, gutter: number, multiRow: boolean): string {
+  if (kind === 'after') {
+    if (Math.abs(sy - ty) < 2) return `M ${sx},${sy} L ${tx},${ty}`
+    const mx = Math.round((sx + tx) / 2)
+    return roundedPath([[sx, sy], [mx, sy], [mx, ty], [tx, ty]])
+  }
+  const rail = sx + fan
+  if (multiRow) return roundedPath([[rail, sy], [rail, sy + bus], [gutter, sy + bus], [gutter, ty - 14], [tx, ty - 14], [tx, ty]])
+  return roundedPath([[rail, sy], [rail, sy + bus], [tx, sy + bus], [tx, ty]])
+}
+
+const ActivityEdge = memo(function ActivityEdge({ id, sourceX, sourceY, targetX, targetY, markerStart, markerEnd, style, data }: EdgeProps) {
+  const { kind = 'assign', fan = 0, bus = 30, gutter = 0, multiRow = false } = (data ?? {}) as Partial<ActivityEdgeData>
+  return (
+    <BaseEdge
+      id={id}
+      path={routeActivityEdge(kind, sourceX, sourceY, targetX, targetY, fan, bus, gutter, multiRow)}
+      markerStart={markerStart}
+      markerEnd={markerEnd}
+      style={style}
+      interactionWidth={16}
+    />
+  )
+})
+
+const edgeTypes = { activity: ActivityEdge }
+
+/**
+ * Edges drawn from the run's edge specs, with two decisions made here rather than in the model:
+ *
+ *  - **A report rides its assignment.** The model keeps assign and report as separate edges
+ *    because they mean different things, but two strokes over one corridor read as clutter. They
+ *    are folded into one line per pair: violet into the worker while it works, then the worker's
+ *    own tone (success, danger, muted) with the arrow at the manager's end once the result is in.
+ *  - **Siblings get their own lane** around the manager, ordered by the worker's x, so a fan
+ *    reads left to right and no two edges stack on the same trunk.
+ */
+function activityEdges(graph: ActivityGraph, focusId: string | null): Edge[] {
+  const xOf = new Map(graph.nodes.map((node) => [node.id, node.position.x] as const))
+  const yOf = new Map(graph.nodes.map((node) => [node.id, node.position.y] as const))
+  const stateOf = new Map(graph.nodes.map((node) => [node.id, node.state] as const))
+  const returned = new Map<string, boolean>()
+  for (const edge of graph.edges) {
+    if (edge.kind === 'report') returned.set(edge.source, (returned.get(edge.source) ?? false) || edge.active)
+  }
+
+  // One lane per TARGET COLUMN, not per sibling: an unwrapped group fans left to right, and a
+  // wrapped one keeps every row on the same rail, so ten rows of workers share four trunks.
+  const lanes = new Map<string, Pick<ActivityEdgeData, 'fan' | 'bus' | 'gutter' | 'multiRow'>>()
+  const groups = new Map<string, ActivityEdgeSpec[]>()
+  for (const edge of graph.edges) {
+    if (edge.kind !== 'assign') continue
+    groups.set(edge.source, [...(groups.get(edge.source) ?? []), edge])
+  }
+  for (const list of groups.values()) {
+    const sorted = [...list].sort((a, b) => (xOf.get(a.target) ?? 0) - (xOf.get(b.target) ?? 0) || a.id.localeCompare(b.id))
+    const columns = [...new Set(sorted.map((edge) => xOf.get(edge.target) ?? 0))].sort((a, b) => a - b)
+    const multiRow = new Set(sorted.map((edge) => yOf.get(edge.target) ?? 0)).size > 1
+    for (const edge of sorted) {
+      const column = Math.max(0, columns.indexOf(xOf.get(edge.target) ?? 0))
+      lanes.set(edge.id, {
+        fan: Math.round((column - (columns.length - 1) / 2) * 14),
+        bus: 22 + column * 9,
+        gutter: (xOf.get(edge.target) ?? 0) - 14,
+        multiRow,
+      })
+    }
+  }
+
+  return graph.edges.flatMap((spec) => {
+    if (spec.kind === 'report') return []
+    const answered = spec.kind === 'assign' ? returned.has(spec.target) : false
+    const workerState = stateOf.get(spec.target)
+    const tone = !answered
+      ? spec.kind === 'after' ? 'var(--muted-foreground)' : 'var(--primary)'
+      : workerState === 'failed' || workerState === 'blocked'
+        ? 'var(--danger)'
+        : workerState === 'cancelled'
+          ? 'var(--muted-foreground)'
+          : 'var(--success)'
+    const flowing = answered ? (returned.get(spec.target) ?? false) : spec.active
+    const dimmed = focusId !== null && focusId !== spec.source && focusId !== spec.target
+    const opacity = dimmed ? 0.12 : flowing ? 1 : answered || spec.kind === 'after' ? 0.6 : 0.48
+    const lane = lanes.get(spec.id) ?? { fan: 0, bus: 30, gutter: (xOf.get(spec.target) ?? 0) - 14, multiRow: false }
+    return [
+      {
+        id: spec.id,
+        source: spec.source,
+        target: spec.target,
+        type: 'activity',
+        ...EDGE_HANDLES[spec.kind === 'after' ? 'after' : 'assign'],
+        className: cn('activity-edge', flowing && (answered ? 'activity-edge-return' : 'activity-edge-flow')),
+        data: { kind: spec.kind === 'after' ? 'after' : 'assign', ...lane } satisfies ActivityEdgeData,
+        style: {
+          stroke: tone,
+          // Width lives in a custom property so :hover can thicken it: an inline strokeWidth
+          // beat the stylesheet rule and the hover never showed. The unit must be in the value,
+          // or the hover's calc(number + px) is invalid and the stroke falls back to 1px.
+          '--edge-w': `${flowing ? 2 : 1.5}px`,
+          opacity,
+          strokeDasharray: answered ? '5 5' : spec.kind === 'after' ? '2 5' : undefined,
+        } as CSSProperties,
+        ...(answered
+          ? { markerStart: { type: MarkerType.ArrowClosed, color: tone, width: 12, height: 12 } }
+          : { markerEnd: { type: MarkerType.ArrowClosed, color: tone, width: 14, height: 14 } }),
+      },
+    ]
+  })
 }
 
 /** Keep each node data object identical between renders unless something about it changed. */
@@ -236,7 +381,7 @@ function ActivityGraphView({ run }: { run: ApiRun }) {
   )
   const expand = useMemo(() => () => setCollapse(false), [])
   const nodes = useStableNodes(graph.nodes, expand)
-  const edges = useMemo(() => graph.edges.map(edgeFor), [graph.edges])
+  const edges = useMemo(() => activityEdges(graph, selectedId), [graph, selectedId])
   const selected = graph.nodes.find((n) => n.id === selectedId && n.kind === 'agent')
   const selectedRun = (runs.data ?? []).find((r) => r.id === selectedId)
 
@@ -258,6 +403,7 @@ function ActivityGraphView({ run }: { run: ApiRun }) {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable

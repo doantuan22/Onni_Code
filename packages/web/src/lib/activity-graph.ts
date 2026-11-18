@@ -47,8 +47,8 @@ export interface ActivityGraph {
 
 export const NODE_WIDTH = 252
 export const NODE_HEIGHT = 124
-const GAP_X = 44
-const GAP_Y = 64
+const GAP_X = 56
+const GAP_Y = 76
 const MAX_COLUMNS = 4
 /** Above this many workers, finished ones fold into one group node (until the user expands). */
 export const COLLAPSE_ABOVE = 12

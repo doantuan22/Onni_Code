@@ -551,6 +551,8 @@ describe('manager complexity policy', () => {
     expect(prompt).toContain('Sizing the work');
     expect(prompt).toContain(`at most ${COMPLEXITY.simpleMaxFiles} files`);
     expect(prompt).toContain('You may not do a whole complex task alone');
+    expect(prompt).toContain('Before dispatch, save a tree plan');
+    expect(prompt).toContain('If the work must stay with one worker');
     expect(prompt).toContain('Unlimited worker calls');
   });
 

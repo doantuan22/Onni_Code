@@ -75,6 +75,24 @@ describe('onni task', () => {
       allowed_tools: ['Read', 'Bash'],
     });
     expect(h.out[0]).toContain('dispatched child-1 on branch onni/child1');
+    expect(h.out[1]).toContain('Dispatch any other ready orders before waiting');
+  });
+
+  it('shows which roster entry owns each order and distinguishes a quota hold from a transient retry', async () => {
+    const autoResumeAt = '2026-11-18T04:00:00.000Z';
+    const dispatch = { rootRunId: 'run-1', parentRunId: 'run-1' };
+    const h = harness({ status: 200, body: [
+      { id: 'run-1', title: 'Manager', status: 'running' },
+      { id: 'worker-1', title: 'API', status: 'queued', dispatch: { ...dispatch, workerKey: 'codex:standard' } },
+      { id: 'worker-2', title: 'UI', status: 'failed', autoResumeAt, dispatch: { ...dispatch, workerKey: 'codex:heavy' } },
+      { id: 'worker-3', title: 'Docs', status: 'failed', autoResumeAt, autoResumeReason: 'transient', dispatch: { ...dispatch, workerKey: 'pi:' } },
+    ] });
+    expect(await runTaskCommand(['list'], env, h.io)).toBe(0);
+    expect(h.out.slice(1)).toEqual([
+      '  worker-1  queued  API  (codex:standard)',
+      `  worker-2  failed (usage limit until ${autoResumeAt})  UI  (codex:heavy)`,
+      '  worker-3  failed  Docs  (pi)',
+    ]);
   });
 
   it('create surfaces a refusal with the server’s reason and a non-zero exit', async () => {
@@ -355,6 +373,10 @@ describe('onni task', () => {
     expect(JSON.parse(String(h.calls[0]?.init?.body))).toEqual({ target: 'worker-1', instruction: 'Keep the parser streaming' });
     expect(h.out[0]).toContain('replacement replacement-2-full on branch onni/replacement2');
     expect(h.out[0]).toContain('repointed 3 dependents');
+    expect(await runTaskCommand(['redirect', 'worker-1', 'Finish the parser', '--backend', 'pi', '--model', 'test-model'], env, h.io)).toBe(0);
+    expect(JSON.parse(String(h.calls[1]?.init?.body))).toEqual({
+      target: 'worker-1', instruction: 'Finish the parser', worker: { backend: 'pi', model: 'test-model' },
+    });
   });
 
   it('redirect validates locally and distinguishes a post-cancel refusal from an ordinary refusal', async () => {

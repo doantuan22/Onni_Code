@@ -157,7 +157,7 @@ function statusToReportStatus(status: string): DispatchReport['status'] {
  * order to the same worker fails the same way, and a manager that quietly does the part itself
  * hides the failure from the user. Pure and exported so the wording is tested.
  */
-export function failureAdvice(child: Pick<RunRecord, 'status' | 'error' | 'failureClass' | 'runner'>): { recommended_next_action?: string } {
+export function failureAdvice(child: Pick<RunRecord, 'status' | 'error' | 'failureClass' | 'runner'> & Partial<Pick<RunRecord, 'id' | 'dispatch'>>): { recommended_next_action?: string } {
   if (child.status !== 'failed' && child.status !== 'cancelled') return {};
   const error = child.error ?? '';
   const permission = /permission level|auto-denied|blocked by onni/i.test(error);
@@ -169,6 +169,9 @@ export function failureAdvice(child: Pick<RunRecord, 'status' | 'error' | 'failu
   }
   if (child.failureClass === 'transient') {
     return { recommended_next_action: `cause: transient error — re-dispatch the same order once (its retry limit still applies), then report if it fails again.` };
+  }
+  if (child.status === 'failed' && child.failureClass === 'usage_limit' && child.id && child.dispatch?.workerKey && child.dispatch.order) {
+    return { recommended_next_action: `cause: usage_limit — use onni task redirect ${child.id.slice(0, 8)} "Continue the saved order" --backend <different roster backend> [--model <model>]. This retires any scheduled resume on success.` };
   }
   if (child.failureClass === 'auth' || child.failureClass === 'billing' || child.failureClass === 'usage_limit') {
     return {
@@ -291,6 +294,8 @@ export function childSettleReport(
   // `done`, and reporting that upward as success would turn "I stopped and asked before doing
   // something irreversible" into a clean `done` nobody ever answered — the Guard's whole premise.
   const unanswered = ownReport ? undefined : child.dispatch?.pendingAsk;
+  const quotaAdvice = child.status === 'failed' && child.failureClass === 'usage_limit' && child.dispatch?.workerKey && child.dispatch.order
+    ? failureAdvice(child) : undefined;
   const settledReport: DispatchReport =
     ownReport ??
     (unanswered
@@ -334,7 +339,7 @@ export function childSettleReport(
         status: 'blocked',
         result: `${settledReport.result.slice(0, 1_300)}; cancelled by manager${cancellation.reason ? `: ${cancellation.reason}` : ''}; ${salvage}; partial/unverified, and uncommitted edits may remain (no final autosave is promised)`.slice(0, 4_000),
       }
-    : settledReport;
+    : quotaAdvice ? { ...settledReport, ...quotaAdvice, status: 'failed' } : settledReport;
 
   const where = child.branch
     ? `${child.id}, branch ${child.branch}${child.baseBranch ? ` off ${child.baseBranch}` : ''}`

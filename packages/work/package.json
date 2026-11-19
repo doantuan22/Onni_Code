@@ -39,7 +39,7 @@
     "test:unit": "node --import tsx --test test/unit/*.test.ts",
     "test:package": "node --import tsx --test test/e2e/*.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.test.json",
-    "postbuild": "node scripts/inline-contract.mjs"
+    "postbuild": "node scripts/inline-contract.mjs && node scripts/bundle-repo-map.mjs"
   },
   "dependencies": {
     "@clack/prompts": "^0.11.0",
@@ -51,7 +51,8 @@
     "undici": "^6.29.0",
     "ws": "^8.21.1",
     "yaml": "^2.5.0",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "web-tree-sitter": "0.26.3"
   },
   "devDependencies": {
     "@onni/api-client": "^0.17.0",
@@ -62,7 +63,8 @@
     "esbuild": "^0.28.1",
     "tsx": "^4.19.0",
     "typescript": "^7.0.2",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "@snevins/repo-mapper": "1.5.3"
   },
   "repository": {
     "type": "git",

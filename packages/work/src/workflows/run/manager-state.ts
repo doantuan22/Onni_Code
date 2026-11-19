@@ -177,8 +177,12 @@ function normalizePlanParts(
 }
 
 /** `--part` on a dispatch: the part becomes `assigned` with the child's id. */
-export async function assignPlanPart(context: ManagerStateContext, rootRunId: string, partId: string, childRunId: string): Promise<void> {
-  const outcome = await patchPlanPart(context.dataDir, rootRunId, partId, { status: 'assigned', runId: childRunId });
+export async function assignPlanPart(context: ManagerStateContext, rootRunId: string, partId: string, childRunId: string, updateWorker = false): Promise<void> {
+  const workerKey = updateWorker ? context.store.getRun(childRunId)?.dispatch?.workerKey : undefined;
+  const worker = workerKey && workerKey.length <= 80 ? workerKey : undefined;
+  const outcome = await patchPlanPart(context.dataDir, rootRunId, partId, {
+    status: 'assigned', runId: childRunId, ...(worker ? { worker } : {}),
+  });
   const stepId = context.active.get(rootRunId)?.currentStepId;
   if (!outcome.ok) {
     context.store.appendEvent(rootRunId, {
@@ -443,7 +447,7 @@ export async function checkManagerComplexity(
   context.store.appendEvent(runId, { type: 'note', stepId: ctx.stepId, message, tone: 'danger' });
   if (!ctx.state.autonomous || ctx.state.cancelled || !ctx.state.session?.open) return false;
   if ((ctx.state.autoContinues ?? 0) >= context.maxAutoContinues) return false;
-  const text = `Complexity policy reminder: you have changed ${stat.files} files (+${stat.adds} -${stat.dels}) and dispatched no worker. This is complex work. Hand the remaining independent parts to workers (or split: you take one part, workers the rest) before continuing, and say which parts go where.`;
+  const text = `Complexity policy reminder: you have changed ${stat.files} files (+${stat.adds} -${stat.dels}) and dispatched no worker. This is complex work. Save the remaining independent parts in the tree plan. Assign each to a suitable worker and dispatch all ready parts before waiting for a report.`;
   if (!ctx.state.session.sendMessage([{ type: 'text', text }])) return false;
   ctx.state.autoContinues = (ctx.state.autoContinues ?? 0) + 1;
   return true;

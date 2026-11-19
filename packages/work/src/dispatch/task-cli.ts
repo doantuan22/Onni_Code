@@ -193,7 +193,7 @@ export async function runTaskCommand(
           body: JSON.stringify(body),
         }, 'dispatch refused —')) as { id: string; branch?: string };
         io.log(`dispatched ${created.id}${created.branch ? ` on branch ${created.branch}` : ''}`);
-        io.log('It reports into this session when it settles. End your turn with ONNI:MONITORING to wait for it.');
+        io.log('It reports into this session when it settles. Dispatch any other ready orders before waiting with ONNI:MONITORING.');
         return 0;
       }
       case 'ask': {
@@ -409,20 +409,25 @@ export async function runTaskCommand(
         return 0;
       }
       case 'redirect': {
-        const { positionals } = parseArgs({ args: rest, allowPositionals: true, options: {} });
+        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { backend: { type: 'string' }, model: { type: 'string' } } });
         if (!env.ONNI_TASK_ID) throw new Error('ONNI_TASK_ID is not set — only a running task can redirect a worker');
         if (positionals.length !== 2 || !positionals[0]?.trim()) {
-          throw new Error('usage: onni task redirect <worker id> "<instruction>"');
+          throw new Error('usage: onni task redirect <worker id> "<instruction>" [--backend <worker backend> [--model <model>]]');
         }
         const target = positionals[0].trim();
         const instruction = positionals[1]?.trim() ?? '';
         if (!instruction || instruction.length > MANAGER_REDIRECT_INSTRUCTION_MAX_CHARS) {
           throw new Error(`redirect instruction must be 1-${MANAGER_REDIRECT_INSTRUCTION_MAX_CHARS} characters`);
         }
+        if (values.model !== undefined && values.backend === undefined) throw new Error('--model requires --backend');
+        const worker = values.backend !== undefined ? {
+          backend: values.backend,
+          ...(values.model !== undefined ? { model: values.model } : {}),
+        } : undefined;
         const result = (await callRoute(api, io, `/runs/${encodeURIComponent(env.ONNI_TASK_ID)}/worker-redirect`, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ target, instruction }),
+          body: JSON.stringify({ target, instruction, ...(worker ? { worker } : {}) }),
         }, (status, body, reason) => {
           if (status === 409 && typeof body === 'object' && body !== null && 'cancelledRunId' in body && typeof body.cancelledRunId === 'string') {
             return `source ${body.cancelledRunId} was cancelled; replacement was refused — ${reason}`;
@@ -574,7 +579,9 @@ export async function runTaskCommand(
           status: string;
           costUsd?: number;
           branch?: string;
-          dispatch?: { rootRunId: string; parentRunId?: string; kind?: string; report?: { status: string; verdict?: string } };
+          autoResumeAt?: string;
+          autoResumeReason?: 'usage_limit' | 'transient';
+          dispatch?: { rootRunId: string; parentRunId?: string; workerKey?: string; report?: { status: string; verdict?: string } };
         }>;
         const me = runs.find((run) => run.id === anchor || run.id.startsWith(anchor));
         if (!me) throw new Error(`no run ${anchor}`);
@@ -588,7 +595,10 @@ export async function runTaskCommand(
         const print = (run: (typeof runs)[number], depth: number): void => {
           const cost = run.costUsd !== undefined ? ` $${run.costUsd.toFixed(2)}` : '';
           const report = run.dispatch?.report ? ` → ${run.dispatch.report.status}${run.dispatch.report.verdict ? ` (${run.dispatch.report.verdict})` : ''}` : '';
-          io.log(`${'  '.repeat(depth)}${run.id.slice(0, 8)}  ${run.status}${cost}  ${run.title}${run.branch ? `  [${run.branch}]` : ''}${report}`);
+          const worker = run.dispatch?.workerKey?.replace(/:$/, '');
+          const hold = run.status === 'failed' && run.autoResumeAt && run.autoResumeReason !== 'transient'
+            ? ` (usage limit until ${run.autoResumeAt})` : '';
+          io.log(`${'  '.repeat(depth)}${run.id.slice(0, 8)}  ${run.status}${hold}${cost}  ${run.title}${worker ? `  (${worker})` : ''}${run.branch ? `  [${run.branch}]` : ''}${report}`);
           for (const child of byParent.get(run.id) ?? []) print(child, depth + 1);
         };
         const root = runs.find((run) => run.id === rootId);

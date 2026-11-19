@@ -387,7 +387,7 @@ export function patchPlanPart(
   dataDir: string,
   rootRunId: string,
   partId: string,
-  patch: { status?: TreePlanPart['status']; runId?: string },
+  patch: { status?: TreePlanPart['status']; runId?: string; worker?: string },
   now = new Date(),
 ): Promise<PlanPatchResult> {
   const path = planPath(dataDir, rootRunId);
@@ -395,11 +395,12 @@ export function patchPlanPart(
     const current = parsePlan((await readStateFile(path)).content).plan;
     const index = current.parts.findIndex((part) => part.id === partId);
     if (index < 0) return { ok: false, status: 404, error: `no plan part "${partId}"`, current };
-    if (patch.status === undefined && patch.runId === undefined) {
+    if (patch.status === undefined && patch.runId === undefined && patch.worker === undefined) {
       return { ok: false, status: 400, error: 'nothing to change: give a status or a run id', current };
     }
     const part: TreePlanPart = { ...current.parts[index]! };
     if (patch.status !== undefined) part.status = patch.status;
+    if (patch.worker !== undefined) part.worker = patch.worker;
     if (patch.runId !== undefined) {
       if (patch.runId === '') delete part.runId;
       else part.runId = patch.runId;

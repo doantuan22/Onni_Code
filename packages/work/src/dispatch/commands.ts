@@ -106,8 +106,8 @@ export const TASK_COMMANDS: readonly TaskCommand[] = [
   {
     name: 'redirect',
     role: 'manager',
-    usage: 'onni task redirect <worker id> "<instruction>"   stop and re-dispatch the same order with this direction',
-    brief: 'onni task redirect <worker> "<instruction>"   stop and re-dispatch the same order with this direction',
+    usage: 'onni task redirect <worker id> "<instruction>" [--backend <backend> [--model <model>]]   re-dispatch the order; name a different roster backend after a provider usage limit',
+    brief: 'onni task redirect <worker> "<instruction>" [--backend <backend> [--model <model>]]   re-dispatch the order; change backend after a usage limit',
     oneLine: 'replace a worker with a fresh run using the same order and a new direction',
   },
   {

@@ -536,6 +536,8 @@ Useful environment variables:
 | `ONNI_WORKFLOW_WEBHOOKS=1` | Let a workflow graph's **`notify.webhook`** node POST to the URL it names (JSON: `text`, `run`, `node`). Off by default: a workflow file — which can be imported from anywhere — calling out to an arbitrary URL widens exposure, so it is opt-in. Off, the node leaves by `failed` with a note; under `ONNI_DRY_RUN=1` nothing is sent either way. |
 | `ONNI_TERMINAL=1` / `=0` | The task view's interactive **terminal** (spec `.ai/specs/2026-10-07-task-workspace.md` §6). Unset it is on for a local cockpit and off on a hosted one (`ONNI_REMOTE=1` or a non-loopback bind). `1` allows it there too — without a sign-in in front of OnniCode this hands a shell on the server to anyone your reverse proxy admits. `0` turns it off everywhere. A platform with no prebuilt PTY binary reports the terminal unavailable with a reason instead of failing. |
 | `ONNI_DISPATCH=0` | Turn OFF **task dispatch**, which is on by default: a running task may start other OnniCode tasks with `onni task create` — each in its OWN worktree forked off the parent's branch, with a budget carved out of the parent's — and they report back into the parent's session when they settle (`onni task report`). Children appear nested under their parent in the task lists. Tasks talk through a tree directory (`.ai/onni/dispatch/<root>/`: the brief, each task's order/notes/report, an inbox per task) and OnniCode wakes a parked recipient when a file lands. A `--kind review` child judges another task's branch and answers with a verdict. ON by default (the owner-approved exception to "cost-widening features are opt-in" — see `AGENTS.md`), and only the exact value `0` turns it off; with it off the `/runs/:id/dispatch` and `/runs/:id/report` routes answer `409`, no task is told about the CLI, and the cockpit hides the "Review open PRs" template. A headless `onni run` never dispatches either way — there is no cockpit for the CLI to reach, so no task is told about it. Read at boot, so restart after changing it. This is the widest cost-widening flag here — one task can start four more agents — so give dispatching tasks a budget. |
+| `ONNI_WORKER_RTK=0` | Turn off the bundled RTK OSS command for Codex roster workers. The Windows installer includes the binary and adds it to each eligible worker's PATH; original commands remain available for full source, exact diffs, errors and verification. |
+| `ONNI_WORKER_REPO_MAP=0` | Turn off the bounded Node-based Aider-style Repo Map for roster workers with a path-scoped order. It uses the worker's tracked Git tree and packaged Tree-sitter WASM grammars; Python and a separate Aider install are not required. |
 | `ONNI_TASK_PROCESS_REAP=0` | Turn OFF **leftover-process reaping**, which is on by default (#1411): when a task settles, OnniCode stops every process still carrying that task's `ONNI_TASK_ID` in its environment — a hung test binary, a dev server, a `setsid`ed background job — with SIGTERM five seconds after the settle and SIGKILL three seconds later, and notes what it stopped in the task's timeline. On boot it does the same for tasks that settled while OnniCode was down. A task you Continue within the grace is left alone. Linux (`/proc`) and macOS (`ps -E`) use this scan. Windows task launches are owned by kill-on-close Job Objects, which stop their descendants when the task process exits or is canceled; the setting does not disable that ownership. Only the exact value `0` turns off the Linux/macOS scan. |
 | `ONNI_AUTOSAVE=1` | Re-enable the periodic (90 s) autosave commit in task worktrees. Off by default (#471) — turn-end and pre-PR flushes always run, so branches still end complete. Every autosave names its trigger in the commit subject (`onni autosave (periodic)` vs `(turn end)` / `(run finalize)` / `(pre-PR)`), so the flushes you keep are distinguishable from the timer you disabled. |
 | `ONNI_CLAUDE_BIN=/path/to/claude` | Override which `claude` binary is used. Rarely needed: when it is unset, OnniCode takes `claude` from PATH, and failing that looks where Claude Code's own installers put it — `~/.local/bin`, `~/.claude/local`, `/opt/homebrew/bin`, `/usr/local/bin` — so an install the launching shell never added to PATH is still found. |
@@ -700,6 +702,31 @@ orchestration fence, **not a security boundary**: an agent can still call a CLI 
 and a top-level task created over raw HTTP is not bound to a roster. Cost, token, time and step ceilings,
 the subtask cap and the wait expiry apply to the whole tree (see Limits above); `POST /runs` accepts
 `roster`, and workspace presets live in `~/.onni/config.json` (`managerWorker`).
+
+With the complexity policy on, the manager is instructed to save a tree plan before assigning
+complex work, give independently verifiable parts separate file scopes, and dispatch all ready
+parts in the same turn. It uses the roster's roles, tiers and kinds to assign specialized parts
+first and send flexible parts to suitable workers with spare capacity. `onni task list` shows
+which roster entry owns each order and any recorded usage-limit reset time.
+
+The Windows desktop installer includes RTK OSS and a Node-based Aider-style Repo Map, so users do not install Python,
+Aider, or RTK separately. New path-scoped roster workers receive a bounded Repo Map on their opening turn.
+Codex roster workers also receive RTK command guidance and the bundled binary on their PATH; they may use `rtk`
+for compact navigation, while original commands remain available for exact source, diffs, errors and tests.
+Set either `ONNI_WORKER_REPO_MAP=0` or `ONNI_WORKER_RTK=0` to disable that feature. Maps are derived from
+clean tracked source files with strict size and file-count limits. The map ships as JavaScript plus WASM; native
+grammar modules and install scripts are not required in the installed engine. RTK telemetry is disabled in each
+worker environment, without changing global RTK configuration. Source checkouts can use RTK already on PATH.
+Run `npm run verify:engine --prefix packages/desktop` after building to verify the real staged engine.
+Token savings and quality impact still need a
+controlled multi-run comparison.
+
+When a worker stops at a provider usage limit, its manager can hand off the saved order with
+`onni task redirect <run-id> "Finish the remaining work" --backend <backend> [--model <model>]`.
+Choose a worker on a different backend in the current roster. Onni refuses an account with a
+known active hold. An accepted handoff cancels the original resume, keeps its branch available
+for reference, and points queued dependents at the replacement. If dispatch is refused, any
+scheduled resume for the original worker stays in place.
 
 A backend can be a **worker only**: `RUNNER_CAPABILITIES[<backend>].canManage` in the contract is `false` for
 `antigravity`, whose headless allow-rules are not yet verified for the manager's commands (`onni task create`,

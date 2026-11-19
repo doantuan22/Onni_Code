@@ -17,7 +17,8 @@
     "build": "tauri build",
     "build:windows": "node scripts/build-windows.mjs",
     "build:debug": "tauri build --debug",
-    "icon": "node scripts/icon.mjs"
+    "icon": "node scripts/icon.mjs",
+    "verify:engine": "node scripts/verify-engine.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.9.0"

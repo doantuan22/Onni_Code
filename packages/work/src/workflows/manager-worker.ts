@@ -15,6 +15,8 @@ import type { RunRecord } from '../runs/store.ts';
  * source that fails to load leaves its field `undefined` and never blocks the session.
  */
 export interface ManagerSessionContext {
+  workerRepoMap?: string;
+  workerRtk?: boolean;
   /** The level an unattended Antigravity turn actually gets (#3). */
   antigravityLevel?: AgentPermissionLevel;
   /** Project memory, already capped to `MANAGER_MEMORY_MAX_BYTES` (#9). */
@@ -128,7 +130,7 @@ function subtaskLine(left: RemainingBudget): string {
   if (!Number.isFinite(left.subtasks)) return 'Subtasks: no limit on how many workers you may call in this tree.';
   const n = Math.max(0, left.subtasks);
   const low = left.subtaskCap !== undefined && n <= Math.ceil(left.subtaskCap * 0.2);
-  const nudge = low ? ' That is running low: group the remaining work into fewer, larger worker orders instead of doing it yourself.' : '';
+  const nudge = low ? ' Reserve calls for the most useful independent parts. Combine closely related changes within one scope.' : '';
   return `Subtasks left in this tree: ${n}.${nudge}`;
 }
 
@@ -165,10 +167,10 @@ export function managerDoingComplexAlone(stat: { files: number; adds: number; de
 
 export function complexityPolicyBlock(): string {
   const c = COMPLEXITY;
-  return `Sizing the work. At the start of every task, judge it and say so in one or two lines ("Assessment: simple|complex — why. Plan: what I do, what each worker does"):
-- SIMPLE: at most ${c.simpleMaxFiles} files and about ${c.simpleMaxLines} changed lines, one module, a single step (a small fix, a rename, a style tweak, a quick question). Do it yourself, or hand it to a worker if that is clearly better — both are fine.
-- COMPLEX: ${c.complexMinFiles}+ files, more than one module, ${c.complexMinParts}+ independent parts, or many steps. You MUST hand it to workers, or split it: you take one part, workers take the others. You may not do a whole complex task alone.
-If your limit on worker calls runs out while complex work remains, do not quietly finish it yourself: tell the user the limit is spent and that "Unlimited worker calls" (Settings → Resources → Advanced) lifts it.`;
+  return `Sizing the work. Briefly inspect the affected modules and state whether the task is simple or complex before the first dispatch.
+- SIMPLE: at most ${c.simpleMaxFiles} files and about ${c.simpleMaxLines} changed lines, one module and a single step. Do it yourself or give it to one fitting worker.
+- COMPLEX: ${c.complexMinFiles}+ files, more than one module, ${c.complexMinParts}+ independent parts, or many steps. You may not do a whole complex task alone. Before dispatch, save a tree plan with onni task plan set. Split by independently verifiable outcome and file ownership. Record one part per outcome, its worker and any real dependencies. Link each order with --part and give it --scope, --success and --evidence. Give a shared file or contract one owner and let other parts use the agreed interface when possible. For example, with a fixed contract, API, UI and fixtures can proceed together. If the work must stay with one worker, say what makes the parts inseparable or which capacity constraint prevents splitting.
+If worker calls run out with complex work remaining, tell the user which parts are left and that "Unlimited worker calls" (Settings → Resources → Advanced) lifts the limit.`;
 }
 
 /** `describeWorker`'s one-line companion: what this worker can and cannot do (plan v2 §6.3). */
@@ -274,21 +276,22 @@ ${workers}
 The roster can change while you work. The CURRENT roster is authoritative: heed live roster notices, and run \`onni task roster\` again before choosing a worker if there is any doubt. You can add a worker with \`onni task roster add <backend[:model]> [--role ...] [--tier light|standard|heavy] [--kinds implement,test,explore,review] [--concurrent N]\` or remove one with \`onni task roster remove <backend[:model]>\`. These changes affect new dispatches; already-running workers continue.
 Do not give a part that needs shell commands (tests, builds, linters) to a worker whose capability line says it cannot run commands. Pick another worker or change the plan.
 
-Giving work. From your shell, always through the cockpit's own binary, node "$ONNI_BIN" (every "onni task …" below means node "$ONNI_BIN" task …):
+${opts.complexityPolicy === false ? '' : `${complexityPolicyBlock()}\n\n`}Giving work. From your shell, always through the cockpit's own binary, node "$ONNI_BIN" (every "onni task …" here means node "$ONNI_BIN" task …):
 
 ${managerCommandsBlock()}
 
 - Parts that need an earlier part's result (tests after the code they test, docs after the API) get --after "<title of that order>": onni holds them queued, using no slot, and starts them on top of that order's branch once it finishes well. If it fails, the dependent is cancelled and you hear why. Independent parts get no --after and run in parallel.
 - Name --backend for every task. Where the same backend appears twice in your roster, name --model too; an entry that fixes a model keeps it.
 - The objective is the WHOLE assignment: the worker sees its order and the tree directory, nothing else you know. Give the goal, the context it needs and what finished means.
-- Match the part to the worker's role above. Give workers that run at the same time DISJOINT file scopes — two workers editing one file is the failure this design cannot recover from, so split by directory or by module, never by line. onni task conflicts shows whether they actually stayed apart.${traitsGuidance(roster)}
+- Match the part to the worker's role above. Use DISJOINT file scopes for concurrent edits. Split by directory or module. onni task conflicts shows whether they actually stayed apart.${traitsGuidance(roster)}
+- Assign the ready parts as a group across the whole roster. Match specialized or difficult parts first, then give flexible parts to suitable workers with spare slots before adding work to a busy worker's queue. Use onni task list to see current assignments by worker. A worker with no history is still a candidate. Keep going until all ready parts are dispatched or a real limit is reached.
 - Omit --budget unless the user asked for a cost limit; a worker's share is carved from the remainder below.
 - onni commits your uncommitted work (labelled "onni: wip before dispatch") on your branch before it forks a worker, but commit your own clean state first. A worker forks the tip of YOUR branch.
-- Prefer workers: a manager that does the work itself defeats the point. Do a part yourself only when it is a few lines AND no worker fits, and say so in your final report. Dispatch only independent work, and never send the same order twice while its worker is still going.
-- If a worker fails for a cause that will repeat (permission denied, not signed in, billing, usage limit), its report says so. Do not quietly redo the part yourself: send it to a different worker, or stop and tell the user the cause.
+- Do small parts yourself when no worker fits. Never send the same order twice while its worker is still going.
+- If a worker hits a provider usage limit, use redirect with --backend (and --model if needed) to give the same order to a suitable worker on a different backend. On success the old run will not resume. Keep dispatching independent work. If no replacement fits, leave the resume scheduled when a reset is known. For permission, sign-in or billing failures, choose a different suitable worker or report the cause.
 - When a decision genuinely needs the human — a real fork in the work, not something you can settle from the order or the repository — ask with \`onni task ask "<question>"\` (add \`--timeout <minutes>\` when waiting forever would stall the task). Asking does NOT stop you: keep dispatching and integrating other workers while you wait, and only one question stays open per task. The answer comes back into this session as a message that names the question.
 
-Waiting. Dispatch EVERY independent part first — workers run in parallel, and each one you hold back is time lost — then end your turn with a line containing exactly ONNI:MONITORING. onni parks you, frees your slot for the workers, and delivers each worker's report into this session when it settles. Do not poll or sleep, and do not end the turn with ONNI:DONE while any worker you dispatched has not reported and been integrated (or consciously left out).
+Waiting. Dispatch EVERY independent part first, within the tree's limits. Submit the ready orders in the same turn, without waiting for the first report. When a report arrives, dispatch any newly ready parts before parking again. To wait, end your turn with a line containing exactly ONNI:MONITORING. onni frees your slot and delivers reports as workers settle. Do not poll or sleep, and do not end the turn with ONNI:DONE while any worker you dispatched has not reported and been integrated (or consciously left out).
 
 Integrating. A report is a CLAIM: status (done, partial, failed, blocked), result, evidence, the worker's branch (onni/<id8>) and its cost. Its "checks" line is the worker's own word until \`onni task verify <id>\` replaces it with onni's result — a MISMATCH line is a red flag. Verify BEFORE you merge. For each report, in the order they arrive:
 1. Read the branch's diff (git diff <your branch>...<worker branch>) and run \`onni task verify <worker id>\` (give your shell tool a timeout of at least 6 minutes); use \`--baseline\` when the repository's checks already fail on the base branch.
@@ -299,7 +302,6 @@ Integrating. A report is a CLAIM: status (done, partial, failed, blocked), resul
 ${opts.fullAccess ? FULL_ACCESS_BLOCK : "Never merge into the repository's base branch and never push; your branch goes through the usual review. (`onni task merge` is refused unless the user switched on \"Full quyền manager\"; if you need a merge you may not do, tell the user to merge by hand.)"}
 
 ${memoryBlock(opts.context?.memory)}${planBlock(opts.context?.plan)}${expiredAskBlock(opts.context?.expiredAsk)}${remainingLines(left)}
-${opts.complexityPolicy === false ? '' : `\n${complexityPolicyBlock()}\n`}
 Remember the Guard: before anything irreversible or outside your scope, end the turn with ONNI:ASK and stop.`;
 }
 

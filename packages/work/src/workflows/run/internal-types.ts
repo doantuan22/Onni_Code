@@ -224,6 +224,9 @@ export interface ManagerControlActiveRun {
 export interface ManagerControlSessionState {
   currentStepId?: string;
   dispatchPrompt?: string;
+  cwd?: string;
+  workerRepoMap?: string | undefined;
+  workerRtk?: boolean;
 }
 
 /** Dependencies owned by RunManager that dispatch manager-control operations need. */
@@ -237,9 +240,11 @@ export interface ManagerControlContext {
   starting: ReadonlySet<string>;
   continuationManagerDeliveryIds: Map<string, string[]>;
   managerEnv: () => NodeJS.ProcessEnv;
-  semaphore: Pick<WorkspaceSemaphore, 'safety'>;
+  semaphore: Pick<WorkspaceSemaphore, 'safety' | 'accountHolds'>;
   dispatch: (parentId: string, input: DispatchInput, options?: ManagerControlDispatchOptions) => ManagerControlDispatchResult;
   cancel: (runId: string) => boolean;
+  cancelAutoResume: (runId: string) => boolean;
+  assignPlanPart: (rootRunId: string, partId: string, childRunId: string, updateWorker?: boolean) => Promise<void>;
   isActive: (runId: string) => boolean;
   waitInactive: (runId: string, timeoutMs: number) => Promise<boolean>;
   sendMessage: (runId: string, content: PastedContent[], replyTo?: string, managerDeliveryId?: string) => boolean;
@@ -582,6 +587,7 @@ export interface ExecuteActiveRun {
   cancelled: boolean;
   interrupt: () => void;
   cwd: string;
+  workerRtk?: boolean;
   releaseWorktree?: () => void;
   autosaveExcludedPaths: Map<string, string>;
   checkInProgress: boolean;
@@ -690,6 +696,7 @@ export interface ContinuationActiveRun {
   cancelled: boolean;
   interrupt: () => void;
   cwd: string;
+  workerRtk?: boolean;
   autosaveExcludedPaths: Map<string, string>;
   checkInProgress: boolean;
   autosaveCheckpointBlocked: boolean;
@@ -721,6 +728,7 @@ export interface ContinuationActiveRun {
   grantedAttachmentLibrary?: string;
   dispatchPrompt?: string;
   automationsPrompt?: string;
+  workerRepoMap?: string | undefined;
   releaseWorktree?: () => void;
   autoLand?: { checks: string[]; baseBranch?: string; baseLabel: string; attempts: number; inFlight?: Promise<LandResult> };
   readOnly?: boolean;

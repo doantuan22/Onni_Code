@@ -8,12 +8,13 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { stageRtkBinary } from './stage-rtk.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = path.resolve(packageRoot, '..', '..');
 
 /** Stages `<stageRoot>/engine` from the built `packages/work`; returns the engine folder. */
-export function stageEngine(stageRoot) {
+export async function stageEngine(stageRoot) {
   const npmExecpath = process.env.npm_execpath;
   if (!npmExecpath) throw new Error('stage-engine: run it through npm (npm run build:windows)');
   const work = path.join(repoRoot, 'packages', 'work');
@@ -43,6 +44,10 @@ export function stageEngine(stageRoot) {
 
   const entry = path.join(engineDir, 'node_modules', '@onni', 'work', 'dist', 'index.js');
   if (!existsSync(entry)) throw new Error(`stage-engine: the installed engine has no ${entry}`);
+
+  const installedWork = path.dirname(path.dirname(entry));
+  const bundledRtk = await stageRtkBinary(path.join(installedWork, 'dist'));
+  console.log(`Bundling ${bundledRtk.version} (RTK OSS) with the engine.`);
 
   // The runtime that built it: the engine needs Node 20+ and the installer must not depend on one.
   const nodeExe = process.platform === 'win32' ? 'node.exe' : 'node';

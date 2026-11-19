@@ -307,6 +307,60 @@ describe('manager message and cancellation controls', () => {
     await vi.waitFor(() => expect(store.getRun(managerRunId)?.dispatch?.pendingReports?.some((entry) => entry.fromRunId === dependent.id)).toBe(true));
   });
 
+  it('hands a quota-stopped order to another roster worker and retains the exhausted account hold', async () => {
+    const root = store.getRun(managerRunId)!;
+    store.updateRun(managerRunId, { roster: { ...root.roster!, workers: [
+      { runner: 'codex', role: 'parser', maxConcurrent: 1 },
+      { runner: 'pi', model: 'test-model', role: 'parser fallback', maxConcurrent: 1 },
+    ] } });
+    const order: DispatchOrderSnapshot = {
+      title: 'parser', objective: 'Implement the parser', kind: 'implement', scope: 'src/parser.ts',
+      backend: 'codex', retryLimit: 0, after: [],
+    };
+    const source = store.createRun({ title: order.title, task: order.objective, workflow: 'quick-task', runner: 'codex', steps: [] });
+    const reset = new Date(Date.now() + 60_000).toISOString();
+    store.updateRun(source.id, {
+      status: 'failed', failureClass: 'usage_limit', autoResumeAt: reset,
+      branch: 'onni/partial', dispatch: { rootRunId: managerRunId, parentRunId: managerRunId, workerKey: 'codex:', order },
+    });
+    const dependent = queuedWorker('codex', { after: [source.id] }, 'test the parser');
+    const seam = manager as unknown as { pump(): Promise<void>; blockOrphanedDependents(): void };
+    vi.spyOn(seam, 'pump').mockResolvedValue();
+    seam.blockOrphanedDependents();
+    expect(store.getRun(dependent.id)?.status).toBe('queued');
+
+    const input = { target: source.id, instruction: 'Finish the parser', worker: { backend: 'pi', model: 'test-model' } } as const;
+    const unavailable = await manager.redirectFor(managerRunId, { ...input, worker: { backend: 'codex' } });
+    expect(unavailable).toMatchObject({ status: 409, denied: expect.stringContaining('different backend') });
+    const held = store.createRun({ title: 'other', task: 'other', workflow: 'quick-task', runner: 'pi', steps: [] });
+    store.updateRun(held.id, { status: 'failed', failureClass: 'usage_limit', autoResumeAt: reset });
+    expect(await manager.redirectFor(managerRunId, input)).toMatchObject({ status: 409, denied: expect.stringContaining('also waiting') });
+    store.updateRun(held.id, { autoResumeAt: undefined });
+    expect(store.getRun(source.id)?.autoResumeAt).toBe(reset);
+
+    const originalDispatch = manager.dispatch.bind(manager);
+    const dispatch = vi.spyOn(manager, 'dispatch').mockImplementation((parentId, request, options) =>
+      options?.preflightOnly ? originalDispatch(parentId, request, options) : { refused: 'capacity changed' });
+    expect(await manager.redirectFor(managerRunId, input)).toEqual({ status: 409, denied: 'capacity changed' });
+    expect(store.getRun(source.id)).toMatchObject({ status: 'failed', autoResumeAt: reset });
+    expect(store.getRun(dependent.id)?.dispatch?.after).toEqual([source.id]);
+    dispatch.mockRestore();
+
+    const result = await manager.redirectFor(managerRunId, input);
+    expect(result).toMatchObject({ cancelledRunId: source.id, repointedDependents: 1 });
+    if (!('replacement' in result)) throw new Error('replacement was not admitted');
+    expect(store.getRun(source.id)).toMatchObject({ status: 'cancelled', dispatch: { redirectedTo: result.replacement.id } });
+    expect(store.getRun(source.id)?.autoResumeAt).toBeUndefined();
+    expect(manager.accountHolds().deadline).toContain('codex:default');
+    expect(manager.accountHolds(Date.parse(reset)).deadline).not.toContain('codex:default');
+    expect(store.getRun(result.replacement.id)).toMatchObject({
+      runner: 'pi', model: 'test-model', dispatch: { order: { objective: order.objective, scope: order.scope } },
+    });
+    expect(store.getRun(result.replacement.id)?.task).toContain('onni/partial');
+    expect(store.getRun(dependent.id)?.dispatch?.after).toEqual([result.replacement.id]);
+    expect(await manager.redirectFor(managerRunId, input)).toMatchObject({ status: 409 });
+  });
+
   it('redirects a saved order and repoints every queued dependent without losing other edges', async () => {
     const predecessorA = queuedWorker('codex', {}, 'predecessor A');
     const predecessorB = queuedWorker('codex', {}, 'predecessor B');

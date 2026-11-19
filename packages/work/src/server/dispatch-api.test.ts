@@ -450,6 +450,7 @@ describe('the dispatch routes', () => {
       { target: 'worker-1', instruction: '   ' },
       { target: 'worker-1', instruction: 'x'.repeat(1_001) },
       { target: 'worker-1', instruction: 'x', extra: true },
+      { target: 'worker-1', instruction: 'x', worker: { backend: 'unknown-backend' } },
     ]) expect((await apiRequest(app, '/api/v1/runs/root/worker-redirect', json(invalid))).status).toBe(400);
     expect(calls).toEqual([]);
   });

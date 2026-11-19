@@ -2,6 +2,8 @@ node_modules/
 dist/
 *.tsbuildinfo
 .idea
+/packages/work/scripts/__pycache__/
+/packages/work/bin/rtk/
 
 # Build artifact: the one README lives at the repo root and is copied into the published
 # package by packages/work/scripts/sync-readme.mjs. Never edit the copy.

@@ -18,6 +18,7 @@ import { generateRunName, autoNamingActive } from '../../runs/auto-name.ts';
 import { uniqueBranchName } from '../../git-worktree.ts';
 import { HANDOFF_INSTRUCTIONS, HANDOFF_ONLY_INSTRUCTIONS, appendHandoffHeartbeat, followupsEnabled } from '../../handoff.ts';
 import { TrackerAgentBindingError } from '../../server/tracker/agent-credentials.ts';
+import { withWorkerRtkPath } from '../../dispatch/worker-context.ts';
 import { UNATTENDED_DENIED_TOOLS } from '../push-guard.ts';
 import { READ_ONLY_TOOLS } from '../landing.ts';
 import { DEFAULT_AGENT_ACCOUNT_ID } from '../../workspace/agent-accounts.ts';
@@ -26,6 +27,7 @@ import { stripVerdictMarker } from '../graph.ts';
 import { UiEventSink } from '../../runs/ui-event-sink.ts';
 import { freshContinuationContext } from '../continuation-context.ts';
 import { agentDirectories, ATTACHMENT_ONLY_TASK, composeSystemPrompt, dispatchPromptPart, pastedAttachmentsText } from './preparation.ts';
+import { withWorkerRepoMap } from '../../dispatch/worker-context.ts';
 import { applyTemplate, expandRegistrySlashSkillText, leadingSlashSkillName, skillSystemPrompt } from './check-steps.ts';
 import type { AgentStepActiveRun, AgentStepContext } from './internal-types.ts';
 import type { PersistedAttachment } from './preparation.ts';
@@ -447,6 +449,7 @@ export async function runAgentStep(
     throw err;
   }
   ctx.store.updateStep(runId, step.id, { profileId: stepProfile.profileId });
+  const childEnv = withWorkerRtkPath(stepProfile.env, state.workerRtk === true);
 
   const runner = createRunner(stepBackend);
   const stepMcp = await ctx.privateMcpForLaunch(stepBackend, onEvent);
@@ -472,7 +475,7 @@ export async function runAgentStep(
             ? HANDOFF_INSTRUCTIONS
             : HANDOFF_ONLY_INSTRUCTIONS,
         ),
-        userPrompt: prompt,
+        userPrompt: resume ? prompt : withWorkerRepoMap(prompt, state.workerRepoMap),
         images,
         cwd: state.cwd,
         allowedTools: state.readOnly ? READ_ONLY_TOOLS : step.allowedTools ?? DEFAULT_ALLOWED_TOOLS,
@@ -483,9 +486,9 @@ export async function runAgentStep(
         additionalDirectories: agentDirectories(
           join(ctx.dataDir, 'runs'),
           state.grantedAttachmentLibrary,
-          stepProfile.env,
+          childEnv,
         ),
-        env: stepProfile.env,
+        env: childEnv,
         onUsageWindows: stepProfile.onUsageWindows,
         mcpServers: stepMcp,
         model: backendModel,

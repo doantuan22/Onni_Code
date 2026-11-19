@@ -760,6 +760,7 @@ interface ActiveRun {
   interrupt: () => void;
   /** Where this run's steps execute: the task worktree, or the repo root. */
   cwd: string;
+  workerRtk?: boolean;
   /** Live claude session of the currently running agent step, if any. */
   session?: AgentSession;
   currentStepId?: string;
@@ -859,6 +860,7 @@ interface ActiveRun {
    * record instead, because the stored `dispatch` changes under us.
    */
   dispatchPrompt?: string;
+  workerRepoMap?: string | undefined;
   /**
    * The GitHub-automations prompt part this session runs under (spec
    * 2026-09-13-automations-from-prompt), resolved by `prepareAutomationsSession` at the SAME two
@@ -1848,6 +1850,8 @@ export class RunManager {
       semaphore: this.semaphore,
       dispatch: (parentId, input, options) => this.dispatch(parentId, input, options),
       cancel: (runId) => this.cancel(runId),
+      cancelAutoResume: (runId) => this.cancelAutoResume(runId),
+      assignPlanPart: (rootRunId, partId, childRunId, updateWorker) => this.assignPlanPart(rootRunId, partId, childRunId, updateWorker),
       isActive: (runId) => this.isActive(runId),
       waitInactive: (runId, timeoutMs) => this.waitInactive(runId, timeoutMs),
       sendMessage: (runId, content, replyTo, deliveryId) => this.sendMessage(runId, content, replyTo, deliveryId),
@@ -2092,8 +2096,8 @@ export class RunManager {
     return patchManagerTreePlanPart(this.managerStateContext(), runId, partId, input);
   }
 
-  private assignPlanPart(rootRunId: string, partId: string, childRunId: string): Promise<void> {
-    return assignManagerPlanPart(this.managerStateContext(), rootRunId, partId, childRunId);
+  private assignPlanPart(rootRunId: string, partId: string, childRunId: string, updateWorker?: boolean): Promise<void> {
+    return assignManagerPlanPart(this.managerStateContext(), rootRunId, partId, childRunId, updateWorker);
   }
 
   askUser(runId: string, input: ManagerAskInput): ManagerAskResponse | { denied: string; status: 403 | 404 | 409 } {
@@ -2437,7 +2441,8 @@ export class RunManager {
    *  notification re-derives every participant's queue reasons, so only hold inputs notify (#1340). */
   private readonly holdInputs = new Map<string, string>();
   private readonly onRunHoldInputs = (run: RunRecord) => {
-    const inputs = JSON.stringify([run.status, run.autoResumeAt, run.autoResumeAttempts, run.autoResumeReason, run.runner, run.agentProfile]);
+    const inputs = JSON.stringify([run.status, run.autoResumeAt, run.autoResumeAttempts, run.autoResumeReason, run.runner, run.agentProfile,
+      run.dispatch?.redirectOperation?.usageLimitUntil]);
     if (this.holdInputs.get(run.id) === inputs) return;
     this.holdInputs.set(run.id, inputs);
     this.onQueueHoldChange();

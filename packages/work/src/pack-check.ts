@@ -1,3 +1,12 @@
+/** Exact generated assets from scripts/bundle-repo-map.mjs. */
+export const REPO_MAP_ASSETS = [
+  'dist/vendor/repo-map/index.js',
+  'dist/vendor/repo-map/LICENSES.txt',
+  'dist/vendor/repo-map/NOTICE.txt',
+  ...['typescript', 'tsx', 'javascript', 'python', 'go', 'rust', 'solidity']
+    .map((name) => `dist/vendor/repo-map/grammars/tree-sitter-${name}.wasm`),
+];
+
 /** Tarball bundle check — the pure half of `scripts/check-pack.mjs`.
  *
  *  Phase R1 of the cockpit redesign shipped an npm tarball with no UI in it
@@ -61,7 +70,7 @@ export function findDistGaps(distFiles: readonly string[], sourceFiles: readonly
   const gaps: string[] = [];
 
   for (const file of distFiles) {
-    if (!file.startsWith('dist/')) continue;
+    if (!file.startsWith('dist/') || REPO_MAP_ASSETS.includes(file)) continue;
     if (legacyDistOutput(file)) {
       gaps.push(`${file} is denied legacy output`);
       continue;
@@ -94,6 +103,9 @@ export function firstPackReport(packJson: unknown): PackReport | undefined {
  */
 export function findPackGaps(packedFiles: readonly string[]): string[] {
   const gaps: string[] = [];
+  for (const file of REPO_MAP_ASSETS) {
+    if (!packedFiles.includes(file)) gaps.push(`${file} is missing — run npm run build:server`);
+  }
   if (!packedFiles.includes('web/dist/index.html')) {
     gaps.push('web/dist/index.html is missing — the tarball would ship no UI shell (run `npm run build:web`)');
   }

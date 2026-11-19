@@ -38,6 +38,8 @@ describe('managerPrompt', () => {
     expect(prompt).toContain('onni task conflicts shows whether they actually stayed apart');
     expect(prompt).toContain('ONNI:MONITORING');
     expect(prompt).toContain('Dispatch EVERY independent part first');
+    expect(prompt).toContain('suitable workers with spare slots before adding work to a busy worker');
+    expect(prompt).toContain('Submit the ready orders in the same turn');
     expect(prompt).toContain('do not end the turn with ONNI:DONE while any worker you dispatched has not reported');
     expect(prompt).toContain('server refuses any other backend or model with a 409');
   });

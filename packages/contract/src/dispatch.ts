@@ -499,12 +499,20 @@ export const dispatchOrderSnapshotSchema = z.strictObject({
 });
 export type DispatchOrderSnapshot = z.infer<typeof dispatchOrderSnapshotSchema>;
 
+const redirectWorkerSchema = z.strictObject({
+  backend: runnerSchema,
+  model: z.string().trim().min(1).max(200).optional(),
+});
+
 export const dispatchRedirectOperationSchema = z.strictObject({
   operationId: z.string().min(1).max(MANAGER_DELIVERY_STRING_MAX_CHARS),
   managerRunId: z.string().min(1).max(MANAGER_DELIVERY_STRING_MAX_CHARS),
   state: z.enum(['cancelling', 'dispatching', 'repointing', 'complete', 'failed']),
   instruction: z.string().trim().min(1).max(MANAGER_REDIRECT_INSTRUCTION_MAX_CHARS).optional(),
   requestedAt: z.string().datetime(),
+  replacementWorker: redirectWorkerSchema.optional(),
+  /** A quota handoff retires the resume, but the provider's account stays held until reset. */
+  usageLimitUntil: z.string().datetime().optional(),
   replacementRunId: z.string().min(1).max(MANAGER_DELIVERY_STRING_MAX_CHARS).optional(),
   refusal: z.string().trim().min(1).max(MANAGER_CANCEL_REASON_MAX_CHARS).optional(),
 }).superRefine((operation, ctx) => {
@@ -533,6 +541,7 @@ export type DispatchManagerCancelInput = z.infer<typeof dispatchManagerCancelInp
 export const dispatchManagerRedirectInputSchema = z.strictObject({
   target: z.string().trim().min(1).max(200),
   instruction: z.string().trim().min(1).max(MANAGER_REDIRECT_INSTRUCTION_MAX_CHARS),
+  worker: redirectWorkerSchema.optional(),
 });
 export type DispatchManagerRedirectInput = z.infer<typeof dispatchManagerRedirectInputSchema>;
 

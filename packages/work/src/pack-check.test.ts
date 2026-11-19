@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findDistGaps, findPackGaps, firstPackReport } from './pack-check.ts';
+import { findDistGaps, findPackGaps, firstPackReport, REPO_MAP_ASSETS } from './pack-check.ts';
 
 describe('findDistGaps', () => {
   it('accepts compiler outputs mapped to work and inlined contract sources', () => {
@@ -14,6 +14,11 @@ describe('findDistGaps', () => {
     const sources = ['src/index.ts', '../contract/src/index.ts', '../contract/src/health.ts'];
 
     expect(findDistGaps(distFiles, sources)).toEqual([]);
+  });
+
+  it('accepts only the declared WASM bundle assets', () => {
+    expect(findDistGaps(REPO_MAP_ASSETS, [])).toEqual([]);
+    expect(findDistGaps(['dist/vendor/repo-map/unexpected.js'], [])).toHaveLength(1);
   });
 
   it('rejects compiler outputs without a matching source file', () => {
@@ -45,6 +50,7 @@ describe('findDistGaps', () => {
 // npm tarball ship a working cockpit? Pins the R1 "npm pack shipped no UI" bug.
 describe('findPackGaps', () => {
   const goodPack = [
+    ...REPO_MAP_ASSETS,
     'README.md',
     'dist/index.js',
     'scripts/mock-claude.mjs',
@@ -58,6 +64,12 @@ describe('findPackGaps', () => {
     expect(findPackGaps(goodPack)).toEqual([]);
   });
 
+  it('requires every mapper asset and license in the tarball', () => {
+    for (const missing of REPO_MAP_ASSETS) {
+      expect(findPackGaps(goodPack.filter((file) => file !== missing))).toHaveLength(1);
+    }
+  });
+
   it('rejects a tarball without web/dist/index.html', () => {
     const gaps = findPackGaps(goodPack.filter((f) => f !== 'web/dist/index.html'));
     expect(gaps).toHaveLength(1);
@@ -65,24 +77,24 @@ describe('findPackGaps', () => {
   });
 
   it('rejects a tarball whose shell has no hashed bundles', () => {
-    const gaps = findPackGaps(['dist/index.js', 'web/dist/index.html']);
+    const gaps = findPackGaps([...REPO_MAP_ASSETS, 'dist/index.js', 'web/dist/index.html']);
     expect(gaps).toHaveLength(1);
     expect(gaps[0]).toContain('web/dist/assets');
   });
 
   it('does not count a bare "web/dist/assets/" prefix as a bundle', () => {
-    const gaps = findPackGaps(['web/dist/index.html', 'web/dist/assets/']);
+    const gaps = findPackGaps([...REPO_MAP_ASSETS, 'web/dist/index.html', 'web/dist/assets/']);
     expect(gaps).toHaveLength(1);
   });
 
   it('reports both gaps for the pre-redesign file list (the R1 bug)', () => {
     // What `files` shipped before the packaging flip: sources, no Vite build.
     const legacy = ['README.md', 'dist/index.js', 'web/index.html', 'web/app.js', 'web/style.css'];
-    expect(findPackGaps(legacy)).toHaveLength(2);
+    expect(findPackGaps([...REPO_MAP_ASSETS, ...legacy])).toHaveLength(2);
   });
 
   it('does not accept nested lookalikes for the shell (exact path match)', () => {
-    const gaps = findPackGaps(['web/dist/nested/index.html', 'web/dist/assets/a.js']);
+    const gaps = findPackGaps([...REPO_MAP_ASSETS, 'web/dist/nested/index.html', 'web/dist/assets/a.js']);
     expect(gaps).toHaveLength(1);
     expect(gaps[0]).toContain('web/dist/index.html');
   });

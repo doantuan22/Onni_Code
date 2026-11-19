@@ -98,7 +98,8 @@ export function armUsageLimitResume(context: SchedulingContext, run: RunRecord):
   // Failover, once per run: hand the task to another connected provider instead of waiting out the
   // reset. The attempt counter marks it used, so a second limit stop (on the fallback provider)
   // waits like any other. A provider whose default login is held would fail again immediately.
-  if (attempts === 0 && fallbacksEnabled()) {
+  const root = run.dispatch?.parentRunId ? context.store.getRun(run.dispatch.rootRunId) : undefined;
+  if (attempts === 0 && !root?.roster && fallbacksEnabled()) {
     const holds = context.semaphore.accountHolds();
     const held = new Set<string>([...holds.deadline, ...holds.inFlight]);
     const target = chooseFallbackTarget(failedBackend(run) ?? run.runner, context.usableProviders(), held);
@@ -340,7 +341,8 @@ export async function rescueStalledQueue(context: SchedulingContext, now = Date.
     const deadline = Date.parse(run.autoResumeAt);
     if (Number.isFinite(deadline) && deadline > now) return;
   }
-  if (context.semaphore.accountHolds().inFlight.size === 0) {
+  const holds = context.semaphore.accountHolds();
+  if (holds.deadline.size > 0 || holds.inFlight.size === 0) {
     // Not the hold, then — some other wakeup went missing. An ordinary pump is the whole fix,
     // and it is idempotent, so this stays quiet.
     void context.pump();
@@ -390,8 +392,10 @@ export function accountHolds(context: SchedulingContext, now = Date.now()): Acco
     const key = () => context.policy.runAccountKey(run, run.runner ?? 'claude');
     // A transient retry says nothing about the account's window, so it holds nothing.
     if (run.autoResumeReason === 'transient') continue;
-    if (run.status === 'failed' && run.autoResumeAt) {
-      const at = Date.parse(run.autoResumeAt);
+    const transferredHold = run.dispatch?.redirectedTo ? run.dispatch.redirectOperation?.usageLimitUntil : undefined;
+    const reset = transferredHold ?? (run.status === 'failed' ? run.autoResumeAt : undefined);
+    if (reset) {
+      const at = Date.parse(reset);
       if (Number.isFinite(at) && at > now) { deadline.add(key()); deadlines.set(key(), Math.min(at, deadlines.get(key()) ?? Infinity)); }
     } else if (context.policy.resumeInFlight(run)) {
       inFlight.add(key());

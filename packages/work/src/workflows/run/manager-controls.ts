@@ -41,6 +41,7 @@ import {
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { effectiveAntigravityLevel } from '../../core/antigravity-permissions.ts';
+import { parseUsageLimit } from '../../core/usage-limit.ts';
 import { resolveCapabilities } from '../../server/capabilities.ts';
 import { composeDispatchPrompt } from '../../dispatch/prompts.ts';
 import { formatBudgetLine, toDispatchBudget } from '../../dispatch/budget-format.ts';
@@ -52,6 +53,7 @@ import { buildWorkerScorecard, formatWorkerScorecard } from '../../dispatch/scor
 import { MANAGER_SCORECARD_PROMPT_MAX_CHARS, PROMPT_MAX_CHARS } from '../../dispatch/prompt-budget.ts';
 import { appendLedger, readPlan } from '../../dispatch/tree-fs.ts';
 import { isTerminalStatus } from '../../dispatch/engine.ts';
+import { RTK_WORKER_GUIDANCE, workerRepoMap, workerRtkAvailable } from '../../dispatch/worker-context.ts';
 import { subtreeUsage } from '../limits.ts';
 import { diskFloorRefusal } from '../../disk-space.ts';
 import {
@@ -67,6 +69,7 @@ import type { RunRecord } from '../../runs/store.ts';
 import type { PastedContent } from './preparation.ts';
 import {
   managerPrompt,
+  resolveWorker,
   workerPrompt,
   type ManagerSessionContext,
   type RemainingBudget,
@@ -223,6 +226,20 @@ export async function loadManagerSessionContext(ctx: ManagerControlContext, runI
     // hand-edited past its cap is read from its newest lines; the note says what happened rather
     // than silently shrinking the manager's context.
     const run = ctx.store.getRun(runId);
+    const dispatch = run?.dispatch;
+    if (run && dispatch?.parentRunId && dispatchReachable(ctx) && ctx.store.getRun(dispatch.rootRunId)?.roster) {
+      const env = ctx.managerEnv();
+      context.workerRtk = workerRtkAvailable(env, run.runner);
+      if (context.workerRtk) ctx.store.appendEvent(runId, { type: 'note', message: 'Bundled RTK guidance enabled' });
+      if (run.worktreePath && state.cwd === run.worktreePath
+          && !run.steps.some((step) => step.sessionId)) {
+        const result = await workerRepoMap(ctx.repoRoot, run.worktreePath, dispatch.scope, env);
+        if (result.state === 'ready') context.workerRepoMap = result.text;
+        if (result.state === 'ready') ctx.store.appendEvent(runId, {
+          type: 'note', message: `Worker repo map prepared (${Buffer.byteLength(result.text)} bytes)`,
+        });
+      }
+    }
     if (run?.roster && !run.dispatch?.parentRunId) {
       const memory = await readManagerMemory(ctx.dataDir).catch(() => undefined);
       if (memory) {
@@ -287,7 +304,11 @@ export function prepareDispatchSession(ctx: ManagerControlContext, runId: string
     const roster = dispatch ? runs.find((r) => r.id === dispatch.rootRunId)?.roster : undefined;
     if (roster && dispatch) {
       if (dispatch.parentRunId) {
-        state.dispatchPrompt = workerPrompt(dispatch.kind, ctx.store.getRun(runId)?.runner);
+        const brief = workerPrompt(dispatch.kind, ctx.store.getRun(runId)?.runner);
+        const workerRtk = context.workerRtk ?? workerRtkAvailable(ctx.managerEnv(), ctx.store.getRun(runId)?.runner);
+        state.workerRtk = workerRtk;
+        state.dispatchPrompt = workerRtk ? `${brief}\n\n${RTK_WORKER_GUIDANCE}` : brief;
+        state.workerRepoMap = context.workerRepoMap;
       } else {
         const scorecard = buildWorkerScorecard(runs);
         const hasHistory = roster.workers.some((worker) => {
@@ -848,10 +869,16 @@ export async function redirectFor(ctx: ManagerControlContext,
     if (target.id === caller.id || target.dispatch?.rootRunId !== caller.id) {
       return { denied: 'redirect target must be a worker of this task', status: 409 };
     }
-    if (!['queued', 'running', 'waiting'].includes(target.status)) {
+    const quotaHandoff = input.worker !== undefined;
+    if (quotaHandoff && (target.status !== 'failed' || target.failureClass !== 'usage_limit'
+      || target.archived || target.autoResumeReason === 'transient' || ctx.isActive(target.id) || ctx.starting.has(target.id))) {
+      return { denied: 'changing the worker requires a stopped worker that hit its provider usage limit', status: 409 };
+    }
+    if (target.dispatch.redirectedTo) return { denied: 'this order has already been redirected', status: 409 };
+    if (!quotaHandoff && !['queued', 'running', 'waiting'].includes(target.status)) {
       return { denied: `worker ${target.id.slice(0, 8)} is settled (${target.status})`, status: 409 };
     }
-    if (target.status === 'waiting' && (target.dispatch?.pendingAsk !== undefined || target.askParked === true)) {
+    if ((target.status === 'waiting' || quotaHandoff) && (target.dispatch.pendingAsk !== undefined || target.askParked === true)) {
       return { denied: 'worker is waiting for the user to answer its Guard/ask; a manager redirect cannot answer it', status: 409 };
     }
     const priorOperation = target.dispatch.redirectOperation;
@@ -860,6 +887,10 @@ export async function redirectFor(ctx: ManagerControlContext,
     }
     const canonicalOrder = target.dispatch.order;
     if (!canonicalOrder) return { denied: 'worker has no saved dispatch order; redirect requires its original order snapshot', status: 409 };
+    if (input.worker) {
+      const refusal = quotaReplacementRefusal(ctx, caller, target, input.worker);
+      if (refusal) return { denied: refusal, status: 409 };
+    }
     const rawInstruction = input.instruction.trim();
     if (!rawInstruction || rawInstruction.length > MANAGER_REDIRECT_INSTRUCTION_MAX_CHARS) {
       return { denied: `redirect instruction must be 1-${MANAGER_REDIRECT_INSTRUCTION_MAX_CHARS} characters`, status: 400 };
@@ -868,7 +899,7 @@ export async function redirectFor(ctx: ManagerControlContext,
     if (!instruction || instruction.length > MANAGER_REDIRECT_INSTRUCTION_MAX_CHARS) {
       return { denied: `redirect instruction must be 1-${MANAGER_REDIRECT_INSTRUCTION_MAX_CHARS} characters after redaction`, status: 400 };
     }
-    const redirectInput = redirectDispatchInput(canonicalOrder, instruction);
+    const redirectInput = redirectDispatchInput(canonicalOrder, instruction, input.worker, target.branch);
     if (redirectInput.objective.length > 4_000) {
       return { denied: 'canonical objective plus redirect instruction exceeds the 4,000 character order limit', status: 400 };
     }
@@ -889,16 +920,28 @@ export async function redirectFor(ctx: ManagerControlContext,
 
     const requestedAt = new Date().toISOString();
     const operationId = randomUUID();
+    const usageLimitUntil = quotaHandoff ? target.autoResumeAt ?? parseUsageLimit(target.error)?.resetAt.toISOString() : undefined;
     ctx.updateDispatch(target.id, (dispatch) => ({
       ...dispatch,
-      redirectOperation: { operationId, managerRunId: caller.id, state: 'cancelling', instruction, requestedAt },
-      managerCancellation: {
+      redirectOperation: {
+        operationId, managerRunId: caller.id, state: quotaHandoff ? 'dispatching' : 'cancelling', instruction, requestedAt,
+        ...(input.worker ? { replacementWorker: input.worker } : {}),
+        ...(usageLimitUntil ? { usageLimitUntil } : {}),
+      },
+      ...(!quotaHandoff ? { managerCancellation: {
         byRunId: caller.id,
         requestedAt,
         reason: 'redirected by manager',
-      },
+      } } : {}),
     }));
     ctx.redirecting.add(target.id);
+    if (quotaHandoff) {
+      const result = dispatchQuotaReplacement(ctx, target, caller.id, redirectInput, redirectOrigin);
+      if ('replacement' in result && canonicalOrder.partId) {
+        await ctx.assignPlanPart(caller.id, canonicalOrder.partId, result.replacement.id, true);
+      }
+      return result;
+    }
     const title = ctx.store.redactRunText(target.id, target.title).replace(/\s+/g, ' ').slice(0, 120);
     ctx.store.appendEvent(target.id, {
       type: 'lifecycle',
@@ -944,10 +987,45 @@ export async function redirectFor(ctx: ManagerControlContext,
     return finishRedirectOperation(ctx, target.id, outcome.id);
   }
 
-export function redirectDispatchInput(order: DispatchOrderSnapshot, instruction: string): DispatchInput {
+function quotaReplacementRefusal(ctx: ManagerControlContext, caller: RunRecord, source: RunRecord,
+    worker: NonNullable<DispatchManagerRedirectInput['worker']>): string | undefined {
+  if (!caller.roster) return 'a quota handoff requires a manager roster';
+  const choice = resolveWorker(caller.roster, { runner: worker.backend, model: worker.model });
+  if ('refused' in choice) return choice.refused;
+  const failedBackend = [...source.steps].reverse().find((step) => step.status === 'failed' && step.backend)?.backend;
+  if (choice.runner === (failedBackend ?? source.runner ?? source.dispatch?.order?.backend)) {
+    return 'choose a different backend: roster entries on the same backend can share the exhausted account';
+  }
+  const holds = ctx.semaphore.accountHolds();
+  const key = `${choice.runner}:default`;
+  if (holds.deadline.has(key) || holds.inFlight.has(key)) return `${choice.runner} is also waiting on a usage limit; choose another worker`;
+  return undefined;
+}
+
+function dispatchQuotaReplacement(ctx: ManagerControlContext, source: RunRecord, managerRunId: string,
+    input: DispatchInput, origin: RedirectDispatchOrigin): DispatchManagerRedirectResult | { denied: string; status: 409 } {
+  let replacement: ReturnType<ManagerControlContext['dispatch']>;
+  try {
+    replacement = ctx.dispatch(managerRunId, input, { redirectOrigin: origin });
+  } catch (error) {
+    // Admission can fail after writing the replacement record. The recorded link is authoritative.
+    const saved = ctx.store.listRuns().find((run) => run.dispatch?.redirectedFrom === source.id);
+    if (saved) return finishRedirectOperation(ctx, source.id, saved.id);
+    replacement = { refused: error instanceof Error ? error.message : String(error) };
+  }
+  if ('refused' in replacement) return { denied: failRedirectOperation(ctx, source.id, replacement.refused), status: 409 };
+  return finishRedirectOperation(ctx, source.id, replacement.id);
+}
+
+export function redirectDispatchInput(order: DispatchOrderSnapshot, instruction: string,
+    worker?: DispatchManagerRedirectInput['worker'], sourceBranch?: string): DispatchInput {
+    const reference = worker && sourceBranch
+      ? `\n\nPrevious attempt stopped at a usage limit. Inspect the partial work on local branch ${sourceBranch} and reuse relevant changes within this order's scope.`
+      : '';
+    const model = worker ? worker.model : order.model;
     return {
       title: order.title,
-      objective: `${order.objective}\n\nManager redirect instruction:\n${instruction}`,
+      objective: `${order.objective}\n\nManager redirect instruction:\n${instruction}${reference}`,
       kind: order.kind,
       ...(order.reviewOf !== undefined ? { review_of: order.reviewOf } : {}),
       ...(order.scope !== undefined ? { scope: order.scope } : {}),
@@ -957,8 +1035,8 @@ export function redirectDispatchInput(order: DispatchOrderSnapshot, instruction:
       ...(order.requiredEvidence !== undefined ? { required_evidence: order.requiredEvidence } : {}),
       retry_limit: order.retryLimit,
       after: order.after,
-      backend: order.backend,
-      ...(order.model !== undefined ? { model: order.model } : {}),
+      backend: worker?.backend ?? order.backend,
+      ...(model !== undefined ? { model } : {}),
       ...(order.partId !== undefined ? { partId: order.partId } : {}),
     };
   }
@@ -1028,6 +1106,11 @@ export function finishRedirectOperation(ctx: ManagerControlContext, sourceRunId:
       redirectedTo: replacementRunId,
       redirectOperation: { ...operation, state: 'repointing', replacementRunId },
     }));
+    if (operation.replacementWorker) {
+      ctx.cancelAutoResume(sourceRunId);
+      ctx.store.updateRun(sourceRunId, { status: 'cancelled' });
+      ctx.store.appendEvent(sourceRunId, { type: 'lifecycle', message: `usage limit — order handed to replacement ${replacementRunId.slice(0, 8)}` });
+    }
     ctx.updateDispatch(replacementRunId, (dispatch) => ({ ...dispatch, redirectedFrom: sourceRunId }));
     const repointedDependents = repointQueuedDependents(ctx, source, replacement);
     ctx.updateDispatch(sourceRunId, (dispatch) => ({
@@ -1097,12 +1180,27 @@ export async function recoverRedirectOperations(ctx: ManagerControlContext): Pro
       );
       if (linked) {
         finishRedirectOperation(ctx, source.id, linked.id);
+        if (operation.replacementWorker && linked.dispatch?.order?.partId) {
+          await ctx.assignPlanPart(operation.managerRunId, linked.dispatch.order.partId, linked.id, true);
+        }
         continue;
       }
       const order = source.dispatch.order;
       const instruction = operation.instruction;
       if (!order || !instruction) {
         failRedirectOperation(ctx, source.id, 'redirect could not recover its saved order or instruction');
+        continue;
+      }
+      if (operation.replacementWorker) {
+        const manager = ctx.store.getRun(operation.managerRunId);
+        const refusal = manager && quotaReplacementRefusal(ctx, manager, source, operation.replacementWorker);
+        if (!manager || refusal || source.status !== 'failed' || source.archived) {
+          failRedirectOperation(ctx, source.id, refusal ?? 'quota handoff source or manager is no longer available');
+          continue;
+        }
+        const input = redirectDispatchInput(order, instruction, operation.replacementWorker, source.branch);
+        const result = dispatchQuotaReplacement(ctx, source, manager.id, input, { sourceRunId: source.id, canonicalOrder: order, instruction });
+        if ('replacement' in result && order.partId) await ctx.assignPlanPart(manager.id, order.partId, result.replacement.id, true);
         continue;
       }
       if (source.status !== 'cancelled') {

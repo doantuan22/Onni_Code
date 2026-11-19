@@ -40,10 +40,17 @@ export function dependencyState(context: DispatchContext, run: RunRecord): 'read
   let waiting = false;
   for (const id of after) {
     const dep = context.store.getRun(id);
-    if (!dep || dep.status === 'failed' || dep.status === 'cancelled') return 'blocked';
+    if (!dep || dependencyPermanentlyStopped(dep)) return 'blocked';
     if (dep.status !== 'done' && dep.status !== 'review') waiting = true;
   }
   return waiting ? 'waiting' : 'ready';
+}
+
+function dependencyPermanentlyStopped(run: RunRecord): boolean {
+  if (run.status === 'cancelled') return true;
+  if (run.status !== 'failed') return false;
+  // A roster worker with a scheduled quota resume can still finish or be handed off.
+  return !(run.failureClass === 'usage_limit' && run.dispatch?.workerKey && run.autoResumeAt);
 }
 
 /**
@@ -58,7 +65,7 @@ export function blockOrphanedDependents(context: DispatchContext): void {
     if (!run || dependencyState(context, run) !== 'blocked') continue;
     const failed = (run.dispatch?.after ?? [])
       .map((depId) => context.store.getRun(depId))
-      .find((dep) => !dep || dep.status === 'failed' || dep.status === 'cancelled');
+      .find((dep) => !dep || dependencyPermanentlyStopped(dep));
     context.store.updateRun(id, {
       error: `blocked: the order it was waiting for ("${failed?.title ?? 'a removed order'}") ${failed?.status ?? 'is gone'}, so it never started`,
     });

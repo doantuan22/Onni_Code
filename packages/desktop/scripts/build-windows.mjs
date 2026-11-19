@@ -45,7 +45,7 @@ console.log(`Build version ${displayVersion(previousVersion)} -> ${displayVersio
 writeBuildVersion(packageRoot, version);
 let artifact;
 try {
-  const engineDir = stageEngine(stageRoot);
+  const engineDir = await stageEngine(stageRoot);
   console.log(`Bundling the engine into the installer: ${describeStage(engineDir)} from ${engineDir}`);
   const bundleConfig = path.join(stageRoot, 'tauri.bundle.json');
   writeFileSync(bundleConfig, JSON.stringify({ bundle: { resources: { [engineDir.replaceAll('\\', '/')]: 'engine' } } }));

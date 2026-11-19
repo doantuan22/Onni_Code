@@ -6,7 +6,7 @@ import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { firstPackReport } from '../../src/pack-check.ts';
+import { firstPackReport, REPO_MAP_ASSETS } from '../../src/pack-check.ts';
 
 const execFile = promisify(execFileCallback);
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -43,7 +43,7 @@ test('the release tarball installs and runs the dry-run CLI workflow', { timeout
     assert.ok(record?.filename && record.files, 'npm pack should describe the generated tarball');
 
     const packagedPaths = new Set(record.files.map((file) => file.path));
-    for (const requiredPath of ['dist/index.js', 'web/dist/index.html', 'scripts/mock-claude.mjs', 'README.md']) {
+    for (const requiredPath of ['dist/index.js', 'web/dist/index.html', 'scripts/mock-claude.mjs', 'README.md', ...REPO_MAP_ASSETS]) {
       assert.ok(packagedPaths.has(requiredPath), `release tarball should contain ${requiredPath}`);
     }
     assert.equal(packagedPaths.has('src/index.ts'), false, 'release tarball should not contain TypeScript sources');
@@ -55,7 +55,7 @@ test('the release tarball installs and runs the dry-run CLI workflow', { timeout
     const tarball = join(packDir, record.filename);
     await execFile(
       process.execPath,
-      [npmCli, 'install', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', tarball],
+      [npmCli, 'install', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', tarball],
       { cwd: consumerDir, env: npmChildEnv(), maxBuffer: 10 * 1024 * 1024 },
     );
 

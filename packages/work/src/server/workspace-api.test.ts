@@ -9,7 +9,7 @@ import { WorkspaceSemaphore } from '../workspace/semaphore.ts';
 import { RunStore } from '../runs/store.ts';
 import type { RunManager } from '../workflows/run.ts';
 import { apiRequest } from './loopback-request.testkit.ts';
-import { createApp } from './server.ts';
+import { createApp, WorkspaceEventBus } from './server.ts';
 
 /**
  * The workspace settings API (multi-project spec, step 2.7):
@@ -80,6 +80,23 @@ describe('the workspace settings API (step 2.7)', () => {
     });
 
   // ---- GET/PUT /api/v1/workspace/config ---------------------------------------
+
+  it('announces persisted workspace config and UI changes but never rejected writes', async () => {
+    const bus = new WorkspaceEventBus();
+    const seen: string[] = [];
+    bus.on((event) => seen.push(event));
+    app = createApp({ repoRoot, store, manager: {} as RunManager, version: 'test', workspaceEvents: bus });
+    expect((await putConfig({ branding: { name: 'Live workspace' } })).status).toBe(200);
+    expect(seen).toEqual(['workspace-config-changed']);
+    expect((await putConfig({ resources: { maxParallel: 0 } })).status).toBe(400);
+    expect(seen).toHaveLength(1);
+    const saved = await apiRequest(app, '/api/v1/workspace/ui-state', {
+      method: 'PUT', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ appearance: { density: 'compact' } }),
+    });
+    expect(saved.status).toBe(200);
+    expect(seen).toEqual(['workspace-config-changed', 'workspace-ui-state-changed']);
+  });
 
   it('GET answers the zero-config defaults when no file exists — and never the registry', async () => {
     const res = await getConfig();

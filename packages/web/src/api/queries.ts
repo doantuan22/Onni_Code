@@ -594,7 +594,10 @@ export function useRegisterProject() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (root: string) => registerProject(root),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: workspaceQueryKeys.projects }),
+    onSuccess: ({ project }) => {
+      upsertWorkspaceProject(queryClient, project)
+      return queryClient.invalidateQueries({ queryKey: workspaceQueryKeys.projects })
+    },
   })
 }
 
@@ -629,9 +632,31 @@ export function useRemoveProject() {
   return useMutation({
     mutationFn: (projectId: string) => removeProject(projectId),
     retry: false,
-    onSuccess: () => {
+    onSuccess: ({ id: projectId }) => {
+      void queryClient.cancelQueries({ queryKey: workspaceQueryKeys.projects })
+      queryClient.setQueryData<ProjectsResponse>(workspaceQueryKeys.projects, (current) =>
+        current === undefined
+          ? current
+          : { ...current, projects: current.projects.filter((project) => project.id !== projectId) },
+      )
       void queryClient.invalidateQueries({ queryKey: workspaceQueryKeys.projects })
     },
+  })
+}
+
+/** Replace a project row immediately after a successful registry write; the follow-up GET still
+ *  supplies server-derived fields such as boot-project fallback state and status probes. */
+function upsertWorkspaceProject(queryClient: QueryClient, project: ProjectListEntry): void {
+  void queryClient.cancelQueries({ queryKey: workspaceQueryKeys.projects })
+  queryClient.setQueryData<ProjectsResponse>(workspaceQueryKeys.projects, (current) => {
+    if (current === undefined) return current
+    const exists = current.projects.some((entry) => entry.id === project.id)
+    return {
+      ...current,
+      projects: exists
+        ? current.projects.map((entry) => entry.id === project.id ? project : entry)
+        : [...current.projects, project],
+    }
   })
 }
 
@@ -858,7 +883,10 @@ export function useCheckoutProject() {
   return useMutation({
     mutationFn: (input: CheckoutProjectInput) => checkoutProject(input),
     retry: false,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: workspaceQueryKeys.projects }),
+    onSuccess: ({ project }) => {
+      upsertWorkspaceProject(queryClient, project)
+      return queryClient.invalidateQueries({ queryKey: workspaceQueryKeys.projects })
+    },
   })
 }
 
@@ -870,7 +898,10 @@ export function useCreateProject() {
   return useMutation({
     mutationFn: (input: CreateProjectInput) => createProject(input),
     retry: false,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: workspaceQueryKeys.projects }),
+    onSuccess: ({ project }) => {
+      upsertWorkspaceProject(queryClient, project)
+      return queryClient.invalidateQueries({ queryKey: workspaceQueryKeys.projects })
+    },
   })
 }
 
@@ -1342,8 +1373,11 @@ export function useSkills(enabled = true) {
   useEffect(() => {
     // Treat the follow-up as best-effort. The fast catalog remains authoritative
     // if an older server/proxy answers this additive request unexpectedly.
-    if (Array.isArray(ready.data)) queryClient.setQueryData([skillsScope, 'skills'], ready.data)
-  }, [queryClient, ready.data, skillsScope])
+    const key = [skillsScope, 'skills']
+    if (Array.isArray(ready.data) && ready.dataUpdatedAt > (queryClient.getQueryState(key)?.dataUpdatedAt ?? 0)) {
+      queryClient.setQueryData(key, ready.data)
+    }
+  }, [queryClient, ready.data, ready.dataUpdatedAt, skillsScope])
 
   return skills
 }
@@ -1370,8 +1404,11 @@ export function useImportableSkills(enabled = true) {
 
   useEffect(() => {
     // Best-effort, like useSkills: seed the fast list from the converged one.
-    if (Array.isArray(ready.data)) queryClient.setQueryData([scope, 'skills', 'importable'], ready.data)
-  }, [queryClient, ready.data, scope])
+    const key = [scope, 'skills', 'importable']
+    if (Array.isArray(ready.data) && ready.dataUpdatedAt > (queryClient.getQueryState(key)?.dataUpdatedAt ?? 0)) {
+      queryClient.setQueryData(key, ready.data)
+    }
+  }, [queryClient, ready.data, ready.dataUpdatedAt, scope])
 
   return importable
 }

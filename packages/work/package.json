@@ -18,6 +18,7 @@
   },
   "files": [
     "dist",
+    "skills-curated",
     "web/dist",
     "scripts",
     "README.md"

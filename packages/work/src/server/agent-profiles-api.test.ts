@@ -10,7 +10,7 @@ import { loadAgentAccounts, mergeWriteAgentAccounts } from '../workspace/agent-a
 import { clearProjectProbeCache, registerProject } from '../workspace/projects.ts';
 import { apiRequest } from './loopback-request.testkit.ts';
 import { ProviderAuthService } from '../core/provider-auth.ts';
-import { createApp, type ServerDeps } from './server.ts';
+import { createApp, WorkspaceEventBus, type ServerDeps } from './server.ts';
 
 // `resolveClaudeBin` probes the real machine for an install that is off PATH, so the claude
 // executable these cases assert on would otherwise be whatever the DEVELOPER has. Pinned to the
@@ -106,6 +106,27 @@ describe('agent profiles API', () => {
   };
 
   describe('GET', () => {
+    it('announces account creation, edits, selections and removal to other cockpits', async () => {
+      const bus = new WorkspaceEventBus();
+      const seen: string[] = [];
+      bus.on((event) => seen.push(event));
+      const app = makeApp({ workspaceEvents: bus });
+      const write = (method: string, suffix: string, body?: unknown) => apiRequest(app,
+        `/api/v1/workspace/agent-profiles${suffix}`, {
+          method, headers: { 'content-type': 'application/json' },
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        });
+      const created = await write('POST', '', { provider: 'claude', configDir: claudeDir('live-account') });
+      expect(created.status).toBe(201);
+      const { profile } = await created.json() as AgentProfileResponse;
+      expect((await write('PATCH', `/${profile.id}`, { label: 'Work' })).status).toBe(200);
+      expect((await write('PUT', '/selection', { projectId: null, provider: 'claude', profileId: profile.id })).status).toBe(200);
+      expect((await write('DELETE', `/${profile.id}`)).status).toBe(200);
+      expect(seen).toEqual(Array(4).fill('agent-profiles-changed'));
+      expect((await write('DELETE', `/${profile.id}`)).status).toBe(404);
+      expect(seen).toHaveLength(4);
+    });
+
     it('lists only the discovered defaults out of the box — the zero-config state', async () => {
       const body = await list();
       expect(body.editable).toBe(true);

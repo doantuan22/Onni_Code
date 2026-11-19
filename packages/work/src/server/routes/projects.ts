@@ -81,7 +81,7 @@ type ProjectsRouteDeps = {
   bootRoot: string;
   resolveBootProject: (projects?: readonly WorkspaceProject[]) => Promise<string>;
   contexts: ProjectContexts;
-  workspaceEvents: { emit: (event: 'project-added' | 'project-removed' | 'checkout-progress', data: unknown) => void };
+  workspaceEvents: { emit: (event: 'project-added' | 'project-updated' | 'project-removed' | 'checkout-progress', data: unknown) => void };
   trackerWatches: Pick<TrackerWatches, 'invalidateProject'>;
   stopTaskProcesses: (runId: string) => void;
   webhooks: Pick<WebhookCoordinator, 'remove'> | undefined;
@@ -334,6 +334,7 @@ export function projectsRoutes(deps: ProjectsRouteDeps) {
       const body: UpdateProjectResponse = {
         project: { ...updated, ...(await probeProjectStatus(updated.root)) },
       };
+      workspaceEvents.emit('project-updated', body);
       return c.json(body);
     })
 

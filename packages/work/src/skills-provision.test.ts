@@ -25,6 +25,16 @@ describe('mentionsSkill', () => {
 });
 
 describe('skillClosure', () => {
+  it('uses explicit dependencies instead of example mentions, preserving cycle and size bounds', () => {
+    const a = skill('om-a', 'Example only: om-c', { dependencies: ['om-b'] });
+    const b = skill('om-b', 'leaf', { dependencies: ['om-a'] });
+    const c = skill('om-c', 'unrelated');
+    expect(skillClosure([a], [a, b, c]).map(s => s.name)).toEqual(['om-a', 'om-b']);
+    expect(skillClosure([{ ...a, dependencies: [] }], [a, b, c]).map(s => s.name)).toEqual(['om-a']);
+    const many = Array.from({ length: 30 }, (_, i) => skill(`om-${i}`, '', { dependencies: [`om-${i + 1}`] }));
+    expect(skillClosure([many[0]!], many)).toHaveLength(24);
+  });
+
   it('pulls companions transitively, roots first, each once', () => {
     const a = skill('om-a', 'runs om-b verbatim');
     const b = skill('om-b', 'then om-c, and back to om-a');

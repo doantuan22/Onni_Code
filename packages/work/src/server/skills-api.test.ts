@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { RunStore } from '../runs/store.ts';
 import type { RunManager } from '../workflows/run.ts';
 import { apiRequest } from './loopback-request.testkit.ts';
-import { createApp } from './server.ts';
+import { WorkspaceEventBus, createApp } from './server.ts';
 
 /**
  * The onni-managed skill write routes (`POST /skills`, `PUT /skills/:name`,
@@ -65,6 +65,33 @@ describe('skills CRUD routes', () => {
 
     const listed = await (await get()).json() as Array<{ name: string; owned: boolean }>;
     expect(listed.find((s) => s.name === 'new-skill')).toMatchObject({ owned: true });
+  });
+
+  it('broadcasts committed catalog writes to every client with their actual scope', async () => {
+    const bus = new WorkspaceEventBus();
+    const first: unknown[] = [], second: unknown[] = [];
+    bus.on((name, data) => { if (name === 'skills-changed') first.push(data); });
+    bus.on((name, data) => { if (name === 'skills-changed') second.push(data); });
+    const server = createApp({ repoRoot, store, manager: {} as RunManager, version: 'test', workspaceEvents: bus });
+    const write = (method: string, suffix: string, body?: unknown) => apiRequest(server, `/api/v1/skills${suffix}`, {
+      method, headers: { 'content-type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+    expect((await write('POST', '', { name: 'live', scope: 'project', body: 'first', dependencies: [] })).status).toBe(201);
+    expect((await write('PUT', '/live', { body: 'second' })).status).toBe(200);
+    const listed = await (await apiRequest(server, '/api/v1/skills')).json() as Array<{ name: string; body: string; dependencies?: string[] }>;
+    const live = listed.find(skill => skill.name === 'live');
+    expect(live?.body.trim()).toBe('second');
+    expect(live?.dependencies).toEqual([]);
+    expect((await write('DELETE', '/live')).status).toBe(200);
+    expect((await write('POST', '', { name: 'everywhere', scope: 'global', body: 'shared' })).status).toBe(201);
+    expect(first).toEqual([
+      { project: expect.any(String), scope: 'project' }, { project: expect.any(String), scope: 'project' },
+      { project: expect.any(String), scope: 'project' }, { project: expect.any(String), scope: 'global' },
+    ]);
+    expect(second).toEqual(first);
+    expect((await write('DELETE', '/missing')).status).toBe(404);
+    expect((await write('POST', '', { name: '../invalid', scope: 'project', body: 'no' })).status).toBe(400);
+    expect(first).toHaveLength(4);
   });
 
   it('creates a global skill under the pinned ONNI_HOME', async () => {

@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { firstPackReport, REPO_MAP_ASSETS } from '../../src/pack-check.ts';
 
@@ -67,6 +67,18 @@ test('the release tarball installs and runs the dry-run CLI workflow', { timeout
     assert.equal(manifest.bin['onni-cli'], 'dist/index.js');
     assert.equal(manifest.bin['onni-run'], 'dist/index.js');
     const cliPath = join(packageRoot, manifest.bin.onni);
+
+    // Exercise the installed module: a source-checkout-only path would pass the unit suite.
+    const bundled = JSON.parse(await readFile(join(packageRoot, 'skills-curated/manifest.json'), 'utf8')) as { skills: {name: string}[] };
+    const discovery = await execFile(process.execPath, ['--input-type=module', '-e',
+      `const {discoverSkills}=await import(${JSON.stringify(pathToFileURL(join(packageRoot, 'dist/skills.js')).href)}); console.log(JSON.stringify((await discoverSkills(process.cwd())).filter(s=>s.source==='builtin').map(s=>({name:s.name,path:s.path}))));`,
+    ], { cwd: consumerDir, env: npmChildEnv({ ONNI_HOME: join(root, 'discovery-home') }), maxBuffer: 1024 * 1024 });
+    const installedSkills = JSON.parse(discovery.stdout.trim()) as {name: string; path: string}[];
+    for (const entry of bundled.skills) {
+      const installedSkill = installedSkills.find(skill => skill.name === entry.name);
+      assert.ok(installedSkill, `installed package must discover ${entry.name}`);
+      assert.ok(installedSkill.path.startsWith(packageRoot), 'bundled skill must resolve inside the installed package');
+    }
 
     const help = await execFile(process.execPath, [cliPath, '--help'], {
       cwd: consumerDir,

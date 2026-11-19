@@ -11,6 +11,7 @@ import {
   isPinnedSha,
   isSafeRef,
   listRemoteSkills,
+  materializeSkillDir,
   refreshTeamSkills,
   safeRemoteFor,
   sourceIdentity,
@@ -132,6 +133,7 @@ test('listRemoteSkills clones a local repo, pins the SHA, and refuses a bad ref'
   writeFileSync(join(srcDir, 'greeter', 'SKILL.md'), '---\ndescription: hi\n---\nsay hi\n');
   mkdirSync(join(srcDir, 'skills/greeter'), { recursive: true });
   writeFileSync(join(srcDir, 'skills/greeter', 'SKILL.md'), '---\ndescription: hi\n---\nsay hi\n');
+  writeFileSync(join(srcDir, 'skills/greeter', 'reference.md'), 'reference v1\n');
   g(['add', '-A']);
   g(['commit', '-m', 'init']);
   const sha = g(['rev-parse', 'HEAD']);
@@ -147,6 +149,22 @@ test('listRemoteSkills clones a local repo, pins the SHA, and refuses a bad ref'
   // Pinned SHA ref: identical result, and the pin is honoured.
   const onSha = await listRemoteSkills({ repo: srcDir, ref: sha });
   assert.ok(onSha.some((s) => s.name === 'greeter'));
+
+  // A fetched branch may move between catalog discovery and resource provisioning.
+  const directorySkill = (await listRemoteSkills({ repo: srcDir, ref: 'main' }, { skillsDirOnly: true })).find(s => s.name === 'greeter');
+  assert.ok(directorySkill);
+  writeFileSync(join(srcDir, 'skills/greeter', 'reference.md'), 'reference v2\n');
+  g(['add', '-A']);
+  g(['commit', '-m', 'update reference']);
+  const { bareDir } = await ensureBareClone(srcDir);
+  execFileSync('git', ['fetch', 'origin', 'refs/heads/main:refs/heads/main'], { cwd: bareDir });
+  const target = join(home, 'task');
+  assert.equal(await materializeSkillDir(target, directorySkill, '.agents/skills', async () => {}), true);
+  assert.equal(readFileSync(join(target, '.agents/skills/greeter/reference.md'), 'utf8'), 'reference v1\n');
+  const refreshed = (await listRemoteSkills({ repo: srcDir, ref: 'main' }, { skillsDirOnly: true })).find(s => s.name === 'greeter');
+  assert.ok(refreshed);
+  assert.equal(await materializeSkillDir(target, refreshed, '.agents/skills', async () => {}), true);
+  assert.equal(readFileSync(join(target, '.agents/skills/greeter/reference.md'), 'utf8'), 'reference v2\n');
 
   // A wrong pinned SHA resolves to nothing (no HEAD fallback).
   const wrong = await listRemoteSkills({ repo: srcDir, ref: 'f'.repeat(40) });

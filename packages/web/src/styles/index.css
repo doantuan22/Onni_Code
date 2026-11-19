@@ -9,6 +9,7 @@
  */
 
 @import "tailwindcss";
+@import "streamdown/styles.css";
 
 /* Enter/exit animation utilities (`animate-in`, `fade-in-0`, `zoom-in-95`, `slide-in-from-*`) that the
  * shadcn primitives reference on their Radix `data-[state]` hooks. Tailwind v4 dropped the v3 plugin,
@@ -677,6 +678,32 @@
  * UNLAYERED so they outrank Tailwind's `utilities` layer — inside `@layer base` they would
  * silently lose the cascade and replies would render page-sized. `em`-based so the whole
  * scale keys off the message's own font size. */
+
+.thread-tool {
+  width: fit-content;
+  max-width: min(100%, 42rem);
+}
+.thread-tool[data-state='open'] {
+  width: min(100%, 42rem);
+}
+
+/* Animate only the disclosure, never the virtualized row or its measured scroll anchor. */
+.thread-disclosure { overflow: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+  .thread-disclosure[data-state='open'] { animation: thread-expand 180ms ease-out; }
+  .thread-disclosure[data-state='closed'] { animation: thread-collapse 140ms ease-in; }
+}
+@keyframes thread-expand {
+  from { height: 0; opacity: 0; }
+  to { height: var(--radix-collapsible-content-height); opacity: 1; }
+}
+@keyframes thread-collapse {
+  from { height: var(--radix-collapsible-content-height); opacity: 1; }
+  to { height: 0; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-sd-animate] { animation: none !important; }
+}
 
 .thread-markdown {
   line-height: 1.6;

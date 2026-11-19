@@ -1,4 +1,4 @@
-import { worktreeLifecycleInvalidationSchema } from '@onni/api-client'
+import { projectListEntrySchema, skillsChangedEventSchema, worktreeLifecycleInvalidationSchema } from '@onni/api-client'
 import { lifecycleQueryKeys } from './worktree-lifecycle'
 import { dashboardProjectTransition, dashboardTransition } from './dashboard-truth'
 import { dashboardWorkspaceUsageSchema } from '@onni/api-client'
@@ -31,6 +31,7 @@ import { RUN_EVENT_BATCH_MS } from './run-events'
 import type {
   ApiRun,
   HealthResponse,
+  ProjectsResponse,
   ProcessUsage,
   ProviderStatusResponse,
 } from '@onni/api-client'
@@ -82,7 +83,12 @@ const EVENT_NAMES = ['run', 'run-deleted', 'todos', 'usage', 'ping'] as const
  * projects query (the sidebar grows/loses a group without a reload) and fan out to whoever
  * subscribed via `onWorkspaceEvent`.
  */
-const WORKSPACE_EVENT_NAMES = ['project-added', 'project-removed', 'checkout-progress', 'automation-change', 'tracker-changed'] as const
+const WORKSPACE_EVENT_NAMES = [
+  'project-added', 'project-updated', 'project-removed',
+  'workspace-config-changed', 'workspace-ui-state-changed',
+  'agent-profiles-changed', 'skills-changed',
+  'checkout-progress', 'automation-change', 'tracker-changed',
+] as const
 
 type WorkspaceEventName = (typeof WORKSPACE_EVENT_NAMES)[number]
 
@@ -286,6 +292,15 @@ function projectCacheScopes(queryClient: QueryClient, project: string): string[]
   return [...scopes]
 }
 
+async function invalidateSkillCatalog(queryClient: QueryClient, project?: string): Promise<void> {
+  const scopes = project ? projectCacheScopes(queryClient, project) : undefined
+  const filter = { predicate: (query: { queryKey: readonly unknown[] }) =>
+    (query.queryKey[1] === 'skills' || (project !== undefined && query.queryKey[1] === 'ui-state'))
+      && (!scopes || scopes.includes(String(query.queryKey[0]))) }
+  await queryClient.cancelQueries(filter)
+  await queryClient.invalidateQueries(filter)
+}
+
 function historyQueryKeys(scope: string): readonly (readonly unknown[])[] {
   return [
     ['run-history', scope],
@@ -458,6 +473,9 @@ async function reconcile(queryClient: QueryClient): Promise<void> {
     queryKeys.worktrees,
     lifecycleQueryKeys.all(),
     workspaceQueryKeys.providerStatus,
+    workspaceQueryKeys.config,
+    workspaceQueryKeys.uiState,
+    workspaceQueryKeys.agentProfiles,
     // Host totals (spec 2026-09-20-host-resource-telemetry): a remote cockpit's only refresh is
     // this reconcile, so the Machine card must be in the list — the local cockpit ignores it
     // because its frames arrive over the `host` topic.
@@ -467,6 +485,7 @@ async function reconcile(queryClient: QueryClient): Promise<void> {
   ] as const
   const invalidations = Promise.allSettled(
     [
+      invalidateSkillCatalog(queryClient),
       // Visible tracker lists own their first-page watch; refetching an infinite query here
       // would reload every loaded page on visibility/SSE reconnect and defeat pagination protection.
       Promise.all([
@@ -840,11 +859,66 @@ export function useGlobalEvents(usage: UsageStore, url: string = SSE_URL): void 
               queryClient.invalidateQueries({ queryKey: workspaceQueryKeys.projects }),
             ]))
           }
+          if (name === 'workspace-config-changed') {
+            // The clone dialog, folder picker and skills catalog derive values from this config.
+            const keys = [workspaceQueryKeys.config, workspaceQueryKeys.projects,
+              workspaceQueryKeys.fsBrowseRoot, queryKeys.health] as const
+            void Promise.all(keys.map((queryKey) => queryClient.cancelQueries({ queryKey })))
+              .then(() => Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey }))))
+            void invalidateSkillCatalog(queryClient)
+          } else if (name === 'workspace-ui-state-changed') {
+            void queryClient.cancelQueries({ queryKey: workspaceQueryKeys.uiState }).then(() =>
+              queryClient.invalidateQueries({ queryKey: workspaceQueryKeys.uiState }),
+            )
+          } else if (name === 'agent-profiles-changed') {
+            void queryClient.cancelQueries({ queryKey: workspaceQueryKeys.agentProfiles }).then(() =>
+              queryClient.invalidateQueries({ queryKey: workspaceQueryKeys.agentProfiles }),
+            )
+          } else if (name === 'skills-changed') {
+            const parsed = skillsChangedEventSchema.safeParse(payload)
+            if (!parsed.success) return
+            void invalidateSkillCatalog(queryClient, parsed.data.scope === 'global' ? undefined : parsed.data.project)
+          }
+          if (payload && typeof payload === 'object') {
+            if (name === 'project-removed' && 'id' in payload && typeof payload.id === 'string') {
+              const id = payload.id
+              void queryClient.cancelQueries({ queryKey: workspaceQueryKeys.projects })
+              queryClient.setQueryData<ProjectsResponse>(workspaceQueryKeys.projects, (current) =>
+                current === undefined ? current : {
+                  ...current,
+                  projects: current.projects.filter((project) => project.id !== id),
+                },
+              )
+            } else if (
+              (name === 'project-added' || name === 'project-updated')
+              && 'project' in payload
+              && payload.project && typeof payload.project === 'object'
+              && 'id' in payload.project && typeof payload.project.id === 'string'
+            ) {
+              const parsed = projectListEntrySchema.safeParse(payload.project)
+              if (parsed.success) {
+                const project = parsed.data
+                void queryClient.cancelQueries({ queryKey: workspaceQueryKeys.projects })
+                queryClient.setQueryData<ProjectsResponse>(workspaceQueryKeys.projects, (current) => {
+                  if (current === undefined) return current
+                  const exists = current.projects.some((entry) => entry.id === project.id)
+                  return {
+                    ...current,
+                    projects: exists
+                      ? current.projects.map((entry) => entry.id === project.id ? project : entry)
+                      : [...current.projects, project],
+                  }
+                })
+              }
+            }
+          }
           // A registry mutation changes the sidebar for every open tab, not just the one that
           // clicked. `checkout-progress` is deliberately NOT in this branch: a clone emits a
           // line every few hundred ms, and re-listing the registry on each would turn one clone
           // into a request flood (the dialog's own success handler invalidates once, at the end).
-          if (name !== 'checkout-progress' && name !== 'automation-change' && name !== 'tracker-changed') {
+          if (name !== 'checkout-progress' && name !== 'automation-change' && name !== 'tracker-changed'
+            && name !== 'workspace-config-changed' && name !== 'workspace-ui-state-changed'
+            && name !== 'agent-profiles-changed' && name !== 'skills-changed') {
             if (payload && typeof payload === 'object') {
               if (name === 'project-removed' && 'id' in payload && typeof payload.id === 'string') {
                 dashboardProjectTransition(payload.id, true)
@@ -853,8 +927,15 @@ export function useGlobalEvents(usage: UsageStore, url: string = SSE_URL): void 
                 dashboardProjectTransition(payload.project.id, false)
               }
             }
-            void queryClient.invalidateQueries({ queryKey: workspaceQueryKeys.projects })
+            // Cancel first: an older registry GET already in flight can otherwise settle after
+            // the invalidation and restore the project that this event just removed/changed.
+            void queryClient.cancelQueries({ queryKey: workspaceQueryKeys.projects }).then(() =>
+              queryClient.invalidateQueries({ queryKey: workspaceQueryKeys.projects }),
+            )
             void queryClient.invalidateQueries({ queryKey: workspaceQueryKeys.dashboard, refetchType: document.visibilityState === 'hidden' ? 'none' : 'active' })
+            void queryClient.cancelQueries({ queryKey: workspaceQueryKeys.runsIndex }).then(() =>
+              queryClient.invalidateQueries({ queryKey: workspaceQueryKeys.runsIndex }),
+            )
           }
           for (const listener of [...workspaceListeners]) listener(name, payload)
         })

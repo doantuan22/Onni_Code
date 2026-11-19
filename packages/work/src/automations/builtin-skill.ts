@@ -1,11 +1,10 @@
 /**
  * The built-in `create-onni-automation` skill (spec `.ai/specs/2026-09-13-automations-from-prompt.md`).
  *
- * onni ships no skill files of its own — every skill is discovered from the repo, the `npx
- * skills` dirs or a team repo — and this is the one deliberate exception: the playbook for
+ * Alongside the offline curated coding playbooks, this capability-gated playbook for
  * turning a prompt into a GitHub automation belongs to the cockpit that runs the automations, not
- * to a repository. It is a TypeScript constant rather than a Markdown file in the tarball so the
- * pack gate, the `files` list and the discovery walk stay exactly what they were.
+ * to a repository. It remains a TypeScript constant because it is assembled from the engine's
+ * automation protocol rather than a third-party skill snapshot.
  *
  * Gated like everything else an agent is TOLD about automations (`automationsReachable`): the
  * skill lists only on a cockpit that has automations on AND can be reached over `ONNI_API_URL` — a

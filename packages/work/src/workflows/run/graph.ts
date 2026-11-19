@@ -10,7 +10,7 @@ import { commentOnIssue, commentOnPr, fetchGithubChecks, updatePr } from '../../
 import { createDraftPr } from '../../server/pr.ts';
 import { discoverSkills } from '../../skills.ts';
 import type { Skill } from '../../skills.ts';
-import { provisionSkills } from '../../skills-provision.ts';
+import { isOfflineSkillClosure, provisionSkills } from '../../skills-provision.ts';
 import { getTeamSkillsCached, materializeSkillDir, waitForTeamSkills } from '../../skills-remote.ts';
 import { chainStepNote } from '../types.ts';
 import type { WorkflowDef, WorkflowStepDef } from '../types.ts';
@@ -1128,7 +1128,7 @@ export function graphResumeSession(context: GraphContext,
 
   /**
    * Install the named skills and every companion they name into the run's cwd (skills-provision.ts).
-   * Once a named skill is known, waits (bounded) for the team-skill load before collecting companions.
+   * Legacy/unresolved companions retain the bounded team wait; complete explicit local closures skip it.
    * Refreshes `state.skills` so expansion sees the same catalog. Never throws.
    */
 export async function provisionTaskSkills(context: GraphContext,
@@ -1136,7 +1136,7 @@ export async function provisionTaskSkills(context: GraphContext,
     wantedSkills: { stepSkill?: string; slash?: string },
   ): Promise<string[]> {
     const stepSkill = wantedSkills.stepSkill?.trim() || undefined;
-    const wanted = [stepSkill, wantedSkills.slash].filter((name): name is string => Boolean(name));
+    const wanted = [...new Set([stepSkill, wantedSkills.slash].filter((name): name is string => Boolean(name)))];
     if (!wanted.length) return [];
     try {
       // Companions resolve against the ungated team list too: curating a skill out of the
@@ -1155,7 +1155,8 @@ export async function provisionTaskSkills(context: GraphContext,
       // A selected step skill may still arrive with the team load, so that one waits.
       if (!roots.length && !stepSkill) return [];
       const inPlace = resolvePath(state.cwd) === resolvePath(context.repoRoot);
-      if (!inPlace || !roots.length) {
+      const offline = roots.length === wanted.length && isOfflineSkillClosure(roots, catalog);
+      if ((!inPlace || !roots.length) && !offline) {
         // A companion (or the step skill itself) often lives only in the team repo: wait, bounded.
         let timer: NodeJS.Timeout | undefined;
         await Promise.race([

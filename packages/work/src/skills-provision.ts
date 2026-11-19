@@ -44,10 +44,21 @@ export function skillClosure(roots: readonly Skill[], catalog: readonly Skill[])
     seen.add(skill.name);
     out.push(skill);
     for (const candidate of catalog) {
-      if (!seen.has(candidate.name) && mentionsSkill(skill.body, candidate.name)) queue.push(candidate);
+      const needed = skill.dependencies !== undefined
+        ? skill.dependencies.includes(candidate.name) : mentionsSkill(skill.body, candidate.name);
+      if (!seen.has(candidate.name) && needed) queue.push(candidate);
     }
   }
   return out;
+}
+
+/** Only a complete explicit local closure can bypass the bounded team load. */
+export function isOfflineSkillClosure(roots: readonly Skill[], catalog: readonly Skill[]): boolean {
+  if (!roots.length) return false;
+  const closure = skillClosure(roots, catalog);
+  const names = new Set(closure.map(skill => skill.name));
+  return closure.every(skill => skill.source !== 'team' && skill.dependencies !== undefined
+    && skill.dependencies.every(name => names.has(name)));
 }
 
 async function exists(path: string): Promise<boolean> {
@@ -62,6 +73,7 @@ async function exists(path: string): Promise<boolean> {
 function skillMarkdown(skill: Skill): string {
   const front = [`name: ${JSON.stringify(skill.name)}`];
   if (skill.description) front.push(`description: ${JSON.stringify(skill.description)}`);
+  if (skill.dependencies !== undefined) front.push('metadata:', `  onni-dependencies: ${JSON.stringify(JSON.stringify(skill.dependencies))}`);
   return `---\n${front.join('\n')}\n---\n\n${skill.body.trim()}\n`;
 }
 
@@ -98,7 +110,9 @@ async function provisionOne(cwd: string, skillsDir: string, skill: Skill): Promi
       () => false,
     );
   }
-  const onDisk = skill.source !== 'team' && skill.source !== 'builtin' && isAbsolute(skill.path);
+  // Bundled skill adapters have real paths and must retain their directory resources too.
+  const onDisk = skill.source !== 'team' && isAbsolute(skill.path)
+    && (skill.source !== 'builtin' || await exists(skill.path));
   // Already part of this checkout (an in-place run): the agent finds it where it is.
   const inCwd = relative(cwd, skill.path);
   if (onDisk && inCwd && !inCwd.startsWith('..') && !isAbsolute(inCwd)) return false;

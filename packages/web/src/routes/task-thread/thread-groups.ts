@@ -10,11 +10,11 @@ import type { ThreadEntry } from './thread-state'
  *  1. **Sub-agent nesting** — entries whose `parentItemId` names a tool item in the same turn
  *     move under that tool's card (one level; an orphaned parent id renders at top level).
  *  2. **Context groups** — ≥2 CONSECUTIVE completed read/search tools collapse into one
- *     "Explored N files · M searches" row. Edits and commands never group: the desktop-apps
- *     research consensus is edits/commands visible, exploration folded.
+ *     "Explored N files · M searches" row. Commands and edits stay individual until streak folding.
  *  3. **Tool streaks** (the legacy web/app.js behavior, kept) — within a consecutive run of
  *     folded-eligible blocks (completed tool cards and context groups), everything beyond the
- *     last `STREAK_TAIL` folds under "▸ N earlier tool calls". Running/failed/declined cards
+ *     last `STREAK_TAIL` folds under "▸ N earlier tool calls"; a settled turn folds the whole streak.
+ *     Running/failed/declined cards
  *     are never hidden — they break the run, exactly like any non-tool entry.
  *
  * Pure and total: components render the blocks, they never re-derive the rules.
@@ -48,6 +48,7 @@ export interface StreakBlock {
   id: string
   /** Individual tool calls folded away (context groups count their members). */
   count: number
+  settled?: true
   blocks: Array<ToolCardBlock | ContextGroupBlock>
 }
 
@@ -95,7 +96,7 @@ export function splitToolTitle(title: string): { verb: string; detail?: string }
   return { verb: title }
 }
 
-export function groupThreadItems(allEntries: ThreadEntry[]): ThreadBlock[] {
+export function groupThreadItems(allEntries: ThreadEntry[], options: { settled?: boolean } = {}): ThreadBlock[] {
   // Pass 0 — plan-kind tools (TodoWrite / todoList / todowrite) never render in the thread:
   // the plan dock is their surface (#382); a card here would only duplicate the checklist as
   // raw input JSON. Filtering the flat list drops them from children lists too.
@@ -175,15 +176,17 @@ export function groupThreadItems(allEntries: ThreadEntry[]): ThreadBlock[] {
   const folded: ThreadBlock[] = []
   let streak: Array<ToolCardBlock | ContextGroupBlock> = []
   const flushStreak = () => {
-    if (streak.length > STREAK_TAIL) {
-      const hidden = streak.slice(0, streak.length - STREAK_TAIL)
+    const tail = options.settled ? 0 : STREAK_TAIL
+    if (streak.length > (options.settled ? 1 : tail)) {
+      const hidden = streak.slice(0, streak.length - tail)
       folded.push({
         kind: 'streak',
         id: `streak:${hidden[0]!.id}`,
         count: hidden.reduce((sum, block) => sum + calls(block), 0),
         blocks: hidden,
+        ...(options.settled ? { settled: true as const } : {}),
       })
-      folded.push(...streak.slice(streak.length - STREAK_TAIL))
+      folded.push(...streak.slice(streak.length - tail))
     } else {
       folded.push(...streak)
     }

@@ -30,6 +30,8 @@ import {
   useRepoTree,
   useRunChanges,
   useRuns,
+  useRemoveProject,
+  useRegisterProject,
   useSkills,
   useReferenceStatuses,
   workspaceQueryKeys,
@@ -71,6 +73,34 @@ function wrapper() {
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>
   }
 }
+
+describe('registry mutations', () => {
+  const project = { id: 'shop', name: 'shop', root: '/repos/shop', addedAt: '', lastOpenedAt: '', source: 'local', status: 'ok' }
+
+  it('removes a confirmed project before waiting for a registry refetch', async () => {
+    const client = createQueryClient()
+    client.setQueryData(workspaceQueryKeys.projects, { projects: [project], bootProject: 'boot', projectsDir: '/repos' })
+    fetchMock.mockResolvedValue(json({ removed: true, id: project.id }))
+    const { result } = renderHook(() => useRemoveProject(), {
+      wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
+    })
+    await act(async () => { await result.current.mutateAsync(project.id) })
+    expect(client.getQueryData(workspaceQueryKeys.projects)).toMatchObject({ projects: [] })
+    client.clear()
+  })
+
+  it('adds a confirmed project to the shared cache before navigation', async () => {
+    const client = createQueryClient()
+    client.setQueryData(workspaceQueryKeys.projects, { projects: [], bootProject: 'boot', projectsDir: '/repos' })
+    fetchMock.mockResolvedValue(json({ project }))
+    const { result } = renderHook(() => useRegisterProject(), {
+      wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
+    })
+    await act(async () => { await result.current.mutateAsync(project.root) })
+    expect(client.getQueryData(workspaceQueryKeys.projects)).toMatchObject({ projects: [project] })
+    client.clear()
+  })
+})
 
 const HEALTH = {
   version: '0.1.3',
@@ -527,6 +557,20 @@ describe('queryKeys', () => {
 })
 
 describe('useSkills', () => {
+  it.each([10, 20])('does not restore a cached ready snapshot (%s) over the current catalog when the picker mounts again', async readyTime => {
+    const client = createQueryClient()
+    const old = [{ name: 'deleted-skill', source: 'ai', body: '', path: '/old.md' }]
+    const current = [{ name: 'current-skill', source: 'ai', body: '', path: '/new.md' }]
+    client.setQueryData(queryKeys.skillsReady, old, { updatedAt: readyTime })
+    client.setQueryData(queryKeys.skills, current, { updatedAt: 20 })
+    fetchMock.mockImplementation(() => new Promise(() => {}))
+    const { result } = renderHook(() => useSkills(), { wrapper: ({ children }) =>
+      <QueryClientProvider client={client}>{children}</QueryClientProvider> })
+    await act(async () => {})
+    expect(result.current.data).toEqual(current)
+    expect(client.getQueryData(queryKeys.skills)).toEqual(current)
+  })
+
   it('renders the fast catalog, then converges when the cold team cache is ready', async () => {
     let resolveReady!: (response: Response) => void
     fetchMock.mockImplementation(async (input) => {

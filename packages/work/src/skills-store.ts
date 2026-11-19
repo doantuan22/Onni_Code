@@ -54,10 +54,11 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-function markdown(name: string, description: string | undefined, interactive: boolean, body: string): string {
+function markdown(name: string, description: string | undefined, interactive: boolean, body: string, dependencies?: string[]): string {
   const front = [`name: ${JSON.stringify(name)}`];
   if (description) front.push(`description: ${JSON.stringify(description)}`);
   if (interactive) front.push('interactive: true');
+  if (dependencies !== undefined) front.push('metadata:', `  onni-dependencies: ${JSON.stringify(JSON.stringify(dependencies))}`);
   return `---\n${front.join('\n')}\n---\n\n${body.trim()}\n`;
 }
 
@@ -75,12 +76,14 @@ function ownedSkill(
   description: string | undefined,
   interactive: true | undefined,
   body: string,
+  dependencies?: string[],
 ): Skill {
   return {
     name,
     description,
     interactive,
     body,
+    ...(dependencies !== undefined ? { dependencies } : {}),
     path: join(dir, name, 'SKILL.md'),
     source: scope === 'global' ? 'onni-global' : 'onni',
     owned: true,
@@ -96,7 +99,7 @@ function ownedDir(existing: Skill, dir: string): string | undefined {
 
 export async function createOwnedSkill(
   loc: OwnedSkillLocation,
-  input: { scope: SkillScope; name: string; description?: string; interactive?: boolean; body: string },
+  input: { scope: SkillScope; name: string; description?: string; interactive?: boolean; body: string; dependencies?: string[] },
 ): Promise<Skill> {
   const { scope, name } = input;
   if (!SKILL_NAME_PATTERN.test(name)) throw new SkillStoreError('invalid-name', `invalid skill name: ${name}`);
@@ -107,14 +110,14 @@ export async function createOwnedSkill(
   await mkdir(target, { recursive: true });
   const description = input.description?.trim() || undefined;
   const interactive = input.interactive ? true : undefined;
-  await writeAtomic(join(target, 'SKILL.md'), markdown(name, description, input.interactive === true, input.body));
-  return ownedSkill(name, scope, dir, description, interactive, input.body.trim());
+  await writeAtomic(join(target, 'SKILL.md'), markdown(name, description, input.interactive === true, input.body, input.dependencies));
+  return ownedSkill(name, scope, dir, description, interactive, input.body.trim(), input.dependencies);
 }
 
 export async function updateOwnedSkill(
   loc: OwnedSkillLocation,
   existing: Skill,
-  changes: { name?: string; description?: string; interactive?: boolean; body?: string },
+  changes: { name?: string; description?: string; interactive?: boolean; body?: string; dependencies?: string[] },
 ): Promise<Skill> {
   const scope = existing.scope ?? 'project';
   if (scope === 'global') guardGlobalWrite(loc.homeDir);
@@ -126,21 +129,22 @@ export async function updateOwnedSkill(
   const interactive =
     changes.interactive !== undefined ? (changes.interactive ? true : undefined) : existing.interactive;
   const body = (changes.body ?? existing.body).trim();
+  const dependencies = changes.dependencies ?? existing.dependencies;
 
   const target = join(dir, nextName);
   if (nextName === existing.name) {
-    await writeAtomic(join(target, 'SKILL.md'), markdown(nextName, description, interactive === true, body));
-    return ownedSkill(nextName, scope, dir, description, interactive, body);
+    await writeAtomic(join(target, 'SKILL.md'), markdown(nextName, description, interactive === true, body, dependencies));
+    return ownedSkill(nextName, scope, dir, description, interactive, body, dependencies);
   }
 
   // Rename: the old directory goes away only after the new one is fully written, so a failure
   // mid-way leaves the original intact.
   if (await exists(target)) throw new SkillStoreError('name-in-use', `a skill named "${nextName}" already exists here`);
   await mkdir(target, { recursive: true });
-  await writeAtomic(join(target, 'SKILL.md'), markdown(nextName, description, interactive === true, body));
+  await writeAtomic(join(target, 'SKILL.md'), markdown(nextName, description, interactive === true, body, dependencies));
   const old = ownedDir(existing, dir);
   if (old) await rm(old, { recursive: true, force: true });
-  return ownedSkill(nextName, scope, dir, description, interactive, body);
+  return ownedSkill(nextName, scope, dir, description, interactive, body, dependencies);
 }
 
 export async function deleteOwnedSkill(loc: OwnedSkillLocation, existing: Skill): Promise<void> {

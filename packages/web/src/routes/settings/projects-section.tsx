@@ -26,6 +26,7 @@ import { toast } from '@/components/ui/toaster'
 import { allProjectTags, suggestTags } from '@/lib/project-tags'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
+import { useSyncedDraft } from '@/lib/use-synced-draft'
 import { RemoveProjectDialog, useProjectRemoval } from './remove-project'
 import { SettingsField } from './settings-field'
 
@@ -185,7 +186,7 @@ function WorkspaceRootField({
       }
     },
   })
-  const [value, setValue] = useState(configuredValue)
+  const [value, setValue] = useSyncedDraft(configuredValue)
   const trimmed = value.trim()
   const unchanged = trimmed === configuredValue
   // The 400's message ("not writable: …"), shown until the next attempt. `save.error` is the

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { MessageSquareTextIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useSyncedDraft } from '@/lib/use-synced-draft'
 
 import { putWorkspaceConfig } from '@/api/client'
 import { useWorkspaceConfig, workspaceQueryKeys } from '@/api/queries'
@@ -48,7 +48,7 @@ function GlobalInstructionsForm({ config }: { config: WorkspaceConfigResponse })
     onError: (error: Error) => toast(error.message, { tone: 'danger' }),
   })
 
-  const [prompt, setPrompt] = useState(config.systemPrompt ?? '')
+  const [prompt, setPrompt] = useSyncedDraft(config.systemPrompt ?? '')
   const trimmed = prompt.trim()
   const saved = trimmed === (config.systemPrompt ?? '')
   const overLimit = trimmed.length > GLOBAL_PROMPT_MAX

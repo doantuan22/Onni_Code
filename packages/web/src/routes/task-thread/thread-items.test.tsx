@@ -17,6 +17,7 @@ import codexCommandLifecycle from '../../../../work/src/core/__fixtures__/codex/
 import { groupThreadItems } from './thread-groups'
 import {
   AgentUpdateRequiredCard,
+  AssistantMessage,
   ContextGroup,
   isNearBottom,
   OUTPUT_CLAMP_LINES,
@@ -31,6 +32,32 @@ import { reduceThread } from './thread-state'
 import { SessionTranscript } from './session-transcript'
 
 afterEach(cleanup)
+
+describe('assistant response controls', () => {
+  it('copies the complete Markdown response', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
+    try {
+      const text = '**Verified** with `npm test`.'
+      render(<AssistantMessage text={text} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Copy response' }))
+      await act(async () => {})
+      expect(writeText).toHaveBeenCalledWith(text)
+    } finally { vi.unstubAllGlobals() }
+  })
+
+  it('keeps historical and reduced-motion text static', () => {
+    const { rerender } = render(<AssistantMessage text="A settled answer." />)
+    expect(document.querySelector('[data-sd-animate]')).toBeNull()
+    const media = vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+    vi.stubGlobal('matchMedia', media)
+    try {
+      rerender(<AssistantMessage text="A streaming answer." streaming />)
+      expect(document.querySelector('[data-sd-animate]')).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Copy response' })).toBeNull()
+    } finally { vi.unstubAllGlobals() }
+  })
+})
 
 describe('ProviderAuthRequiredCard', () => {
   it.each([
@@ -164,6 +191,20 @@ const card = () => document.querySelector('[data-slot="tool-card"]')!
 const trigger = (name: RegExp) => screen.getByRole('button', { name })
 
 describe('ToolCard — states', () => {
+  it('closes a manually expanded command once it succeeds, and allows reopening the result', () => {
+    const item = { ...goldenItem(bashAndScreenshot, 'toolu_mock_1', 'running'), output: 'working' }
+    const { rerender } = render(<ToolCard item={item} />)
+    fireEvent.click(trigger(/Ran/))
+    fireEvent.click(trigger(/Ran/))
+    expect(document.querySelector('[data-slot="tool-output"]')).toBeTruthy()
+    rerender(<ToolCard item={{ ...item, status: 'completed', output: 'done' }} />)
+    expect(document.querySelector('[data-slot="tool-output"]')).toBeNull()
+    fireEvent.click(trigger(/Ran/))
+    expect(document.querySelector('[data-slot="tool-output"]')?.textContent).toContain('done')
+    rerender(<ToolCard item={{ ...item, status: 'completed', output: 'done' }} />)
+    expect(document.querySelector('[data-slot="tool-output"]')).toBeTruthy()
+  })
+
   it('running without output: shimmering verb, spinner, locked (disabled trigger, no chevron)', () => {
     const item = goldenItem(bashAndScreenshot, 'toolu_mock_1', 'running')
     render(<ToolCard item={item} />)

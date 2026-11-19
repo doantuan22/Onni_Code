@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { isImageAttachmentName } from '@onni/contract';
 import type { ContentBlock } from '../../core/agent-runner.ts';
 import type { QueuedMessage } from '../../runs/store.ts';
+import type { Skill } from '../../skills.ts';
 import { extractTaskRefs, refineTaskRefs } from '../../runs/task-refs.ts';
 import { messageText } from '../queued-bounds.ts';
 import { stepKind } from '../types.ts';
@@ -386,6 +387,13 @@ export function sendMessage(
   return delivered;
 }
 
+const skillDeliveries = new WeakMap<object, Promise<void>>();
+
+/** A closing session must hand accepted messages to the existing deferred queue before settlement. */
+export async function drainSkillDeliveries(state: object): Promise<void> {
+  while (skillDeliveries.has(state)) await skillDeliveries.get(state);
+}
+
 /** Shared live-session delivery. Synthetic scheduler prompts reuse lifecycle
  * bookkeeping without masquerading as user-authored transcript messages. */
 export function deliverMessage(
@@ -396,6 +404,7 @@ export function deliverMessage(
   preparedUserMessage?: PreparedUserMessage,
   replyTo?: string,
   managerDeliveryId?: string,
+  skillSnapshot?: readonly Skill[],
 ): boolean {
   if (ctx.lifecycle.isBlocked(runId)) return false;
   // Plan v2 §9: only the answer that names the OPEN manager question retires it. A free message
@@ -489,12 +498,41 @@ export function deliverMessage(
   // at all for a non-image attachment (#950), which is why `contentBlocksOf` drops file blocks
   // here rather than letting one reach a backend that has no idea what it is.
   const blocks = contentBlocksOf(content);
-  const expanded = userAuthored ? ctx.expandRegistrySlashSkill(blocks, state.skills ?? []) : blocks;
-  if (expanded !== blocks) {
-    // Delivery is synchronous; the body already rides the message, so the install can trail it.
-    const first = blocks.find((block) => block.type === 'text');
-    void ctx.provisionTaskSkills(state, { slash: first?.type === 'text' ? ctx.leadingSlashSkillName(first.text) : undefined });
+  const first = blocks.find((block) => block.type === 'text');
+  const slash = userAuthored && first?.type === 'text' ? ctx.leadingSlashSkillName(first.text) : undefined;
+  if (skillSnapshot === undefined && (slash || skillDeliveries.has(state))) {
+    // Preserve synchronous acceptance while serializing preparation and delivery (phase A).
+    const session = state.session;
+    if (managerDeliveryId && userAuthored && preparedUserMessage === undefined) {
+      ctx.store.appendEvent(runId, {
+        type: 'user-message', stepId: state.currentStepId, text: prepared?.text ?? messageText(content),
+        imageCount: content.filter(block => block.type === 'image').length,
+        images: persisted.map(saved => saved.url),
+      });
+    }
+    const rejected = () => {
+      if (managerDeliveryId) ctx.recordManagerDeliveryTransition(runId, managerDeliveryId, 'rejected', 'target-settled');
+      else if (userAuthored && !state.cancelled) ctx.store.appendEvent(runId, {
+        type: 'note', stepId: state.currentStepId,
+        message: 'The session closed before the prepared message could be delivered. Your original message is saved above; use Continue to send it again.',
+      });
+    };
+    const pending = (skillDeliveries.get(state) ?? Promise.resolve()).then(async () => {
+      if (state.cancelled || ctx.active.get(runId) !== state || ctx.lifecycle.isBlocked(runId)) return rejected();
+      if (slash) await ctx.provisionTaskSkills(state, { slash });
+      if (state.cancelled || ctx.active.get(runId) !== state || ctx.lifecycle.isBlocked(runId)) return rejected();
+      const snapshot = [...(state.skills ?? [])];
+      if (state.session === session && deliverMessage(ctx, runId, content, userAuthored, prepared, replyTo, managerDeliveryId, snapshot)) return;
+      if (!ctx.enqueueMessage(runId, content, managerDeliveryId) && !ctx.deferMessage(runId, content, managerDeliveryId)) rejected();
+    }).catch(() => {
+      if (state.cancelled || ctx.active.get(runId) !== state || ctx.lifecycle.isBlocked(runId)) return rejected();
+      if (!ctx.enqueueMessage(runId, content, managerDeliveryId) && !ctx.deferMessage(runId, content, managerDeliveryId)) rejected();
+    });
+    skillDeliveries.set(state, pending);
+    void pending.then(() => { if (skillDeliveries.get(state) === pending) skillDeliveries.delete(state); });
+    return true;
   }
+  const expanded = userAuthored ? ctx.expandRegistrySlashSkill(blocks, skillSnapshot ?? state.skills ?? []) : blocks;
   const deliverable = persisted.length
     ? [...withAnswerLead(ctx, answering?.question, prepared?.text, expanded), pastedAttachmentsNote(persisted, ctx.attachmentLibraryHint(persisted, state.grantedAttachmentLibrary) ??
         (imageLibraryWrites.length ? ctx.usableAttachmentLibrary(state.grantedAttachmentLibrary) : undefined))]

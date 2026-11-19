@@ -101,6 +101,7 @@ type AgentProfilesRouteDeps = {
   projectRootFor: (projectId: string) => Promise<string | null>;
   openFile: typeof openFileInDefaultApp;
   openApp: typeof openInApp;
+  onChanged: () => void;
 };
 
 export function agentProfilesRoutes(deps: AgentProfilesRouteDeps) {
@@ -354,6 +355,7 @@ export function agentProfilesRoutes(deps: AgentProfilesRouteDeps) {
       void providerAuth
         .profileStatus(account.provider, { id: account.id, configDir: account.path })
         .catch(() => {});
+      deps.onChanged();
       return c.json({ profile: created201 }, 201);
     })
 
@@ -410,6 +412,7 @@ export function agentProfilesRoutes(deps: AgentProfilesRouteDeps) {
         void providerAuth
           .profileStatus(repointed.provider, { id: repointed.id, configDir: repointed.path })
           .catch(() => {});
+        deps.onChanged();
         return c.json({ profile: body });
       },
     )
@@ -586,6 +589,7 @@ export function agentProfilesRoutes(deps: AgentProfilesRouteDeps) {
         } catch (err) {
           return c.json({ error: err instanceof Error ? err.message : String(err) }, 500);
         }
+        deps.onChanged();
         return c.json({ selections: store.selections, defaults: store.defaults });
       },
     )
@@ -626,6 +630,7 @@ export function agentProfilesRoutes(deps: AgentProfilesRouteDeps) {
         // re-added account with the same id read the deleted one's state — its incident included.
         if (removedProvider) providerAuth.forgetProfile(removedProvider, id);
         else providerAuth.forgetProfileStatus(removedProvider, id);
+        deps.onChanged();
         return c.json({ removed: true as const, id });
       },
     );

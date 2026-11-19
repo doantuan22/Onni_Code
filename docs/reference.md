@@ -36,6 +36,24 @@ Three words, no jargon — **task**, **skill**, **chain**:
   read-only. A workflow step references one by
   `skill: <name>` and its body becomes the agent's extra system prompt — so you
   shape *how* the agent reasons without touching code.
+  OnniCode also bundles nine offline coding playbooks: `onni-plan`, `onni-debug`,
+  `onni-verify`, `onni-tdd`, `onni-design`, `onni-review`, `onni-react`,
+  `onni-react-composition` and `onni-frontend-design`. They are optional pilot
+  adaptations, not a measured quality ranking. Repo, user and team skills of the
+  same name take precedence. Sources, pinned revisions, licenses and changes are
+  recorded in `packages/work/skills-curated/manifest.json`; no plugin installer,
+  hooks or automatic updater is included. Existing `e2e`, project launcher notes
+  and the automation playbook keep their separate purposes.
+  A manager can start a worker's objective with `/onni-debug …` (or another
+  selected skill); Onni expands it before launch and provisions the worker's
+  files. Workers do not inherit the manager's selected skill or gain extra
+  permissions. Calling a slash skill requires it at the start of the message.
+  Skills can declare companions in frontmatter as `metadata.onni-dependencies`
+  (a JSON array encoded as a string), or as optional `dependencies` in the
+  create/update API. An empty array means self-contained; absent metadata keeps
+  legacy body-based companion discovery. A complete local dependency closure
+  skips the team-load wait. Skill writes notify other open cockpits; live slash
+  messages refresh discovery and finish provisioning before reaching the agent.
 - 🔗 **Chains (workflows)** stitch steps into a pipeline: agent steps plus shell
   checks, with bounded `onFail` retry loops. Write the YAML yourself, build one by
   drag-ordering skills in the **Workflows** tab, or press **Plan first** and let the

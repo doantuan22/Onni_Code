@@ -55,6 +55,8 @@ export interface TranscriptSection {
    *  initial-prompt, queued and attributed-agent sections, which have no turn boundaries. */
   startedAt?: string
   completedAt?: string
+  /** Completion also covers parked and legacy sessions without a v2 turn timestamp. */
+  settled?: boolean
   /** Whether this section's stamp may move the thread's day cursor (#941). Default true; false
    *  for a section rendered OUT of chronological order, whose date says nothing about where the
    *  conversation below it sits in time. See `buildTranscriptRows`. */
@@ -77,7 +79,7 @@ export interface TranscriptRowModel {
   scope: string
   content:
     | { kind: 'user-message'; message: TranscriptUserMessage }
-    | { kind: 'block'; block: ThreadBlock }
+    | { kind: 'block'; block: ThreadBlock; streaming?: boolean; response?: boolean }
     | { kind: 'day-separator'; ts: string }
     | { kind: 'turn-time'; completedAt: string; startedAt?: string }
 }
@@ -142,6 +144,7 @@ export function mainTranscriptSections(run: ApiRun, thread: ThreadState): Transc
       ...(turn.startedAt !== undefined ? { startedAt: turn.startedAt } : {}),
       ...(turn.completed?.ts !== undefined ? { completedAt: turn.completed.ts } : {}),
       entries: turn.items,
+      settled: turn.completed !== undefined || turn !== thread.turns.at(-1) || (run.status !== 'running' && run.status !== 'queued'),
     })
   }
   return sections
@@ -151,8 +154,9 @@ export function mainTranscriptSections(run: ApiRun, thread: ThreadState): Transc
 export function agentTranscriptSections(
   agentId: string,
   entries: readonly ThreadEntry[],
+  settled = false,
 ): TranscriptSection[] {
-  return [{ id: `agent:${agentId}`, entries }]
+  return [{ id: `agent:${agentId}`, entries, settled }]
 }
 
 /** When a section happened, for the day-separator comparison: the turn opens with the user's
@@ -206,11 +210,18 @@ export function buildTranscriptRows(
         content: { kind: 'user-message', message: section.userMessage },
       })
     }
-    for (const block of groupThreadItems([...section.entries])) {
+    const settled = section.settled ?? section.completedAt !== undefined
+    const lastMessage = section.entries.filter(entry => entry.kind === 'message' && entry.role === 'assistant').at(-1)
+    const answering = lastMessage?.kind === 'message' && lastMessage.phase === 'final'
+    for (const block of groupThreadItems([...section.entries], { settled: settled || answering })) {
       rows.push({
         key: `${section.id}:${block.id}`,
         scope: section.id,
-        content: { kind: 'block', block },
+        content: { kind: 'block', block,
+          ...(block.id === lastMessage?.id && (settled || answering) ? { response: true } : {}),
+          ...(block.kind === 'entry' && block.entry.kind === 'message' && block.entry.role === 'assistant'
+            && block.id === section.entries.at(-1)?.id && !settled ? { streaming: true } : {}),
+        },
       })
     }
     if (section.completedAt !== undefined) {
@@ -272,7 +283,7 @@ export function SessionTranscript({
     )
 
   return (
-    <ThreadCardCache runId={runId}>
+    <ThreadCardCache key={runId} runId={runId}>
       {mode === 'panel' ? (
         <div
           data-slot="transcript-viewport"
@@ -339,7 +350,7 @@ function renderRowContent(
         />
       )
     case 'block':
-      return <ThreadBlockRenderer block={row.content.block} scope={row.scope} renderAsk={renderAsk} />
+      return <ThreadBlockRenderer block={row.content.block} scope={row.scope} renderAsk={renderAsk} streaming={row.content.streaming} response={row.content.response} />
     default:
       return assertNever(row.content)
   }
@@ -374,14 +385,18 @@ const ThreadBlockRenderer = memo(function ThreadBlockRenderer({
   block,
   scope,
   renderAsk,
+  streaming,
+  response,
 }: {
   block: ThreadBlock
   scope: string
   renderAsk?: (ask: ThreadAsk) => ReactNode
+  streaming?: boolean
+  response?: boolean
 }): ReactNode {
   switch (block.kind) {
     case 'entry':
-      return <ThreadEntryRenderer entry={block.entry} scope={scope} renderAsk={renderAsk} />
+      return <ThreadEntryRenderer entry={block.entry} scope={scope} renderAsk={renderAsk} streaming={streaming} response={response} />
     case 'tool-card':
       return (
         <ToolCard
@@ -397,7 +412,7 @@ const ThreadBlockRenderer = memo(function ThreadBlockRenderer({
       return <ContextGroup group={block} scope={scope} />
     case 'streak':
       return (
-        <ToolStreak count={block.count}>
+        <ToolStreak count={block.count} settled={block.settled} cacheKey={`${scope}:${block.id}`}>
           {block.blocks.map((inner) => (
             <ThreadBlockRenderer key={inner.id} block={inner} scope={scope} renderAsk={renderAsk} />
           ))}
@@ -426,15 +441,19 @@ function ThreadEntryRenderer({
   entry,
   scope,
   renderAsk,
+  streaming,
+  response,
 }: {
   entry: ThreadEntry
   scope: string
   renderAsk?: (ask: ThreadAsk) => ReactNode
+  streaming?: boolean
+  response?: boolean
 }): ReactNode {
   switch (entry.kind) {
     case 'message':
       return entry.role === 'assistant' ? (
-        <AssistantMessage text={entry.text} />
+        <AssistantMessage text={entry.text} streaming={streaming} copyable={response ?? false} />
       ) : (
         <UserBubble text={entry.text} />
       )
@@ -475,11 +494,13 @@ function assertNever(value: never): never {
 }
 
 function sameThreadBlockProps(
-  previous: { block: ThreadBlock; scope: string; renderAsk?: (ask: ThreadAsk) => ReactNode },
-  next: { block: ThreadBlock; scope: string; renderAsk?: (ask: ThreadAsk) => ReactNode },
+  previous: { block: ThreadBlock; scope: string; renderAsk?: (ask: ThreadAsk) => ReactNode; streaming?: boolean; response?: boolean },
+  next: { block: ThreadBlock; scope: string; renderAsk?: (ask: ThreadAsk) => ReactNode; streaming?: boolean; response?: boolean },
 ): boolean {
   return (
     previous.scope === next.scope &&
+    previous.streaming === next.streaming &&
+    previous.response === next.response &&
     sameThreadBlock(previous.block, next.block) &&
     (!containsAsk(next.block) || previous.renderAsk === next.renderAsk)
   )
@@ -515,6 +536,7 @@ function sameThreadBlock(previous: ThreadBlock, next: ThreadBlock): boolean {
     case 'streak':
       return (
         previous.kind === 'streak' &&
+        previous.settled === next.settled &&
         previous.count === next.count &&
         previous.blocks.length === next.blocks.length &&
         previous.blocks.every((block, index) => sameThreadBlock(block, next.blocks[index]!))

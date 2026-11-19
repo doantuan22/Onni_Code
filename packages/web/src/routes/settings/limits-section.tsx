@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useSyncedDraft } from '@/lib/use-synced-draft'
 
 import { putWorkspaceConfig } from '@/api/client'
 import { workspaceQueryKeys } from '@/api/queries'
@@ -29,7 +29,7 @@ export function LimitsPanel({ config }: { config: WorkspaceConfigResponse }) {
     onSuccess: (result) => queryClient.setQueryData(workspaceQueryKeys.config, result),
     onError: (error: Error) => toast(error.message, { tone: 'danger' }),
   })
-  const [draft, setDraft] = useState<LimitsDraft>(() => draftFromLimits(config.limits))
+  const [draft, setDraft] = useSyncedDraft<LimitsDraft>(draftFromLimits(config.limits))
   const parsed = requestFromDraft(draft)
   const saved = draftFromLimits(config.limits)
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved)

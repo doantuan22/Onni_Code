@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { lf } from '../test-fixtures/lf.testkit.ts';
-import { removeTempDir } from '../test-fixtures/remove-temp-dir.testkit.ts';
+import { removeTempDir, stopRuns } from '../test-fixtures/remove-temp-dir.testkit.ts';
 import type { ContentBlock } from '../core/agent-runner.ts';
 import { parseAskMarker } from '../core/ask.ts';
 import type { UiEvent } from '../core/ui-events.ts';
@@ -3132,7 +3132,8 @@ describe('queued stacking reaches the backend (#472)', () => {
   });
 
   afterAll(async () => {
-    manager.dispose(); // see DISPOSE at the top of this file
+    // A terminal record can precede session teardown; Windows still owns the fixture cwd.
+    await stopRuns(manager, store);
     for (const [key, value] of Object.entries(savedEnv)) {
       if (value === undefined) delete process.env[key];
       else process.env[key] = value;

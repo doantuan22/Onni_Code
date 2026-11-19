@@ -326,13 +326,15 @@ export function leadingSlashSkillName(text: string): string | undefined {
  * the session's `userPrompt` and never passes through `deliverMessage` at all
  * (#811).
  */
-export function expandRegistrySlashSkillText(text: string, skills: readonly Skill[]): string {
+export function expandRegistrySlashSkillText(text: string, skills: readonly Skill[], selectedSkill?: string): string {
   const name = leadingSlashSkillName(text);
   if (!name) return text;
   const skill = skills.find((candidate) => candidate.name === name);
   if (!skill) return text;
 
   const request = text.slice(name.length + 1).trim();
+  // The workflow's system prompt already carries this body (skill optimization, phase A).
+  if (name === selectedSkill) return request || 'Apply the selected skill.';
   return request ? `${skillSystemPrompt(skill)}\n\nUser request:\n${request}` : skillSystemPrompt(skill);
 }
 

@@ -245,6 +245,8 @@ const LINK_SAFETY: LinkSafetyConfig = {
   renderModal: (props) => <LinkSafetyDialog {...props} />,
 }
 
+const STREAM_WORD_ANIMATION = { animation: 'fadeIn', duration: 160, sep: 'word', stagger: 0 } as const
+
 /**
  * Memoized per message (Streamdown additionally memoizes per block): during streaming only the
  * message whose `children` string actually grew re-renders — the research doc's one hard rule
@@ -265,17 +267,23 @@ export const Markdown = memo(function Markdown({
   inline = false,
   variant = 'chat',
   urlTransform,
+  streaming = false,
+  animate = false,
 }: {
   children: string
   breaks?: boolean
   inline?: boolean
   variant?: 'chat' | 'document'
   urlTransform?: UrlTransform
+  streaming?: boolean
+  animate?: boolean
 }) {
   const { t } = useI18n()
   const rehypePlugins = useMemo(() => transcriptRehypePlugins(t), [t])
   return (
     <Streamdown
+      isAnimating={streaming}
+      animated={animate ? STREAM_WORD_ANIMATION : false}
       className={
         inline
           ? 'thread-markdown thread-markdown-inline'

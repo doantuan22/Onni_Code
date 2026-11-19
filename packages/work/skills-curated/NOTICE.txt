@@ -1,0 +1,4 @@
+OnniCode curated coding skills: pilot adapters.
+Adapted from obra/superpowers (Jesse Vincent), mattpocock/skills (Matt Pocock), vercel-labs/agent-skills (Vercel) and anthropics/skills (Anthropic).
+See manifest.json for exact upstream commits, file hashes, declared licenses and modifications. Vercel declares MIT in the selected SKILL.md frontmatter; its repository snapshot has no root LICENSE file. The Vercel adapters paraphrase engineering guidance rather than redistribute its rule files.
+No upstream runtime, hooks, installer or update service is included. Local and team skills of the same name take precedence.

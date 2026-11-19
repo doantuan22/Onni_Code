@@ -34,6 +34,7 @@ import type { PersistedAttachment } from './preparation.ts';
 import type { StartRunInput } from '../run.ts';
 import type { RunRecord, StepState } from '../../runs/store.ts';
 import type { PrivateMcpServer } from '../../core/private-mcp.ts';
+import { drainSkillDeliveries } from './messages.ts';
 
 /** Run one workflow agent step. Returns an error message, or null on success. */
 export async function runAgentStep(
@@ -97,7 +98,7 @@ export async function runAgentStep(
   // Onni lists the skill (#278). `state.skills` was populated by `discoverSkills` earlier in
   // `execute`. Expand before the chain/check/attachment prefixes so the leading slash still
   // matches; a leading `/name` that is not a known skill passes through byte-for-byte.
-    userPrompt = expandRegistrySlashSkillText(userPrompt, state.skills ?? []);
+  userPrompt = expandRegistrySlashSkillText(userPrompt, state.skills ?? skills, systemPrompt ? step.skill : undefined);
   if (resumeStep) {
     const resumePrompt = ctx.autoResumeReasonFor(resumeStep.error) === 'transient' ? ctx.transientRetryPrompt : ctx.autoResumePrompt;
     userPrompt = `${resumePrompt}\n\nCurrent task and queued updates:\n\n${userPrompt}`;
@@ -576,6 +577,8 @@ export async function runAgentStep(
     sink.sessionEnded('error', message); // alongside v1's fatal `error`
     return message;
   } finally {
+    if (ctx.active.get(runId) === state && !state.session?.open) ctx.waiting.delete(runId);
+    if (!state.cancelled) await drainSkillDeliveries(state);
     ctx.recordUsagePeaks(runId, state);
     ctx.clearIdleTimer(state);
     if (ctx.active.get(runId) === state) {

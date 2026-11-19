@@ -85,7 +85,7 @@ function SheetBody({
       <SessionTranscript
         runId={runId}
         viewId={`agent:${agent.id}`}
-        sections={agentTranscriptSections(agent.id, entries)}
+        sections={agentTranscriptSections(agent.id, entries, agent.status !== 'running' && agent.status !== 'pending')}
         mode="panel"
         renderAsk={renderAsk}
         empty={

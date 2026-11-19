@@ -4,7 +4,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { loadConfig, projectGatedSkillsRepos, type SkillsRepoSource } from './config.ts';
-import { parseFrontmatter, type Skill } from './skills.ts';
+import { parseFrontmatter, readSkillDependencies, type Skill } from './skills.ts';
 import { workspaceConfigPath } from './paths.ts';
 import { loadWorkspaceConfig } from './workspace/config.ts';
 
@@ -350,12 +350,14 @@ export async function listRemoteSkills(
       typeof frontmatter.description === 'string' && frontmatter.description.trim()
         ? frontmatter.description.trim()
         : undefined;
+    const dependencies = readSkillDependencies(frontmatter);
     skills.push({
       name,
       description,
       body,
       path: `${src.repo}@${src.ref}:${line}`,
       source: 'team',
+      ...(dependencies !== undefined ? { dependencies } : {}),
       team: { repo: src.repo, ref: src.ref, path: line, dir: hit.kind === 'skill', commit },
     });
   }
@@ -380,7 +382,7 @@ export async function materializeSkillDir(
   if (!skill.team?.dir || !skill.team.path.endsWith('SKILL.md')) return false;
   const bareDir = bareDirFor(skill.team.repo);
   if (!existsSync(join(bareDir, 'HEAD'))) return false;
-  const ref = await resolveRef(bareDir, skill.team.ref);
+  const ref = await resolveRef(bareDir, skill.team.commit ?? skill.team.ref);
   if (ref === null) return false;
   const srcDir = skill.team.path.slice(0, -'/SKILL.md'.length);
   const ls = await git(['ls-tree', '-r', '--name-only', ref, '--', srcDir], LIST_TIMEOUT_MS, bareDir);

@@ -25,6 +25,7 @@ import { AgentTempDirError } from '../../runs/agent-tmpdir.ts';
 import { stripTaskMarkers } from '../../runs/task-markers.ts';
 import { DEFAULT_AGENT_ACCOUNT_ID } from '../../workspace/agent-accounts.ts';
 import { isUnattended } from '../unattended.ts';
+import { drainSkillDeliveries } from './messages.ts';
 import { UNATTENDED_DENIED_TOOLS } from '../push-guard.ts';
 import { describeHit, raiseLimits } from '../limits.ts';
 import { DEFAULT_ALLOWED_TOOLS, stepKind } from '../types.ts';
@@ -921,6 +922,8 @@ export async function runContinuation(ctx: ContinuationContext,
         ctx.store.appendEvent(runId, { type: 'lifecycle', message: `continue failed — ${message}` });
       }
     } finally {
+      if (ctx.active.get(runId) === state && !state.session?.open) ctx.waiting.delete(runId);
+      if (!state.cancelled) await drainSkillDeliveries(state);
       ctx.recordUsagePeaks(runId, state);
       ctx.clearIdleTimer(state);
       ctx.clearAutosaveTimer(state);

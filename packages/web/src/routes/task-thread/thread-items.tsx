@@ -39,6 +39,7 @@ import { ReviewCommentsBlock } from './review-comments-block'
 import { useDraft } from './thread-draft'
 import { splitToolTitle, type ContextGroupBlock } from './thread-groups'
 import { useThreadCardCache } from './thread-open-cards'
+import { usePrefersReducedMotion } from '@/lib/use-prefers-reduced-motion'
 import { isNearBottom } from './thread-scroll'
 import { MessageTime, clockLabel, elapsedSince, exactLabel, useNow } from './thread-time'
 import type {
@@ -335,10 +336,20 @@ function UserText({ text }: { text: string }) {
 }
 
 /** An assistant message item, as markdown. */
-export function AssistantMessage({ text }: { text: string }) {
+export function AssistantMessage({ text, streaming = false, copyable = true }: { text: string; streaming?: boolean; copyable?: boolean }) {
+  const { t } = useI18n()
+  const reducedMotion = usePrefersReducedMotion()
   return (
-    <div data-slot="assistant-message" className="min-w-0 text-[14px] leading-[1.7]">
-      <Markdown>{text}</Markdown>
+    <div data-slot="assistant-message" data-streaming={streaming ? 'true' : undefined} className="group/answer w-full min-w-0 max-w-[78ch] self-start text-[14px] leading-[1.75]">
+      <Markdown streaming={streaming} animate={streaming && !reducedMotion}>{text}</Markdown>
+      {!streaming && copyable ? <button
+        type="button"
+        aria-label={t('Copy response')}
+        title={t('Copy response')}
+        onClick={() => { void writeClipboard(text).then(() => toast(t('Response copied')))
+          .catch(() => toast(t('Copy failed — select the response to copy it.'), { tone: 'danger' })) }}
+        className="mt-2 rounded-md p-1.5 text-soft-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 md:opacity-0 md:group-hover/answer:opacity-100 md:focus-visible:opacity-100"
+      ><CopyIcon aria-hidden className="size-3.5" /></button> : null}
     </div>
   )
 }
@@ -781,7 +792,7 @@ function CopyCommandButton({ command }: { command: string }) {
  *  including edits, finished commands AND failures — starts closed but prominent. A failed step
  *  no longer springs its red error body open on its own (it reads as calmer that way, and a
  *  recovered failure is not an emergency); its collapsed row still carries the `failed` label and
- *  exit code. The user's own toggle always wins once they touch the card. */
+ *  exit code. Explicit choices persist, except a command's successful completion closes its live log. */
 function defaultOpen(item: UiToolItem): boolean {
   return item.toolKind === 'execute' && item.status === 'running' && item.output !== undefined
 }
@@ -816,6 +827,12 @@ export function ToolCard({
     setUserOpenState(open)
   }
   const busy = item.status === 'running' || item.status === 'pending'
+  const wasBusy = useRef(busy)
+  useEffect(() => {
+    // Completion reclaims the live log; a later explicit reopen remains the reader's choice.
+    if (wasBusy.current && item.status === 'completed') setUserOpen(false)
+    wasBusy.current = busy
+  }, [busy, item.status, cache, cacheKey])
   const command = toolCommand(item)
   const { verb, detail } = splitToolTitle(item.title)
   // The command alone opens a card only when the one-line header cannot show it whole.
@@ -839,9 +856,8 @@ export function ToolCard({
       open={open}
       onOpenChange={setUserOpen}
       className={cn(
-        // Flat, gutter-led rows: the timeline is a log, so a tool never draws a card of its own.
-        // A failure keeps a faint tint and the exit chip carries the signal.
-        'min-w-0 overflow-hidden rounded-sm',
+        // Bound command details independently of the reader's full-width conversation preference.
+        'thread-tool min-w-0 self-start overflow-hidden rounded-xl border border-border/60 bg-card/40',
         item.status === 'failed' && 'bg-danger/[0.04]',
       )}
     >
@@ -849,7 +865,7 @@ export function ToolCard({
       <CollapsibleTrigger
         disabled={!hasDetail}
         className={cn(
-          'group flex min-h-7 w-full min-w-0 gap-1.5 rounded-sm px-2 py-0.5 text-left text-[13px] enabled:hover:bg-muted',
+          'group flex min-h-9 w-full min-w-0 gap-2 rounded-lg px-3 py-1.5 text-left text-[12.5px] transition-colors enabled:hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50',
           // A wrapped multi-line command pins the chevron, verb and chips to its first line.
           expandedCommand !== undefined ? 'items-start [&>svg]:mt-[7px] [&>span]:mt-[2px]' : 'items-center',
         )}
@@ -905,7 +921,7 @@ export function ToolCard({
       </CollapsibleTrigger>
       {expandedCommand !== undefined ? <CopyCommandButton command={expandedCommand} /> : null}
       </div>
-      <CollapsibleContent>
+      <CollapsibleContent className="thread-disclosure">
         <div className="border-t border-border/60 bg-card-2/60 empty:hidden">
           {item.error !== undefined && item.error !== '' ? (
             <div data-slot="tool-error" className="px-4 py-3 font-mono text-xs leading-[1.7] whitespace-pre-wrap text-danger">
@@ -936,15 +952,15 @@ export function ContextGroup({ group, scope }: { group: ContextGroupBlock; scope
     group.searches > 0 ? tn(group.searches, '{count} search', '{count} searches') : null,
   ].filter((part): part is string => part !== null)
   return (
-    <Collapsible data-slot="ctx-group" className="min-w-0">
-      <CollapsibleTrigger className="group -mx-2 flex h-8 w-full items-center gap-2 rounded-sm px-2 text-left text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+    <Collapsible data-slot="ctx-group" className="thread-tool min-w-0 self-start">
+      <CollapsibleTrigger className="group flex min-h-8 max-w-full items-center gap-2 rounded-lg px-2 py-1 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
         <ChevronRightIcon
           aria-hidden
           className="size-3.5 shrink-0 text-soft-foreground transition-transform group-data-[state=open]:rotate-90"
         />
         {t('Explored {parts}', { parts: parts.join(' · ') })}
       </CollapsibleTrigger>
-      <CollapsibleContent>
+      <CollapsibleContent className="thread-disclosure">
         <div className="flex flex-col gap-1.5 pt-1.5 pl-4">
           {group.tools.map((tool) => (
             <ToolCard key={tool.id} item={tool} cacheKey={scope !== undefined ? `${scope}:${tool.id}` : undefined} />
@@ -957,18 +973,30 @@ export function ContextGroup({ group, scope }: { group: ContextGroupBlock; scope
 
 /** The legacy tool-streak fold, kept: older finished tool cards collapse under
  *  "▸ N earlier tool calls". The caller renders the folded blocks as children. */
-export function ToolStreak({ count, children }: { count: number; children: ReactNode }) {
+export function ToolStreak({ count, children, settled = false, cacheKey }: { count: number; children: ReactNode; settled?: boolean; cacheKey?: string }) {
   const { tn } = useI18n()
+  const cache = useThreadCardCache()
+  const [open, setOpen] = useState(() => cacheKey !== undefined ? cache?.get(cacheKey) ?? false : false)
+  const wasSettled = useRef(settled)
+  const changeOpen = (next: boolean) => {
+    setOpen(next)
+    if (cacheKey !== undefined) cache?.set(cacheKey, next)
+  }
+  useEffect(() => {
+    if (!wasSettled.current && settled) changeOpen(false)
+    wasSettled.current = settled
+  }, [settled, cache, cacheKey])
   return (
-    <Collapsible data-slot="tool-streak" className="min-w-0">
-      <CollapsibleTrigger className="group flex items-center gap-1.5 rounded-sm p-0.5 text-left font-mono text-[11px] text-soft-foreground hover:text-muted-foreground">
+    <Collapsible data-slot="tool-streak" data-settled={settled ? 'true' : undefined} className="thread-tool min-w-0 self-start" open={open} onOpenChange={changeOpen}>
+      <CollapsibleTrigger className="group flex min-h-8 max-w-full items-center gap-2 rounded-lg px-2 py-1 text-left text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
         <ChevronRightIcon
           aria-hidden
           className="size-3.5 shrink-0 transition-transform group-data-[state=open]:rotate-90"
         />
-        {tn(count, '{count} earlier tool call', '{count} earlier tool calls')}
+        {settled ? <CheckIcon aria-hidden className="size-3.5 shrink-0 text-success" /> : null}
+        {settled ? tn(count, '{count} completed action', '{count} completed actions') : tn(count, '{count} earlier tool call', '{count} earlier tool calls')}
       </CollapsibleTrigger>
-      <CollapsibleContent>
+      <CollapsibleContent className="thread-disclosure">
         <div className="flex flex-col gap-2 pt-2">{children}</div>
       </CollapsibleContent>
     </Collapsible>

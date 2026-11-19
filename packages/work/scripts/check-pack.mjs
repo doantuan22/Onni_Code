@@ -56,6 +56,10 @@ const sourceFiles = [
 ];
 const distGaps = findDistGaps(distFiles, sourceFiles);
 const gaps = [...distGaps, ...findPackGaps(files)];
+// Offline skill fallbacks must survive pack/install, including provenance and licenses.
+for (const file of walkFiles(repoRoot, 'skills-curated')) {
+  if (!files.includes(file)) gaps.push(`${file} is missing from the tarball`);
+}
 if (gaps.length > 0) {
   console.error('check:pack: found stale/unmapped dist output or an incomplete npm tarball:');
   for (const gap of gaps) console.error(`  - ${gap}`);

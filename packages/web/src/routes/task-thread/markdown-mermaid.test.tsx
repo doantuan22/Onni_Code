@@ -36,6 +36,9 @@ afterEach(() => {
 
 const fence = (source: string) => `\`\`\`mermaid\n${source}\n\`\`\``
 
+// Streamdown exposes the image role before its async renderer produces an SVG.
+const renderedDiagram = () => waitFor(() => expect(screen.getByRole('img', { name: 'Mermaid chart' }).querySelector('svg')).not.toBeNull())
+
 describe('Markdown Mermaid previews', () => {
   it('keeps the SVG when the cockpit theme changes; CSS supplies its palette', async () => {
     localStorage.setItem('onni-theme', 'light')
@@ -45,7 +48,7 @@ describe('Markdown Mermaid previews', () => {
         <Markdown>{fence('flowchart LR\n  A --> B')}</Markdown>
       </ThemeProvider>,
     )
-    await screen.findByRole('img', { name: 'Mermaid chart' })
+    await renderedDiagram()
 
     fireEvent.click(screen.getByRole('button', { name: 'Theme: light. Switch to dark.' }))
     expect(renderDiagram).toHaveBeenCalledTimes(1)
@@ -61,6 +64,7 @@ describe('Markdown Mermaid previews', () => {
     const { container } = render(<Markdown>{`${fence(flow)}\n\n\`\`\`text\nplain code\n\`\`\``}</Markdown>)
 
     await waitFor(() => expect(renderDiagram).toHaveBeenCalledTimes(1))
+    await renderedDiagram()
     expect(renderDiagram.mock.calls.map(([source]) => source.trim())).toEqual([flow])
     expect(renderDiagram).toHaveBeenCalledWith(expect.any(String), { idPrefix: expect.any(String), links: false, images: false })
     expect(container.querySelectorAll('[data-streamdown="mermaid-block-actions"] [data-streamdown="code-block-copy-button"]')).toHaveLength(1)
@@ -77,13 +81,13 @@ describe('Markdown Mermaid previews', () => {
     expect(screen.getByText('After.')).toBeTruthy()
 
     rerender(<Markdown>{fence('flowchart LR\n  A --> B')}</Markdown>)
-    await screen.findByRole('img', { name: 'Mermaid chart' })
+    await renderedDiagram()
     expect(screen.queryByText(/Invalid Mermaid syntax/)).toBeNull()
   })
 
   it('handles an incomplete streaming fence followed by a complete diagram', async () => {
     const { rerender } = render(<Markdown>{'```mermaid\nflowchart LR\n  A --> B'}</Markdown>)
-    await screen.findByRole('img', { name: 'Mermaid chart' })
+    await renderedDiagram()
     rerender(<Markdown>{fence('flowchart LR\n  A --> B\n  B --> C')}</Markdown>)
     await waitFor(() => expect(renderDiagram.mock.calls.at(-1)?.[0]).toContain('B --> C'))
   })

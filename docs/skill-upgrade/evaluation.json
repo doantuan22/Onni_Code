@@ -1,0 +1,389 @@
+{
+  "manifestVersion": 1,
+  "status": "pilot; manual rubric review required; not a statistical quality ranking",
+  "cases": [
+    {
+      "id": "stale-response",
+      "skill": "onni-debug",
+      "task": "Review this code: let cache; async function load(){cache=await getProjects()} async function remove(id){await deleteProject(id);invalidateProjects()} An initial load starts before DELETE and resolves afterward. Identify the bug, a minimal fix and a deterministic regression test. Is restarting a fix?",
+      "rubric": [
+        "stale GET overwrites post-DELETE cache",
+        "generation guard or equivalent cancellation",
+        "deferred promise controls ordering",
+        "restart is workaround"
+      ]
+    },
+    {
+      "id": "scope-leak",
+      "skill": "onni-react",
+      "task": "A multi-project React app caches GET /p/:id/tasks under query key [tasks], and keeps an editor draft in useState(initialTask) while only the URL project parameter changes. Explain two concrete failure scenarios and scoped fixes. Do not migrate libraries.",
+      "rubric": [
+        "cache key includes project",
+        "draft lifetime includes project/task identity",
+        "no migration of cache framework"
+      ]
+    },
+    {
+      "id": "partial-proof",
+      "skill": "onni-verify",
+      "task": "Assess this worker report: 12 unit tests passed. Browser provisioning failed; e2e script returned exit 0 with TEST_E2E_STATUS=skipped. npm run build is still running. Worker says all tests pass and installed desktop is fixed. State precisely what can be claimed and what evidence is missing.",
+      "rubric": [
+        "skipped e2e is not pass",
+        "unfinished build is pending",
+        "installed desktop needs direct validation"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "case": "stale-response",
+      "skill": "onni-debug",
+      "repetition": 0,
+      "mode": "baseline",
+      "code": 0,
+      "elapsedMs": 11659,
+      "usage": {
+        "input_tokens": 17054,
+        "cached_input_tokens": 13952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 186,
+        "reasoning_output_tokens": 0
+      },
+      "toolCalls": 0,
+      "toolItems": [],
+      "answer": "The initial `load()` can resolve with a pre-delete snapshot after `remove()` invalidates the cache. Its unconditional assignment then puts the deleted project back in the cache.\n\nAdd a generation counter. Have `load()` capture the generation before calling `getProjects()` and assign to `cache` only if the generation still matches when the request resolves. Advance the generation synchronously when invalidating the cache after a successful DELETE.\n\nFor a deterministic regression test, mock `getProjects()` with a deferred promise. Start `load()`, await `remove(id)` with a successful mocked DELETE, then resolve the pending GET with a snapshot containing `id` and await `load()`. Assert that the cache remains invalidated. Then let a fresh load return a snapshot without `id` and assert that it populates the cache.\n\nRestarting can clear the stale cache, but the same request ordering can trigger the bug again.",
+      "error": null
+    },
+    {
+      "case": "stale-response",
+      "skill": "onni-debug",
+      "repetition": 0,
+      "mode": "adapted",
+      "code": 0,
+      "elapsedMs": 9286,
+      "usage": {
+        "input_tokens": 17272,
+        "cached_input_tokens": 13952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 214,
+        "reasoning_output_tokens": 0
+      },
+      "toolCalls": 0,
+      "toolItems": [],
+      "answer": "An initial project load starts before DELETE and resolves after invalidation. Its stale response overwrites `cache`, so the deleted project can reappear.\n\n**Minimal fix.** Capture an invalidation counter when `load()` starts. After `getProjects()` resolves, write to `cache` only if the counter still matches. Increment the counter after `deleteProject(id)` succeeds and before calling `invalidateProjects()`, so any refresh triggered by invalidation uses the new counter.\n\n**Deterministic regression test.** Stub the first `getProjects()` with a deferred promise containing the soon-to-be-deleted project. Start `load()`, then await `remove(id)`. If invalidation starts a refresh, resolve it with a list excluding the project. Resolve the first request last and await it. Assert that the cache retains its post-invalidation state and does not contain the deleted project. The old code fails when the stale response writes to the cache.\n\nRestarting can clear the stale cache temporarily. The same request ordering can reproduce the bug after restart.",
+      "error": null
+    },
+    {
+      "case": "scope-leak",
+      "skill": "onni-react",
+      "repetition": 0,
+      "mode": "baseline",
+      "code": 0,
+      "elapsedMs": 8757,
+      "usage": {
+        "input_tokens": 17047,
+        "cached_input_tokens": 13952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 190,
+        "reasoning_output_tokens": 0
+      },
+      "toolCalls": 0,
+      "toolItems": [],
+      "answer": "1. **Project B shows project A’s tasks.** Open A to populate the cache, then navigate to B. Both requests use `['tasks']`, so B can display A’s cached list and may skip fetching B while the cache is fresh. Use `['tasks', projectId]`, fetch with that same ID, and update any task-list cache writes or invalidations to use the project-scoped key.\n\n2. **Project A’s unsaved draft appears in project B’s editor.** Edit a task in A, then navigate to B while React keeps the editor mounted. `useState(initialTask)` uses its initializer only on mount, so B’s editor can retain A’s draft. If switching tasks should discard edits, key the editor by both project ID and task ID and mount it once the matching task has loaded. This resets the draft when the task changes and preserves it during same-task refetches.",
+      "error": null
+    },
+    {
+      "case": "scope-leak",
+      "skill": "onni-react",
+      "repetition": 0,
+      "mode": "adapted",
+      "code": 0,
+      "elapsedMs": 8734,
+      "usage": {
+        "input_tokens": 17296,
+        "cached_input_tokens": 13952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 192,
+        "reasoning_output_tokens": 0
+      },
+      "toolCalls": 0,
+      "toolItems": [],
+      "answer": "1. **Projects share a cache entry.** After opening project A, switching to B can show A’s cached tasks while B’s request runs. If the shared entry is still considered fresh, B’s request may be skipped. Use `['tasks', projectId]` in the existing cache, fetch with that same ID, and scope task updates and invalidation to the affected project.\n\n2. **The editor carries a draft across projects.** If the editor stays mounted when the URL changes, `useState(initialTask)` retains its current state. An unsaved edit from A can appear in B’s editor and, if save uses the current route, be submitted to B. Key the editor by project and task ID so switching identities initializes the correct draft. If unsaved edits must survive navigation, keep drafts by that same identity and restore only the matching draft.\n\nThe fixture confirms React and leaves the React version and cache library unspecified.",
+      "error": null
+    },
+    {
+      "case": "partial-proof",
+      "skill": "onni-verify",
+      "repetition": 0,
+      "mode": "baseline",
+      "code": 0,
+      "elapsedMs": 7282,
+      "usage": {
+        "input_tokens": 17059,
+        "cached_input_tokens": 13952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 131,
+        "reasoning_output_tokens": 0
+      },
+      "toolCalls": 0,
+      "toolItems": [],
+      "answer": "All 12 unit tests passed. Browser provisioning failed, so the end-to-end tests were skipped. The script’s exit code of `0` records a successful exit, while `TEST_E2E_STATUS=skipped` records that no end-to-end tests ran. `npm run build` is still running, so its outcome is pending.\n\nThe claims that all tests pass and that the installed desktop app is fixed are unverified. The missing evidence is a completed end-to-end run with passing results, a successful build exit, and a check that reproduces the original scenario on the updated installed desktop app and confirms the expected behavior.",
+      "error": null
+    },
+    {
+      "case": "partial-proof",
+      "skill": "onni-verify",
+      "repetition": 0,
+      "mode": "adapted",
+      "code": 0,
+      "elapsedMs": 9049,
+      "usage": {
+        "input_tokens": 16518,
+        "cached_input_tokens": 13952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 173,
+        "reasoning_output_tokens": 0
+      },
+      "toolCalls": 0,
+      "toolItems": [],
+      "answer": "The worker reports that 12 unit tests passed. That supports only the behavior those tests cover, pending verification of the command, output, and exit code.\n\nBrowser provisioning failed. The e2e script exited 0 with `TEST_E2E_STATUS=skipped`, so no e2e pass was demonstrated. `npm run build` was still running, so the build result is unknown. The claim that all tests pass is unsupported.\n\nThe installed desktop fix is unverified. Evidence still needed includes the actual diff checked against the requested behavior, a completed build with its final exit code, an e2e run that executes the tests and reports their results, and a check that reproduces the original issue on the baseline and confirms the expected behavior in the updated installed desktop app. The fixture also provides no results for any other required repository gates.",
+      "error": null
+    },
+    {
+      "case": "stale-response",
+      "skill": "onni-debug",
+      "repetition": 1,
+      "mode": "adapted",
+      "code": 0,
+      "elapsedMs": 9061,
+      "usage": {
+        "input_tokens": 17272,
+        "cached_input_tokens": 13952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 230,
+        "reasoning_output_tokens": 0
+      },
+      "toolCalls": 0,
+      "toolItems": [],
+      "answer": "**Bug.** A load starts while project `P` exists. `remove(P)` then completes the DELETE and invalidates the cache. When the earlier load resolves with its pre-DELETE snapshot, it writes `P` back into the cache.\n\n**Minimal fix.** Add a cache generation counter. Capture it when `load()` starts and assign the result only if the generation still matches. Increment the counter synchronously as part of invalidation after a successful DELETE, before triggering any refetch.\n\n**Deterministic regression test.** Stub the first `getProjects()` call with a deferred promise. Start `load()`, await `remove(P)` with a successful DELETE stub, then resolve the deferred promise with `[P]`. Await the original load and assert that the cache still has its post-invalidation value. If invalidation starts a refetch, stub it to return `[]` and let it finish before releasing the stale response. The old code overwrites the cache with `[P]`. The fixed code discards that response.\n\nRestarting can clear the stale cache. The same request ordering can recreate the bug.",
+      "error": null
+    },
+    {
+      "case": "stale-response",
+      "skill": "onni-debug",
+      "repetition": 1,
+      "mode": "baseline",
+      "code": 0,
+      "elapsedMs": 8930,
+      "usage": {
+        "input_tokens": 17054,
+        "cached_input_tokens": 13952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 193,
+        "reasoning_output_tokens": 0
+      },
+      "toolCalls": 0,
+      "toolItems": [],
+      "answer": "**Bug.** A load started before the DELETE can resolve afterward with a snapshot that still includes the deleted project. Its unconditional assignment can repopulate the cache after invalidation.\n\n**Minimal fix.** Keep a generation counter. Each `load()` captures the generation before calling `getProjects()` and writes to `cache` only if the generation still matches when the request resolves. Increment the generation synchronously when invalidating after a successful DELETE.\n\n**Deterministic regression test.** Stub `getProjects()` with a deferred promise. Start `load()`, then await `remove(id)` with a successful DELETE stub. Resolve the deferred promise with a snapshot containing `id` and await the original load. Assert that the cache is still invalidated. The original code fails this test without timers or sleeps.\n\n**Restarting is a workaround.** It can clear the current cache, but the next overlapping load and DELETE can trigger the same race.",
+      "error": null
+    },
+    {
+      "case": "scope-leak",
+      "skill": "onni-react",
+      "repetition": 1,
+      "mode": "adapted",
+      "code": 0,
+      "elapsedMs": 7938,
+      "usage": {
+        "input_tokens": 17296,
+        "cached_input_tokens": 13952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 186,
+        "reasoning_output_tokens": 0
+      },
+      "toolCalls": 0,
+      "toolItems": [],
+      "answer": "1. **Project task lists can show another project’s data.** If project A’s tasks are cached under `['tasks']`, switching to project B can display A’s cached list because both requests share the same cache entry. Use `['tasks', projectId]` for the query and use that same project-scoped key for cache updates and invalidation in the existing library.\n\n2. **The editor can carry a draft into another project.** If the URL changes while the editor stays mounted, `useState(initialTask)` keeps its previous value. An unsaved edit from project A can appear in project B’s editor and could be saved to B if the save handler uses the current route. Key the editor by project and task ID so its state initializes for the selected task. If unsaved edits must survive navigation, store drafts by that same project and task identity and restore only the matching draft.",
+      "error": null
+    },
+    {
+      "case": "scope-leak",
+      "skill": "onni-react",
+      "repetition": 1,
+      "mode": "baseline",
+      "code": 0,
+      "elapsedMs": 8604,
+      "usage": {
+        "input_tokens": 17047,
+        "cached_input_tokens": 13952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 191,
+        "reasoning_output_tokens": 0
+      },
+      "toolCalls": 0,
+      "toolItems": [],
+      "answer": "1. **The task list can show another project’s data.** Open project A, then navigate to B. Since both requests use `['tasks']`, B can render A’s cached list or reuse A’s in-flight request. Key the query by `['tasks', projectId]`, fetch using that same `projectId`, and scope task-list cache updates and invalidations to the affected project.\n\n2. **The editor can carry an unsaved draft into another project.** Edit a task in A, then navigate to B while React keeps the editor mounted. `useState(initialTask)` uses `initialTask` only on mount, so B can display A’s draft and potentially save it to B’s task. Key the editor by both project ID and task ID, and mount it once the matching task is loaded. This resets the draft when its identity changes and preserves edits during background refetches of the same task.",
+      "error": null
+    },
+    {
+      "case": "partial-proof",
+      "skill": "onni-verify",
+      "repetition": 1,
+      "mode": "adapted",
+      "code": 0,
+      "elapsedMs": 8616,
+      "usage": {
+        "input_tokens": 17294,
+        "cached_input_tokens": 13952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 180,
+        "reasoning_output_tokens": 0
+      },
+      "toolCalls": 0,
+      "toolItems": [],
+      "answer": "The worker reported that 12 unit tests passed. That supports only the behavior covered by those tests, and the report supplies no independent verification.\n\n- **E2E:** Browser provisioning failed. The script exited 0 with `TEST_E2E_STATUS=skipped`, so there is no E2E pass. Evidence would require successful provisioning and a completed E2E run with passing results.\n- **Build:** `npm run build` was still running. A completed build with a successful exit status is missing.\n- **Installed desktop:** The fix remains unverified. Evidence would require installing the build and exercising the affected behavior in the installed app.\n\nThe claims that all tests pass and that the installed desktop is fixed exceed the evidence. Independent verification also requires inspecting the actual diff, reviewing the unit-test output and exit status, and checking any repository-required gates before proposing a merge.",
+      "error": null
+    },
+    {
+      "case": "partial-proof",
+      "skill": "onni-verify",
+      "repetition": 1,
+      "mode": "baseline",
+      "code": 0,
+      "elapsedMs": 7625,
+      "usage": {
+        "input_tokens": 17059,
+        "cached_input_tokens": 13952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 127,
+        "reasoning_output_tokens": 0
+      },
+      "toolCalls": 0,
+      "toolItems": [],
+      "answer": "Twelve unit tests passed. Browser provisioning failed, so the end-to-end tests were skipped. The script’s exit code of `0` confirms that it exited successfully, while `TEST_E2E_STATUS=skipped` confirms that it ran no end-to-end tests. `npm run build` was still running, so its outcome is unknown.\n\nThe claim that all tests pass requires a completed end-to-end run with passing results. The claim that the installed desktop app is fixed requires a completed build, confirmation that the resulting version was installed, and verification that the original issue no longer reproduces in that installation.",
+      "error": null
+    },
+    {
+      "case": "stale-response",
+      "skill": "onni-debug",
+      "repetition": 2,
+      "mode": "baseline",
+      "code": 0,
+      "elapsedMs": 10626,
+      "usage": {
+        "input_tokens": 17054,
+        "cached_input_tokens": 13952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 199,
+        "reasoning_output_tokens": 0
+      },
+      "toolCalls": 0,
+      "toolItems": [],
+      "answer": "**Bug.** A load started before DELETE can return a snapshot containing the deleted project. If it resolves after invalidation, its unconditional assignment overwrites the cache and makes the deleted project reappear.\n\n**Minimal fix.** Add a generation counter. Capture it before `await getProjects()` and write to `cache` only if the generation still matches. On successful DELETE, increment the generation as part of invalidation, before starting any replacement load.\n\n**Regression test.** Stub `getProjects()` with a deferred promise and start `load()`. Complete `remove(id)` while the load is pending. If invalidation triggers a reload, resolve that request with a list excluding `id`. Then resolve the original request with a list containing `id`, await the original load, and assert that the cache still reflects the post-invalidation state. Use explicit promise resolution to control the ordering.\n\nRestarting may clear the stale cache temporarily. The same ordering can still occur after restart.",
+      "error": null
+    },
+    {
+      "case": "stale-response",
+      "skill": "onni-debug",
+      "repetition": 2,
+      "mode": "adapted",
+      "code": 0,
+      "elapsedMs": 8223,
+      "usage": {
+        "input_tokens": 17272,
+        "cached_input_tokens": 13952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 204,
+        "reasoning_output_tokens": 0
+      },
+      "toolCalls": 0,
+      "toolItems": [],
+      "answer": "An initial `load()` starts before DELETE and resolves after invalidation. If its response contains the deleted project, the unconditional `cache` assignment restores stale data.\n\nUse a generation counter. Capture it before `getProjects()` and write to `cache` only if it still matches when the request resolves. After `deleteProject(id)` succeeds, increment the generation immediately before calling `invalidateProjects()`. Any reload started by invalidation then captures the new generation.\n\nFor a deterministic regression test, stub the initial GET with a deferred promise and start `load()`. Complete DELETE and invalidation while that promise is pending. Resolve any replacement GET with a list excluding the deleted project. Then resolve the initial GET with a list containing it and await `load()`. Assert that the deleted project is absent from the cache, or that the cache remains invalidated if invalidation only clears it. The original code fails this assertion.\n\nRestarting can clear the stale cache, but the same request ordering can recreate the bug.",
+      "error": null
+    },
+    {
+      "case": "scope-leak",
+      "skill": "onni-react",
+      "repetition": 2,
+      "mode": "baseline",
+      "code": 0,
+      "elapsedMs": 8521,
+      "usage": {
+        "input_tokens": 17047,
+        "cached_input_tokens": 13952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 168,
+        "reasoning_output_tokens": 0
+      },
+      "toolCalls": 0,
+      "toolItems": [],
+      "answer": "1. **Task list shows the wrong project.** After switching from project A to B, both requests share `[tasks]`. B can display A’s cached tasks, and a fresh cache entry can delay or skip fetching B. Use `['tasks', projectId]` for the query and for project-specific cache updates and invalidations. Fetch using the same `projectId`.\n\n2. **The editor carries a draft across projects.** If the editor stays mounted, `useState(initialTask)` keeps A’s draft when the URL changes to B. A save handler using the current URL could submit A’s draft to B. Render the editor once B’s selected task is available and key it by both project ID and task ID so React initializes a fresh draft when either changes. Bind the save to those same IDs.",
+      "error": null
+    },
+    {
+      "case": "scope-leak",
+      "skill": "onni-react",
+      "repetition": 2,
+      "mode": "adapted",
+      "code": 0,
+      "elapsedMs": 18522,
+      "usage": {
+        "input_tokens": 17296,
+        "cached_input_tokens": 13952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 177,
+        "reasoning_output_tokens": 0
+      },
+      "toolCalls": 0,
+      "toolItems": [],
+      "answer": "1. **Tasks leak across project views.** If project A’s tasks are cached under `['tasks']`, switching to B can display A’s list while B loads, or skip B’s fetch entirely if the shared entry is still fresh. Use `['tasks', projectId]` with the existing cache, fetch using that same project ID, and use the scoped key for updates and invalidation.\n\n2. **The editor carries A’s draft into B.** `useState(initialTask)` initializes only when the editor mounts. If a URL change leaves the editor mounted, B can show A’s unsaved text, and saving could write it to B’s task. Key the editor by project ID and task ID so it initializes for the selected task. If unsaved edits must survive navigation, store drafts by that same pair and restore only the matching draft.",
+      "error": null
+    },
+    {
+      "case": "partial-proof",
+      "skill": "onni-verify",
+      "repetition": 2,
+      "mode": "baseline",
+      "code": 0,
+      "elapsedMs": 7629,
+      "usage": {
+        "input_tokens": 17059,
+        "cached_input_tokens": 13952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 146,
+        "reasoning_output_tokens": 0
+      },
+      "toolCalls": 0,
+      "toolItems": [],
+      "answer": "The report supports one pass claim: **12 unit tests passed**. Browser provisioning failed, so the end-to-end tests were **skipped**. The script’s exit code of 0 confirms it exited successfully with `TEST_E2E_STATUS=skipped`. `npm run build` is still running, so its result is pending.\n\nThe claims that **all tests pass** and **the installed desktop app is fixed** are unverified. A full test pass requires results from an end-to-end run after successful browser provisioning. Build success requires the completed build result. Verifying the desktop fix requires evidence that the updated app was installed and launched, and that the originally failing workflow succeeded in that installed version.",
+      "error": null
+    },
+    {
+      "case": "partial-proof",
+      "skill": "onni-verify",
+      "repetition": 2,
+      "mode": "adapted",
+      "code": 0,
+      "elapsedMs": 10628,
+      "usage": {
+        "input_tokens": 17294,
+        "cached_input_tokens": 13952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 173,
+        "reasoning_output_tokens": 0
+      },
+      "toolCalls": 0,
+      "toolItems": [],
+      "answer": "The worker reports that 12 unit tests passed. That supports only the behavior those tests cover, and the fixture contains no test output or diff to independently verify the claim.\n\nThe browser provisioning failure prevented the end-to-end tests from running. The script’s exit code of `0` accompanied `TEST_E2E_STATUS=skipped`, so it provides no evidence that the browser flows pass. `npm run build` is still running, so its outcome is unknown.\n\n“All tests pass” and “installed desktop is fixed” are unsupported. Verification still needs the actual diff and unit-test output, a completed end-to-end run with a provisioned browser, and the build’s final output and exit code. The desktop claim also needs a direct check that reproduces the originally failing workflow in the installed app built from the change and confirms the expected behavior.",
+      "error": null
+    }
+  ],
+  "protocol": {
+    "cli": "codex exec --ignore-user-config --ephemeral --sandbox read-only",
+    "explicitModel": null,
+    "modelIdentity": "CLI built-in default; exact served model id was not emitted by the captured events",
+    "scope": "synthetic reasoning only; no tools or repository modifications; not a coding task success benchmark",
+    "repetitions": 3,
+    "review": "Manual: both conditions identify the required defects/evidence gaps in every case. No measured overall quality uplift."
+  }
+}

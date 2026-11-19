@@ -1,5 +1,10 @@
 /** Vietnamese for the task list, task detail, inbox and dashboard. Keys are exact English source strings. */
 export const viTasks: Record<string, string> = {
+  '{count} completed action': 'Đã hoàn tất {count} thao tác',
+  '{count} completed actions': 'Đã hoàn tất {count} thao tác',
+  'Copy response': 'Sao chép câu trả lời',
+  'Response copied': 'Đã sao chép câu trả lời',
+  'Copy failed — select the response to copy it.': 'Không sao chép được — hãy chọn câu trả lời để sao chép.',
   'Edit workers': 'Chỉnh sửa worker',
   'Changes apply to future dispatches. Existing workers keep running.': 'Thay đổi áp dụng cho các lần giao việc sau. Các worker hiện tại vẫn tiếp tục chạy.',
   'The manager is fixed for a running task.': 'Quản lý được giữ cố định khi nhiệm vụ đang chạy.',

@@ -7,6 +7,7 @@ import {
   deleteSkillResponseSchema,
   skillSavedResponseSchema,
   updateSkillInputSchema,
+  type SkillsChangedEvent,
 } from '@onni/contract';
 import type { discoverSkills as DiscoverSkills } from '../../skills.ts';
 import type { gatedSkillsRepos as GatedSkillsRepos } from '../../config.ts';
@@ -42,6 +43,7 @@ export function skillsRoutes<TWaitQuery extends ZodType<{ wait?: string | undefi
   createOwnedSkill: typeof CreateOwnedSkill;
   updateOwnedSkill: typeof UpdateOwnedSkill;
   deleteOwnedSkill: typeof DeleteOwnedSkill;
+  onChanged(change: SkillsChangedEvent): void;
 }) {
   const skillStoreError = (c: Context, err: SkillStoreError) => {
     const status = err.code === 'not-found' ? 404 : err.code === 'invalid-name' ? 400 : 409;
@@ -77,8 +79,13 @@ export function skillsRoutes<TWaitQuery extends ZodType<{ wait?: string | undefi
     // team entries stay as they were (or absent).
     .post('/skills/refresh', async (c) => {
       const { root: repoRoot } = c.get('project');
+      const before = JSON.stringify([await deps.discoverSkills(repoRoot), deps.getTeamSkillsCached(repoRoot)]);
       await deps.refreshTeamSkills(repoRoot);
-      return c.json(await deps.discoverSkills(repoRoot));
+      const skills = await deps.discoverSkills(repoRoot);
+      if (JSON.stringify([skills, deps.getTeamSkillsCached(repoRoot)]) !== before) {
+        deps.onChanged({ project: c.get('project').id, scope: 'project' });
+      }
+      return c.json(skills);
     })
 
     // Create an onni-managed skill (`.ai/onni/skills` or `~/.onni/skills`). A name collision
@@ -92,6 +99,7 @@ export function skillsRoutes<TWaitQuery extends ZodType<{ wait?: string | undefi
       }
       try {
         const skill = await deps.createOwnedSkill({ repoRoot, homeDir: onniHomeDir() }, input);
+        deps.onChanged({ project: c.get('project').id, scope: input.scope });
         return c.json(skillSavedResponseSchema.parse({ skill }), 201);
       } catch (err) {
         if (err instanceof SkillStoreError) return skillStoreError(c, err);
@@ -120,6 +128,7 @@ export function skillsRoutes<TWaitQuery extends ZodType<{ wait?: string | undefi
         }
         try {
           const skill = await deps.updateOwnedSkill({ repoRoot, homeDir: onniHomeDir() }, existing, changes);
+          deps.onChanged({ project: c.get('project').id, scope: existing.scope ?? 'project' });
           return c.json(skillSavedResponseSchema.parse({ skill }));
         } catch (err) {
           if (err instanceof SkillStoreError) return skillStoreError(c, err);
@@ -139,6 +148,7 @@ export function skillsRoutes<TWaitQuery extends ZodType<{ wait?: string | undefi
       }
       try {
         await deps.deleteOwnedSkill({ repoRoot, homeDir: onniHomeDir() }, existing);
+        deps.onChanged({ project: c.get('project').id, scope: existing.scope ?? 'project' });
         return c.json(deleteSkillResponseSchema.parse({ deleted: true }));
       } catch (err) {
         if (err instanceof SkillStoreError) return skillStoreError(c, err);

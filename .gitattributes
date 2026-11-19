@@ -3,3 +3,6 @@
 # and what `Set-Content`/`Out-File` write, so a normalization pass never fights the OS.
 *.sh text eol=lf
 *.ps1 text eol=crlf
+
+# Curated skill hashes identify exact packaged bytes on Windows and Unix alike.
+packages/work/skills-curated/** text eol=lf

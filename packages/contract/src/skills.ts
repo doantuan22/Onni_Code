@@ -8,11 +8,12 @@ import { runRecordSchema } from './runs.ts';
  *  with the provisioner (`skills-provision.ts` re-exports this) so the store and the worktree
  *  installer enforce the same rule from one source. */
 export const SKILL_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+export const skillDependenciesSchema = z.array(z.string().regex(SKILL_NAME_PATTERN)).max(24);
 
 /**
  * One discovered skill: repo (`.ai/skills`, `.ai/onni/skills`), onni-managed
  * (`~/.onni/skills`), `npx skills` install dirs (project + global), a configured team skills
- * repo (spec 005), or the one built-in.
+ * repo (spec 005), or a bundled built-in.
  */
 export const skillSchema = z.object({
   name: z.string(),
@@ -20,9 +21,11 @@ export const skillSchema = z.object({
   /** Advisory hint for untouched composer run-mode choices. */
   interactive: z.literal(true).optional(),
   body: z.string(),
+  /** Explicit companions; [] means self-contained. Absent keeps legacy body matching. */
+  dependencies: skillDependenciesSchema.optional(),
   path: z.string(),
-  /** `builtin`: the one skill onni ships itself (`create-onni-automation`), served only while
-   *  GitHub automations are on and reachable (spec 2026-09-13-automations-from-prompt).
+  /** `builtin`: offline playbooks plus `create-onni-automation`, whose availability depends on
+   *  GitHub automations (spec 2026-09-13-automations-from-prompt).
    *  `onni-global`: an onni-managed skill under `~/.onni/skills` (all projects). */
   source: z.enum(['ai', 'onni', 'agents', 'global', 'team', 'builtin', 'onni-global']),
   /** True when onni wrote this skill (`source` is `onni` or `onni-global`) — the UI's
@@ -50,6 +53,13 @@ export const skillSchema = z.object({
 });
 export type Skill = z.infer<typeof skillSchema>;
 
+/** Workspace bus notification after a successful catalog mutation. */
+export const skillsChangedEventSchema = z.object({
+  project: z.string().min(1),
+  scope: z.enum(['project', 'global']),
+});
+export type SkillsChangedEvent = z.infer<typeof skillsChangedEventSchema>;
+
 /** `POST /skills` — create an onni-managed skill in the chosen scope. */
 export const createSkillInputSchema = z.object({
   name: z
@@ -59,6 +69,7 @@ export const createSkillInputSchema = z.object({
     .regex(SKILL_NAME_PATTERN, 'letters, numbers, and . _ - only (must start with a letter or number)'),
   description: z.string().max(2000).optional(),
   interactive: z.boolean().optional(),
+  dependencies: skillDependenciesSchema.optional(),
   body: z.string().min(1).max(50_000),
   scope: z.enum(['project', 'global']),
 });
@@ -67,6 +78,7 @@ export type CreateSkillInput = z.infer<typeof createSkillInputSchema>;
 /** `PUT /skills/:name` — edit an onni-managed skill. Omitted fields stay as they are; an empty
  *  `description` clears it; `interactive: false` clears the hint. */
 export const updateSkillInputSchema = z.object({
+  dependencies: skillDependenciesSchema.optional(),
   name: z
     .string()
     .min(1)

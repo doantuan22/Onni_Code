@@ -860,6 +860,18 @@ describe('workspace projects API', () => {
       expect(refreshes()).toBe(1);
     });
 
+    it('emits the updated registry row for every open cockpit', async () => {
+      const other = await registerProject(otherRoot);
+      const bus = new WorkspaceEventBus();
+      const seen: { event: string; data: unknown }[] = [];
+      bus.on((event, data) => seen.push({ event, data }));
+
+      const { status, body } = await patch(other.id, { tags: ['api'] }, { workspaceEvents: bus });
+
+      expect(status).toBe(200);
+      expect(seen).toEqual([{ event: 'project-updated', data: body }]);
+    });
+
     it('clears the override when maxParallel is null (back to inherit)', async () => {
       await registerProject(otherRoot);
       await mergeWriteWorkspaceConfig((config) => {

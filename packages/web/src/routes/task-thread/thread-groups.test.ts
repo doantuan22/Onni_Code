@@ -86,6 +86,24 @@ describe('groupThreadItems — context groups', () => {
 })
 
 describe('groupThreadItems — tool streaks (legacy fold, kept)', () => {
+  it('folds all successful commands after the turn settles, even below the live tail threshold', () => {
+    const entries = [tool('one', 'execute', 'completed'), tool('two', 'execute', 'completed')]
+    const blocks = groupThreadItems(entries, { settled: true })
+    expect(shape(blocks)).toEqual(['streak'])
+    expect(blocks[0]).toMatchObject({ count: 2, settled: true })
+  })
+
+  it('never hides failures, declined calls, running calls or the answer in a settled summary', () => {
+    const blocks = groupThreadItems([
+      tool('one', 'execute', 'completed'), tool('two', 'execute', 'completed'),
+      tool('failed', 'execute', 'failed'), tool('denied', 'execute', 'declined'),
+      tool('still-running', 'execute', 'running'),
+      { kind: 'message', id: 'answer', role: 'assistant', text: 'Here is the result.' },
+    ], { settled: true })
+    expect(shape(blocks)).toEqual(['streak', 'tool-card', 'tool-card', 'tool-card', 'entry'])
+    expect(blocks.slice(1).map(block => block.id)).toEqual(['failed', 'denied', 'still-running', 'answer'])
+  })
+
   it(`folds completed tool cards beyond the last ${STREAK_TAIL} under a streak block`, () => {
     const blocks = groupThreadItems([
       tool('r1', 'execute', 'completed', { output: '1' }),

@@ -505,7 +505,12 @@ const DISPATCH_OFF =
  *  progress feed (step 4.3), and host-wide unstamped provider status. */
 export type WorkspaceEventName =
   | 'project-added'
+  | 'project-updated'
   | 'project-removed'
+  | 'workspace-config-changed'
+  | 'workspace-ui-state-changed'
+  | 'agent-profiles-changed'
+  | 'skills-changed'
   | 'checkout-progress'
   | 'provider-status'
   | 'automation-change'
@@ -1673,6 +1678,7 @@ export function createApp(deps: ServerDeps) {
     projectRootFor,
     openFile,
     openApp,
+    onChanged: () => workspaceEvents.emit('agent-profiles-changed', {}),
   });
 
   const projectsRoutes = createProjectsRoutes({
@@ -1707,6 +1713,7 @@ export function createApp(deps: ServerDeps) {
     semaphore: deps.semaphore,
     probeWritableDir,
     uiStateBodyLimit: UI_STATE_BODY_LIMIT,
+    workspaceEvents,
   });
 
   // Partial updates only — absent keys stay untouched. Bounds mirror the
@@ -2160,8 +2167,11 @@ export function createApp(deps: ServerDeps) {
       createOwnedSkill,
       updateOwnedSkill,
       deleteOwnedSkill,
+      onChanged: (change) => workspaceEvents.emit('skills-changed', change),
     }))
-    .route('/', uiStateRoutes({ uiStateBody, maxBodySize: UI_STATE_BODY_LIMIT }))
+    .route('/', uiStateRoutes({ uiStateBody, maxBodySize: UI_STATE_BODY_LIMIT,
+      onSkillsChanged: (project) => workspaceEvents.emit('skills-changed', { project, scope: 'project' }),
+    }))
     .route('/', workflowsRoutes)
     .route('/', planRoutes)
     .route('/', automationsRoutes)

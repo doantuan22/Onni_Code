@@ -1,0 +1,231 @@
+{
+  "status": "stopped; completed attempts are infrastructure-invalid and excluded from skill quality comparisons",
+  "backend": "codex",
+  "model": "gpt-6.1-sol",
+  "nativeModelVersionLimit": "Requested model ID is pinned; the runner may expose an alias, not an immutable model snapshot. Native user configuration is shared across all arms.",
+  "sourceCommit": "ea4858ce2304f53fbc694d4b9ec336ae133d7127",
+  "sourceDiffSha256": "cd3641d45acf21ef02b435c60cb6a8ee98099a6081c063b3f3f2f055e670e0b8",
+  "cliVersion": "codex-cli 0.167.2",
+  "seed": 20261120,
+  "repetitions": 1,
+  "sandbox": "workspace-write",
+  "network": false,
+  "maxRunMs": 600000,
+  "scratch": "C:\\Users\\doant\\AppData\\Local\\Temp\\onni-coding-smoke-1zFspv",
+  "preflight": [
+    {
+      "case": "B01",
+      "condition": "original",
+      "exit": 1,
+      "output": "✖ delete dominates an earlier unfinished read (3.343ms)\n✖ newer load wins and failed deletion retains data (0.6422ms)\nℹ tests 2\nℹ suites 0\nℹ pass 0\nℹ fail 2\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 115.7371\n\n✖ failing tests:\n\ntest at judge.test.mjs:5:1\n✖ delete dominates an earlier unfinished read (3.343ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n  + actual - expected\n  \n    [\n      {\n  +     id: 'a'\n  +   },\n  +   {\n        id: 'b'\n      }\n    ]\n  \n      at TestContext.<anonymous> (file:///C:/Users/doant/AppData/Local/Temp/onni-coding-smoke-1zFspv/preflight-B01-original/judge.test.mjs:10:10)\n      at async Test.run (node:internal/test_runner/test:1409:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: [ { id: 'a' }, { id: 'b' } ],\n    expected: [ { id: 'b' } ],\n    operator: 'deepStrictEqual',\n    diff: 'simple'\n  }\n\ntest at judge.test.mjs:12:1\n✖ newer load wins and failed deletion retains data (0.6422ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n  + actual - expected\n  \n    [\n      {\n  +     id: 'old'\n  -     id: 'new'\n      }\n    ]\n  \n      at TestContext.<anonymous> (file:///C:/Users/doant/AppData/Local/Temp/onni-coding-smoke-1zFspv/preflight-B01-original/judge.test.mjs:16:48)\n      at async Test.run (node:internal/test_runner/test:1409:7)\n      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: [ { id: 'old' } ],\n    expected: [ { id: 'new' } ],\n    operator: 'deepStrictEqual',\n    diff: 'simple'\n  }\n"
+    },
+    {
+      "case": "B01",
+      "condition": "reference",
+      "exit": 0,
+      "output": "✔ delete dominates an earlier unfinished read (2.4957ms)\n✔ newer load wins and failed deletion retains data (0.9928ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 113.1311\n"
+    },
+    {
+      "case": "B03",
+      "condition": "original",
+      "exit": 1,
+      "output": "✖ cache and drafts belong to their identities (3.5901ms)\n✖ composite keys cannot collide by delimiter (0.8045ms)\nℹ tests 2\nℹ suites 0\nℹ pass 0\nℹ fail 2\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 124.9315\n\n✖ failing tests:\n\ntest at judge.test.mjs:4:1\n✖ cache and drafts belong to their identities (3.5901ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n  + actual - expected\n  \n    [\n  +   'two'\n  -   'one'\n    ]\n  \n      at TestContext.<anonymous> (file:///C:/Users/doant/AppData/Local/Temp/onni-coding-smoke-1zFspv/preflight-B03-original/judge.test.mjs:6:10)\n      at Test.runInAsyncScope (node:async_hooks:227:14)\n      at Test.run (node:internal/test_runner/test:1402:25)\n      at Test.start (node:internal/test_runner/test:1262:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: [ 'two' ],\n    expected: [ 'one' ],\n    operator: 'deepStrictEqual',\n    diff: 'simple'\n  }\n\ntest at judge.test.mjs:11:1\n✖ composite keys cannot collide by delimiter (0.8045ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  'draft' !== 'second'\n  \n      at TestContext.<anonymous> (file:///C:/Users/doant/AppData/Local/Temp/onni-coding-smoke-1zFspv/preflight-B03-original/judge.test.mjs:13:10)\n      at Test.runInAsyncScope (node:async_hooks:227:14)\n      at Test.run (node:internal/test_runner/test:1402:25)\n      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)\n      at Test.postRun (node:internal/test_runner/test:1542:19)\n      at Test.run (node:internal/test_runner/test:1467:12)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 'draft',\n    expected: 'second',\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+    },
+    {
+      "case": "B03",
+      "condition": "reference",
+      "exit": 0,
+      "output": "✔ cache and drafts belong to their identities (2.4559ms)\n✔ composite keys cannot collide by delimiter (0.6662ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 131.7097\n"
+    },
+    {
+      "case": "B06",
+      "condition": "original",
+      "exit": 1,
+      "output": "✔ default is bounded and terminal callback is one shot (2.1739ms)\n✖ explicit zero disables timer; custom value is honored (1.7752ms)\n✔ invalid values restore the working default (0.272ms)\n✔ stop cancels its own timer and stale callback cannot fire (0.3204ms)\nℹ tests 4\nℹ suites 0\nℹ pass 3\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 158.5498\n\n✖ failing tests:\n\ntest at judge.test.mjs:10:1\n✖ explicit zero disables timer; custom value is honored (1.7752ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n  + actual - expected\n  \n  + [\n  +   60000\n  + ]\n  - []\n  \n      at TestContext.<anonymous> (file:///C:/Users/doant/AppData/Local/Temp/onni-coding-smoke-1zFspv/preflight-B06-original/judge.test.mjs:10:78)\n      at Test.runInAsyncScope (node:async_hooks:227:14)\n      at Test.run (node:internal/test_runner/test:1402:25)\n      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)\n      at Test.postRun (node:internal/test_runner/test:1542:19)\n      at Test.run (node:internal/test_runner/test:1467:12)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: [ 60000 ],\n    expected: [],\n    operator: 'deepStrictEqual',\n    diff: 'simple'\n  }\n"
+    },
+    {
+      "case": "B06",
+      "condition": "reference",
+      "exit": 0,
+      "output": "✔ default is bounded and terminal callback is one shot (2.4434ms)\n✔ explicit zero disables timer; custom value is honored (0.3782ms)\n✔ invalid values restore the working default (0.3096ms)\n✔ stop cancels its own timer and stale callback cannot fire (1.3528ms)\nℹ tests 4\nℹ suites 0\nℹ pass 4\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 163.8669\n"
+    },
+    {
+      "case": "B12",
+      "condition": "original",
+      "exit": 1,
+      "output": "✖ copy edit preserves surrounding content and introduces no tests (5.5484ms)\nℹ tests 1\nℹ suites 0\nℹ pass 0\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 166.1738\n\n✖ failing tests:\n\ntest at judge.test.mjs:4:1\n✖ copy edit preserves surrounding content and introduces no tests (5.5484ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  + actual - expected\n  \n    '# Fixture cockpit\\n' +\n      '\\n' +\n      '## Start\\n' +\n      '\\n' +\n  +   'Run the old launcher.\\n' +\n  -   'Run npm run dev to start the local cockpit.\\n' +\n      '\\n' +\n      '## Storage\\n' +\n      '\\n' +\n      'State stays local.\\n'\n  \n      at TestContext.<anonymous> (file:///C:/Users/doant/AppData/Local/Temp/onni-coding-smoke-1zFspv/preflight-B12-original/judge.test.mjs:6:10)\n      at Test.runInAsyncScope (node:async_hooks:227:14)\n      at Test.run (node:internal/test_runner/test:1402:25)\n      at Test.start (node:internal/test_runner/test:1262:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: '# Fixture cockpit\\n\\n## Start\\n\\nRun the old launcher.\\n\\n## Storage\\n\\nState stays local.\\n',\n    expected: '# Fixture cockpit\\n\\n## Start\\n\\nRun npm run dev to start the local cockpit.\\n\\n## Storage\\n\\nState stays local.\\n',\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+    },
+    {
+      "case": "B12",
+      "condition": "reference",
+      "exit": 0,
+      "output": "✔ copy edit preserves surrounding content and introduces no tests (3.1009ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 103.6008\n"
+    }
+  ],
+  "results": [
+    {
+      "case": "B03",
+      "skill": "onni-react",
+      "arm": "baseline",
+      "repetition": 0,
+      "elapsedMs": 68360,
+      "timeToSessionMs": 3758,
+      "promptSha256": "a216f100e0d97eecd87dcc20be9e57f65988d6282814197cd5fd6ae9757df9e4",
+      "skillSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "fixtureSha256": "2fb46a73bb4330761741bc25c409001ce629dc81be451cfe21d1a2fbf9986dfc",
+      "valid": false,
+      "timedOut": false,
+      "errors": [],
+      "tokensUsed": 363254,
+      "reportedModels": [],
+      "usage": [
+        {
+          "type": "usage.updated",
+          "usage": {
+            "input": 59176,
+            "output": 106,
+            "total": 59282,
+            "cacheRead": 0,
+            "reasoning": 0,
+            "contextWindow": 475000
+          }
+        },
+        {
+          "type": "usage.updated",
+          "usage": {
+            "input": 118513,
+            "output": 287,
+            "total": 118800,
+            "cacheRead": 59173,
+            "reasoning": 42,
+            "contextWindow": 475000
+          }
+        },
+        {
+          "type": "usage.updated",
+          "usage": {
+            "input": 178084,
+            "output": 404,
+            "total": 178488,
+            "cacheRead": 118507,
+            "reasoning": 51,
+            "contextWindow": 475000
+          }
+        },
+        {
+          "type": "usage.updated",
+          "usage": {
+            "input": 237825,
+            "output": 489,
+            "total": 238314,
+            "cacheRead": 178075,
+            "reasoning": 77,
+            "contextWindow": 475000
+          }
+        },
+        {
+          "type": "usage.updated",
+          "usage": {
+            "input": 299991,
+            "output": 652,
+            "total": 300643,
+            "cacheRead": 237813,
+            "reasoning": 101,
+            "contextWindow": 475000
+          }
+        },
+        {
+          "type": "usage.updated",
+          "usage": {
+            "input": 362375,
+            "output": 879,
+            "total": 363254,
+            "cacheRead": 299976,
+            "reasoning": 190,
+            "contextWindow": 475000
+          }
+        }
+      ],
+      "toolCalls": 4,
+      "passed": false,
+      "scopePassed": true,
+      "changed": [],
+      "judgeExit": 1,
+      "judgeOutput": "✖ cache and drafts belong to their identities (2.9113ms)\n✖ composite keys cannot collide by delimiter (0.4136ms)\nℹ tests 2\nℹ suites 0\nℹ pass 0\nℹ fail 2\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 102.1486\n\n✖ failing tests:\n\ntest at judge.test.mjs:4:1\n✖ cache and drafts belong to their identities (2.9113ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n  + actual - expected\n  \n    [\n  +   'two'\n  -   'one'\n    ]\n  \n      at TestContext.<anonymous> (file:///C:/Users/doant/AppData/Local/Temp/onni-coding-smoke-1zFspv/B03-0-baseline-judge/judge.test.mjs:6:10)\n      at Test.runInAsyncScope (node:async_hooks:227:14)\n      at Test.run (node:internal/test_runner/test:1402:25)\n      at Test.start (node:internal/test_runner/test:1262:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: [ 'two' ],\n    expected: [ 'one' ],\n    operator: 'deepStrictEqual',\n    diff: 'simple'\n  }\n\ntest at judge.test.mjs:11:1\n✖ composite keys cannot collide by delimiter (0.4136ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  'draft' !== 'second'\n  \n      at TestContext.<anonymous> (file:///C:/Users/doant/AppData/Local/Temp/onni-coding-smoke-1zFspv/B03-0-baseline-judge/judge.test.mjs:13:10)\n      at Test.runInAsyncScope (node:async_hooks:227:14)\n      at Test.run (node:internal/test_runner/test:1402:25)\n      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)\n      at Test.postRun (node:internal/test_runner/test:1542:19)\n      at Test.run (node:internal/test_runner/test:1467:12)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 'draft',\n    expected: 'second',\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n",
+      "answer": "I’ll read the workspace instructions and state module, fix project isolation, and add behavior tests for cache entries and drafts.\nThe command runner failed before launching PowerShell, and the fallback Node runtime also exited. I’m checking one explicit shell invocation to see whether workspace access is available.\nBlocked by the execution environment; no files were changed.\n\nAttempted commands:\n\n- `Get-Content -LiteralPath AGENTS.md; rg --files -g '!node_modules' -g '!.git' -g '!.aws' -g '!.codex' -g '!.agents'`\n- `Get-Content -LiteralPath .\\AGENTS.md` using explicit PowerShell.\n\nBoth failed before execution: `registered Core launch requires an installed app`. The fallback Node runtime also exited before reading files.\n\nI couldn’t inspect `AGENTS.md`, implement the fix, or run tests. A working local execution runtime is needed to continue.",
+      "infrastructureInvalid": "Tool runtime could not launch: registered Core launch requires an installed app. No fixture files changed."
+    },
+    {
+      "case": "B03",
+      "skill": "onni-react",
+      "arm": "pilot",
+      "repetition": 0,
+      "elapsedMs": 49393,
+      "timeToSessionMs": 2965,
+      "promptSha256": "9704865bde1ef03e4fb8babd82c4748011b64e28677f2bcc9263a19946fbb913",
+      "skillSha256": "c77a97c5b1cae543d8f3bfe5d7b4c6d38fb51985526ef2a46de8f5924025dcfb",
+      "fixtureSha256": "2fb46a73bb4330761741bc25c409001ce629dc81be451cfe21d1a2fbf9986dfc",
+      "valid": false,
+      "timedOut": false,
+      "errors": [],
+      "tokensUsed": 239700,
+      "reportedModels": [],
+      "usage": [
+        {
+          "type": "usage.updated",
+          "usage": {
+            "input": 59406,
+            "output": 118,
+            "total": 59524,
+            "cacheRead": 0,
+            "reasoning": 0,
+            "contextWindow": 475000
+          }
+        },
+        {
+          "type": "usage.updated",
+          "usage": {
+            "input": 118985,
+            "output": 334,
+            "total": 119319,
+            "cacheRead": 59403,
+            "reasoning": 92,
+            "contextWindow": 475000
+          }
+        },
+        {
+          "type": "usage.updated",
+          "usage": {
+            "input": 178833,
+            "output": 444,
+            "total": 179277,
+            "cacheRead": 118979,
+            "reasoning": 111,
+            "contextWindow": 475000
+          }
+        },
+        {
+          "type": "usage.updated",
+          "usage": {
+            "input": 238891,
+            "output": 809,
+            "total": 239700,
+            "cacheRead": 178824,
+            "reasoning": 381,
+            "contextWindow": 475000
+          }
+        }
+      ],
+      "toolCalls": 3,
+      "passed": false,
+      "scopePassed": true,
+      "changed": [],
+      "judgeExit": 1,
+      "judgeOutput": "✖ cache and drafts belong to their identities (4.291ms)\n✖ composite keys cannot collide by delimiter (0.647ms)\nℹ tests 2\nℹ suites 0\nℹ pass 0\nℹ fail 2\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 144.5289\n\n✖ failing tests:\n\ntest at judge.test.mjs:4:1\n✖ cache and drafts belong to their identities (4.291ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n  + actual - expected\n  \n    [\n  +   'two'\n  -   'one'\n    ]\n  \n      at TestContext.<anonymous> (file:///C:/Users/doant/AppData/Local/Temp/onni-coding-smoke-1zFspv/B03-0-pilot-judge/judge.test.mjs:6:10)\n      at Test.runInAsyncScope (node:async_hooks:227:14)\n      at Test.run (node:internal/test_runner/test:1402:25)\n      at Test.start (node:internal/test_runner/test:1262:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: [ 'two' ],\n    expected: [ 'one' ],\n    operator: 'deepStrictEqual',\n    diff: 'simple'\n  }\n\ntest at judge.test.mjs:11:1\n✖ composite keys cannot collide by delimiter (0.647ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  'draft' !== 'second'\n  \n      at TestContext.<anonymous> (file:///C:/Users/doant/AppData/Local/Temp/onni-coding-smoke-1zFspv/B03-0-pilot-judge/judge.test.mjs:13:10)\n      at Test.runInAsyncScope (node:async_hooks:227:14)\n      at Test.run (node:internal/test_runner/test:1402:25)\n      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)\n      at Test.postRun (node:internal/test_runner/test:1542:19)\n      at Test.run (node:internal/test_runner/test:1467:12)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 'draft',\n    expected: 'second',\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n",
+      "answer": "I’ll inspect the workspace instructions, dependencies, and state code first, then fix project isolation and add behavior tests.\nBlocked by the local execution environment. The attempted `Get-Location; rg --files ...` command failed before running with:\n\n`registered Core launch requires an installed app`\n\nTwo fallback Node filesystem reads also failed during startup with the same sandbox error.\n\nNo files changed and no tests ran. I couldn’t read `AGENTS.md` or `state.mjs`, confirm dependencies, or implement the isolation fix. Local execution must be restored to continue.",
+      "infrastructureInvalid": "Tool runtime could not launch: registered Core launch requires an installed app. No fixture files changed."
+    }
+  ],
+  "stoppedDuring": "B03 candidate; no completed result; owned process tree terminated after the shared runtime failure was established",
+  "runtimeDetectionNote": "Initial harness only checked top-level runner errors. Updated harness additionally rejects tool runtime launch failures; archived initial validity labels were corrected after inspecting tool evidence."
+}

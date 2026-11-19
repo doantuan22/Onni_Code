@@ -14,7 +14,7 @@ import { setApiScope, WORKSPACE_RUN_EVENT_OMITTED_KEYS } from '@onni/api-client'
 import { createQueryClient } from './query-client'
 import { queryKeys, useProviderStatus, useRuns, useTodos, workspaceQueryKeys } from './queries'
 import { RUN_EVENT_BATCH_MS } from './run-events'
-import type { ApiRun, ProviderStatusResponse, RunRecord } from '@onni/api-client'
+import type { ApiRun, ProjectListEntry, ProjectsResponse, ProviderStatusResponse, RunRecord } from '@onni/api-client'
 
 /**
  * jsdom ships no EventSource at all (it is not in its supported-API set), so there is nothing to
@@ -745,6 +745,27 @@ describe('useGlobalEvents — run events', () => {
     expect(link.getAttribute('aria-disabled')).toBe('true')
     act(() => reconcileDashboardTruth(dashboardTruthRevision(), [row]))
     expect(link.getAttribute('aria-disabled')).toBeNull()
+  })
+
+  it('patches the shared project registry immediately for add, edit and remove events', () => {
+    const original: ProjectListEntry = {
+      id: 'sync-project', name: 'sync-project', root: '/repos/sync-project',
+      addedAt: '2026-01-01T00:00:00.000Z', lastOpenedAt: '2026-01-01T00:00:00.000Z',
+      source: 'local', status: 'ok',
+    }
+    client.setQueryData<ProjectsResponse>(workspaceQueryKeys.projects, {
+      projects: [original], bootProject: 'boot', projectsDir: '/repos',
+    })
+    const { source } = mount()
+
+    source.emit('project-updated', JSON.stringify({ project: { ...original, tags: ['api'] } }))
+    expect(client.getQueryData<ProjectsResponse>(workspaceQueryKeys.projects)?.projects[0]?.tags).toEqual(['api'])
+    source.emit('project-added', JSON.stringify({ project: { ...original, id: 'new-project', name: 'new-project' } }))
+    expect(client.getQueryData<ProjectsResponse>(workspaceQueryKeys.projects)?.projects.map((project) => project.id))
+      .toEqual(['sync-project', 'new-project'])
+    source.emit('project-removed', JSON.stringify({ id: 'sync-project' }))
+    expect(client.getQueryData<ProjectsResponse>(workspaceQueryKeys.projects)?.projects.map((project) => project.id))
+      .toEqual(['new-project'])
   })
 
   it('keeps cross-project sample freshness and clears removed projects', () => {
@@ -1540,6 +1561,72 @@ it.each(['event', 'reconnect', 'visibility'])('discards old project/tracker requ
   } finally { controls.forEach(({ unsubscribe }) => unsubscribe()) }
 })
 
+it.each(['project-added', 'project-updated', 'project-removed'])(
+  'discards an unfinished initial registry read after %s', async name => {
+    let resolveOld!: (value: unknown) => void
+    const old = new Promise((resolve) => { resolveOld = resolve })
+    const read = vi.fn().mockReturnValueOnce(old).mockResolvedValue({ projects: [], bootProject: BOOT, projectsDir: '/repos' })
+    const observer = new QueryObserver(client, { queryKey: workspaceQueryKeys.projects, queryFn: read })
+    const unsubscribe = observer.subscribe(() => {})
+    try {
+      const { source } = mount()
+      source.emit(name, JSON.stringify({ id: 'removed-project' }))
+      await waitFor(() => expect(read).toHaveBeenCalledTimes(2))
+      await act(async () => resolveOld({ projects: [{ id: 'removed-project' }] }))
+      expect(client.getQueryData<ProjectsResponse>(workspaceQueryKeys.projects)?.projects).toEqual([])
+    } finally { unsubscribe() }
+  },
+)
+
+it.each([
+  ['workspace-config-changed', workspaceQueryKeys.config],
+  ['workspace-ui-state-changed', workspaceQueryKeys.uiState],
+  ['agent-profiles-changed', workspaceQueryKeys.agentProfiles],
+] as const)('refreshes shared settings on %s', async (name, key) => {
+  client.setQueryData(key, { value: 'old' })
+  const { source } = mount()
+  source.emit(name, '{}')
+  await waitFor(() => expect(client.getQueryState(key)?.isInvalidated).toBe(true))
+})
+
+
+describe('skill catalog synchronization', () => {
+  it.each(['project', 'global', 'reconnect', 'visibility'] as const)(
+    'cancels stale skill reads and refreshes the right projects after %s', async trigger => {
+      const keys = [[BOOT, 'skills'], [BOOT, 'skills', 'ready'], ['other-project', 'skills']] as const
+      const controls = keys.map(queryKey => {
+        let resolveOld!: (value: string) => void
+        const read = vi.fn().mockReturnValueOnce(new Promise<string>(resolve => { resolveOld = resolve })).mockResolvedValue('new')
+        const observer = new QueryObserver(client, { queryKey, queryFn: read })
+        return { queryKey, read, resolveOld, unsubscribe: observer.subscribe(() => {}) }
+      })
+      try {
+        const { source } = mount()
+        if (trigger === 'reconnect') { source.open(); source.drop(); source.open() }
+        else if (trigger === 'visibility') { setVisibility('hidden'); setVisibility('visible') }
+        else source.emit('skills-changed', JSON.stringify({ project: BOOT, scope: trigger }))
+        const refreshed = trigger === 'project' ? controls.slice(0, 2) : controls
+        await waitFor(() => refreshed.forEach(({ read }) => expect(read).toHaveBeenCalledTimes(2)))
+        await act(async () => controls.forEach(({ resolveOld }) => resolveOld('old')))
+        refreshed.forEach(({ queryKey }) => expect(client.getQueryData(queryKey)).toBe('new'))
+        if (trigger === 'project') expect(controls[2]!.read).toHaveBeenCalledTimes(1)
+      } finally { controls.forEach(({ unsubscribe }) => unsubscribe()) }
+    },
+  )
+
+  it('rejects malformed changes and leaves the project registry alone', async () => {
+    const key = [BOOT, 'skills']
+    client.setQueryData(key, [])
+    client.setQueryData(workspaceQueryKeys.projects, { projects: [] })
+    const { source } = mount()
+    source.emit('skills-changed', JSON.stringify({ project: BOOT, scope: 'invalid' }))
+    await act(async () => {})
+    expect(client.getQueryState(key)?.isInvalidated).toBe(false)
+    source.emit('skills-changed', JSON.stringify({ project: BOOT, scope: 'project' }))
+    await waitFor(() => expect(client.getQueryState(key)?.isInvalidated).toBe(true))
+    expect(client.getQueryState(workspaceQueryKeys.projects)?.isInvalidated).toBe(false)
+  })
+})
 
 describe('worktree lifecycle SSE invalidations', () => {
   const identity = '11111111-1111-4111-8111-111111111111'

@@ -7,6 +7,11 @@ import { getTeamSkillsCached } from './skills-remote.ts';
 import { readUiState } from './ui-state.ts';
 import { builtinSkills } from './automations/builtin-skill.ts';
 import { onniHomeDir } from './paths.ts';
+import { fileURLToPath } from 'node:url';
+import { skillDependenciesSchema } from '@onni/contract';
+
+/** Offline fallbacks shipped with the service (spec 2026-11-19-skill-upgrade-plan). */
+export const CURATED_SKILLS_DIR = fileURLToPath(new URL('../skills-curated/skills/', import.meta.url));
 
 /**
  * A skill is a Markdown file with optional YAML-ish frontmatter (`name`,
@@ -22,9 +27,10 @@ export interface Skill {
   /** Advisory composer hint: untouched run-mode choices default to interactive, in-place execution. */
   interactive?: true;
   body: string;
+  /** Explicit companions; [] opts out of legacy body matching. */
+  dependencies?: string[];
   path: string;
-  /** `builtin` is the one skill onni ships itself (`create-onni-automation`, spec
-   *  2026-09-13-automations-from-prompt) — listed last, and only while automations are reachable.
+  /** `builtin` includes offline curated playbooks and the capability-gated automation skill.
    *  `onni-global` is an onni-managed skill under `~/.onni/skills`, shared across projects. */
   source: 'ai' | 'onni' | 'agents' | 'global' | 'team' | 'builtin' | 'onni-global';
   /** True when onni wrote this skill (`source` is `onni` or `onni-global`) — the UI's
@@ -84,9 +90,8 @@ const GLOBAL_SKILL_DIRS: Array<{ dir: string; source: Skill['source'] }> = [
  * ("the user's repo is the source of truth"). Missing directories are fine —
  * an empty catalog is fully supported (steps fall back to their plain
  * prompt). Team skills come from the in-process cache; the first call starts
- * a background load so nothing here ever waits on the network. The built-in skill (the one
- * onni ships, `automations/builtin-skill.ts`) comes LAST, so every user-authored skill of the
- * same name shadows it.
+ * a background load so nothing here ever waits on the network. Offline curated fallbacks and
+ * the capability-gated automation playbook come last, so user-authored skills win collisions.
  *
  * Opt-out gate: skills from a *default* skills repo appear unless the user has curated them
  * away; OnniCode ships no default source (`DEFAULT_SKILLS_REPOS` is empty, see
@@ -115,7 +120,8 @@ export async function discoverSkills(repoRoot: string): Promise<Skill[]> {
   );
   const merged: Skill[] = [];
   const seen = new Set<string>();
-  for (const skills of [...lists, teamSkills, builtinSkills()]) {
+  const curated = await readMarkdownSkills(CURATED_SKILLS_DIR, 'builtin');
+  for (const skills of [...lists, teamSkills, curated, builtinSkills()]) {
     for (const skill of skills) {
       if (seen.has(skill.name)) continue;
       seen.add(skill.name);
@@ -254,12 +260,27 @@ async function readMarkdownSkills(dir: string, source: Skill['source']): Promise
     const interactive = frontmatter.interactive === true || frontmatter.interactive === 'true' ? true : undefined;
     const owned = source === 'onni' || source === 'onni-global';
     const scope = owned ? (source === 'onni-global' ? 'global' : 'project') : undefined;
-    skills.push({ name, description, interactive, body, path: absPath, source, ...(owned ? { owned: true, scope } : {}) });
+    const dependencies = readSkillDependencies(frontmatter);
+    skills.push({ name, description, interactive, body, path: absPath, source,
+      ...(dependencies !== undefined ? { dependencies } : {}), ...(owned ? { owned: true, scope } : {}) });
   }
   return skills;
 }
 
-type FrontmatterValue = string | boolean | string[];
+type FrontmatterValue = string | boolean | string[] | Record<string, unknown>;
+
+export function readSkillDependencies(frontmatter: Record<string, unknown>): string[] | undefined {
+  const metadata = frontmatter.metadata;
+  let declared = frontmatter.dependencies;
+  if (metadata && typeof metadata === 'object' && !Array.isArray(metadata)) {
+    const value = (metadata as Record<string, unknown>)['onni-dependencies'];
+    if (typeof value === 'string') {
+      try { declared = JSON.parse(value); } catch { return undefined; }
+    }
+  }
+  const parsed = skillDependenciesSchema.safeParse(declared);
+  return parsed.success ? [...new Set(parsed.data)] : undefined;
+}
 
 /**
  * Tiny purpose-built frontmatter parser — a leading `---\n … \n---\n` block
@@ -291,7 +312,9 @@ export function parseFrontmatter(raw: string): {
 
   const frontmatter: Record<string, FrontmatterValue> = { ...legacy };
   for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
-    if (typeof value === 'string' || (key === 'interactive' && typeof value === 'boolean')) {
+    if (key === 'metadata' && value && typeof value === 'object' && !Array.isArray(value)) {
+      frontmatter[key] = value as Record<string, unknown>;
+    } else if (typeof value === 'string' || (key === 'interactive' && typeof value === 'boolean')) {
       frontmatter[key] = value;
     } else if (Array.isArray(value) && value.every((item) => typeof item === 'string')) {
       frontmatter[key] = value as string[];

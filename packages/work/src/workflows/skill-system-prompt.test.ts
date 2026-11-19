@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import type { ContentBlock } from '../core/agent-runner.ts';
 import { expandRegistrySlashSkill, expandRegistrySlashSkillText, skillSystemPrompt } from './run.ts';
+import { parseFrontmatter, readSkillDependencies } from '../skills.ts';
+
+it('reads native-compatible dependency metadata, and degrades malformed declarations to legacy matching', () => {
+  const read = (raw: string) => readSkillDependencies(parseFrontmatter(`---\n${raw}\n---\nInstructions`).frontmatter);
+  expect(read('metadata:\n  onni-dependencies: \'["helper-skill"]\'')).toEqual(['helper-skill']);
+  expect(read('metadata:\n  onni-dependencies: "[]"')).toEqual([]);
+  expect(read('metadata:\n  onni-dependencies: "not json"')).toBeUndefined();
+  expect(read('metadata:\n  onni-dependencies: \'["../escape"]\'')).toBeUndefined();
+  expect(read('name: legacy')).toBeUndefined();
+});
 
 describe('skillSystemPrompt — installed-path hint for worktree agents', () => {
   const base = { name: 'om-code-review', description: 'Review a diff.', body: 'Do the review.' };
@@ -79,6 +89,19 @@ describe('expandRegistrySlashSkill — live chat delivery', () => {
    * leak verbatim on the Reply-after-finish that opens the same session.
    */
   describe('expandRegistrySlashSkillText — the continuation seam (#811)', () => {
+    it('keeps the request and includes the body once when the workflow already selected the same skill', () => {
+      const system = skillSystemPrompt(skill);
+      const user = expandRegistrySlashSkillText('/om-code-review PR 42', [skill], skill.name);
+      expect(user).toBe('PR 42');
+      expect(`${system}\n${user}`.split(skill.body)).toHaveLength(2);
+      expect(expandRegistrySlashSkillText('/om-code-review', [skill], skill.name)).toBe('Apply the selected skill.');
+    });
+
+    it('retains a second explicit skill and leaves unknown commands untouched', () => {
+      expect(expandRegistrySlashSkillText('/om-code-review PR 42', [skill], 'other-skill')).toContain(skill.body);
+      expect(expandRegistrySlashSkillText('/native test', [skill], 'native')).toBe('/native test');
+    });
+
     it('expands the same way the content-block form does', () => {
       const text = '/om-code-review PR 42';
       const viaText = expandRegistrySlashSkillText(text, [skill]);

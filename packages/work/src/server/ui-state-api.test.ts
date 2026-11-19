@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { workspaceUiStatePath } from '../paths.ts';
 import { RunStore } from '../runs/store.ts';
 import type { RunManager } from '../workflows/run.ts';
-import { createApp } from './server.ts';
+import { WorkspaceEventBus, createApp } from './server.ts';
 import { apiRequest } from './loopback-request.testkit.ts';
 
 /**
@@ -53,6 +53,19 @@ describe('the ui-state API — skillUsage (#408)', () => {
     const res = await get();
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({});
+  });
+
+  it('broadcasts a changed imported selection, but not unrelated preferences or repeated values', async () => {
+    const bus = new WorkspaceEventBus();
+    const changes: unknown[] = [];
+    bus.on((name, payload) => { if (name === 'skills-changed') changes.push(payload); });
+    app = createApp({ repoRoot, store, manager: {} as RunManager, version: 'test', workspaceEvents: bus });
+    expect((await put({ importedSkills: [] })).status).toBe(200);
+    expect((await put({ importedSkills: [] })).status).toBe(200);
+    expect((await put({ dismissedSkillsBanner: true })).status).toBe(200);
+    expect(changes).toEqual([{ project: expect.any(String), scope: 'project' }]);
+    expect((await put({ importedSkills: ['new-skill'] })).status).toBe(200);
+    expect(changes).toHaveLength(2);
   });
 
   it('keeps a legacy workspace skill selection until this project saves its own', async () => {

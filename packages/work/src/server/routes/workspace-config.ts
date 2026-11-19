@@ -113,6 +113,9 @@ type WorkspaceConfigRouteDeps = {
   semaphore?: WorkspaceSemaphore;
   probeWritableDir: (dir: string, create: boolean) => Promise<string | null>;
   uiStateBodyLimit: number;
+  workspaceEvents: {
+    emit: (event: 'workspace-config-changed' | 'workspace-ui-state-changed', data: unknown) => void;
+  };
 };
 
 export function workspaceConfigRoutes(deps: WorkspaceConfigRouteDeps) {
@@ -122,6 +125,7 @@ export function workspaceConfigRoutes(deps: WorkspaceConfigRouteDeps) {
     hostSampler,
     probeWritableDir,
     uiStateBodyLimit: UI_STATE_BODY_LIMIT,
+    workspaceEvents,
   } = deps;
 
   // ---- workspace settings (multi-project spec, step 2.7) -------------------
@@ -321,6 +325,8 @@ export function workspaceConfigRoutes(deps: WorkspaceConfigRouteDeps) {
       // A resource change takes effect WITHOUT a restart: refresh the shared
       // semaphore's in-memory snapshot and pump every manager (step 2.5's hook).
       if (resources !== undefined || limitsPatch !== undefined || safetyPatch !== undefined) await deps.semaphore?.refresh();
+      // Keep every open cockpit on the same workspace config without requiring a reload.
+      workspaceEvents.emit('workspace-config-changed', {});
       return c.json(workspaceConfigBody(written));
     })
 
@@ -351,11 +357,13 @@ export function workspaceConfigRoutes(deps: WorkspaceConfigRouteDeps) {
         await unlink(tmp).catch(() => {});
         throw error;
       }
+      workspaceEvents.emit('workspace-config-changed', {});
       return c.json(workspaceBrandingLogoResponseSchema.parse({ logoUrl: logoAssetUrl() }));
     })
     .delete('/workspace/branding-logo', async (c) => {
       await Promise.all([BRANDING_LOGO_FILE, ...BRANDING_LOGO_EXTENSIONS.map((ext) => `${BRANDING_LOGO_FILE}${ext}`)]
         .map((filename) => unlink(join(onniHomeDir(), filename)).catch(() => {})));
+      workspaceEvents.emit('workspace-config-changed', {});
       return c.json(workspaceBrandingLogoResponseSchema.parse({ logoUrl: null }));
     })
 
@@ -388,12 +396,12 @@ export function workspaceConfigRoutes(deps: WorkspaceConfigRouteDeps) {
     .put('/workspace/ui-state', jsonZodValidator(setWorkspaceUiStateInputSchema), async (c) => {
       const parsed = { data: c.req.valid('json') };
       try {
-        return c.json(
-          await mergeWriteWorkspaceUiState((state) => ({
-            ...state,
-            ...parsed.data,
-          })),
-        );
+        const merged = await mergeWriteWorkspaceUiState((state) => ({
+          ...state,
+          ...parsed.data,
+        }));
+        workspaceEvents.emit('workspace-ui-state-changed', {});
+        return c.json(merged);
       } catch (err) {
         // A read-only home degrades to an unsaved pref, never a crash.
         return c.json({ error: err instanceof Error ? err.message : String(err) }, 500);

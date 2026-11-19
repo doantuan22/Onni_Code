@@ -17,6 +17,7 @@ import {
   type TranscriptSection,
 } from './session-transcript'
 import { clearThreadScrollCaches } from './thread-scroll'
+import { clearOpenCardCache } from './thread-open-cards'
 import { collectSubagents, subagentChildren } from './subagent-dock'
 import { reduceThread, type ThreadEntry, type ThreadState } from './thread-state'
 
@@ -35,6 +36,7 @@ afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
   clearThreadScrollCaches()
+  clearOpenCardCache()
 })
 
 const tool = (id: string, overrides: Partial<UiToolItem> = {}): UiToolItem => ({
@@ -68,6 +70,20 @@ const asRunEvents = (events: object[]): RunEvent[] =>
   })) as RunEvent[]
 
 describe('transcript adapters and row building', () => {
+  it.each(['waiting', 'done'] as const)('folds a legacy turn using the run %s state without inventing a completion timestamp', status => {
+    const sections = mainTranscriptSections(run({ status }), { turns: [{ id: 'legacy', items: [tool('a'), tool('b', { toolKind: 'execute' })] }] })
+    expect(sections.at(-1)?.settled).toBe(true)
+    expect(sections.at(-1)?.completedAt).toBeUndefined()
+    expect(buildTranscriptRows(sections, 'r1').some(row => row.content.kind === 'block' && row.content.block.kind === 'streak')).toBe(true)
+  })
+
+  it('folds work when the final answer starts streaming and keeps the answer live', () => {
+    const rows = buildTranscriptRows([{ id: 'live', entries: [tool('a', { toolKind: 'execute' }), tool('b', { toolKind: 'execute' }),
+      { kind: 'message', id: 'answer', role: 'assistant', text: 'The fix', phase: 'final' }] }], 'r1')
+    expect(rows[0]?.content).toMatchObject({ kind: 'block', block: { kind: 'streak', settled: true } })
+    expect(rows[1]?.content).toMatchObject({ streaming: true, response: true })
+  })
+
   it('preserves initial images, queued messages, turn messages, and established row keys', () => {
     const state: ThreadState = {
       turns: [
@@ -312,6 +328,34 @@ describe('transcript adapters and row building', () => {
 })
 
 describe('SessionTranscript', () => {
+  it('keeps an explicitly reopened summary on revisit, without leaking it to another task', () => {
+    const sections: TranscriptSection[] = [{ id: 'turn', settled: true, entries: [tool('a'), tool('b', { toolKind: 'execute' })] }]
+    const show = (id: string) => <SessionTranscript runId={id} viewId="main" mode="document" renderMode="flat" sections={sections} />
+    const { rerender, getByRole } = render(show('task-a'))
+    fireEvent.click(getByRole('button', { name: /2 completed actions/ }))
+    expect(document.querySelectorAll('[data-slot="tool-card"]')).toHaveLength(2)
+    rerender(show('task-b'))
+    expect(document.querySelectorAll('[data-slot="tool-card"]')).toHaveLength(0)
+    rerender(show('task-a'))
+    expect(document.querySelectorAll('[data-slot="tool-card"]')).toHaveLength(2)
+  })
+
+  it.each(['document', 'panel'] as const)('collapses completed work before the answer in %s and lets readers inspect it again', mode => {
+    const sections = (settled: boolean): TranscriptSection[] => [{
+      id: 'turn', settled,
+      entries: [tool('a', { toolKind: 'execute', title: 'Ran npm test', output: 'green' }),
+        tool('b', { toolKind: 'execute', title: 'Ran npm run build', output: 'built' }),
+        { kind: 'message', id: 'answer', role: 'assistant', text: 'The fix is ready.' }],
+    }]
+    const { rerender, getByRole } = render(<SessionTranscript runId="auto-fold" viewId={mode} sections={sections(false)} mode={mode} />)
+    expect(document.querySelectorAll('[data-slot="tool-card"]')).toHaveLength(2)
+    rerender(<SessionTranscript runId="auto-fold" viewId={mode} sections={sections(true)} mode={mode} />)
+    expect(document.querySelectorAll('[data-slot="tool-card"]')).toHaveLength(0)
+    expect(document.querySelector('[data-slot="assistant-message"]')?.textContent).toContain('The fix is ready.')
+    fireEvent.click(getByRole('button', { name: /2 completed actions/ }))
+    expect(document.querySelectorAll('[data-slot="tool-card"]')).toHaveLength(2)
+  })
+
   const entries: ThreadEntry[] = [
     { kind: 'message', id: 'm1', role: 'assistant', text: 'Shared prose' },
     { kind: 'reasoning', id: 'r1', text: 'Shared reasoning' },

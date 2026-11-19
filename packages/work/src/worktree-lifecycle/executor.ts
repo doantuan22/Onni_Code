@@ -63,6 +63,37 @@ export async function probeLifecycleProcess(identity: LifecycleProcessIdentity):
 }
 const delay = (milliseconds: number): Promise<void> => new Promise(resolve => setTimeout(resolve, milliseconds));
 
+// C-05: MSYS Bash can exit while taskkill walks its descendants. A native leader
+// stays alive until the owner terminates the captured tree, even after Bash exits.
+const WINDOWS_SUPERVISOR = `
+const { spawn } = require('node:child_process');
+const [bash, command, marker] = process.argv.slice(1);
+let launched = false;
+let completed = false;
+let disconnected = false;
+let input = '';
+function finish(code) {
+  if (completed) return;
+  completed = true;
+  process.stderr.write('\\n' + marker + ':' + code + '\\n');
+  if (disconnected) process.exit(125);
+}
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', chunk => {
+  if (launched) return;
+  input += chunk;
+  if (!input.includes('\\n')) return;
+  launched = true;
+  const child = spawn(bash, ['-c', command], { stdio: ['ignore', 'inherit', 'inherit'], windowsHide: true });
+  child.once('error', error => { process.stderr.write(error.message + '\\n'); finish(127); });
+  child.once('exit', code => finish(code ?? 125));
+});
+process.stdin.on('end', () => {
+  disconnected = true;
+  if (!launched || completed) process.exit(125);
+});
+`;
+
 /** Commands run in their own process group, with stdin closed after a durable launch gate.
  * Output callbacks are serialized and only receive bounded, already-redacted text. */
 export async function executeLifecycleCommand(options: LifecycleExecutorOptions): Promise<LifecycleExecutionResult> {
@@ -146,10 +177,11 @@ export async function executeLifecycleCommand(options: LifecycleExecutorOptions)
   if (!bash) return { state: 'failed', exitCode: null, reason: BASH_MISSING_MESSAGE, quiescent: true, truncated: false };
   // Keep the Windows supervisor alive until taskkill has captured its tree. The
   // command itself still receives EOF on stdin; the private marker is not output.
-  const wrapper = windows
-    ? `IFS= read -r _onni_launch || exit 125; "$0" -c "$1" </dev/null; _onni_status=$?; printf '\\n%s:%s\\n' "$2" "$_onni_status" >&2; IFS= read -r _onni_shutdown`
-    : 'IFS= read -r _onni_launch || exit 125; exec "$0" -c "$1"';
-  const child = spawn(bash, ['-c', wrapper, bash, options.command, completionMarker], {
+  const file = windows ? process.execPath : bash;
+  const args = windows
+    ? ['--input-type=commonjs', '-e', WINDOWS_SUPERVISOR, bash, options.command, completionMarker]
+    : ['-c', 'IFS= read -r _onni_launch || exit 125; exec "$0" -c "$1"', bash, options.command];
+  const child = spawn(file, args, {
     cwd: options.cwd, env: resolved ? withBashPath(process.env, resolved) : process.env, detached: true, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'],
   });
   const closed = new Promise<void>(resolve => child.once('close', () => { childClosed = true; resolve(); }));

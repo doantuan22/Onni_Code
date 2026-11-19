@@ -26,6 +26,16 @@ describe('supervised lifecycle executor', () => {
     expect(result).toMatchObject({ state: 'failed', quiescent: true });
     await expect(readFile(join(cwd, 'marker'))).rejects.toThrow();
   });
+  it('verifies termination when short command trees finish together', async () => {
+    const results = await Promise.all(Array.from({ length: 24 }, async () => {
+      const frames: LifecycleExecutorOutput[] = [];
+      const result = await executeLifecycleCommand({ command: 'touch here; pwd; echo err >&2; read ignored || echo closed', cwd, onOutput: frame => { frames.push(frame); } });
+      expect(frames.map(frame => frame.text).join('')).toContain('closed');
+      expect(frames.map(frame => frame.text).join('')).not.toContain('__onni_');
+      return result;
+    }));
+    for (const result of results) expect(result).toMatchObject({ state: 'succeeded', exitCode: 0, quiescent: true });
+  });
   it('records nonzero exit and missing Bash without throwing', async () => {
     expect(await executeLifecycleCommand({ command: 'exit 7', cwd })).toMatchObject({ state: 'failed', exitCode: 7 });
     expect(await executeLifecycleCommand({ command: 'true', cwd, bashPath: '/missing/onni-bash' })).toMatchObject({ state: 'failed', quiescent: true });

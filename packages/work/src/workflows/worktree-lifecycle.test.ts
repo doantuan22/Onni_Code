@@ -319,17 +319,19 @@ describe('RunManager worktree lifecycle admission', { timeout: 20_000 }, () => {
     const before = await p.manager.lifecycle.store.readWorktree(run.id);
     const setupId = before!.activeOperationId!;
     p.manager.lifecycle.start();
-    // C-05: Git Bash's children are not linked to the supervisor by a real Windows parent id,
-    // so `taskkill /T` misses them and quiescence cannot be proven. Retaining the worktree is
-    // the safe outcome there; POSIX proves the group is gone and completes the cleanup.
-    if (process.platform === 'win32') {
-      await expect(p.manager.lifecycle.discardVariant(run.id))
-        .rejects.toThrow(/Previous setup process may still be running; worktree retained/);
+    // C-05: recovery follows verified quiescence, not a platform assumption.
+    const outcome = await p.manager.lifecycle.discardVariant(run.id)
+      .then(operation => ({operation}), (error: unknown) => ({error}));
+    if ('error' in outcome) {
+      expect(process.platform).toBe('win32');
+      expect(outcome.error).toMatchObject({message: expect.stringMatching(/Previous setup process may still be running; worktree retained/)});
+      const stopped = await p.manager.lifecycle.store.readOperation(setupId);
+      expect(stopped?.executions.at(-1)?.process?.quiescent).not.toBe(true);
       expect(existsSync(worktreePath)).toBe(true);
       expect(launched).toHaveLength(0);
       return;
     }
-    const cleanup = await p.manager.lifecycle.discardVariant(run.id);
+    const cleanup = outcome.operation;
     expect(cleanup?.intent).toBe('discard-variant');
     const stopped = await p.manager.lifecycle.store.readOperation(setupId);
     expect(stopped?.state).toBe('cancelled');

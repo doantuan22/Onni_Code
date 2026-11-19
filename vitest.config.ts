@@ -10,6 +10,9 @@ export default defineConfig({
     // The suites are still being grown; a project that currently matches no file must not
     // fail the validation gate. Root-level only — vitest rejects this inside a project.
     passWithNoTests: true,
+    // Windows suites launch real Git, CIM probes and taskkill trees; reserve OS
+    // capacity so the existing liveness deadlines test hangs rather than overload.
+    ...(process.platform === 'win32' ? { maxWorkers: 4 } : {}),
     projects: [
       './packages/work/vitest.config.ts',
       './packages/api-client/vitest.config.ts',

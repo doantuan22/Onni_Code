@@ -13,6 +13,18 @@ ENV_DESCRIPTOR="$QA_DIR/test-env.json"
 
 log() { echo "[test-env] $*" >&2; }
 
+# The app descriptor contains a native Node PID; MSYS shell kill uses another PID namespace.
+app_alive() { node -e '
+  const pid = Number(process.argv[1]);
+  if (!Number.isSafeInteger(pid) || pid <= 0) process.exit(1);
+  try { process.kill(pid, 0); } catch { process.exit(1); }
+' "$1" 2>/dev/null; }
+app_kill() { node -e '
+  const pid = Number(process.argv[1]);
+  if (!Number.isSafeInteger(pid) || pid <= 0) process.exit(1);
+  try { process.kill(pid, process.argv[2]); } catch { /* already stopped */ }
+' "$1" "${2:-SIGTERM}" 2>/dev/null; }
+
 [ -f "$ENV_DESCRIPTOR" ] || { log "no descriptor — nothing to stop"; exit 0; }
 
 pid=$(node -e '
@@ -24,15 +36,15 @@ pid=$(node -e '
 ' "$ENV_DESCRIPTOR" 2>/dev/null || true)
 
 # Only ever stop what this repo started; safe to run twice.
-if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+if [ -n "$pid" ] && app_alive "$pid"; then
   log "stopping onni (pid $pid)"
-  kill "$pid" 2>/dev/null || true
+  app_kill "$pid" || true
   waited=0
-  while kill -0 "$pid" 2>/dev/null && [ "$waited" -lt 10 ]; do
+  while app_alive "$pid" && [ "$waited" -lt 10 ]; do
     sleep 1
     waited=$((waited + 1))
   done
-  kill -9 "$pid" 2>/dev/null || true
+  app_kill "$pid" SIGKILL || true
 else
   log "app is already stopped"
 fi

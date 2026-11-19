@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -47,7 +47,7 @@ describe('landInPlace', () => {
   });
 
   it("never lands onni's own state", async () => {
-    execFileSync('mkdir', ['-p', join(checkout, '.ai/onni')]);
+    mkdirSync(join(checkout, '.ai/onni'), { recursive: true });
     writeFileSync(join(checkout, '.ai/onni/config.json'), '{"landing":"auto"}\n');
     expect(await hasUnlanded(checkout)).toBe(false);
     writeFileSync(join(checkout, 'person.md'), 'x\n');
@@ -153,7 +153,7 @@ describe('landInPlace', () => {
   });
 
   it('rebases while a tracked file under .ai/onni has edits it leaves out', async () => {
-    execFileSync('mkdir', ['-p', join(checkout, '.ai/onni/workflows')]);
+    mkdirSync(join(checkout, '.ai/onni/workflows'), { recursive: true });
     writeFileSync(join(checkout, '.ai/onni/workflows/w.yaml'), 'a: 1\n');
     git(checkout, 'add', '-A');
     git(checkout, 'commit', '-qm', 'workflow');

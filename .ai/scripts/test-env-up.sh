@@ -76,6 +76,18 @@ mkdir -p "$QA_DIR"
 
 log() { echo "[test-env] $*" >&2; }
 
+# The app descriptor contains a native Node PID; MSYS shell kill uses another PID namespace.
+app_alive() { node -e '
+  const pid = Number(process.argv[1]);
+  if (!Number.isSafeInteger(pid) || pid <= 0) process.exit(1);
+  try { process.kill(pid, 0); } catch { process.exit(1); }
+' "$1" 2>/dev/null; }
+app_kill() { node -e '
+  const pid = Number(process.argv[1]);
+  if (!Number.isSafeInteger(pid) || pid <= 0) process.exit(1);
+  try { process.kill(pid, process.argv[2]); } catch { /* already stopped */ }
+' "$1" "${2:-SIGTERM}" 2>/dev/null; }
+
 # Never assume python3 exists — cascade through whatever the machine has.
 free_port() {
   if command -v python3 >/dev/null 2>&1; then
@@ -170,7 +182,7 @@ try_reuse() {
   [ "$(json_get "$ENV_DESCRIPTOR" environment.singleProject)" = "$requested_single_project" ] || return 1
   [ -n "$pid" ] && [ -n "$url" ] || return 1
   # A state file is a claim, not proof: the PID must still be alive…
-  kill -0 "$pid" 2>/dev/null || return 1
+  app_alive "$pid" || return 1
   # …and the app must actually answer. Health first (deep: reads config + git),
   # then the app shell, which is what the e2e specs actually load.
   http_ok "$url$HEALTH_PATH" || return 1
@@ -195,11 +207,11 @@ teardown_stale() {
   pid=$(json_get "$ENV_DESCRIPTOR" app.pid)
   own=$(json_get "$ENV_DESCRIPTOR" startedByThisRepo)
   # Only ever kill what this repo started.
-  if [ -n "$pid" ] && [ "$own" = true ] && kill -0 "$pid" 2>/dev/null; then
+  if [ -n "$pid" ] && [ "$own" = true ] && app_alive "$pid"; then
     log "stopping stale instance (pid $pid)"
-    kill "$pid" 2>/dev/null || true
+    app_kill "$pid" || true
     sleep 1
-    kill -9 "$pid" 2>/dev/null || true
+    app_kill "$pid" SIGKILL || true
   fi
 }
 
@@ -385,7 +397,7 @@ NODE
 
   waited=0
   while [ "$waited" -lt "$HEALTH_TIMEOUT" ]; do
-    if ! kill -0 "$APP_PID" 2>/dev/null; then
+    if ! app_alive "$APP_PID"; then
       log "the app exited during boot — see .ai/qa/test-env-app.log"
       tail -20 "$APP_LOG" >&2 || true
       exit 1
@@ -398,7 +410,7 @@ NODE
     waited=$((waited + 1))
   done
   log "health wait timed out after ${HEALTH_TIMEOUT}s — see .ai/qa/test-env-app.log"
-  kill "$APP_PID" 2>/dev/null || true
+  app_kill "$APP_PID" || true
   exit 1
 }
 

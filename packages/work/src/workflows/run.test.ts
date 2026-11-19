@@ -255,13 +255,13 @@ describe('RunManager directional usage accounting', () => {
   });
 });
 
-it('parallel variants ignore a worktree opt-out and retain isolated mode', () => {
+it('parallel variants ignore a worktree opt-out and retain isolated mode', async () => {
   const repoRoot = mkdtempSync(join(tmpdir(), 'onni-variant-isolation-'));
   const store = RunStore.open(join(repoRoot, '.ai/onni'));
+  const manager = new RunManager(store, repoRoot, {
+    semaphore: new WorkspaceSemaphore({ initial: { maxParallel: 0 } }),
+  });
   try {
-    const manager = new RunManager(store, repoRoot, {
-      semaphore: new WorkspaceSemaphore({ initial: { maxParallel: 0 } }),
-    });
     const records = manager.startVariants(
       {
         name: 'quick-task',
@@ -275,8 +275,9 @@ it('parallel variants ignore a worktree opt-out and retain isolated mode', () =>
 
     expect(records.map((record) => record.worktree)).toEqual([undefined, undefined]);
   } finally {
+    manager.dispose();
     store.flush();
-    rmSync(repoRoot, { recursive: true, force: true });
+    await removeTempDir(repoRoot);
   }
 });
 

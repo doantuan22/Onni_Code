@@ -110,10 +110,14 @@ test('listRemoteSkills clones a local repo, pins the SHA, and refuses a bad ref'
   const home = mkdtempSync(join(tmpdir(), 'onni-home-'));
   const srcDir = mkdtempSync(join(tmpdir(), 'onni-src-'));
   const prevHome = process.env.HOME;
+  const prevUserProfile = process.env.USERPROFILE;
+  process.env.USERPROFILE = home; // os.homedir() reads USERPROFILE on Windows.
   process.env.HOME = home; // redirect the ~/.cache/onni skills cache into temp
   t.after(() => {
     if (prevHome === undefined) delete process.env.HOME;
     else process.env.HOME = prevHome;
+    if (prevUserProfile === undefined) delete process.env.USERPROFILE;
+    else process.env.USERPROFILE = prevUserProfile;
     rmSync(home, { recursive: true, force: true });
     rmSync(srcDir, { recursive: true, force: true });
   });
@@ -124,9 +128,9 @@ test('listRemoteSkills clones a local repo, pins the SHA, and refuses a bad ref'
   g(['config', 'user.email', 'test@example.com']);
   g(['config', 'user.name', 'Test']);
   // A directory skill needs SKILL.md under a `skills/` folder, named after its own directory.
-  execFileSync('mkdir', ['-p', join(srcDir, 'greeter')]);
+  mkdirSync(join(srcDir, 'greeter'), { recursive: true });
   writeFileSync(join(srcDir, 'greeter', 'SKILL.md'), '---\ndescription: hi\n---\nsay hi\n');
-  execFileSync('mkdir', ['-p', join(srcDir, 'skills/greeter')]);
+  mkdirSync(join(srcDir, 'skills/greeter'), { recursive: true });
   writeFileSync(join(srcDir, 'skills/greeter', 'SKILL.md'), '---\ndescription: hi\n---\nsay hi\n');
   g(['add', '-A']);
   g(['commit', '-m', 'init']);
@@ -158,11 +162,15 @@ test('listRemoteSkills clones a local repo, pins the SHA, and refuses a bad ref'
 test('team-skills cache is keyed by repoRoot — projects never see each other\'s skills', async (t) => {
   const home = mkdtempSync(join(tmpdir(), 'onni-home-'));
   const prevHome = process.env.HOME;
+  const prevUserProfile = process.env.USERPROFILE;
+  process.env.USERPROFILE = home; // os.homedir() reads USERPROFILE on Windows.
   process.env.HOME = home; // redirect the ~/.cache/onni skills cache into temp
   const dirs: string[] = [home];
   t.after(() => {
     if (prevHome === undefined) delete process.env.HOME;
     else process.env.HOME = prevHome;
+    if (prevUserProfile === undefined) delete process.env.USERPROFILE;
+    else process.env.USERPROFILE = prevUserProfile;
     for (const d of dirs) rmSync(d, { recursive: true, force: true });
   });
 
@@ -212,13 +220,17 @@ test('team-skills cache is keyed by repoRoot — projects never see each other\'
 test('workspace org skills repos join every project\'s team skills; invalidation re-reads them', async (t) => {
   const home = mkdtempSync(join(tmpdir(), 'onni-home-'));
   const prevHome = process.env.HOME;
+  const prevUserProfile = process.env.USERPROFILE;
   const prevOnni = process.env.ONNI_HOME;
+  process.env.USERPROFILE = home; // os.homedir() reads USERPROFILE on Windows.
   process.env.HOME = home;
   process.env.ONNI_HOME = join(home, '.onni');
   const dirs: string[] = [home];
   t.after(() => {
     if (prevHome === undefined) delete process.env.HOME;
     else process.env.HOME = prevHome;
+    if (prevUserProfile === undefined) delete process.env.USERPROFILE;
+    else process.env.USERPROFILE = prevUserProfile;
     if (prevOnni === undefined) delete process.env.ONNI_HOME;
     else process.env.ONNI_HOME = prevOnni;
     for (const d of dirs) rmSync(d, { recursive: true, force: true });
@@ -281,11 +293,15 @@ test('workspace org skills repos join every project\'s team skills; invalidation
 test('skillsDirOnly: only files under a skills/ folder are skills, at any depth', async (t) => {
   const home = mkdtempSync(join(tmpdir(), 'onni-home-'));
   const prevHome = process.env.HOME;
+  const prevUserProfile = process.env.USERPROFILE;
+  process.env.USERPROFILE = home; // os.homedir() reads USERPROFILE on Windows.
   process.env.HOME = home;
   const src = mkdtempSync(join(tmpdir(), 'onni-src-depth-'));
   t.after(() => {
     if (prevHome === undefined) delete process.env.HOME;
     else process.env.HOME = prevHome;
+    if (prevUserProfile === undefined) delete process.env.USERPROFILE;
+    else process.env.USERPROFILE = prevUserProfile;
     rmSync(home, { recursive: true, force: true });
     rmSync(src, { recursive: true, force: true });
   });
@@ -357,13 +373,17 @@ test('a project listing its own skillsRepos loads them ungated, and an invalid v
 test('a project listing one repo at two refs keeps both; org repos only drop duplicates by identity', async (t) => {
   const home = mkdtempSync(join(tmpdir(), 'onni-home-'));
   const prevHome = process.env.HOME;
+  const prevUserProfile = process.env.USERPROFILE;
   const prevOnni = process.env.ONNI_HOME;
+  process.env.USERPROFILE = home; // os.homedir() reads USERPROFILE on Windows.
   process.env.HOME = home;
   process.env.ONNI_HOME = join(home, '.onni');
   const dirs: string[] = [home];
   t.after(() => {
     if (prevHome === undefined) delete process.env.HOME;
     else process.env.HOME = prevHome;
+    if (prevUserProfile === undefined) delete process.env.USERPROFILE;
+    else process.env.USERPROFILE = prevUserProfile;
     if (prevOnni === undefined) delete process.env.ONNI_HOME;
     else process.env.ONNI_HOME = prevOnni;
     for (const d of dirs) rmSync(d, { recursive: true, force: true });

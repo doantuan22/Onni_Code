@@ -269,12 +269,13 @@ The supported dev machine here is Windows 11 with Git Bash.
   on, `cargo build` / `cargo test` / `cargo check` fail with os error 4551; without Developer
   Mode, tests that create symlinks fail with `EPERM` (the desktop and the version layout use
   junctions instead, but test fixtures still symlink).
-- `npm run test:unit` runs the `node:test` suite under `/bin/sh`. Native Windows Node cannot
-  execute that path, so `test-env-launcher.test.ts` fails with `spawnSync /bin/sh ENOENT`. Run
-  it under WSL or let CI cover it; do not "fix" it by skipping.
-- `npm test` on native Windows fails ~340 tests, nearly all environment-shaped: `EPERM` while
-  cleaning temp/worktree dirs, `chmod` modes (`0600` vs `0666`), `/bin/sh`, POSIX paths. Treat CI
-  as the authority; do not chase these locally.
+- `npm run test:unit` discovers Git Bash on Windows for its launcher fixtures. Keep Git for
+  Windows available; cold boot, reuse and native-PID shutdown must still be exercised. Do not
+  "fix" a missing runtime by skipping tests.
+- `npm test` caps the native Windows worker pool at four to bound real Git/CIM/process-tree
+  fixture load. Run OS-backed tests with ordinary host access: a tool sandbox may deny CIM or
+  process termination. Never weaken ownership fences to hide those restrictions. CI/Linux
+  remains the cross-platform authority.
 - `npm run test:e2e` shells out to `.ai/scripts/e2e.sh`; it needs `sh` on PATH and a provisioned
   browser provider. `.ai/scripts/test-env-up.sh` and `test-env-down.sh` are plain `sh` too — run
   them from Git Bash, since `cmd` and PowerShell report `'.ai' is not recognized`.

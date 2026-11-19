@@ -1,13 +1,16 @@
 import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import { lifecycleCommandFingerprint, renderLifecycleCommand, validateLifecycleCommand } from './templates.ts';
+import { BASH_MISSING_MESSAGE, resolveBash, withBashPath } from '../core/bash-path.ts';
 
 const context = { root_path: '/tmp/project', worktree_path: '/tmp/task', worktree_id: 'onni-123', task_id: '123' };
 describe('lifecycle command rendering', () => {
   it('round-trips adversarial values as a single shell word with static suffixes', () => {
     const path = '/tmp/space \' " $HOME; $(echo INJECTED) `echo bad` 雪 {{task_id}}';
     const command = renderLifecycleCommand('printf "%s\\n" {{ root_path }}/file {{worktree_path}}', { ...context, root_path: path, worktree_path: path });
-    expect(execFileSync('bash', ['-c', command], { encoding: 'utf8' })).toBe(`${path}/file\n${path}\n`);
+    const bash = resolveBash();
+    if (!bash) throw new Error(BASH_MISSING_MESSAGE);
+    expect(execFileSync(bash.path, ['-c', command], { encoding: 'utf8', env: withBashPath(process.env, bash) })).toBe(`${path}/file\n${path}\n`);
   });
   it.each([
     'echo "{{root_path}}"', "echo '{{root_path}}'", 'echo `echo {{root_path}}`',

@@ -1,15 +1,20 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, test } from 'node:test';
+import { BASH_MISSING_MESSAGE, resolveBash, withBashPath } from '../../src/core/bash-path.ts';
 
 // The scripts under test are the REPO's, not this package's: `.ai/` is agent-pipeline tooling
 // that spans every workspace, so it stays at the root.
 const repoRoot = resolve(import.meta.dirname, '../../../..');
 const fixtures: string[] = [];
 const launchedPids = new Set<number>();
+const bash = resolveBash();
+if (!bash) throw new Error(BASH_MISSING_MESSAGE);
+const shell = bash.path;
+const shellEnv = withBashPath(process.env, bash);
 
 afterEach(() => {
   for (const pid of launchedPids) {
@@ -24,10 +29,13 @@ afterEach(() => {
 });
 
 function commandPath(command: string): string {
-  return execFileSync('/bin/sh', ['-c', `command -v ${command}`], { encoding: 'utf8' }).trim();
+  const script = process.platform === 'win32'
+    ? `p=$(command -v ${command}); case "$p" in /*) cygpath -w "$p" ;; *) printf '%s' "$p" ;; esac`
+    : `command -v ${command}`;
+  return execFileSync(shell, ['-c', script], { encoding: 'utf8', env: shellEnv }).trim();
 }
 
-const hasSetsid = spawnSync('/bin/sh', ['-c', 'command -v setsid'], { stdio: 'ignore' }).status === 0;
+const hasSetsid = spawnSync(shell, ['-c', 'command -v setsid'], { stdio: 'ignore', env: shellEnv }).status === 0;
 
 function makeFixture(withSetsid: boolean): { root: string; path: string } {
   const root = mkdtempSync(join(tmpdir(), 'onni-test-env-launcher-'));
@@ -49,8 +57,12 @@ function makeFixture(withSetsid: boolean): { root: string; path: string } {
 
   const commands = ['cat', 'chmod', 'curl', 'date', 'dirname', 'find', 'grep', 'id', 'kill', 'mkdir', 'mv', 'nohup', 'pwd', 'rm', 'sh', 'sleep', 'tail', 'uname'];
   if (withSetsid) commands.push('setsid');
-  for (const command of commands) symlinkSync(commandPath(command), join(root, 'bin', command));
-  symlinkSync(process.execPath, join(root, 'bin/node'));
+  for (const command of commands) {
+    const target = commandPath(command);
+    const extension = process.platform === 'win32' && target.endsWith('.exe') ? '.exe' : '';
+    symlinkSync(target, join(root, 'bin', `${command}${extension}`));
+  }
+  symlinkSync(process.execPath, join(root, 'bin', process.platform === 'win32' ? 'node.exe' : 'node'));
 
   writeFileSync(
     join(root, 'bin/npm'),
@@ -105,9 +117,9 @@ for (const withSetsid of [true, false]) {
       const down = join(fixture.root, '.ai/scripts/test-env-down.sh');
       const callerPidFile = join(fixture.root, 'caller.pid');
 
-      const coldCommand = withSetsid ? commandPath('setsid') : '/bin/sh';
+      const coldCommand = withSetsid ? commandPath('setsid') : shell;
       const coldArgs = withSetsid
-        ? ['/bin/sh', '-c', 'echo $$ > "$2"; sh "$1"', 'launcher-parent', up, callerPidFile]
+        ? [shell, '-c', 'echo $$ > "$2"; sh "$1"', 'launcher-parent', up, callerPidFile]
         : ['-c', 'echo $$ > "$2"; sh "$1"', 'launcher-parent', up, callerPidFile];
       const cold = spawnSync(coldCommand, coldArgs, {
         cwd: tmpdir(),
@@ -115,7 +127,8 @@ for (const withSetsid of [true, false]) {
         env,
         timeout: 20_000,
       });
-      assert.equal(cold.status, 0, cold.stderr);
+      const appLog = join(fixture.root, '.ai/qa/test-env-app.log');
+      assert.equal(cold.status, 0, cold.stderr + (existsSync(appLog) ? readFileSync(appLog, 'utf8') : ''));
       assert.match(cold.stdout, /TEST_ENV_REUSED=0/);
 
       const first = descriptor(fixture.root);
@@ -133,12 +146,12 @@ for (const withSetsid of [true, false]) {
       const health = await fetch(`${first.baseUrl}/api/health`).then((response) => response.json());
       assert.deepEqual(health, { ok: true });
 
-      const warm = spawnSync('/bin/sh', [up], { encoding: 'utf8', env, timeout: 20_000 });
+      const warm = spawnSync(shell, [up], { encoding: 'utf8', env, timeout: 20_000 });
       assert.equal(warm.status, 0, warm.stderr);
       assert.match(warm.stdout, /TEST_ENV_REUSED=1/);
       assert.equal(descriptor(fixture.root).app.pid, first.app.pid);
 
-      const stopped = spawnSync('/bin/sh', [down], { encoding: 'utf8', env, timeout: 20_000 });
+      const stopped = spawnSync(shell, [down], { encoding: 'utf8', env, timeout: 20_000 });
       assert.equal(stopped.status, 0, stopped.stderr);
       assert.match(stopped.stdout, /TEST_ENV_STATUS=stopped/);
       assert.throws(() => process.kill(first.app.pid, 0));

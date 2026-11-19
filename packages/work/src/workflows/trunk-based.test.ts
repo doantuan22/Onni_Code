@@ -159,7 +159,7 @@ describe('trunk-based projects', { timeout: 20_000 }, () => {
     const record = manager.startRun(SINGLE_STEP, { task: 'mock:pause' });
     writeFileSync(join(repoRoot, 'person.md'), 'half-done\n');
     // Finish answers false until the session is open; the mock's turn then holds ~2 s.
-    await waitFor(record.id, (r) => r?.status === 'running' && manager.finish(record.id), 1_500);
+    await waitFor(record.id, (r) => r?.status === 'running' && manager.finish(record.id));
     await new Promise((r) => setTimeout(r, 300));
     expect(store.getRun(record.id)?.landing).toBeUndefined();
     expect(await head()).toBe(before);

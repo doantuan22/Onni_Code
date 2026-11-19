@@ -93,10 +93,16 @@ describe('the worktrees API', () => {
     expect(byRun[reviewId]!.reclaimable).toBe(false); // review is spared
     expect(byRun[runningId]!.reclaimable).toBe(false); // live work
 
-    // Shape + real du sizes on this (POSIX) host.
+    // #483: missing du blanks sizes without breaking the listing or reclamation.
     expect(byRun[doneId]!.branch).toMatch(/^onni\//);
-    expect(typeof byRun[doneId]!.sizeBytes).toBe('number');
-    expect(body.totalBytes).not.toBeNull();
+    const duAvailable = await run('du', ['-sk', repoRoot]).then(() => true, () => false);
+    if (duAvailable) {
+      expect(byRun[doneId]!.sizeBytes).toBeGreaterThan(0);
+      expect(body.totalBytes).toBeGreaterThan(0);
+    } else {
+      expect(body.worktrees.every(worktree => worktree.sizeBytes === null)).toBe(true);
+      expect(body.totalBytes).toBeNull();
+    }
   });
 
   it('reflects the configured keep-limit', async () => {

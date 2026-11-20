@@ -106,6 +106,22 @@ describe('a teardown onni initiated (codex app-server)', () => {
   }, 15_000);
 });
 
+describe('an app-server that dies before answering initialize', () => {
+  const mockBin = fileURLToPath(
+    new URL('./__fixtures__/codex/mock-codex-app-server.mjs', import.meta.url),
+  );
+
+  it('fails with the exit code and stderr instead of hanging at running', async () => {
+    const session = new CodexAppServerRunner({ bin: mockBin, timeoutMs: 0 }).startSession(
+      { userPrompt: 'anything', cwd: process.cwd(), env: { MOCK_CODEX_DIE_ON_START: '1' } },
+      () => undefined,
+      { autoEndAfterFirstTurn: true },
+    );
+
+    await expect(session.result).rejects.toThrow(/exited with code 7 before answering.*cannot start/s);
+  }, 15_000);
+});
+
 describe('a model the ChatGPT-plan login cannot use (1350055f)', () => {
   const mockBin = fileURLToPath(
     new URL('./__fixtures__/codex/mock-codex-app-server.mjs', import.meta.url),

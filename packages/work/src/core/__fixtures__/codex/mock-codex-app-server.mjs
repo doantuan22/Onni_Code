@@ -89,6 +89,13 @@ function resumeLocked() {
   return locked === 'always' || lockedResumes <= Number(locked);
 }
 
+// `MOCK_CODEX_DIE_ON_START=1`: exit 7 with a stderr line before answering `initialize` — a
+// binary that cannot start (bad shim, broken config). The run must fail, not sit at `running`.
+if (process.env.MOCK_CODEX_DIE_ON_START === '1') {
+  process.stderr.write('mock codex: cannot start\n');
+  process.exit(7);
+}
+
 const ignoreEof = process.env.MOCK_CODEX_IGNORE_EOF === '1';
 if (ignoreEof) {
   process.on('SIGTERM', () => process.exit(143));

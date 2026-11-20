@@ -235,13 +235,28 @@ class CodexSession implements AgentSession {
             this.emitUi((state) => mapCodexNotification(msg, state));
             this.dispatch(msg);
           }
+          // stdout is closed, so no JSON-RPC response can ever arrive again. Without this, a
+          // child that dies before answering `initialize`/`thread/start` (bad shim, config
+          // error, crash on a third-party provider) left `bootstrap` awaiting forever while
+          // `Promise.all` waited on it: the run sat at `running` with no output at all.
+          if (this.timedOut || this.terminatedByOnni) {
+            this.rpc.rejectPending();
+          } else {
+            const code = await waitForCodexAppServerExit(this.child);
+            const stderr = stderrChunks.join('').trim();
+            const detail = stderr ? ` — ${stderr.split('\n').slice(-3).join(' | ')}` : '';
+            this.rpc.rejectPending(
+              `codex app-server exited${code !== null ? ` with code ${code}` : ''} before answering${detail}`,
+            );
+          }
         };
         // Start consuming stdout before awaiting bootstrap: JSON-RPC responses
         // read here settle the initialize/thread/turn requests. Owning both
         // promises makes every bootstrap rejection part of session.result.
         await Promise.all([this.ready, readLoop()]);
       } catch (err) {
-        if (!this.timedOut) {
+        // Our own cancel/kill rejecting an in-flight bootstrap is a teardown, not a codex failure (#703).
+        if (!this.timedOut && !this.terminatedByOnni) {
           sessionError = err;
           // Bootstrap failed before a usable turn exists. Closing stdin lets
           // app-server exit normally; end() also owns the TERM/KILL watchdog

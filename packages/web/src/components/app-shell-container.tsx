@@ -2,7 +2,7 @@ import { memo, useEffect, useMemo, type ReactNode } from 'react'
 import { useLocation } from 'react-router'
 
 import { useHealth, useProjectRuns, useProjects, useRunsForProject, useTodos, useWorkspaceConfig } from '@/api/queries'
-import type { HealthResponse } from '@onni/api-client'
+import type { HealthResponse, ProjectsResponse } from '@onni/api-client'
 import { AppShell, type RepoChip } from '@/components/app-shell'
 import { CommandPalette } from '@/components/command-palette'
 import { TaskPalette } from '@/components/task-palette/task-palette'
@@ -37,6 +37,30 @@ export function repoChipOf(health: HealthResponse | undefined): RepoChip | null 
   const name = repo.root.replace(/[\\/]+$/, '').split(/[\\/]/).pop()
   if (!name) return null
   return { name, branch: repo.branch }
+}
+
+/**
+ * The brand chip for the project the user is IN, not for whatever folder the server booted in.
+ * `health.repo` always describes the boot folder, so after that project was removed from the
+ * registry the chip kept saying "PIXEL_GAME / main" on every other project's pages. The active
+ * registry entry wins (the boot project keeps the live health branch, #369); with the registry
+ * loaded and the boot project no longer in it, there is nothing true to show outside it.
+ */
+export function shellRepoChip(
+  health: HealthResponse | undefined,
+  registry: ProjectsResponse | undefined,
+  projectId: string | null,
+  bootProjectId: string | null,
+): RepoChip | null {
+  const active = registry?.projects.find((project) => project.id === projectId)
+  if (active) {
+    if (active.id === bootProjectId) return repoChipOf(health)
+    return active.branch ? { name: active.name, branch: active.branch } : null
+  }
+  if (registry && bootProjectId !== null && !registry.projects.some((project) => project.id === bootProjectId)) {
+    return null
+  }
+  return repoChipOf(health)
 }
 
 /**
@@ -118,8 +142,8 @@ export const AppShellContainer = memo(function AppShellContainer({ children }: {
   // an existing user boots the new version in their usual repo and sees no difference.
   const projects = registry && registry.projects.length > 1 ? registry : null
   const repo = useMemo(
-    () => repoChipOf(health.data),
-    [health.data?.repo?.root, health.data?.repo?.branch],
+    () => shellRepoChip(health.data, registry, projectId, bootProjectId),
+    [health.data?.repo?.root, health.data?.repo?.branch, registry, projectId, bootProjectId],
   )
   const banner = useMemo(() => <ProviderBannerContainer />, [])
   const taskQuickList = useMemo(() => <TaskQuickListContainer />, [])

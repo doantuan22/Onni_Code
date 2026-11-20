@@ -11,7 +11,7 @@ import type {
   ProviderStatusResponse,
   RunRecord,
 } from '@onni/api-client'
-import { AppShellContainer, repoChipOf } from '@/components/app-shell-container'
+import { AppShellContainer, repoChipOf, shellRepoChip } from '@/components/app-shell-container'
 import { ThemeProvider } from '@/components/theme-provider'
 
 const fetchMock = vi.fn<typeof fetch>()
@@ -166,6 +166,29 @@ describe('repoChipOf', () => {
   it('is null while health is unknown, and outside a git repo', () => {
     expect(repoChipOf(undefined)).toBeNull()
     expect(repoChipOf({ ...HEALTH, repo: null })).toBeNull()
+  })
+})
+
+describe('shellRepoChip', () => {
+  const health = { ...HEALTH, repo: { root: 'D:/PIXEL_GAME', branch: 'main' } }
+  const entry = (id: string, name: string, branch?: string) => ({
+    id, root: `D:/${name}`, name, addedAt: '', lastOpenedAt: '', source: 'local' as const, status: 'ok' as const,
+    ...(branch ? { branch } : {}),
+  })
+
+  it('does not keep naming a boot project that was removed from the registry', () => {
+    const registry = { projects: [entry('onnicode', 'OnniCode', 'dev')], bootProject: 'pixel-game', projectsDir: '~/onni/projects' }
+    expect(shellRepoChip(health, registry, 'onnicode', 'pixel-game')).toEqual({ name: 'OnniCode', branch: 'dev' })
+    expect(shellRepoChip(health, registry, null, 'pixel-game')).toBeNull()
+  })
+
+  it('keeps the live health branch for a registered boot project', () => {
+    const registry = { projects: [entry('pixel-game', 'PIXEL_GAME', 'old')], bootProject: 'pixel-game', projectsDir: '~/onni/projects' }
+    expect(shellRepoChip(health, registry, 'pixel-game', 'pixel-game')).toEqual({ name: 'PIXEL_GAME', branch: 'main' })
+  })
+
+  it('falls back to health while the registry is still unknown', () => {
+    expect(shellRepoChip(health, undefined, null, null)).toEqual({ name: 'PIXEL_GAME', branch: 'main' })
   })
 })
 

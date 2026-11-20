@@ -148,8 +148,12 @@ async function handle(frame) {
       });
     }
 
-    // A beat, so a cancel arriving mid-turn is actually mid-turn.
-    await sleep(20);
+    // Hold the cancellation fixture open even when the test worker is busy.
+    if (process.env.ONNI_MOCK_COPILOT_PROMPT_HANGS === 'until-cancel') {
+      while (!cancelled) await sleep(20);
+    } else {
+      await sleep(20);
+    }
     if (cancelled) {
       answer(id, { stopReason: 'cancelled', usage: { inputTokens: 8, outputTokens: 0, totalTokens: 8 } });
       return;

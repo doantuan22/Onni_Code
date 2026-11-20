@@ -129,8 +129,10 @@ public static class OnniTaskJobLauncher {
             startup.hStdInput = GetStdHandle(-10);
             startup.hStdOutput = GetStdHandle(-11);
             startup.hStdError = GetStdHandle(-12);
-            if (!CreateProcessW(file, commandLine, IntPtr.Zero, IntPtr.Zero, true, CREATE_SUSPENDED, IntPtr.Zero, currentDirectory, ref startup, out process))
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateProcessW failed");
+            if (!CreateProcessW(file, commandLine, IntPtr.Zero, IntPtr.Zero, true, CREATE_SUSPENDED, IntPtr.Zero, currentDirectory, ref startup, out process)) {
+                int error = Marshal.GetLastWin32Error();
+                throw new Win32Exception(error, "CreateProcessW failed (win32=" + error + ": " + new Win32Exception(error).Message + ")");
+            }
 
             if (!AssignProcessToJobObject(job, process.hProcess)) {
                 int error = Marshal.GetLastWin32Error();
@@ -163,6 +165,10 @@ public static class OnniTaskJobLauncher {
   $exitCode = [OnniTaskJobLauncher]::Run([string]$payload.file, $arguments, [string]$payload.cwd)
   exit $exitCode
 } catch {
-  [Console]::Error.WriteLine("onni-windows-job: $($_.Exception.Message)")
+  # spec 2026-11-20-windows-agent-launch-audit: preserve native errors without logging prompt argv.
+  $reason = $_.Exception.GetBaseException().Message -replace '[\r\n]+', ' '
+  $context = if ($payload) { " executable=$($payload.file) cwd=$($payload.cwd)" } else { '' }
+  $context = $context -replace '[\r\n]+', ' '
+  [Console]::Error.WriteLine("onni-windows-job: $reason$context")
   exit 125
 }

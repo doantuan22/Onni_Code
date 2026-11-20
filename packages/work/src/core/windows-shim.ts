@@ -33,6 +33,8 @@ export interface ShimOptions {
   nodePath?: string;
   /** Where `PATH` and `PATHEXT` come from; defaults to `process.env`. */
   env?: NodeJS.ProcessEnv;
+  /** Resolve relative launchers against the child directory, not the engine directory. */
+  cwd?: string;
 }
 
 /** What a shim launches: a node script, or a native binary it calls directly (opencode). */
@@ -135,10 +137,17 @@ export function spawnableCommand(
   opts: ShimOptions = {},
 ): [string, string[]] {
   if ((opts.platform ?? process.platform) !== 'win32') return [program, [...args]];
-  const found = resolveOnPath(program, opts.env ?? process.env) ?? program;
+  let found = resolveOnPath(program, opts.env ?? process.env) ?? program;
+  // spec 2026-11-20-windows-agent-launch-audit: CreateProcessW's explicit application
+  // name cannot execute the POSIX twin beside an explicitly selected Windows binary.
+  if (extname(found) === '' && (isAbsolute(found) || /[\\/]/.test(found))) {
+    const executable = resolve(opts.cwd ?? process.cwd(), `${found}.exe`);
+    if (existsSync(executable)) found = executable;
+  }
   const ext = extname(found).toLowerCase();
   const nodePath = opts.nodePath ?? process.execPath;
-  const shimPath = isAbsolute(found) ? found : resolve(found);
+  const shimPath = isAbsolute(found) ? found : resolve(opts.cwd ?? process.cwd(), found);
+  if (ext === '' && hasNodeShebang(shimPath)) return [nodePath, [shimPath, ...args]];
   if (SCRIPT_EXTENSIONS.has(ext) && existsSync(shimPath)) return [nodePath, [shimPath, ...args]];
   if (!SHIM_EXTENSIONS.has(ext)) return [found, [...args]];
   const target = shimTarget(shimPath);

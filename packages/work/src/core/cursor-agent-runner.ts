@@ -1,3 +1,4 @@
+import { BoundedDiagnostics } from './bounded-diagnostics.ts';
 /**
  * Cursor Agent CLI runner (`agent`) — headless print mode.
  *
@@ -209,7 +210,7 @@ export class CursorAgentRunner implements AgentRunner {
     // A `result` frame with `is_error: true` can still exit 0 — the stream is the source of
     // truth for whether the turn failed, not the process exit code.
     let resultError: string | undefined;
-    const stderrChunks: string[] = [];
+    const stderrChunks = new BoundedDiagnostics();
 
     let uiState = createCursorUiState({ fallbackSessionId: spec.sessionId });
     const emitUi = (map: (state: typeof uiState) => CursorUiMapping): void => {
@@ -299,7 +300,7 @@ export class CursorAgentRunner implements AgentRunner {
       }
 
       if (exitCode !== 0 && exitCode !== null) {
-        const stderr = stderrChunks.join('').trim();
+        const stderr = stderrChunks.text().trim();
         const detail = stderr ? ` — ${stderr.split('\n').slice(-3).join(' | ')}` : '';
         const msg = `cursor agent exited with code ${exitCode}${detail}`;
         onEvent?.({ type: 'error', message: msg });
@@ -315,7 +316,7 @@ export class CursorAgentRunner implements AgentRunner {
     })();
 
     // One decoder per stream: a character cut between two chunks must not become U+FFFD.
-    const stderrText = utf8Collector((text) => stderrChunks.push(text));
+    const stderrText = utf8Collector((text) => stderrChunks.append(text));
     child.stderr.on('data', (buf: Buffer) => stderrText.write(buf));
     child.stderr.on('end', () => stderrText.end());
 

@@ -57,10 +57,11 @@ export function spawnJunieAcp(
 ): ChildProcessWithoutNullStreams {
   try {
     // npm installs junie as `junie.cmd` on Windows (a330744e).
-    const [file, argv] = spawnableCommand(bin, ['--acp=true', '-p', cwd]);
+    const env = buildJunieAcpEnv(extraEnv);
+    const [file, argv] = spawnableCommand(bin, ['--acp=true', '-p', cwd], { env, cwd });
     return spawnTaskProcess(file, argv, {
       cwd,
-      env: buildJunieAcpEnv(extraEnv),
+      env,
     });
   } catch (error) {
     throw junieSpawnError(error, bin);
@@ -72,6 +73,7 @@ export function spawnJunieAcp(
  *  vocabulary (`junieErrorText`) does not leak into the codex transport. */
 export class JunieAcpRpc {
   private nextId = 1;
+  private closedReason: string | undefined;
   private readonly pending = new Map<number, PendingRequest>();
 
   constructor(readonly child: ChildProcessWithoutNullStreams) {
@@ -87,6 +89,7 @@ export class JunieAcpRpc {
   }
 
   request(method: string, params: unknown): Promise<Record<string, unknown>> {
+    if (this.closedReason) return Promise.reject(new Error(this.closedReason));
     const id = this.allocateId();
     const promise = new Promise<Record<string, unknown>>((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
@@ -119,6 +122,7 @@ export class JunieAcpRpc {
   }
 
   rejectPending(message = 'junie exited'): void {
+    this.closedReason ??= message;
     for (const request of this.pending.values()) request.reject(new Error(message));
     this.pending.clear();
   }

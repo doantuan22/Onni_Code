@@ -240,9 +240,11 @@ describe('CopilotAcpRunner — session lifecycle', () => {
 
   it('cancel settles the turn as cancelled and leaves a usable result', async () => {
     const c = collect();
-    const session = new CopilotAcpRunner({ bin: MOCK }).startSession({ userPrompt: 'long job', cwd }, c.onEvent, {
-      onUiEvent: c.onUiEvent,
-    });
+    const session = new CopilotAcpRunner({ bin: MOCK }).startSession(
+      { userPrompt: 'long job', cwd, env: { ONNI_MOCK_COPILOT_PROMPT_HANGS: 'until-cancel' } },
+      c.onEvent,
+      { onUiEvent: c.onUiEvent },
+    );
     await waitFor(() => c.ui.some((e) => e.type === 'item.started' && e.item.kind === 'tool'));
     session.interrupt();
     await session.result;

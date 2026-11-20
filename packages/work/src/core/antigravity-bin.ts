@@ -2,7 +2,7 @@ import { statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { delimiter, dirname, join, resolve as resolvePath } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawnableCommand } from './windows-shim.ts';
+import { spawnableCommand, type ShimOptions } from './windows-shim.ts';
 
 /** True when `path` is an existing regular file (the executable bit is not meaningful on Windows). */
 function isFile(path: string): boolean {
@@ -51,15 +51,15 @@ export function mockAntigravityPath(): string {
  * bundled mock — a dry run never reaches the real agy, not even for `--version` or `models` — else
  * the real one. The mock implements `--version`, `models` and `-p`.
  */
-export function resolveAntigravityExecutable(optsBin?: string): string {
+export function resolveAntigravityExecutable(optsBin?: string, env: NodeJS.ProcessEnv = process.env): string {
   if (optsBin) return optsBin;
-  if (process.env.ONNI_ANTIGRAVITY_BIN) return process.env.ONNI_ANTIGRAVITY_BIN;
-  if (process.env.ONNI_DRY_RUN === '1') return mockAntigravityPath();
-  return resolveAntigravityBin();
+  if (env.ONNI_ANTIGRAVITY_BIN) return env.ONNI_ANTIGRAVITY_BIN;
+  if (env.ONNI_DRY_RUN === '1') return mockAntigravityPath();
+  return resolveAntigravityBin(undefined, env);
 }
 
 /** `[file, argv]` for a spawn: a `.mjs` mock runs under this node, a native exe runs as is. */
-export function antigravityLaunch(bin: string, args: readonly string[]): [string, string[]] {
+export function antigravityLaunch(bin: string, args: readonly string[], options: ShimOptions = {}): [string, string[]] {
   if (/\.[cm]?js$/.test(bin)) return [process.execPath, [bin, ...args]];
-  return spawnableCommand(bin, args);
+  return spawnableCommand(bin, args, options);
 }

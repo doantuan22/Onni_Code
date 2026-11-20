@@ -1,3 +1,4 @@
+import { BoundedDiagnostics } from './bounded-diagnostics.ts';
 import { emitUsageWindows, normalizeCodexUsageWindows } from './usage-windows.ts';
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 import type {
@@ -190,9 +191,9 @@ class CodexSession implements AgentSession {
     this.child.on('error', (err: NodeJS.ErrnoException) => {
       this.spawnFailed = codexSpawnError(err, bin);
     });
-    const stderrChunks: string[] = [];
+    const stderrChunks = new BoundedDiagnostics();
     this.child.stderr.setEncoding('utf8');
-    this.child.stderr.on('data', (chunk: string) => stderrChunks.push(chunk));
+    this.child.stderr.on('data', (chunk: string) => stderrChunks.append(chunk));
 
     // Optional inactivity kill switch (disabled for interactive sessions).
     const limitMs = spec.timeoutMs ?? timeoutMs;
@@ -243,7 +244,7 @@ class CodexSession implements AgentSession {
             this.rpc.rejectPending();
           } else {
             const code = await waitForCodexAppServerExit(this.child);
-            const stderr = stderrChunks.join('').trim();
+            const stderr = stderrChunks.text().trim();
             const detail = stderr ? ` — ${stderr.split('\n').slice(-3).join(' | ')}` : '';
             this.rpc.rejectPending(
               `codex app-server exited${code !== null ? ` with code ${code}` : ''} before answering${detail}`,
@@ -308,7 +309,7 @@ class CodexSession implements AgentSession {
       }
 
       if (exitCode !== 0 && exitCode !== null) {
-        const stderr = stderrChunks.join('').trim();
+        const stderr = stderrChunks.text().trim();
         const detail = stderr ? ` — ${stderr.split('\n').slice(-3).join(' | ')}` : '';
         const message = `codex app-server exited with code ${exitCode}${detail}`;
         this.emit({ type: 'error', message });

@@ -3,6 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { jobKeyForEnv, processJobs } from './process-jobs.ts';
+import { spawnableCommand } from './windows-shim.ts';
+import { assertWindowsCommandLine } from './windows-command-line.ts';
 
 const INTERNAL_JOB_PAYLOAD = 'ONNI_INTERNAL_TASK_JOB_PAYLOAD';
 const WINDOWS_JOB_SPAWN = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../scripts/windows-job-spawn.ps1');
@@ -36,11 +38,16 @@ function spawnOwned(
 ): ChildProcessWithoutNullStreams {
   if (process.platform !== 'win32' || !env.ONNI_TASK_ID) {
     // Model discovery has no task id, but still runs behind the Windows desktop.
+    if (process.platform === 'win32') assertWindowsCommandLine(file, args);
     return nodeSpawn(file, [...args], { ...options, windowsHide: true });
   }
 
   const cwd = options.cwd instanceof URL ? fileURLToPath(options.cwd) : options.cwd ?? process.cwd();
-  const payload = Buffer.from(JSON.stringify({ file, args, cwd: path.resolve(cwd) })).toString('base64');
+  // spec 2026-11-20-windows-agent-launch-audit: explicit CreateProcessW application
+  // names do not get Node's PATH search. Normalize at the shared task boundary too.
+  const [executable, argv] = spawnableCommand(file, args, { env, cwd });
+  assertWindowsCommandLine(executable, argv);
+  const payload = Buffer.from(JSON.stringify({ file: executable, args: argv, cwd: path.resolve(cwd) })).toString('base64');
   const wrapperEnv = { ...env, [INTERNAL_JOB_PAYLOAD]: payload };
   const systemRoot = process.env.SystemRoot ?? process.env.SYSTEMROOT ?? env.SystemRoot ?? env.SYSTEMROOT ?? 'C:\\Windows';
   const powershell = path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');

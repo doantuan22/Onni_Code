@@ -24,7 +24,7 @@ type Exec = (bin: string, args: string[], env: NodeJS.ProcessEnv, timeoutMs: num
 
 const realExec: Exec = (bin, args, env, timeoutMs) =>
   new Promise((resolve, reject) => {
-    const [file, argv] = antigravityLaunch(bin, args);
+    const [file, argv] = antigravityLaunch(bin, args, { env });
     execFile(file, argv, { env, timeout: timeoutMs, maxBuffer: 2 * 1024 * 1024, windowsHide: true }, (err, stdout, stderr) => {
       if (err) reject(Object.assign(err, { stdout, stderr }));
       else resolve({ stdout, stderr });
@@ -54,11 +54,11 @@ async function probe<T>(
   parse: (stdout: string) => T | undefined,
   options: AntigravityProbeOptions,
 ): Promise<AntigravityProbe<T>> {
-  const bin = resolveAntigravityExecutable(options.bin);
+  const env = options.env ?? buildChildEnv({ backend: 'antigravity' });
+  const bin = resolveAntigravityExecutable(options.bin, env);
   const key = `${kind}|${bin}`;
   const hit = cache.get(key);
   if (!options.fresh && !options.exec && hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.result as AntigravityProbe<T>;
-  const env = options.env ?? buildChildEnv({ backend: 'antigravity' });
   let result: AntigravityProbe<T>;
   try {
     const { stdout } = await (options.exec ?? realExec)(bin, args, env, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);

@@ -1,3 +1,4 @@
+import { BoundedDiagnostics } from './bounded-diagnostics.ts';
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 import { dirname, resolve as resolvePath } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -160,7 +161,7 @@ class ClineAcpSession implements AgentSession {
   private tokensUsed = 0;
   /** Items (text or tool calls) the current turn produced; zero at `end_turn` means it did nothing. */
   private turnOutputs = 0;
-  private readonly stderr: string[] = [];
+  private readonly stderr = new BoundedDiagnostics();
   private spawnError: Error | null = null;
   private autoEndTimer: NodeJS.Timeout | undefined;
   private readonly timers: NodeJS.Timeout[] = [];
@@ -173,8 +174,9 @@ class ClineAcpSession implements AgentSession {
     private readonly onEvent: ((event: AgentEvent) => void) | undefined,
     private readonly opts: SessionOptions,
   ) {
-    const [file, argv] = spawnableCommand(bin, buildClineArgs());
-    this.child = spawnTaskProcess(file, argv, { cwd: spec.cwd, env: buildClineEnv(backend, spec.env) });
+    const env = buildClineEnv(backend, spec.env);
+    const [file, argv] = spawnableCommand(bin, buildClineArgs(), { env, cwd: spec.cwd });
+    this.child = spawnTaskProcess(file, argv, { cwd: spec.cwd, env });
     this.pid = this.child.pid;
     this.hasExited = trackChildExit(this.child);
     // EPIPE from a write racing the child's exit arrives as an async 'error' (acfb01e4).
@@ -186,7 +188,7 @@ class ClineAcpSession implements AgentSession {
           : error;
     });
     this.child.stderr.setEncoding('utf8');
-    this.child.stderr.on('data', (chunk: string) => this.stderr.push(chunk));
+    this.child.stderr.on('data', (chunk: string) => this.stderr.append(chunk));
     this.client = new AcpClient(this.child.stdin, this.child.stdout, {
       onFrame: (dir, frame) => this.onFrame(dir, frame),
       onRequest: (request) => this.onRequest(request),
@@ -535,7 +537,7 @@ class ClineAcpSession implements AgentSession {
   }
 
   private stderrText(): string {
-    return this.stderr.join('');
+    return this.stderr.text();
   }
 
   /** Close stdin, then SIGTERM→SIGKILL for a CLI that ignores EOF (#703, #844). `hard` skips the

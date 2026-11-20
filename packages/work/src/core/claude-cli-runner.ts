@@ -1,3 +1,4 @@
+import { BoundedDiagnostics } from './bounded-diagnostics.ts';
 import { emitUsageWindows, normalizeClaudeTerminalUsageLimit, normalizeClaudeUsageWindows } from './usage-windows.ts';
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -255,9 +256,9 @@ export class ClaudeCliRunner implements AgentRunner {
       spawnFailed = wrapSpawnError(err, this.bin);
     });
 
-    const stderrChunks: string[] = [];
+    const stderrChunks = new BoundedDiagnostics();
     child.stderr.setEncoding('utf8');
-    child.stderr.on('data', (chunk: string) => stderrChunks.push(chunk));
+    child.stderr.on('data', (chunk: string) => stderrChunks.append(chunk));
 
     // Optional inactivity kill switch (disabled for interactive sessions).
     const limitMs = spec.timeoutMs ?? this.timeoutMs;
@@ -375,7 +376,7 @@ export class ClaudeCliRunner implements AgentRunner {
       }
 
       if (exitCode !== 0 && exitCode !== null) {
-        const msg = claudeExitMessage(exitCode, stderrChunks.join(''));
+        const msg = claudeExitMessage(exitCode, stderrChunks.text());
         onEvent?.({ type: 'error', message: msg });
         throw new Error(msg);
       }

@@ -476,12 +476,17 @@ describe('worktree lifecycle coordinator with real Git and command fixtures', ()
 
   it('replans edits made during a running command before declaring the worktree ready', async () => {
     const p = await project();
-    const first = entry('touch started; sleep 0.2; printf first >> order');
+    const first = entry('touch started; while [ ! -e release ]; do sleep 0.02; done; printf first >> order');
     await p.config([first]);
     const preparing = p.prepare();
     const path = join(p.root, '.ai/onni/worktrees', p.id);
-    await vi.waitFor(() => expect(existsSync(join(path, 'started'))).toBe(true));
-    await p.config([first, entry('printf second >> order')]);
+    // spec 2026-11-19-windows-test-reliability: hold the command until the edit is saved.
+    try {
+      await vi.waitFor(() => expect(existsSync(join(path, 'started'))).toBe(true), {timeout: 5000});
+      await p.config([first, entry('printf second >> order')]);
+    } finally {
+      await writeFile(join(path, 'release'), 'ready');
+    }
     expect((await preparing).ready).toBe(true);
     expect(await readFile(join(path, 'order'), 'utf8')).toBe('firstsecond');
   });

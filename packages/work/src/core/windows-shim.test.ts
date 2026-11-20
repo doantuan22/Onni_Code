@@ -147,6 +147,21 @@ describe('spawnableCommand (telemetry a330744e)', () => {
     expect(spawnableCommand(shim, ['a'], { platform: 'linux' })).toEqual([shim, ['a']]);
   });
 
+  it('prefers the Windows executable beside an explicitly named extensionless launcher', () => {
+    const launcher = join(dir, 'codex');
+    writeFileSync(launcher, '#!/bin/sh\n');
+    writeFileSync(`${launcher}.exe`, 'native fixture');
+    expect(spawnableCommand(launcher, ['app-server'], { platform: 'win32' }))
+      .toEqual([`${launcher}.exe`, ['app-server']]);
+  });
+
+  it('runs an explicitly named extensionless Node entrypoint with Node', () => {
+    const script = join(dir, 'agent');
+    writeFileSync(script, '#!/usr/bin/env node\n');
+    expect(spawnableCommand(script, ['rpc'], { platform: 'win32', nodePath: 'NODE' }))
+      .toEqual(['NODE', [script, 'rpc']]);
+  });
+
   it('is what every runner spawn gets through disclaimedCommand', () => {
     const { shim, script } = npmInstall();
     const [file, argv] = disclaimedCommand(shim, ['app-server'], undefined, { platform: 'win32', hostEnv: {} });

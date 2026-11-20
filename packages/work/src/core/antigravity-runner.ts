@@ -1,3 +1,4 @@
+import { BoundedDiagnostics } from './bounded-diagnostics.ts';
 /**
  * Google Antigravity CLI runner (`agy`) — headless print mode over a pipe (ADR 0007).
  *
@@ -225,7 +226,7 @@ export function liveAntigravityChildren(): number {
 export class AntigravityRunner implements AgentRunner {
   readonly backend = 'antigravity' as const;
 
-  private readonly bin: string;
+  private readonly bin: string | undefined;
   private readonly silenceMs: number;
   private readonly startupMs: number;
   private readonly exitGraceMs: number;
@@ -233,7 +234,7 @@ export class AntigravityRunner implements AgentRunner {
   private lastSession: AgentSession | null = null;
 
   constructor(opts: AntigravityRunnerOptions = {}) {
-    this.bin = resolveAntigravityExecutable(opts.bin);
+    this.bin = opts.bin;
     this.silenceMs = opts.silenceMs ?? DEFAULT_ANTIGRAVITY_SILENCE_MS;
     this.startupMs = opts.startupMs ?? DEFAULT_ANTIGRAVITY_STARTUP_MS;
     this.exitGraceMs = opts.exitGraceMs ?? ANTIGRAVITY_EXIT_GRACE_MS;
@@ -271,25 +272,27 @@ export class AntigravityRunner implements AgentRunner {
     }
 
     let child: ChildProcessWithoutNullStreams;
+    const env = buildChildEnv({ backend: this.backend, extraEnv: spec.env });
+    const bin = resolveAntigravityExecutable(this.bin, env);
     try {
-      const [file, argv] = antigravityLaunch(this.bin, args);
+      const [file, argv] = antigravityLaunch(bin, args, { env, cwd: spec.cwd });
       child = spawnTaskProcess(file, argv, {
         cwd: spec.cwd,
-        env: buildChildEnv({ backend: this.backend, extraEnv: spec.env }),
+        env,
         // A POSIX process group or Windows Job Object owns every descendant of this task.
         detached: process.platform !== 'win32',
         windowsHide: true,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      throw new Error(`failed to spawn antigravity (${this.bin}): ${message}`);
+      throw new Error(`failed to spawn antigravity (${bin}): ${message}`);
     }
     trackChild(child);
 
     // `spawn` reports a missing binary asynchronously; the listener must be attached synchronously.
     let spawnFailed: Error | null = null;
     child.on('error', (err: NodeJS.ErrnoException) => {
-      spawnFailed = wrapSpawnError(err, this.bin);
+      spawnFailed = wrapSpawnError(err, bin);
     });
     const stdoutLines = bufferedLines(child.stdout);
     // agy never needs our stdin in print mode, and an agy that is NOT signed in may try to read a login
@@ -307,11 +310,11 @@ export class AntigravityRunner implements AgentRunner {
     let watchdogReason: string | undefined;
     let resultSeen = false;
     let resultError: string | undefined;
-    const stderrChunks: string[] = [];
+    const stderrChunks = new BoundedDiagnostics();
     // Lines that were not stream-json (a login prompt printed to stdout, say): kept only to explain a failure.
     const noiseLines: string[] = [];
     /** Everything agy said outside the stream — what "needs a sign-in" is read from. */
-    const saidOutside = (): string => `${stderrChunks.join('')}${String.fromCharCode(10)}${noiseLines.join(String.fromCharCode(10))}`;
+    const saidOutside = (): string => `${stderrChunks.text()}${String.fromCharCode(10)}${noiseLines.join(String.fromCharCode(10))}`;
     /** The watchdog's reason, or a sign-in message when agy was in fact waiting for a login. */
     const stalled = (generic: string): string => (needsSignIn(saidOutside()) ? signInMessage(saidOutside().trim().split(String.fromCharCode(10)).filter(Boolean).at(-1) ?? '') : generic);
     let mapped = createAntigravityState({ ...(spec.model ? { model: spec.model } : {}), level });
@@ -352,7 +355,7 @@ export class AntigravityRunner implements AgentRunner {
     // The CLI version, as the run's first event: agy updates itself in the background, so the
     // version that actually ran is worth knowing when a later run behaves differently.
     const versionNote = Promise.race([
-      probeAntigravityVersion({ bin: this.bin }),
+      probeAntigravityVersion({ bin, env }),
       new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), VERSION_WAIT_MS).unref?.()),
     ]).then((probed) => {
       if (probed?.ok) onEvent?.({ type: 'note', message: `antigravity CLI ${probed.value}`, kind: 'agent-version', value: probed.value });
@@ -425,7 +428,7 @@ export class AntigravityRunner implements AgentRunner {
         return { text, toolCalls, tokensUsed, sessionId };
       }
 
-      const stderr = stderrChunks.join('').trim();
+      const stderr = stderrChunks.text().trim();
       if (
         exitCode !== 0 &&
         exitCode !== null &&
@@ -458,7 +461,7 @@ export class AntigravityRunner implements AgentRunner {
       if (resultError) throw new Error(resultError);
 
       if (!resultSeen) {
-        const stderr = stderrChunks.join('').trim();
+        const stderr = stderrChunks.text().trim();
         const message = needsSignIn(saidOutside())
           ? signInMessage(stderr.split(String.fromCharCode(10)).filter(Boolean).at(-1) ?? '')
           : `antigravity exited without a result${stderr ? ` — ${stderr.split(String.fromCharCode(10)).slice(-2).join(' | ')}` : ''}`;
@@ -472,8 +475,7 @@ export class AntigravityRunner implements AgentRunner {
 
     // One decoder per stream: a character cut between two chunks must not become U+FFFD.
     const stderrText = utf8Collector((text) => {
-      // Bounded: a chatty stderr must not grow without limit.
-      if (stderrChunks.join('').length < 16_000) stderrChunks.push(text);
+      stderrChunks.append(text);
     });
     child.stderr.on('data', (buf: Buffer) => stderrText.write(buf));
     child.stderr.on('end', () => stderrText.end());

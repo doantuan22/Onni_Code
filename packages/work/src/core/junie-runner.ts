@@ -1,3 +1,4 @@
+import { BoundedDiagnostics } from './bounded-diagnostics.ts';
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 import type {
   AgentEvent,
@@ -170,9 +171,9 @@ class JunieSession implements AgentSession {
     this.child.on('error', (err: NodeJS.ErrnoException) => {
       this.spawnFailed = junieSpawnError(err, bin);
     });
-    const stderrChunks: string[] = [];
+    const stderrChunks = new BoundedDiagnostics();
     this.child.stderr.setEncoding('utf8');
-    this.child.stderr.on('data', (chunk: string) => stderrChunks.push(chunk));
+    this.child.stderr.on('data', (chunk: string) => stderrChunks.append(chunk));
 
     const limitMs = spec.timeoutMs ?? timeoutMs;
     let killTimer: NodeJS.Timeout | undefined;
@@ -202,10 +203,17 @@ class JunieSession implements AgentSession {
             if (!msg) continue;
             this.dispatch(msg);
           }
+          // spec 2026-11-20-agent-runner-repairs: EOF must settle bootstrap too.
+          if (this.timedOut || this.terminatedByOnni) this.rpc.rejectPending();
+          else {
+            const code = await waitForJunieAcpExit(this.child);
+            const detail = stderrChunks.text().trim().split('\n').slice(-3).join(' | ');
+            this.rpc.rejectPending(`junie exited with code ${code} before answering${detail ? ` — ${detail}` : ''}`);
+          }
         };
         await Promise.all([this.ready, readLoop()]);
       } catch (err) {
-        if (!this.timedOut) {
+        if (!this.timedOut && !this.terminatedByOnni) {
           sessionError = err;
           this.end();
         }
@@ -254,7 +262,7 @@ class JunieSession implements AgentSession {
       }
 
       if (exitCode !== 0 && exitCode !== null) {
-        const stderr = stderrChunks.join('').trim();
+        const stderr = stderrChunks.text().trim();
         const detail = stderr ? ` — ${stderr.split('\n').slice(-3).join(' | ')}` : '';
         const message = `junie exited with code ${exitCode}${detail}`;
         this.emit({ type: 'error', message });

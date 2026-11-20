@@ -1,3 +1,4 @@
+import { BoundedDiagnostics } from './bounded-diagnostics.ts';
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 import { disclaimedCommand } from './disclaim-spawn.ts';
 import { fileURLToPath } from 'node:url';
@@ -12,7 +13,7 @@ import type {
   ContentBlock,
   SessionOptions,
 } from './agent-runner.js';
-import { hasTerminated, trackChildExit } from './agent-runner.js';
+import { hasTerminated, isSignalTerminationExit, terminationLabel, trackChildExit } from './agent-runner.js';
 import { buildChildEnv } from './agent-env.js';
 import { spawnTaskProcess } from './task-process-spawn.ts';
 import { readNdjson } from './ndjson.js';
@@ -69,6 +70,8 @@ export class PiRunner implements AgentRunner {
     let open = true;
     let settled = true;
     let timedOut = false;
+    let ending = false;
+    let terminatedByOnni = false;
     let autoEndTimer: NodeJS.Timeout | undefined;
     let killTimer: NodeJS.Timeout | undefined;
     let hardKillTimer: NodeJS.Timeout | undefined;
@@ -85,13 +88,13 @@ export class PiRunner implements AgentRunner {
     let sessionId = spec.sessionId;
     let tokensUsed = 0;
     let spawnError: Error | null = null;
-    const stderr: string[] = [];
+    const stderr = new BoundedDiagnostics();
 
     child.on('error', (error: NodeJS.ErrnoException) => {
       spawnError = wrapSpawnError(error, this.bin);
     });
     child.stderr.setEncoding('utf8');
-    child.stderr.on('data', (chunk: string) => stderr.push(chunk));
+    child.stderr.on('data', (chunk: string) => stderr.append(chunk));
 
     const emitUi = (value: unknown): void => {
       const mapped = mapPiRpcMessage(value, piUi);
@@ -129,27 +132,33 @@ export class PiRunner implements AgentRunner {
       settled = false;
       return true;
     };
+    const signal = (value: NodeJS.Signals): void => {
+      if (hasExited()) return;
+      terminatedByOnni = true;
+      child.kill(value);
+    };
+    const armHardKill = (): void => {
+      if (hardKillTimer || hasExited()) return;
+      hardKillTimer = setTimeout(() => signal('SIGKILL'), KILL_GRACE_MS);
+      hardKillTimer.unref?.();
+    };
     const end = (): void => {
-      if (!open) return;
+      if (ending || hasExited()) return;
+      ending = true;
       open = false;
       child.stdin.end();
-      killTimer = setTimeout(() => child.exitCode == null && child.kill('SIGTERM'), KILL_GRACE_MS);
+      killTimer = setTimeout(() => { signal('SIGTERM'); armHardKill(); }, KILL_GRACE_MS);
       killTimer.unref?.();
     };
     const interrupt = (): void => {
-      if (!open) return;
       write({ type: 'abort' });
+      ending = true;
       open = false;
-      child.kill('SIGTERM');
+      if (killTimer) clearTimeout(killTimer);
+      if (!terminatedByOnni) signal('SIGTERM');
+      armHardKill();
     };
-    const hardStop = (): void => {
-      interrupt();
-      if (hardKillTimer || hasExited()) return;
-      hardKillTimer = setTimeout(() => {
-        if (!hasExited()) child.kill('SIGKILL');
-      }, KILL_GRACE_MS);
-      hardKillTimer.unref?.();
-    };
+    const hardStop = interrupt;
 
     write({ id: 'onni-state', type: 'get_state' });
     sendMessage([
@@ -237,14 +246,20 @@ export class PiRunner implements AgentRunner {
       } finally {
         deadline.clear();
         if (autoEndTimer) clearTimeout(autoEndTimer);
-        if (killTimer) clearTimeout(killTimer);
-        if (hardKillTimer) clearTimeout(hardKillTimer);
+        // A process that closed stdout cannot serve another RPC turn; bound its exit too.
+        if (!hasExited() && !ending) end();
         open = false;
         // EOF, abort and timeout may leave a message without message_end.
         textCoalescer.flush();
       }
 
-      const exitCode = await waitForExit(child);
+      // spec 2026-11-20-agent-runner-repairs: stdout EOF is not process exit.
+      let exitCode: number | null;
+      try { exitCode = await waitForExit(child); }
+      finally {
+        if (killTimer) clearTimeout(killTimer);
+        if (hardKillTimer) clearTimeout(hardKillTimer);
+      }
       if (spawnError) throw spawnError;
       if (timedOut) {
         const message = inactivityTimeoutMessage('pi CLI', limitMs, deadline.expiredBy);
@@ -252,8 +267,14 @@ export class PiRunner implements AgentRunner {
         onEvent?.({ type: 'done' });
         return { text: textChunks.join('\n').trim(), toolCalls, tokensUsed, sessionId };
       }
+      if (terminatedByOnni && isSignalTerminationExit(exitCode, child.signalCode)) {
+        onEvent?.({ type: 'note', message: `pi CLI terminated by onni (${terminationLabel(exitCode, child.signalCode)})` });
+        opts.onUiEvent?.({ type: 'session.ended', reason: settled ? 'end_turn' : 'cancelled' });
+        onEvent?.({ type: 'done' });
+        return { text: textChunks.join('\n').trim(), toolCalls, tokensUsed, sessionId };
+      }
       if (exitCode !== 0 && exitCode !== null) {
-        const detail = stderr.join('').trim().split('\n').slice(-3).join(' | ');
+        const detail = stderr.text().trim().split('\n').slice(-3).join(' | ');
         const message = `pi CLI exited with code ${exitCode}${detail ? ` — ${detail}` : ''}`;
         onEvent?.({ type: 'error', message });
         throw new Error(message);

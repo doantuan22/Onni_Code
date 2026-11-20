@@ -35,7 +35,8 @@ function spawnOwned(
   env: NodeJS.ProcessEnv,
 ): ChildProcessWithoutNullStreams {
   if (process.platform !== 'win32' || !env.ONNI_TASK_ID) {
-    return nodeSpawn(file, [...args], options);
+    // Model discovery has no task id, but still runs behind the Windows desktop.
+    return nodeSpawn(file, [...args], { ...options, windowsHide: true });
   }
 
   const cwd = options.cwd instanceof URL ? fileURLToPath(options.cwd) : options.cwd ?? process.cwd();

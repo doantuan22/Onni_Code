@@ -68,6 +68,7 @@ import {
 } from '@/lib/tasks-table'
 import { usageMetricVisibility } from '@/lib/token-metrics'
 import { cn, isHttpUrl } from '@/lib/utils'
+import { ContextActionButton } from '@/components/workspace/context-action'
 
 import {
   isRunActive,
@@ -210,6 +211,7 @@ function RunHeaderView({
             <span className="ml-auto flex shrink-0 items-center gap-2.5">
               {/* The run's state, top right, beside the git button it decides. */}
               <RunStatus attention={attention} queuePosition={queuePosition} />
+              <ContextActionButton />
               {headerActions}
               {/* Desktop: fold the meta row, the step rail and the resume hint away, leaving the
                   title and the tabs. Phones have their own disclosure (#765) below. */}
@@ -296,7 +298,7 @@ function RunHeaderView({
             data-slot="run-tabs"
             // Up to seven segments (Graph, Notes and Preview included) no longer fit a 320px phone (the narrowest viewport this header
             // supports) — contained scroll here, not page-wide overflow on `main`.
-            className="mt-1.5 flex items-end gap-1 overflow-x-auto md:mt-2.5 md:overflow-x-visible"
+            className={cn('mt-1.5 items-end gap-1 overflow-x-auto md:mt-2.5 md:flex md:overflow-x-visible', tabs !== undefined && !detailsOpen ? 'hidden' : 'flex')}
           >
             {tabs ?? (
               <>
@@ -336,13 +338,13 @@ function RunHeaderView({
           </div>
 
           {run.steps.length > 0 ? (
-            <div className={cn('border-t border-border pt-1 pb-0 md:pt-2 md:pb-1', collapsed && 'md:hidden')}>
+            <div className={cn('border-t border-border pt-1 pb-0 md:pt-2 md:pb-1', !detailsOpen && 'hidden md:block', collapsed && 'md:hidden')}>
               <WorkflowSteps runId={run.id} steps={run.steps} />
             </div>
           ) : null}
 
           {hint ? (
-            <div className={collapsed ? 'md:hidden' : undefined}>
+            <div className={cn(!detailsOpen && 'hidden md:block', collapsed && 'md:hidden')}>
               <ResumeHintLine hint={hint} />
             </div>
           ) : null}
@@ -684,7 +686,7 @@ function EditableTitle({ run }: { run: ApiRun }) {
         type="button"
         aria-label={t('Rename task')}
         onClick={editor.begin}
-        className="shrink-0 rounded-sm p-1 text-soft-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-foreground focus-visible:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+        className="inline-flex size-7 shrink-0 items-center justify-center rounded-sm text-soft-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-foreground focus-visible:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
       >
         <PencilIcon className="size-3.5" aria-hidden="true" />
       </button>
@@ -733,7 +735,7 @@ function CopyBranchChip({ branch }: { branch: string }) {
             <button
               type="button"
               data-slot="branch-chip"
-              className="cursor-copy rounded-sm border border-border bg-card px-1.5 py-px font-mono text-[11px] font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="inline-flex min-h-6 cursor-copy items-center rounded-sm border border-border bg-card px-1.5 py-px font-mono text-[11px] font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
               aria-label={t('Copy branch name {branch}', { branch })}
               onClick={copy}
             >
@@ -1212,7 +1214,7 @@ function AgentBadge({ run, continuationEngine }: { run: ApiRun; continuationEngi
                 ? t('Agent: {runner}, account {account}, model {model}', { runner, account, model })
                 : t('Agent: {runner}, model {model}', { runner, model })
             }
-            className="flex shrink-0 items-center rounded-sm p-1 text-soft-foreground hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+            className="flex size-7 shrink-0 items-center justify-center rounded-sm text-soft-foreground hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
           >
             <BotIcon className="size-3.5 shrink-0" aria-hidden="true" />
           </button>
@@ -1418,16 +1420,21 @@ function onIcon(icon: ReactNode): ReactNode {
 function ResumeHintLine({ hint }: { hint: string }) {
   const { t } = useI18n()
   return (
+    <details data-slot="resume-command-details" className="mb-2 text-xs text-soft-foreground">
+      <summary className="min-h-7 cursor-pointer py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+        {t('Terminal (resume session)')}
+      </summary>
     <button
       type="button"
       data-slot="resume-hint"
       title={t('Copy the command')}
       onClick={() => void copyToClipboard(hint, t('Command copied to clipboard.'))}
-      className="mb-2 flex w-full min-w-0 items-center gap-1.5 rounded-sm px-1 py-0.5 text-left font-mono text-[11px] text-soft-foreground hover:bg-muted hover:text-foreground"
+      className="flex min-h-8 w-full min-w-0 items-center gap-1.5 rounded-sm px-1 py-1 text-left font-mono text-xs text-soft-foreground hover:bg-muted hover:text-foreground"
     >
       <CopyIcon className="size-3 shrink-0" aria-hidden="true" />
       <span className="truncate">{t('take over interactively: {hint}', { hint })}</span>
     </button>
+    </details>
   )
 }
 

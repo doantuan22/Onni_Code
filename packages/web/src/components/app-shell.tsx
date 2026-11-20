@@ -617,10 +617,11 @@ function SidebarContent({
 function RailSidebarContent({
   activeTo,
   items,
+  repo,
   brandName,
   brandLogoUrl,
   onRailToggle,
-}: Pick<NavProps, 'activeTo' | 'items' | 'brandName' | 'brandLogoUrl'> & {
+}: Pick<NavProps, 'activeTo' | 'items' | 'repo' | 'brandName' | 'brandLogoUrl'> & {
   onRailToggle: () => void
 }) {
   const { t } = useI18n()
@@ -669,6 +670,15 @@ function RailSidebarContent({
             )}
           </Link>
         </IconTooltip>
+        {repo ? (
+          <IconTooltip label={`${repo.name} / ${repo.branch}`} side="right">
+            <button type="button" data-slot="rail-project" aria-label={`${repo.name} / ${repo.branch}`}
+              onClick={onRailToggle}
+              className="flex size-8 items-center justify-center rounded-md border border-border bg-muted font-mono text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              {repo.name.slice(0, 2).toLocaleUpperCase()}
+            </button>
+          </IconTooltip>
+        ) : null}
         <IconTooltip label={t('Expand sidebar')} side="right">
           <Button
             type="button"
@@ -932,7 +942,7 @@ export function VersionChip({ version }: { version: string }) {
       title={`v${version}`}
       className="flex min-w-0 items-center gap-1 rounded-sm border border-border px-1.5 py-px font-mono text-[10px] font-medium text-soft-foreground"
     >
-      <span className="truncate">demo_dev</span>
+      <span className="truncate">v{version}</span>
     </span>
   )
 }

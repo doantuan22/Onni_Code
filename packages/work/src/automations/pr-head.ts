@@ -66,7 +66,7 @@ export function prHeadRef(number: number): string {
 
 export const runCommand: CommandRunner = (command, args, cwd) =>
   new Promise((resolve) => {
-    execFile(command, args, { cwd, maxBuffer: 4 * 1024 * 1024, timeout: 120_000, env: ghEnv() }, (error, stdout, stderr) => {
+    execFile(command, args, { cwd, maxBuffer: 4 * 1024 * 1024, timeout: 120_000, windowsHide: true, env: ghEnv() }, (error, stdout, stderr) => {
       resolve({ ok: !error, stdout: String(stdout), stderr: String(stderr || (error ? error.message : '')) });
     });
   });

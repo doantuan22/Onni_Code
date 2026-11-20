@@ -11,7 +11,7 @@ import { spawnableCommand } from './windows-shim.ts';
 const execAsync = promisify(execFile);
 /** Every probe goes through `spawnableCommand`, so a Windows `.cmd` override is detected too. */
 const exec = (bin: string, args: readonly string[], opts: { timeout: number; env?: NodeJS.ProcessEnv }) =>
-  execAsync(...spawnableCommand(bin, args), opts);
+  execAsync(...spawnableCommand(bin, args), { ...opts, windowsHide: true });
 
 export interface BackendCheck {
   name: 'claude' | 'codex' | 'opencode' | 'cursor' | 'pi' | 'junie' | 'copilot' | 'cline' | 'antigravity' | 'gh' | 'git';

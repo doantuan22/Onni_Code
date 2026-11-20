@@ -1,7 +1,8 @@
 # Tổng quan dự án OnniCode
 
-> Tài liệu này phản ánh **code tại nhánh `chore/docs-ai`**, commit gốc `52fc641` (2026-10-30).
-> Mọi khẳng định dưới đây đã được đối chiếu với source; chỗ nào chưa kiểm được ghi rõ.
+> Khảo sát kiến trúc ban đầu: commit `52fc641` (2026-10-30). Hướng dẫn build, kiểm thử và
+> đóng gói được cập nhật ngày **2026-11-20** theo mã nguồn hiện tại. Các kết quả khảo sát cũ
+> trong `FEATURES.md` là bằng chứng lịch sử, không phải kết quả kiểm thử của bản build mới.
 > Khi tài liệu này mâu thuẫn với code, **code thắng**.
 
 ---
@@ -222,23 +223,27 @@ muốn reset thật thì xoá cả thư mục.
 
 ## 8. Dev — build — test
 
-Đã chạy trên máy soạn tài liệu (Windows 11, Git Bash, Node 24):
+Các cổng kiểm tra hiện hành, chạy theo thứ tự từ root:
 
-| Lệnh | Kết quả |
+| Lệnh | Mục đích |
 | --- | --- |
-| `npm run typecheck` | **pass** (contract → api-client → server → web) |
-| `npm test` | **fail 342/12.328 test (89/761 file)** trên Windows native; mẫu lỗi đều do môi trường: `EPERM` khi dọn thư mục tạm/worktree, mode `0600` vs `0666`, `/bin/sh`, đường dẫn POSIX. **Chưa chạy lại trên Linux/WSL.** |
-| `npm run test:unit` | **fail 1 test** trên Windows: `test-env-launcher.test.ts` (`spawnSync /bin/sh ENOENT`) — test POSIX-only |
-| `npm run build` | **pass** (tsc + vite + `check:pack`: 1088 file, 167 file trong `web/dist`) |
-| `npm run test:package` | **pass 4/4** (pack tarball, cài vào consumer tách biệt, chạy CLI `ONNI_DRY_RUN=1`) |
-| `npm run test:e2e` | cần browser provider; **chưa chạy** |
+| `npm run typecheck` | Build service rồi kiểm tra contract → api-client → server → web |
+| `npm test` | Vitest cho service, API client và cockpit; không cần server/browser |
+| `npm run test:unit` | `node:test`; fixture launcher tìm Git Bash trên Windows |
+| `npm run build` | Biên dịch engine, bundle cockpit và kiểm tra nội dung tarball |
+| `npm run test:package` | Cài tarball vào consumer riêng, chạy CLI dry-run và Repo Map WASM |
+| `npm run test:e2e` | Gate UI riêng; cần browser provider, kết quả `skipped` không phải pass |
+
+Không coi lỗi Windows là mặc nhiên chấp nhận được. Chạy fixture Git/process với quyền host phù
+hợp, kiểm tra nguyên nhân và ghi kết quả thực vào bằng chứng của từng bản build. Không dùng các
+số test từ khảo sát tháng 10 làm trạng thái của mã nguồn hiện tại.
 
 ```bash
 npm install
 npm run dev            # API :4321 + Vite
 npm run typecheck
 npm test               # vitest
-npm run test:unit      # node:test (POSIX)
+npm run test:unit      # node:test; Windows launcher discovers Git Bash
 npm run build          # tsc + vite + check:pack
 npm run test:package   # pack tarball và chạy CLI đã build
 npm run test:e2e       # smoke UI thật (ONNI_DRY_RUN=1)
@@ -251,12 +256,19 @@ cd packages/desktop
 npm install
 npm run dev            # tauri dev
 npm run build          # tauri build
+npm run build:windows  # NSIS: shell + engine + Node.js + RTK + Repo Map
 ```
 
 Trên Windows, **Smart App Control phải TẮT** (nếu không `cargo` lỗi 4551) và **Developer Mode phải
 BẬT** (nếu không test tạo symlink lỗi `EPERM`). CI: `ci.yml` (typecheck, vitest shard 3, unit,
 build, package, webhook đa nền tảng) + `desktop-check.yml` (`cargo check`/`cargo test`, Linux và
 Windows) + `codeql.yml`.
+
+`build:windows` tự tăng phiên bản desktop một phần mười và hoàn nguyên nếu build lỗi; không
+tăng số thủ công. Phiên bản engine `@onni/work` là số riêng và được footer cockpit hiển thị.
+Installer nằm trong `.tmp/desktop-artifacts/<version>-<revision>-<timestamp>/`. Đường dẫn entry
+được chọn theo thứ tự: `ONNI_DESKTOP_ENTRY` hợp lệ → checkout đã link → engine đóng gói. Xem
+[runbook Windows](desktop-personal-use.md) để dọn output và kiểm tra bộ cài.
 
 ---
 
@@ -268,24 +280,22 @@ Bản `docs/project-overview.md` trước đây được viết từ một commi
 | --- | --- |
 | "Mọi task dừng ở `review`" | Review gate **mặc định TẮT**. Run thành công không có gate (hoặc autonomous) về thẳng `done`; diff nằm lại worktree. Chỉ khi `config.reviewGate` / `ONNI_REVIEW_GATE=1` mới park ở `review`. |
 | CLI có `install`, `update`, `versions`, `use` | Không tồn tại. CLI thật: `serve`, `run`, `init`, `projects`, `task`, `automation`, `runs`, `tracker-connections`, `secrets`, `server-install/deploy/uninstall`, `link`, `unlink`. |
-| "1 commit gốc, nhánh `dev`, `.git` ~27 MB" | Sai; lịch sử riêng đã có 30+ commit, nhánh làm việc là `chore/docs-ai`. |
+| "1 commit gốc, nhánh `dev`, `.git` ~27 MB" | Số commit, nhánh đang checkout và dung lượng Git thay đổi theo máy; đọc trực tiếp bằng Git, không xem là thuộc tính cố định của sản phẩm. |
 | `README.md` rỗng, còn `README.zh-CN.md` | README có nội dung; không còn file README tiếng Trung. |
 | Có thư mục `release/` | Không tồn tại. |
 | Ba lớp: desktop là "bề mặt chính", HTTP chỉ là transport nội bộ | Đúng về định hướng, nhưng engine chạy độc lập được: `node packages/work/dist/index.js` phục vụ đúng cockpit đó qua browser. |
 | `npm run typecheck` chỉ "server + web" (trong `docs/reference.md`) | Thực tế chạy cả `contract` và `api-client` trước. |
 
-Ngoài ra, comment trong code cũng có chỗ lệch (đã ghi nhận, không sửa logic):
-`core/agent-runner.ts` nói "Five interchangeable backends" nhưng liệt kê sáu và `RUNNER_IDS` có
-bảy; `contract/src/health.ts` mô tả automations "off — the default" trong khi code là
-`ONNI_AUTOMATIONS !== '0'` (mặc định BẬT).
+Danh sách runner phải đối chiếu enum trong contract và runner factory, không suy ra từ số lượng
+ghi trong comment cũ. Automations và dispatch mặc định bật, có công tắc tắt tương ứng trong
+`.env.example`; các tính năng opt-in khác vẫn phải đọc theo capability thực từ server.
 
 ---
 
 ## 10. Việc còn mở / chưa xác minh
 
 - `npm run test:e2e` chưa chạy trong đợt này (cần browser provider).
-- `npm test` chưa chạy lại trên Linux/WSL; trên Windows native có 342 test fail do môi trường
-  (xem bảng §8). CI là cổng tham chiếu.
-- `cargo check` / `cargo test` của desktop chưa chạy lại; `desktop-check.yml` là cổng CI.
+- Kết quả kiểm thử của từng gói phải đi kèm log và revision của gói đó. Gate trên Windows không
+  thay thế kiểm chứng Linux/macOS; `desktop-check.yml` vẫn kiểm tra Rust trên Linux và Windows.
 - `.ai/specs/` còn 4 link tương đối trỏ tới thư mục đã bị xoá (`.ai/runs/`, `.ai/data-model/`,
   `.ai/prototypes/`). Specs là hồ sơ gốc, không viết lại — xem `.ai/specs/README.md`.

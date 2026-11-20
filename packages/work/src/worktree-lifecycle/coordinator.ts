@@ -352,7 +352,7 @@ export class WorktreeLifecycleCoordinator {
           await removeWorktree(this.root, record.worktreePath, operation.intent === 'reclaim' ? undefined : record.branch);
           if (existsSync(record.worktreePath)) throw new Error('Scripts completed but the worktree directory could not be removed');
           if (operation.intent !== 'reclaim' && record.branch) {
-            const remains = await execFileAsync('git', ['show-ref', '--verify', '--quiet', `refs/heads/${record.branch}`], {cwd: this.root}).then(() => true, error => {
+            const remains = await execFileAsync('git', ['show-ref', '--verify', '--quiet', `refs/heads/${record.branch}`], {cwd: this.root, windowsHide: true}).then(() => true, error => {
               if (error && typeof error === 'object' && 'code' in error && error.code === 1) return false;
               throw error;
             });

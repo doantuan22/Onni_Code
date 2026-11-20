@@ -2984,6 +2984,7 @@ async function execTool(args: string[], cwd: string, bin: string, timeoutMs = 30
       {
         cwd,
         timeout: timeoutMs,
+        windowsHide: true,
         maxBuffer: 4 * 1024 * 1024,
         encoding: 'utf8',
         // Nobody can answer a prompt here: git opens /dev/tty directly, so

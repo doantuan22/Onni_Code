@@ -83,6 +83,7 @@ const DISCOVERY_ARGS = [
 
 function spawnClaudeProbe(bin: string, cwd: string): ChildProcessWithoutNullStreams {
   return nodeSpawn(...spawnableCommand(bin, DISCOVERY_ARGS), {
+    windowsHide: true,
     cwd,
     env: buildChildEnv({ backend: 'claude' }),
     stdio: ['pipe', 'pipe', 'pipe'],

@@ -2,6 +2,11 @@
 
 Ngày chụp: **2026-10-30** · nhánh `docs/architecture-snapshot` · chỉ đọc code, không sửa code.
 
+> Đây là hồ sơ khảo sát lịch sử, không phải danh sách trạng thái hiện tại. Các số test, đường dẫn
+> dòng và hạn chế Windows bên dưới chỉ phản ánh lần khảo sát đó. Hướng dẫn hiện hành nằm trong
+> [README](../README.md), [reference](reference.md), [tổng quan](project-overview.md) và
+> [quy trình đóng gói Windows](desktop-personal-use.md). Không dùng các lỗi cũ để bỏ qua một gate mới.
+
 Cột "Nơi trong code" dùng đường dẫn tương đối repo; số sau `:` là dòng tại thời điểm chụp.
 
 ## Cách đọc cột "Trạng thái"

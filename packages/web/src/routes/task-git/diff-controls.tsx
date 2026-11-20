@@ -101,7 +101,7 @@ function ModeButton({
       aria-pressed={active}
       onClick={() => onModeChange(value)}
       className={cn(
-        'rounded-[5px] px-2 py-0.5 text-[11px] font-medium capitalize',
+        'min-h-7 min-w-7 rounded-[5px] px-2 py-1 text-xs font-medium capitalize',
         active ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground',
       )}
     >

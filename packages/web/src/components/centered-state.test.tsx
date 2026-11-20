@@ -83,7 +83,7 @@ describe('TwinkleBackdrop', () => {
     expect(backdrop?.className).toContain('pointer-events-none')
   })
 
-  it('scatters brand-token squares whose pulse is motion-safe only', () => {
+  it('keeps decorative brand-token squares static', () => {
     const { container } = render(<TwinkleBackdrop />)
     const squares = [...container.querySelectorAll('[data-slot="twinkle-backdrop"] > span')]
 
@@ -91,9 +91,8 @@ describe('TwinkleBackdrop', () => {
     for (const square of squares) {
       // Colors come from the theme tokens, never raw values.
       expect(square.className).toMatch(/bg-(violet|primary|pending)/)
-      // The pulse is gated on motion-safe, so prefers-reduced-motion renders it static.
-      expect(square.className).toContain('motion-safe:animate-pulse')
-      expect(square.className).not.toMatch(/(?<!motion-safe:)animate-pulse/)
+      expect(square.className).not.toContain('animate-')
+      expect(square.getAttribute('style') ?? '').not.toContain('animation')
     }
   })
 })

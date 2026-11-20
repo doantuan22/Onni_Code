@@ -86,6 +86,24 @@ describe('ThreadRows — the threshold-switched renderer', () => {
 })
 
 describe('useThreadScroll — outside a shell scroller (jsdom, tests, storybook-ish hosts)', () => {
+  it.each([true, false])('respects reduced motion (%s) when jumping to the latest reply', async (reduced) => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(prefers-reduced-motion: reduce)' && reduced,
+      addEventListener: () => {}, removeEventListener: () => {},
+    }))
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => { callback(0); return 1 })
+    const { result } = renderHook(() => useThreadScroll(`motion-${reduced}`))
+    const scroller = document.createElement('main')
+    scroller.dataset.slot = 'main'
+    const content = document.createElement('div')
+    scroller.append(content)
+    Object.defineProperties(scroller, { scrollHeight: { value: 1000 }, clientHeight: { value: 300 } })
+    scroller.scrollTo = vi.fn()
+    act(() => result.current.attachContent(content))
+    await act(async () => { result.current.jumpToLatest(); await Promise.resolve() })
+    expect(scroller.scrollTo).toHaveBeenCalledWith({ top: 700, behavior: reduced ? 'instant' : 'smooth' })
+  })
+
   it('attaches without a [data-slot=main] ancestor and stays inert', () => {
     const { result } = renderHook(() => useThreadScroll('r1'))
     const el = document.createElement('div')

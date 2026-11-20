@@ -11,6 +11,7 @@ import {
 import { Virtualizer, type VirtualizerHandle } from 'virtua'
 
 import { useI18n } from '@/lib/i18n'
+import { usePrefersReducedMotion } from '@/lib/use-prefers-reduced-motion'
 
 import {
   NEAR_BOTTOM_SLACK_PX,
@@ -96,6 +97,7 @@ export function useThreadScroll(
   } = {},
 ): ThreadScrollControls {
   const { surface = 'document', onLoadOlder, onJumpToLatest, rowKeys = [] } = options
+  const reducedMotion = usePrefersReducedMotion()
   const scrollElRef = useRef<HTMLElement | null>(null)
   // State, not a ref: crossing the virtualization threshold mid-replay REPLACES the rows
   // container, and the observers below must re-subscribe to the new element.
@@ -226,10 +228,10 @@ export function useThreadScroll(
     void (onJumpToLatest?.() ?? Promise.resolve()).finally(() => {
       requestAnimationFrame(() => {
         const current = scrollElRef.current
-        current?.scrollTo({ top: current.scrollHeight - current.clientHeight, behavior: 'smooth' })
+        current?.scrollTo({ top: current.scrollHeight - current.clientHeight, behavior: reducedMotion ? 'instant' : 'smooth' })
       })
     })
-  }, [onJumpToLatest])
+  }, [onJumpToLatest, reducedMotion])
 
   // Arrival is the route-owned pre-paint write. AppShell deliberately does not reset task
   // routes, so a destination thread never exposes an intermediate top-of-transcript frame.

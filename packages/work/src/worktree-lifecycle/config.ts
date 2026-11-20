@@ -39,7 +39,7 @@ export const TRACKED_CONFIG_ERROR = 'Worktree scripts in a git-tracked .ai/onni/
 
 /** A committed hook list would run on every clone with no consent (spec: local configuration only). */
 export async function isLifecycleConfigTracked(projectRoot: string): Promise<boolean> {
-  return promisify(execFile)('git', ['ls-files', '--error-unmatch', '--', join('.ai', 'onni', 'config.json')], { cwd: projectRoot })
+  return promisify(execFile)('git', ['ls-files', '--error-unmatch', '--', join('.ai', 'onni', 'config.json')], { cwd: projectRoot, windowsHide: true })
     .then(() => true, () => false);
 }
 /** The scripts Onni may execute. Fails closed on an invalid list; a committed list counts as none. */

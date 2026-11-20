@@ -1,5 +1,7 @@
 /** Vietnamese for the task composer and its pickers. Keys are exact English source strings. */
 export const viNewTask: Record<string, string> = {
+  'All task settings': 'Tất cả cài đặt tác vụ',
+  'Execution details': 'Chi tiết thực thi',
   // ---- composer ---------------------------------------------------------------------------
   'Send': 'Gửi',
   'Reply — / for skills, @ for files…': 'Trả lời — / để chọn skill, @ để chọn tệp…',

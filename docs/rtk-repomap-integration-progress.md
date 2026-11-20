@@ -1,6 +1,7 @@
 # RTK OSS và Repo Map: trạng thái tích hợp
 
-Cập nhật lần cuối: 2026-11-19  
+Khảo sát tích hợp: 2026-11-19; ghi chú vòng đời artifact cập nhật 2026-11-20.
+
 Trạng thái: **Đã hoàn thiện tích hợp và đóng gói Windows x64; còn gate CI đa nền tảng và benchmark model thật.**
 
 ## Mục tiêu và phạm vi đã hoàn thành
@@ -37,6 +38,11 @@ Windows installer chứa RTK OSS và Repo Map, không yêu cầu người dùng 
 Các lỗi full suite gồm EBUSY/EPERM khi cleanup, thiếu bash/POSIX command, phép đo kích thước phụ thuộc host và timeout. Chưa kết luận toàn bộ các lỗi đó là có sẵn bằng một lượt chạy baseline độc lập. Theo AGENTS.md, CI/Linux vẫn là gate quyết định; không skip test hoặc sửa các cơ chế ngoài phạm vi để làm xanh Windows.
 
 ## Artifact và bằng chứng local
+
+> Các đường dẫn trong mục này ghi lại lần kiểm chứng **2026-11-19**. Bộ cài 0.4.0 và hai staging
+> tree RTK cũ đã được dọn ngày 2026-11-20; chúng không còn là artifact hiện hành. Quy trình tạo
+> và xác minh bản thay thế nằm trong [runbook Windows](desktop-personal-use.md). Hash lịch sử
+> bên dưới được giữ nguyên để không làm sai lệch bằng chứng của lần khảo sát cũ.
 
 - Installer xác minh (version giữ nguyên 0.4.0, **chưa cài hoặc chạy**):  
   `.tmp/desktop-artifacts/rtk-repomap-2026-11-19/OnniCode_0.4.0_x64-setup.exe`

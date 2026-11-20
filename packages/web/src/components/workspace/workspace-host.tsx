@@ -4,6 +4,7 @@ import { UNSAFE_RouteContext } from 'react-router'
 
 import { useProjectScope } from '@/api/project-scope-context'
 import { useHealth, useRuns } from '@/api/queries'
+import { WorkspaceContextAction } from './context-action'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/toaster'
 import { useFlipGroup } from '@/lib/flip'
@@ -297,7 +298,6 @@ function WorkspaceHostPane({
           // The pane's single child (run view or new-task surface) must fill the row, not shrink
           // to its content — otherwise a short transcript leaves the pane left-aligned and narrow.
           'flex h-full min-h-0 min-w-0 flex-1 overflow-auto [&>*]:min-w-0 [&>*]:flex-1',
-          isActive && 'ring-1 ring-inset ring-ring',
         )}
         data-active={isActive ? 'true' : undefined}
         data-pane-id={pane.paneId}
@@ -305,7 +305,9 @@ function WorkspaceHostPane({
         data-slot="workspace-pane"
         role="tabpanel"
         {...(isSplitPane ? { 'aria-labelledby': splitTabId(pane.paneId) } : {})}
-        onPointerDown={() => activate(pane.paneId)}
+        onPointerDown={() => {
+          if (!isActive) activate(pane.paneId)
+        }}
         onScroll={(e) => updateScrollAnchor(pane.paneId, e.currentTarget.scrollTop)}
       >
         {pane.kind === 'run' ? (
@@ -527,7 +529,7 @@ function WorkspaceHostPane({
   return (
     <div ref={hostRef} style={{ display: 'contents' }}>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div
+      {pane.kind === 'draft' ? <div
         data-slot="conversation-header"
         className="flex h-[var(--header-h,48px)] min-w-0 shrink-0 items-center justify-between border-b border-border bg-muted/40 px-3 text-xs"
       >
@@ -536,28 +538,10 @@ function WorkspaceHostPane({
             {paneTitle(pane, t('New task'), runTitles)}
           </span>
         </div>
-        <div className="flex items-center gap-1.5">
-          {pane.kind === 'run' ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
-              aria-label={t('Context views')}
-              data-slot="open-context-button"
-              onClick={() =>
-                update((current) => ({
-                  ...current,
-                  context: { ...current.context, open: true },
-                }))
-              }
-            >
-              <PanelRightIcon className="h-3.5 w-3.5" />
-              <span>{t('Context')}</span>
-            </Button>
-          ) : null}
-        </div>
-      </div>
-      {renderPane(pane)}
+      </div> : null}
+      <WorkspaceContextAction.Provider value={pane.kind === 'run' ? () => update((current) => ({ ...current, context: { ...current.context, open: true } })) : null}>
+        {renderPane(pane)}
+      </WorkspaceContextAction.Provider>
       {pane.kind === 'run' ? (
         <ContextSheet
           open={Boolean(state.context.open)}

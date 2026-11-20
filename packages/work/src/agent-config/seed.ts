@@ -19,7 +19,7 @@ import { CONFIG_FILES } from './catalog.ts';
 
 function git(cwd: string, args: string[]): Promise<{ ok: boolean; stdout: string }> {
   return new Promise((resolve) => {
-    execFile('git', args, { cwd, encoding: 'utf8' }, (err, stdout) =>
+    execFile('git', args, { cwd, encoding: 'utf8', windowsHide: true }, (err, stdout) =>
       resolve({ ok: !err, stdout: stdout ?? '' }),
     );
   });

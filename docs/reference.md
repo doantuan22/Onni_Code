@@ -100,7 +100,8 @@ Five moves that make the cockpit worth the browser tab:
 
 ## Cockpit tour
 
-One browser window, with live task updates over Server-Sent Events:
+One browser window, with task event streams over Server-Sent Events and shared live signals over
+the WebSocket bus:
 
 | View | What's in it |
 |---|---|
@@ -116,12 +117,25 @@ One browser window, with live task updates over Server-Sent Events:
 
 **Scheduled-start recovery:** a creation-key replay does not create another schedule, and the scheduler reconciles retained run records before retrying a partial start. This is not a global exactly-once execution guarantee: independent cockpits can recover the same queued run, and **Start missing runs** can recreate a variant whose record was deleted manually or by retention. Check existing work before retrying; **Dismiss** closes an ambiguous entry without starting work.
 
+### Task workspace
+
+A task without a saved layout opens on full-width **Chat**. **Review** remains an explicit layout
+preset; saved arrangements are retained. On a phone, the task title and view selector stay compact;
+run metadata, workflow steps and additional views are available through the details disclosure and
+**Context views**. On a wide screen the sidebar retains the project and task list unless you
+explicitly collapse it; a collapsed rail still identifies the project.
+
+Lifecycle messages are grouped under **Execution details**. The session's failure summary and
+**Continue** action remain visible, while the raw terminal resume command is a disclosure.
+Vietnamese font subsets are bundled locally. **Jump to latest** respects reduced-motion preferences,
+and the decorative empty-state backdrop stays static.
+
 ### New task: the Task settings panel
 
-On **New task**, the prompt takes the main column and every run setting lives in the **Task settings**
-panel on the right. The panel is open by default at 1100px and
-wider, collapses from its header (remembered per browser), and becomes a right drawer below that width,
-opened from the summary line under the prompt and closed with Escape.
+On **New task**, the prompt takes the main column. Run settings open on demand from the summary
+line or the **Task settings** button and close with Escape. Clicking an agent/model, execution
+location, limits or skill segment opens just its settings group. **All task settings** expands that
+editor to the complete panel; the settings button opens the complete panel directly.
 
 - **Summary line** — read-only, always visible even with the panel folded: agent · model · where it
   runs · limits · base branch. Dangerous states are highlighted in words: `autonomous`, `limits: ∞`,
@@ -1189,7 +1203,10 @@ information.
 ## Builds and releases
 
 OnniCode publishes nothing: there are no nightlies, previews or npm releases to install with
-`npx`. Build and run it from source instead — see [Local development](#local-development) below.
+`npx`. Build and run it from source, or create a self-contained Windows NSIS installer with
+`npm run build:windows --prefix packages/desktop` after building the engine. See the
+[Windows build and install runbook](desktop-personal-use.md) for cleanup, automatic desktop
+version increments, bundled dependencies and verification. No installer is run automatically.
 
 ---
 
@@ -1238,7 +1255,9 @@ linked).
 
 ### Point the desktop app at a worktree
 
-The desktop app runs whatever `~/.onni/versions/current` points at. A **linked checkout** puts a
+An existing `ONNI_DESKTOP_ENTRY` overrides the selected checkout; otherwise the desktop uses
+`~/.onni/versions/current`, falling back to its bundled engine when no linked entry exists.
+A **linked checkout** puts a
 worktree there without copying it: the version entry is a symlink to the worktree's
 `packages/work`, so it runs straight off the worktree (and its own `node_modules`), and every
 rebuild is live on the next restart.

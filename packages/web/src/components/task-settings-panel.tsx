@@ -28,6 +28,7 @@ import {
   type TaskPreset,
 } from '@/lib/new-task-presets'
 import { cn } from '@/lib/utils'
+import { usePrefersReducedMotion } from '@/lib/use-prefers-reduced-motion'
 
 /**
  * The `/new` Task settings panel (ADR 0008).
@@ -63,6 +64,10 @@ export interface TaskSettingsPanelProps {
 
 export function TaskSettingsPanel(props: TaskSettingsPanelProps) {
   const { t } = useI18n()
+  const [expandedRequest, setExpandedRequest] = useState<number | null>(null)
+  const requested = props.focusSection
+  const quickSection = requested && requested.section !== 'presets' && requested.section !== 'advanced'
+    && expandedRequest !== requested.nonce ? requested.section : null
   if (!props.open) return null
 
   // A large modal (it was an inline panel under the composer, too short to work in): the title and
@@ -79,11 +84,13 @@ export function TaskSettingsPanel(props: TaskSettingsPanelProps) {
       <DialogContent
         data-slot="task-settings-panel"
         aria-label={t('Task settings')}
+        data-quick-section={quickSection ?? undefined}
         showCloseButton={false}
         onInteractOutside={(event) => event.preventDefault()}
-        className="h-[min(86dvh,860px)] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:max-w-5xl"
+        className={cn('grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0',
+          quickSection ? 'max-h-[min(80dvh,640px)] sm:max-w-xl' : 'h-[min(78dvh,760px)] sm:max-w-4xl')}
       >
-        <PanelBody {...props} />
+        <PanelBody {...props} quickSection={quickSection} onShowAll={() => setExpandedRequest(requested?.nonce ?? null)} />
       </DialogContent>
     </Dialog>
   )
@@ -116,7 +123,7 @@ export function TaskSummary({
           title={t('Open {section} settings', { section: t(sectionLabel(segment.section)) })}
           onClick={() => onOpen(segment.section)}
           className={cn(
-            'rounded px-0.5 underline-offset-4 transition-colors hover:underline disabled:pointer-events-none',
+            'min-h-7 rounded px-1.5 underline-offset-4 transition-colors hover:bg-muted hover:underline disabled:pointer-events-none',
             segment.tone === 'danger' && 'font-medium text-danger',
             segment.tone === 'warning' && 'font-medium text-warning',
           )}
@@ -182,8 +189,11 @@ function PanelBody({
   skill,
   advanced,
   onOpenChange,
-}: TaskSettingsPanelProps) {
+  quickSection,
+  onShowAll,
+}: TaskSettingsPanelProps & { quickSection: PanelSection | null; onShowAll: () => void }) {
   const { t } = useI18n()
+  const reducedMotion = usePrefersReducedMotion()
   // Everything is visible at once except Advanced, which is the long tail.
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -197,13 +207,13 @@ function PanelBody({
         `[data-section="${focusSection.section}"]`,
       )
       if (!target) return
-      target.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
+      target.scrollIntoView?.({ block: 'nearest', behavior: reducedMotion ? 'instant' : 'smooth' })
       // Presets is the plain "open the panel" target: moving focus there would pull it out of the
       // prompt (or the Start button) the user is on.
       if (focusSection.section !== 'presets') target.focus?.({ preventScroll: true })
     }, 0)
     return () => window.clearTimeout(id)
-  }, [focusSection])
+  }, [focusSection, quickSection, reducedMotion])
 
   const sections: readonly PanelSection[] = ['presets', 'who', 'where', 'autonomy', 'skill', 'advanced']
   // The rail marks the group at the top of the body, so it answers "where am I" while scrolling.
@@ -229,12 +239,12 @@ function PanelBody({
     return () => observer.disconnect()
     // `sections` is a constant list; the body's sections do not change identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [advancedOpen])
+  }, [advancedOpen, quickSection])
   const jump = (section: PanelSection) => {
     if (section === 'advanced') setAdvancedOpen(true)
     setActiveSection(section)
     const target = bodyRef.current?.querySelector<HTMLElement>(`[data-section="${section}"]`)
-    target?.scrollIntoView?.({ block: 'start', behavior: 'smooth' })
+    target?.scrollIntoView?.({ block: 'start', behavior: reducedMotion ? 'instant' : 'smooth' })
   }
 
   return (
@@ -244,7 +254,7 @@ function PanelBody({
         className="flex shrink-0 items-center gap-2 border-b border-border px-5 py-2.5"
       >
         <SlidersHorizontalIcon aria-hidden="true" className="size-3.5 shrink-0 text-violet" />
-        <DialogTitle className="min-w-0 flex-1 font-mono text-[11px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">{t('Task settings')}</DialogTitle>
+        <DialogTitle className="min-w-0 flex-1 text-[13px] font-semibold text-foreground">{t(quickSection ? sectionLabel(quickSection) : 'Task settings')}</DialogTitle>
         <DialogDescription className="sr-only">{t('Choose how this task runs.')}</DialogDescription>
         <button
           type="button"
@@ -257,10 +267,10 @@ function PanelBody({
           <XIcon aria-hidden="true" className="size-4" />
         </button>
       </header>
-      <div className="grid min-h-0 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] md:grid-cols-[11rem_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]">
+      <div className={cn('grid min-h-0 grid-cols-1', quickSection ? 'grid-rows-[minmax(0,1fr)]' : 'grid-rows-[auto_minmax(0,1fr)] md:grid-cols-[11rem_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]')}>
         {/* A chip strip across the top on a phone, a rail down the side from `md`: the same
             jump list either way, so a 1800px-tall body on a phone is no longer one long scroll. */}
-        <nav
+        {!quickSection ? <nav
           data-slot="task-settings-nav"
           aria-label={t('Task settings sections')}
           className="flex gap-1 overflow-x-auto border-b border-border p-2 md:flex-col md:gap-0.5 md:overflow-x-visible md:overflow-y-auto md:border-r md:border-b-0 md:p-3"
@@ -288,7 +298,7 @@ function PanelBody({
               </button>
             )
           })}
-        </nav>
+        </nav> : null}
       {/* Layout system, one place: 4px grid, 24px between groups and around the body, 32px controls
           (the composer's 26px pills grow here only), 8px control radius, 12px card radius. The
           container query is the body's own width, so the same markup is one column on a phone. */}
@@ -297,7 +307,7 @@ function PanelBody({
         data-slot="task-settings-body"
         className="@container flex min-h-0 flex-col gap-5 overflow-y-auto overscroll-contain p-5 [&_[data-slot=chip]]:h-8"
       >
-        <Section id="presets" title="Presets" description="Start from a saved way of working.">
+        {!quickSection ? <Section id="presets" title="Presets" description="Start from a saved way of working.">
           <PresetList
             presets={presets}
             selectedPresetId={selectedPresetId}
@@ -309,26 +319,26 @@ function PanelBody({
             onRename={onRenamePreset}
             onDelete={onDeletePreset}
           />
-        </Section>
-        <Section id="who" title="Who works" description="One agent, or a manager that hands parts to the workers you list.">
+        </Section> : null}
+        {!quickSection || quickSection === 'who' ? <Section id="who" title="Who works" description="One agent, or a manager that hands parts to the workers you list.">
           {who}
-        </Section>
+        </Section> : null}
         {/* One card for how the run is shaped; each group is a settings row inside it. */}
-        <div
+        {!quickSection || quickSection !== 'who' ? <div
           data-slot="run-settings"
           className="divide-y divide-border rounded-md border border-border bg-card-2/40 px-4"
         >
-          <Section id="where" variant="row" title="Where it runs" description="An isolated worktree, or your checkout directly.">
+          {!quickSection || quickSection === 'where' ? <Section id="where" variant="row" title="Where it runs" description="An isolated worktree, or your checkout directly.">
             {where}
-          </Section>
-          <Section id="autonomy" variant="row" title="Autonomy & limits" description="Whether it pauses, and what it may spend.">
+          </Section> : null}
+          {!quickSection || quickSection === 'autonomy' ? <Section id="autonomy" variant="row" title="Autonomy & limits" description="Whether it pauses, and what it may spend.">
             {autonomy}
-          </Section>
-          <Section id="skill" variant="row" title="Skill" description="The skill or workflow this task runs.">
+          </Section> : null}
+          {!quickSection || quickSection === 'skill' ? <Section id="skill" variant="row" title="Skill" description="The skill or workflow this task runs.">
             {skill}
-          </Section>
-        </div>
-        <Section
+          </Section> : null}
+        </div> : null}
+        {!quickSection ? <Section
           id="advanced"
           title="Advanced"
           description="Read-only questions, follow-ups, templates and dispatch."
@@ -336,11 +346,13 @@ function PanelBody({
           onOpenChange={setAdvancedOpen}
         >
           {advanced}
-        </Section>
+        </Section> : null}
       </div>
       </div>
       <footer data-slot="task-settings-footer" className="flex shrink-0 items-center justify-between gap-3 border-t border-border px-5 py-2.5">
-        <p className="text-[11px] text-soft-foreground">{t('Changes apply to this task as you make them.')}</p>
+        {quickSection ? <Button type="button" variant="ghost" size="sm" onClick={onShowAll}>
+          {t('All task settings')}
+        </Button> : <p className="text-xs text-soft-foreground">{t('Changes apply to this task as you make them.')}</p>}
         <Button type="button" size="sm" data-slot="task-settings-done" onClick={() => onOpenChange(false)}>
           {t('Close')}
         </Button>

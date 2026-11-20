@@ -49,7 +49,16 @@ How to review a diff in this repository. Applies to humans and to the `om-code-r
 ### Code quality
 
 - Comments cite the spec or issue that motivated the code (`spec 006`, `#348`); non-obvious behavior in the diff should too.
-- No new **server runtime** dependencies without strong justification — that dependency budget is hono, @hono/node-server, yaml, zod, smol-toml, ws and proper-lockfile, and nothing else. The list is exhaustive on purpose: adding to it is a review decision, so the commit that widens it updates this line and says why. (`ws` earned its place because Node ships a WebSocket *client* but no server and `@hono/node-server` provides none, so the `/api/ws` subscription bus had no in-tree option — spec `.ai/specs/2026-07-23-websocket-subscriptions.md`. `proper-lockfile` earned its place because reclaiming an abandoned automation lease needs a *synchronous, cross-platform* mutex and Node exposes no advisory-lock API — `flock` is Linux-only and OnniCode supports Windows and macOS, so the atomic-`mkdir` guard protocol had no in-tree equivalent — #998.) Browser packages are build-time dependencies and must remain locked, bundle-measured, and absent from the installed CLI's runtime dependency graph.
+- No new **server runtime** dependencies without strong justification. The current budget in
+  `packages/work/package.json` is `@clack/prompts`, `@hono/node-server`, `dotenv`, `hono`,
+  `proper-lockfile`, `smol-toml`, `undici`, `ws`, `yaml`, `zod` and `web-tree-sitter`.
+  Optional platform integrations are `@lydell/node-pty` and `@napi-rs/keyring`. Adding to either
+  list remains a review decision; update this inventory and explain why. `ws` provides the
+  `/api/v1/ws` server (spec `.ai/specs/2026-07-23-websocket-subscriptions.md`);
+  `proper-lockfile` provides the synchronous cross-platform lease mutex (#998);
+  `web-tree-sitter` runs the bundled WASM Repo Map without native grammar installation.
+  Browser packages and RepoMapper stay build-time dependencies: locked, bundle-measured and
+  absent from the installed CLI's runtime dependency graph.
 - Web UI changes belong under `packages/web/` and follow the accepted React 19 + Vite + Tailwind v4 + shadcn/ui architecture. Keep `packages/work/web/dist` reproducible from source, preserve light/dark/system themes and mobile/accessibility behavior, and add unit/component tests for changed behavior. (The legacy vanilla UI was retired in R7; the React cockpit is the only UI, and `/new` is the React composer.)
 - User-facing errors are one human-readable line (the `createDraftPr` pattern), not stack traces.
 

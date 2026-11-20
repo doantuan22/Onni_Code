@@ -116,6 +116,7 @@ export class GithubPoller {
     const run = options.run ?? (async (executable, args) => (await execFileAsync(executable, [...args], {
       maxBuffer: 4 * 1024 * 1024,
       timeout: GITHUB_COMMAND_TIMEOUT_MS,
+      windowsHide: true,
       env: ghEnv(),
     })).stdout);
     const host = this.host;

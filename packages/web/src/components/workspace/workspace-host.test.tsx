@@ -14,6 +14,7 @@ import {
 import type { ViewId } from '@/routes/task-workspace/layout-state'
 
 import { WorkspaceHost } from './workspace-host'
+import { ContextActionButton } from './context-action'
 
 const { toastMock, healthMock } = vi.hoisted(() => ({
   toastMock: vi.fn(),
@@ -75,6 +76,7 @@ function ParamReadingWorkspace({ view, runId }: { view?: ViewId; runId?: string 
   return (
     <div data-testid="task-workspace" data-param-id={id}>
       {(runId ?? id)}:{view ?? 'default'}
+      <ContextActionButton />
     </div>
   )
 }
@@ -451,7 +453,7 @@ describe('WorkspaceHost', () => {
     expect(nextPanes[0]!.getAttribute('data-pane-id')).toBe('run:shop:run-2')
   })
 
-  it('below 1024px opens the Context Sheet from the button in the conversation header', async () => {
+  it('below 1024px opens the Context Sheet from the task header without a duplicate title bar', async () => {
     vi.stubGlobal('matchMedia', () => ({
       matches: false,
       addEventListener: () => {},
@@ -462,9 +464,7 @@ describe('WorkspaceHost', () => {
 
     await waitFor(() => expect(screen.getByTestId('task-workspace')).toBeDefined())
 
-    // Header exists and contains the Context button
-    const header = document.querySelector('[data-slot="conversation-header"]')!
-    expect(header).not.toBeNull()
+    expect(document.querySelector('[data-slot="conversation-header"]')).toBeNull()
 
     const contextButton = screen.getByRole('button', { name: /context views/i })
     expect(contextButton).toBeDefined()
@@ -473,6 +473,11 @@ describe('WorkspaceHost', () => {
     expect(document.querySelector('[data-slot="context-sheet"]')).toBeNull()
 
     // Click to open context sheet
+    const persist = vi.spyOn(Storage.prototype, 'setItem')
+    persist.mockClear()
+    fireEvent.pointerDown(contextButton)
+    expect(persist).not.toHaveBeenCalled()
+    persist.mockRestore()
     fireEvent.click(contextButton)
 
     await waitFor(() => expect(document.querySelector('[data-slot="context-sheet"]')).not.toBeNull())

@@ -1,6 +1,6 @@
 import type { UiToolItem } from '@onni/api-client'
 
-import type { ThreadEntry } from './thread-state'
+import type { ThreadEntry, ThreadNote } from './thread-state'
 
 /**
  * Pure display grouping over one turn's reduced entries (spec §"Task thread"; the opencode
@@ -52,7 +52,13 @@ export interface StreakBlock {
   blocks: Array<ToolCardBlock | ContextGroupBlock>
 }
 
-export type ThreadBlock = EntryBlock | ToolCardBlock | ContextGroupBlock | StreakBlock
+export interface DiagnosticsBlock {
+  kind: 'diagnostics'
+  id: string
+  notes: ThreadNote[]
+}
+
+export type ThreadBlock = EntryBlock | ToolCardBlock | ContextGroupBlock | StreakBlock | DiagnosticsBlock
 
 /** How many trailing tool blocks stay visible before older ones fold (legacy STREAK_TAIL). */
 export const STREAK_TAIL = 3
@@ -96,7 +102,7 @@ export function splitToolTitle(title: string): { verb: string; detail?: string }
   return { verb: title }
 }
 
-export function groupThreadItems(allEntries: ThreadEntry[], options: { settled?: boolean } = {}): ThreadBlock[] {
+export function groupThreadItems(allEntries: ThreadEntry[], options: { settled?: boolean; collapseDiagnostics?: boolean } = {}): ThreadBlock[] {
   // Pass 0 — plan-kind tools (TodoWrite / todoList / todowrite) never render in the thread:
   // the plan dock is their surface (#382); a card here would only duplicate the checklist as
   // raw input JSON. Filtering the flat list drops them from children lists too.
@@ -202,5 +208,15 @@ export function groupThreadItems(allEntries: ThreadEntry[], options: { settled?:
   }
   flushStreak()
 
-  return folded
+  if (!options.collapseDiagnostics) return folded
+  // Keep every event available for inspection; the run footer owns the actionable failure message.
+  const quiet: ThreadBlock[] = []
+  for (const block of folded) {
+    if (block.kind === 'entry' && block.entry.kind === 'note') {
+      const previous = quiet.at(-1)
+      if (previous?.kind === 'diagnostics') previous.notes.push(block.entry)
+      else quiet.push({ kind: 'diagnostics', id: `diagnostics:${block.id}`, notes: [block.entry] })
+    } else quiet.push(block)
+  }
+  return quiet
 }

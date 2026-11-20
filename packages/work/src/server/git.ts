@@ -29,6 +29,7 @@ async function git(
   options: { env?: NodeJS.ProcessEnv } = {},
 ): Promise<string> {
   const { stdout } = await exec('git', args, {
+    windowsHide: true,
     cwd: root,
     maxBuffer: 10 * 1024 * 1024,
     env: options.env,

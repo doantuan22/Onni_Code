@@ -52,7 +52,7 @@ export function cleanSubject(raw: string): string | undefined {
  *  subject already in history is never imitated. */
 async function recentSubjects(repoRoot: string): Promise<string[]> {
   const lines = await new Promise<string[]>((resolve) => {
-    execFile('git', ['log', '-20', '--format=%s'], { cwd: repoRoot, encoding: 'utf8' }, (err, stdout) =>
+    execFile('git', ['log', '-20', '--format=%s'], { cwd: repoRoot, encoding: 'utf8', windowsHide: true }, (err, stdout) =>
       resolve(err ? [] : stdout.split('\n').map((l) => l.trim()).filter(Boolean)),
     );
   });

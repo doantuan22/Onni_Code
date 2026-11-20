@@ -10,10 +10,11 @@ the code alone cannot.
 - **They may use old names.** A spec can say `cez`, `cezar`, `CEZ_*`,
   `@open-mercato/cezar*`, `.ai/cezar/`, `~/.cezar/`, `packages/cezar`, the
   `cez/<id8>` branch prefix or "Cezar" (the desktop product). The rename mapping
-  is in [`docs/adr/0003-rename-to-onni.md`](../../docs/adr/0003-rename-to-onni.md).
+  is summarized in [`CHANGELOG.md`](../../CHANGELOG.md) and the current
+  [`AGENTS.md`](../../AGENTS.md).
 - **They can describe removed features.** Self-update/downgrade-able release
   channels, telemetry, npm publishing and the star-count chip no longer exist
-  (see [`docs/adr/0002-remove-self-update-telemetry-publish.md`](../../docs/adr/0002-remove-self-update-telemetry-publish.md)).
+  (see [`AGENTS.md` — Deliberately removed](../../AGENTS.md#deliberately-removed--do-not-reintroduce)).
   A spec that describes one is history, not a requirement.
 - **Some links are dead.** A few specs point at directories that were never
   imported with the fork (`../runs/`, `../data-model/`, `../prototypes/`). They

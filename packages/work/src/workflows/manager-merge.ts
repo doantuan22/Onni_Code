@@ -30,7 +30,7 @@ export type MergeOutcome =
 interface G { ok: boolean; stdout: string; stderr: string }
 const g = (cwd: string, args: string[]): Promise<G> =>
   new Promise((resolve) => {
-    execFile('git', args, { cwd, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }, (err, stdout, stderr) =>
+    execFile('git', args, { cwd, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, windowsHide: true }, (err, stdout, stderr) =>
       resolve({ ok: !err, stdout: stdout ?? '', stderr: stderr ?? '' }),
     );
   });

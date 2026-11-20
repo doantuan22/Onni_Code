@@ -31,6 +31,7 @@ function git(cwd: string, args: string[], timeout?: number): Promise<GitResult> 
       {
         cwd,
         maxBuffer: 8 * 1024 * 1024,
+        windowsHide: true,
         encoding: 'utf8',
         ...(timeout ? { timeout } : {}),
         env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },

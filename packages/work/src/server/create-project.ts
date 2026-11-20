@@ -61,6 +61,7 @@ export type CommandRunner = (
 export const spawnCommandRunner: CommandRunner = (cmd, args, opts) =>
   new Promise((resolvePromise) => {
     const child = spawn(cmd, args, {
+      windowsHide: true,
       cwd: opts.cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: COMMAND_TIMEOUT_MS,

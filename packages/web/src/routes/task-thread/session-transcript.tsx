@@ -213,7 +213,7 @@ export function buildTranscriptRows(
     const settled = section.settled ?? section.completedAt !== undefined
     const lastMessage = section.entries.filter(entry => entry.kind === 'message' && entry.role === 'assistant').at(-1)
     const answering = lastMessage?.kind === 'message' && lastMessage.phase === 'final'
-    for (const block of groupThreadItems([...section.entries], { settled: settled || answering })) {
+    for (const block of groupThreadItems([...section.entries], { settled: settled || answering, collapseDiagnostics: true })) {
       rows.push({
         key: `${section.id}:${block.id}`,
         scope: section.id,
@@ -410,6 +410,8 @@ const ThreadBlockRenderer = memo(function ThreadBlockRenderer({
       )
     case 'context-group':
       return <ContextGroup group={block} scope={scope} />
+    case 'diagnostics':
+      return <ExecutionDetails notes={block.notes} />
     case 'streak':
       return (
         <ToolStreak count={block.count} settled={block.settled} cacheKey={`${scope}:${block.id}`}>
@@ -422,6 +424,20 @@ const ThreadBlockRenderer = memo(function ThreadBlockRenderer({
       return assertNever(block)
   }
 }, sameThreadBlockProps)
+
+function ExecutionDetails({ notes }: { notes: readonly ThreadNote[] }) {
+  const { t } = useI18n()
+  return (
+    <details data-slot="execution-details" className="text-xs text-soft-foreground">
+      <summary className="min-h-8 cursor-pointer py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+        {t('Execution details')} <span className="tabular-nums">({notes.length})</span>
+      </summary>
+      <div className="space-y-1 border-l border-border py-2 pl-3">
+        {notes.map((note) => <NoteLine key={note.id} note={note} />)}
+      </div>
+    </details>
+  )
+}
 
 function GroupedEntries({
   entries,
@@ -509,7 +525,7 @@ function sameThreadBlockProps(
 function containsAsk(block: ThreadBlock): boolean {
   if (block.kind === 'entry') return block.entry.kind === 'ask'
   if (block.kind === 'tool-card') return block.children.some((entry) => entry.kind === 'ask')
-  if (block.kind === 'context-group') return false
+  if (block.kind === 'context-group' || block.kind === 'diagnostics') return false
   return block.blocks.some(containsAsk)
 }
 
@@ -518,6 +534,8 @@ function sameThreadBlock(previous: ThreadBlock, next: ThreadBlock): boolean {
   switch (next.kind) {
     case 'entry':
       return sameThreadEntry(previous.kind === 'entry' ? previous.entry : undefined, next.entry)
+    case 'diagnostics':
+      return previous.kind === 'diagnostics' && sameThreadEntries(previous.notes, next.notes)
     case 'tool-card':
       return (
         previous.kind === 'tool-card' &&

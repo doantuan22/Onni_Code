@@ -135,6 +135,7 @@ export async function discoverPiModels(options: PiModelDiscoveryOptions): Promis
 
 function spawnPi(bin: string, cwd: string): ChildProcessWithoutNullStreams {
   const child = nodeSpawn(...spawnableCommand(bin, ['--list-models']), {
+    windowsHide: true,
     cwd,
     env: buildChildEnv({ backend: 'pi' }),
   });

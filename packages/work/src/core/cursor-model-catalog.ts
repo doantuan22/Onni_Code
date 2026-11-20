@@ -53,6 +53,7 @@ export async function discoverCursorModels(
     options.run ??
     (async (executable, runEnv, timeout) =>
       exec(...spawnableCommand(executable, ['models']), {
+        windowsHide: true,
         timeout,
         env: runEnv,
         maxBuffer: 2 * 1024 * 1024,

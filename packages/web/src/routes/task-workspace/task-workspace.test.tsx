@@ -187,7 +187,7 @@ async function pickTile(view: ViewId) {
 }
 
 describe('the task workspace (main)', () => {
-  it('opens on the Chat and Changes Review arrangement, with the layout strip in place of route tabs', async () => {
+  it('opens fresh tasks on full-width Chat, with the layout strip in place of route tabs', async () => {
     stubFetch()
     renderWorkspace()
     await ready()
@@ -195,8 +195,8 @@ describe('the task workspace (main)', () => {
     // Changes second; Terminal last, as a tab that toggles the drawer.
     expect(cardNames()).toEqual(['Chat', 'Changes', 'Commits', 'Files', 'Preview', 'Terminal'])
     expect(activeCard()).toBe('Custom')
-    expect(columnViews()).toEqual(['session', 'changes'])
-    expect(columnWidths()).toEqual([55, 45])
+    expect(columnViews()).toEqual(['session'])
+    expect(columnWidths()).toEqual([100])
     // One strip, never both: the old route links are gone from the header.
     expect(screen.queryByRole('link', { name: 'Changes' })).toBeNull()
     // Opening the task saves nothing: the host has never been written to.
@@ -487,16 +487,17 @@ describe('the task workspace (main)', () => {
     await waitFor(() => expect(columnViews()).toEqual(['changes', 'terminal']))
   })
 
-  it('gives a lone view its bar — the split only: no name, no view switcher, no close', async () => {
-    // Exercise an existing fixed-view layout; fresh tasks now start on the Review arrangement.
+  it('keeps the lone view switcher mobile-only and offers split without closing the last view', async () => {
+    // Existing fixed-view layouts retain their view and controls.
     hostLayouts.r1 = { layouts: [{ name: 'Chat', columns: [{ view: 'session', width: 100 }] }], active: 'Chat' }
     stubFetch()
     renderWorkspace()
     await ready()
     const header = await waitFor(() => document.querySelector<HTMLElement>('[data-slot="workspace-column-header"]')!)
-    expect(header.textContent).not.toContain('Chat')
     expect(header.querySelector('[data-action="split-view"]')).not.toBeNull()
-    expect(header.querySelector('[data-action="change-view"]')).toBeNull()
+    const switcher = header.querySelector('[data-action="change-view"]')!
+    expect(switcher).not.toBeNull()
+    expect(switcher.closest('.md\\:hidden')).not.toBeNull()
     expect(screen.queryByRole('button', { name: 'Close Chat' })).toBeNull()
 
     // Splitting the Chat tab builds the working arrangement; the Chat tab stays one view.
@@ -504,7 +505,7 @@ describe('the task workspace (main)', () => {
     await pickTile('files')
     await waitFor(() => expect(activeCard()).toBe('Custom'))
     expect(columnViews()).toEqual(['session', 'files'])
-    expect(document.querySelectorAll('[data-action="change-view"]')).toHaveLength(2)
+    expect(document.querySelectorAll('[data-slot="workspace-layout"][data-active] [data-action="change-view"]')).toHaveLength(2)
     expect(screen.getByRole('button', { name: 'Close Chat' })).not.toBeNull()
   })
 

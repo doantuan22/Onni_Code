@@ -39,6 +39,7 @@ function git(cwd: string, args: string[], env?: Record<string, string>): Promise
       {
         cwd,
         maxBuffer: 32 * 1024 * 1024,
+        windowsHide: true,
         encoding: 'utf8',
         ...(env ? { env: { ...process.env, ...env } } : {}),
       },
@@ -637,7 +638,7 @@ export async function readImageAtRev(dir: string, rev: string, path: string): Pr
     return { kind: 'refused', error: `file too large to serve raw (${bytes} bytes): ${path}` };
   }
   return new Promise((resolvePromise) => {
-    execFile('git', ['cat-file', 'blob', object], { cwd: dir, encoding: 'buffer', maxBuffer: FILE_CONTENT_CAP + 1 }, (err, stdout) => {
+    execFile('git', ['cat-file', 'blob', object], { cwd: dir, encoding: 'buffer', maxBuffer: FILE_CONTENT_CAP + 1, windowsHide: true }, (err, stdout) => {
       resolvePromise(err ? { kind: 'refused', error: `not found at ${rev.slice(0, 8)}: ${path}` } : { kind: 'ok', bytes: stdout, mime });
     });
   });

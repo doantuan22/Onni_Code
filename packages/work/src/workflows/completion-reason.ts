@@ -10,7 +10,7 @@ export async function completionReason(run: RunRecord | undefined): Promise<Webh
   let timer: ReturnType<typeof setTimeout> | undefined;
   const git = (args: string[]): Promise<{ ok: boolean; stdout: string }> => new Promise(resolve => {
     if (controller.signal.aborted) return resolve({ ok: false, stdout: '' });
-    execFile('git', args, { cwd: run.worktreePath, encoding: 'utf8', signal: controller.signal, timeout: 5000, maxBuffer: 1024 * 1024 },
+    execFile('git', args, { cwd: run.worktreePath, encoding: 'utf8', signal: controller.signal, timeout: 5000, maxBuffer: 1024 * 1024, windowsHide: true },
       (error, stdout) => resolve({ ok: !error, stdout }));
   });
   const determine = async (): Promise<WebhookCompletionReason> => {

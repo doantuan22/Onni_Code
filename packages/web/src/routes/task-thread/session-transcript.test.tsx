@@ -416,6 +416,23 @@ describe('SessionTranscript', () => {
     expect(note?.textContent).not.toContain('Initial response')
   })
 
+  it('keeps lifecycle diagnostics closed by default and inspectable without hiding the response', () => {
+    const { getByText } = render(<SessionTranscript runId="diagnostics" viewId="main" mode="document" renderMode="flat" sections={[{
+      id: 'turn', entries: [
+        { kind: 'note', id: 'n1', text: 'Backend exited', tone: 'dim' },
+        { kind: 'note', id: 'n2', text: 'Run failed', tone: 'dim' },
+        { kind: 'message', id: 'answer', role: 'assistant', text: 'Please retry after signing in.' },
+      ],
+    }]} />)
+    const disclosure = getByText('Execution details').closest('details')!
+    expect(disclosure.open).toBe(false)
+    expect(disclosure.textContent).toContain('Backend exited')
+    expect(disclosure.textContent).toContain('Run failed')
+    expect(document.querySelector('[data-slot="assistant-message"]')?.textContent).toContain('Please retry after signing in.')
+    fireEvent.click(disclosure.querySelector('summary')!)
+    expect(disclosure.open).toBe(true)
+  })
+
   it('updates a memoized tool block when its live output and status change', () => {
     const sections = (status: UiToolItem['status'], output: string): TranscriptSection[] => [{
       id: 'shared',

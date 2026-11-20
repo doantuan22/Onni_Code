@@ -633,7 +633,7 @@ function FooterContinueButton({
       }}
       // A text button in the message's own red: it is part of the sentence it completes, so it
       // keeps that sentence's colour; the weight and underline are what mark it as the action.
-      className="rounded-sm font-semibold underline underline-offset-2 hover:brightness-125 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:no-underline disabled:opacity-60"
+      className="inline-flex min-h-8 items-center rounded-sm px-1.5 font-semibold underline underline-offset-2 hover:brightness-125 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:no-underline disabled:opacity-60"
     >
       {t('Continue')}
     </button>

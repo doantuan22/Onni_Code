@@ -3,7 +3,7 @@ import * as React from 'react'
 /** The navigator rail is deliberately independent from the resizable sidebar width preference. */
 export const RAIL_STORAGE_KEY_PREFIX = 'onni-sidebar-rail:'
 export const RAIL_WIDTH = 55
-export const RAIL_COLLAPSE_MEDIA_QUERY = '(max-width: 1359px)'
+export const RAIL_COLLAPSE_MEDIA_QUERY = '(max-width: 1023px)'
 export const TOGGLE_NAVIGATOR_EVENT = 'onni:toggle-navigator'
 
 export function toggleNavigatorRail(projectId?: string): void {
@@ -45,7 +45,7 @@ export function railIsCollapsed({
   manualOverride?: RailManualOverride | null
 }): boolean {
   if (manualOverride !== null) return manualOverride === 'collapsed'
-  return windowWidth < 1360 || contentZoneCount >= 4
+  return windowWidth < 1024 || contentZoneCount >= 4
 }
 
 function useNarrowRailViewport(): boolean {
@@ -84,7 +84,7 @@ export function useRailState(projectId: string, contentZoneCount: number) {
   }, [projectId])
 
   const collapsed = railIsCollapsed({
-    windowWidth: narrowViewport ? 1359 : 1360,
+    windowWidth: narrowViewport ? 1023 : 1024,
     contentZoneCount,
     manualOverride,
   })

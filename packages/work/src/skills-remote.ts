@@ -63,6 +63,7 @@ function git(args: string[], timeoutMs: number, cwd?: string): Promise<GitResult
       {
         cwd,
         timeout: timeoutMs,
+        windowsHide: true,
         killSignal: 'SIGKILL',
         maxBuffer: 16 * 1024 * 1024,
         encoding: 'utf8',

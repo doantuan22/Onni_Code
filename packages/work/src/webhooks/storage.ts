@@ -18,7 +18,7 @@ export function statePath(directory: string, name: string): string {
   const path = join(directory, name); assertNoSymlink(path); return path;
 }
 function git(root: string, args: string[]): Promise<{ ok: boolean; stdout: string }> {
-  return new Promise(resolveResult => execFile('git', args, { cwd: root, timeout: 5000, encoding: 'utf8', maxBuffer: 1024 * 1024 }, (error, stdout) => resolveResult({ ok: !error, stdout })));
+  return new Promise(resolveResult => execFile('git', args, { cwd: root, timeout: 5000, encoding: 'utf8', maxBuffer: 1024 * 1024, windowsHide: true }, (error, stdout) => resolveResult({ ok: !error, stdout })));
 }
 export async function prepareStorage(root: string, dataDir: string, dryRun: boolean): Promise<string> {
   assertNoSymlink(dataDir);

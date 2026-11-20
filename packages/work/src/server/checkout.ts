@@ -205,7 +205,7 @@ async function persistGhCredentialHelper(dir: string): Promise<boolean> {
   for (const args of GH_CREDENTIAL_HELPER_CONFIG) {
     const ok = await new Promise<boolean>((resolvePromise) => {
       execFile('git', ['-C', dir, 'config', '--local', ...args],
-        { timeout: 10_000 }, (err) => resolvePromise(!err));
+        { timeout: 10_000, windowsHide: true }, (err) => resolvePromise(!err));
     });
     if (!ok) return false;
   }
@@ -224,6 +224,7 @@ async function persistGhCredentialHelper(dir: string): Promise<boolean> {
 export const ghCloneRunner: CloneRunner = (ref, dir, onLine, signal) =>
   new Promise((resolvePromise) => {
     const child = spawn('gh', ghCloneArgs(ref, dir), {
+      windowsHide: true,
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: CLONE_TIMEOUT_MS,
       // No inherited stdin and `GH_PROMPT_DISABLED`: an unauthenticated `gh`

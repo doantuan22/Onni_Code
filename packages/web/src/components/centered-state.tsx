@@ -112,9 +112,7 @@ const twinkleTone: Record<Twinkle['tone'], string> = {
  * The sparse brand-square scatter for hero/empty/lifecycle surfaces (spec, "Design system":
  * textures live ONLY there — never on data-dense screens).
  *
- * Purely decorative, so `aria-hidden` and pointer-transparent. The gentle staggered pulse is
- * `motion-safe:` — under `prefers-reduced-motion` the squares render static at their base
- * opacity, exactly as the spec's motion rules require.
+ * Purely decorative, so `aria-hidden`, pointer-transparent and static while the reader composes.
  */
 export function TwinkleBackdrop({ className }: { className?: string }) {
   return (
@@ -130,7 +128,7 @@ export function TwinkleBackdrop({ className }: { className?: string }) {
         <span
           key={index}
           className={cn(
-            'absolute rounded-[1px] motion-safe:animate-pulse',
+            'absolute rounded-[1px]',
             tw.size === 3 ? 'size-[3px]' : 'size-0.5',
             twinkleTone[tw.tone]
           )}
@@ -138,8 +136,6 @@ export function TwinkleBackdrop({ className }: { className?: string }) {
             top: tw.top,
             left: tw.left,
             opacity: tw.opacity,
-            animationDuration: '3.5s',
-            animationDelay: `${(index % 5) * 700}ms`,
           }}
         />
       ))}

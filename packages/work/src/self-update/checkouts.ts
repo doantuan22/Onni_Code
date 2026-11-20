@@ -33,7 +33,7 @@ export function onniPackageRoot(worktree: string): string | null {
 /** The branch a checkout is on, else its directory name. */
 export async function branchOf(worktree: string): Promise<string> {
   try {
-    const { stdout } = await exec('git', ['symbolic-ref', '--short', '-q', 'HEAD'], { cwd: worktree, timeout: 5_000 });
+    const { stdout } = await exec('git', ['symbolic-ref', '--short', '-q', 'HEAD'], { cwd: worktree, timeout: 5_000, windowsHide: true });
     if (stdout.trim()) return stdout.trim();
   } catch {
     // detached HEAD, or not a repo

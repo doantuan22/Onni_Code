@@ -212,6 +212,27 @@ describe('Task settings panel', () => {
 })
 
 describe('Task settings panel as one wide surface', () => {
+  it('opens a summary request as a focused editor and expands to all settings on demand', () => {
+    render(panel({ focusSection: { section: 'who', nonce: 1 } }))
+    expect(screen.getByText('who slot')).toBeTruthy()
+    expect(screen.queryByText('where slot')).toBeNull()
+    expect(screen.queryByText('autonomy slot')).toBeNull()
+    expect(document.querySelector('[data-slot="task-settings-nav"]')).toBeNull()
+    expect(document.querySelector('[data-slot="task-settings-panel"]')?.getAttribute('data-quick-section')).toBe('who')
+    fireEvent.click(screen.getByRole('button', { name: 'All task settings' }))
+    expect(screen.getByText('where slot')).toBeTruthy()
+    expect(screen.getByText('autonomy slot')).toBeTruthy()
+    expect(document.querySelector('[data-slot="task-settings-nav"]')).not.toBeNull()
+  })
+
+  it('reopens a new summary request in focused mode after using all settings', () => {
+    const view = render(panel({ focusSection: { section: 'who', nonce: 1 } }))
+    fireEvent.click(screen.getByRole('button', { name: 'All task settings' }))
+    view.rerender(panel({ focusSection: { section: 'autonomy', nonce: 2 } }))
+    expect(screen.getByText('autonomy slot')).toBeTruthy()
+    expect(screen.queryByText('who slot')).toBeNull()
+  })
+
   it('opens as a large dialog with a left rail and a Close button', () => {
     const onOpenChange = vi.fn()
     render(panel({ onOpenChange }))

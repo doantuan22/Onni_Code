@@ -1,0 +1,10 @@
+Locally served variable Vietnamese subsets, retrieved from Google Fonts on 2026-11-20.
+The existing inter-LICENSE.txt and jetbrains-mono-LICENSE.txt contain the SIL Open Font License.
+
+Inter v20, normal, variable weight 100-900:
+https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7SUc.woff2
+
+JetBrains Mono v24, normal, variable weight 100-800:
+https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbV2o-flEEny0FZhsfKu5WU4xD0OwG_TA.woff2
+
+These files are bundled with the app. No runtime font request leaves the machine.

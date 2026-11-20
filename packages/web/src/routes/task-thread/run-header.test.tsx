@@ -2270,6 +2270,11 @@ describe('meta line, tabs, pill and resume hint', () => {
     renderHeader(run('failed', { runner: 'opencode', worktreePath: '/tmp/wt' }))
 
     const hint = document.querySelector('[data-slot="resume-hint"]') as HTMLElement
+    const disclosure = hint.closest('details')!
+    expect(disclosure.open).toBe(false)
+    expect(disclosure.querySelector('summary')?.textContent).toContain('Terminal (resume session)')
+    fireEvent.click(disclosure.querySelector('summary')!)
+    expect(disclosure.open).toBe(true)
     expect(hint.textContent).toContain('cd /tmp/wt && opencode --session sess-1')
     fireEvent.click(hint)
     await waitFor(() => {

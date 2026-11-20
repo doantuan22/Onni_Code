@@ -420,7 +420,7 @@ function ColumnHeader({
         actions.moveColumn(from, index)
       }}
       className={cn(
-        'group/column flex h-header shrink-0 items-center gap-0.5 border-b border-border/70 bg-background pl-4 pr-1.5',
+        'group/column flex h-9 shrink-0 items-center gap-0.5 border-b border-border/70 bg-background pl-3 pr-1.5 md:h-header md:pl-4',
         dropTarget && 'bg-muted',
       )}
     >
@@ -441,7 +441,7 @@ function ColumnHeader({
       ) : null}
       {/* The window's name IS its view switcher — except on a lone view, which the tab row above
           already names and switches: its bar carries only the split. */}
-      {count === 1 ? null : (
+      <div className={count === 1 ? 'md:hidden' : 'contents'}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -462,7 +462,7 @@ function ColumnHeader({
           <ViewItems onPick={(view) => actions.setColumnView(index, view)} disabled={column.view} />
         </DropdownMenuContent>
       </DropdownMenu>
-      )}
+      </div>
       <span
         draggable={count > 1 && grip}
         onDragStart={startDrag}

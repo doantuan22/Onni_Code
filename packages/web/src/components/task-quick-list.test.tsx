@@ -92,6 +92,13 @@ afterEach(() => {
 })
 
 describe('TaskQuickList', () => {
+  it('lists ordinary waiting tasks once and reserves the extra strip for explicit questions', () => {
+    renderList({ runs: [run({ id: 'waiting', title: 'Waiting task', status: 'waiting' })] })
+    expect(document.querySelector('[data-slot="needs-you-strip"]')).toBeNull()
+    expect(document.querySelectorAll('[data-run-id="waiting"]')).toHaveLength(1)
+    expect(rowsIn('Needs you').join()).toContain('Waiting task')
+  })
+
   it('keeps a long "Waiting for you" title inside the column instead of widening the scroller', () => {
     const long = Array(3).fill('A very long task title that would push the sidebar wider than its column').join(' ')
     renderList({
@@ -624,7 +631,7 @@ describe('TaskQuickList', () => {
       const actions = document.querySelector('[data-slot="task-row-actions"]') as HTMLElement
       expect(actions.className).toContain('no-hover:opacity-100')
       // …and big enough for a thumb there, where 20px is not a target.
-      expect(document.querySelector('[data-slot="pin-toggle"]')?.className).toContain('no-hover:size-7')
+      expect(document.querySelector('[data-slot="pin-toggle"]')?.className).toContain('no-hover:size-8')
       // The quiet default survives for pointer devices: still zero-width until hovered.
       expect(actions.className.split(' ')).toContain('w-0')
       expect(actions.className).toContain('group-hover/task-row:w-auto')

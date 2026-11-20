@@ -30,7 +30,9 @@ describe('navigator rail state', () => {
   })
 
   it.each([
-    [{ windowWidth: 1359, contentZoneCount: 1 }, true],
+    [{ windowWidth: 1023, contentZoneCount: 1 }, true],
+    [{ windowWidth: 1024, contentZoneCount: 1 }, false],
+    [{ windowWidth: 1101, contentZoneCount: 1 }, false],
     [{ windowWidth: 1360, contentZoneCount: 4 }, true],
     [{ windowWidth: 1360, contentZoneCount: 3 }, false],
   ] as const)('auto-collapses only for the viewport or dense layout rule', (input, expected) => {

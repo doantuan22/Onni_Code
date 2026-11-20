@@ -66,21 +66,20 @@ const chatState = () => selectLayout(defaultState(), 'Chat')
 const BORN = ['Chat', 'Changes', 'Commits', 'Files', 'Preview', 'Graph']
 
 describe('defaultState', () => {
-  it('opens a fresh task on the Review arrangement, with fixed view cards still available', () => {
+  it('opens a fresh task on Chat, leaving Review available as an explicit preset', () => {
     const state = freshDefaultState()
     expect(DEFAULT_LAYOUT_NAME).toBe('Chat')
     expect(state.active).toBe('Custom')
     expect(names(state)).toEqual(['Custom'])
     expect(state.layouts.at(-1)?.columns).toEqual([
-      { view: 'session', width: 55 },
-      { view: 'changes', width: 45 },
+      { view: 'session', width: 100 },
     ])
   })
 
   it('is a factory, so one caller cannot mutate the default for the next', () => {
     const first = freshDefaultState()
     first.layouts.at(-1)!.columns[0]!.width = 1
-    expect(freshDefaultState().layouts.at(-1)!.columns[0]!.width).toBe(55)
+    expect(freshDefaultState().layouts.at(-1)!.columns[0]!.width).toBe(100)
   })
 })
 

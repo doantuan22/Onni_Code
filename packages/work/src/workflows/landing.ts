@@ -48,7 +48,7 @@ function git(cwd: string, args: string[], timeout = 0): Promise<GitResult> {
     execFile(
       'git',
       args,
-      { cwd, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, timeout, env: { ...process.env, ...NETWORK_ENV } },
+      { cwd, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, timeout, windowsHide: true, env: { ...process.env, ...NETWORK_ENV } },
       (err, stdout, stderr) => resolve({ ok: !err, stdout: stdout ?? '', stderr: stderr ?? '' }),
     );
   });
@@ -67,7 +67,7 @@ export function runShellCheck(
   if (!bash) return Promise.resolve({ ok: false, output: BASH_MISSING_MESSAGE });
   return new Promise((resolve) => {
     // A group of its own on POSIX, so the timeout can sweep what the check started.
-    const child = spawn(bash.path, ['-lc', command], { cwd, env: withBashPath(env ?? process.env, bash), detached: process.platform !== 'win32' });
+    const child = spawn(bash.path, ['-lc', command], { cwd, env: withBashPath(env ?? process.env, bash), detached: process.platform !== 'win32', windowsHide: true });
     let output = '';
     let settled = false;
     const settle = (result: { ok: boolean; output: string }) => {

@@ -200,7 +200,7 @@ describe('sidebar wiring', () => {
     await waitFor(() => expect(repoChip()).not.toBeNull())
     // Basename of the root, then the branch — not the whole path.
     expect(repoChip()?.textContent).toBe('onni / feat/cockpit')
-    expect(versionChip()?.textContent).toBe('demo_dev')
+    expect(versionChip()?.textContent).toBe('v0.1.3')
   })
 
   it('renders the inbox badge from /api/v1/todos', async () => {
@@ -464,7 +464,7 @@ describe('sidebar wiring', () => {
     // Running onni outside a repo is supported: no repo chip, but the rest of the chrome is
     // real and must not vanish with it.
     await waitFor(() => expect(versionChip()).not.toBeNull())
-    expect(versionChip()?.textContent).toBe('demo_dev')
+    expect(versionChip()?.textContent).toBe('v0.1.3')
     expect(repoChip()).toBeNull()
   })
 
@@ -648,11 +648,12 @@ describe('document title wiring', () => {
 })
 
 describe('task workspace rail density', () => {
-  it('passes the four-zone density to the shell on a task workspace route', async () => {
+  it('keeps project context visible on a wide task route without assuming four content zones', async () => {
     serve({ '/api/v1/health': HEALTH, '/api/v1/todos': [], '/api/v1/p/onni/runs': [] })
     renderScopedShell('/p/onni/tasks/run-1', 'onni')
 
-    await waitFor(() => expect(document.querySelector('[data-slot="sidebar"]')?.hasAttribute('data-rail')).toBe(true))
+    await waitFor(() => expect(document.querySelector('[data-slot="sidebar"]')).not.toBeNull())
+    expect(document.querySelector('[data-slot="sidebar"]')?.hasAttribute('data-rail')).toBe(false)
   })
 
   it('keeps ordinary project pages below the four-zone rail threshold', async () => {

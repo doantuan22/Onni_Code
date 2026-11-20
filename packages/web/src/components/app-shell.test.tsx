@@ -174,11 +174,11 @@ describe('AppShell', () => {
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeTruthy()
   })
 
-  it('auto-collapses below 1360px and keeps an explicit expansion across reloads', () => {
+  it('auto-collapses below 1024px and keeps an explicit expansion across reloads', () => {
     vi.stubGlobal(
       'matchMedia',
       (query: string) => ({
-        matches: query === '(max-width: 1359px)',
+        matches: query === '(max-width: 1023px)',
         addEventListener: () => {},
         removeEventListener: () => {},
       }),
@@ -358,7 +358,7 @@ describe('AppShell', () => {
       // The text truncates inside the pill rather than widening it past what the row can hold.
       const label = chip.querySelector('span:not([data-slot])') as HTMLElement
       expect(label.className).toContain('truncate')
-      expect(label.textContent).toBe('demo_dev')
+      expect(label.textContent).toBe('v0.9.2-nightly.20260813.1')
       // …and the full string stays legible on hover, since the visible one may be clipped.
       expect(chip.getAttribute('title')).toBe('v0.9.2-nightly.20260813.1')
       // Everything else in the row still refuses to shrink — that is what keeps them readable.
@@ -380,8 +380,7 @@ describe('AppShell', () => {
     it('renders the repo chip and version chip from props', () => {
       renderShell('/', { repo: { name: 'onni', branch: 'main' }, version: '1.2.3' })
       expect(screen.getByText('onni / main')).toBeTruthy()
-      // The chip prefixes the fixed demo_dev label, mono, muted.
-      expect(within(footer()).getByText('demo_dev')).toBeTruthy()
+      expect(within(footer()).getByText('v1.2.3')).toBeTruthy()
     })
 
     it('puts the repo chip on its own line under the lockup, with the full text on hover', () => {

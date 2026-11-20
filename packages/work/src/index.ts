@@ -858,7 +858,7 @@ function openUrl(url: string): void {
     process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'cmd' : 'xdg-open';
   const args = process.platform === 'win32' ? ['/c', 'start', '', url] : [url];
   try {
-    const child = spawn(cmd, args, { stdio: 'ignore', detached: true });
+    const child = spawn(cmd, args, { stdio: 'ignore', detached: true, windowsHide: true });
     // A missing opener (e.g. no `xdg-open` on a headless Linux VPS) surfaces
     // asynchronously as an 'error' event, NOT a synchronous throw — without a
     // listener Node promotes it to an unhandled error and hard-crashes the whole

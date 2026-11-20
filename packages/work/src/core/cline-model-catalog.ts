@@ -118,6 +118,7 @@ function spawnCline(
   cwd: string,
 ): ChildProcessWithoutNullStreams {
   const child = nodeSpawn(...spawnableCommand(bin, args), {
+    windowsHide: true,
     cwd,
     env: buildChildEnv({ backend: 'cline' }),
   });

@@ -23,7 +23,7 @@ export const defaultRunner: Runner = {
   capture(program, args, opts) {
     // spawn (not execFile) so a secret can be fed via stdin instead of argv.
     return new Promise((resolve) => {
-      const child = spawn(program, args, { stdio: ['pipe', 'pipe', 'pipe'] });
+      const child = spawn(program, args, { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
       let stdout = '';
       let stderr = '';
       child.stdout?.on('data', (d) => (stdout += String(d)));

@@ -266,8 +266,8 @@ export const DEFAULT_STACK_RATIO = 58
 export const MIN_STACK_RATIO = 15
 export const MAX_STACK_RATIO = 85
 
-/** The state a task with nothing saved opens with: the active Review arrangement (Chat at 55%,
- *  Changes at 45%). View tabs remain available independently of saved layouts. Old saved layouts
+/** A fresh task starts with the conversation; Review remains an explicit split-view preset.
+ *  View tabs remain available independently of saved layouts. Old saved layouts
  *  are revived independently and keep their state.
  *
  *  Also the recovery target for state that is missing, malformed, or names views this build does
@@ -275,7 +275,7 @@ export const MAX_STACK_RATIO = 85
  *  default for everyone else. */
 export function defaultState(): WorkspaceState {
   return {
-    layouts: [{ name: WORKING_LAYOUT_NAME, columns: REVIEW_LAYOUT_PRESET.columns.map((column) => ({ ...column })) }],
+    layouts: [{ name: WORKING_LAYOUT_NAME, columns: [{ view: 'session', width: 100 }] }],
     active: WORKING_LAYOUT_NAME,
   }
 }

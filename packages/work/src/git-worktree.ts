@@ -46,7 +46,7 @@ function git(
       execFile(
         'git',
         args,
-        { cwd, maxBuffer: 32 * 1024 * 1024, encoding: 'utf8', ...opts },
+        { cwd, maxBuffer: 32 * 1024 * 1024, encoding: 'utf8', ...opts, windowsHide: true },
         (err, stdout, stderr) => resolve({ ok: !err, stdout: stdout ?? '', stderr: stderr ?? '' }),
       );
     } catch (error) {
@@ -475,7 +475,7 @@ export async function createWorktreeWithOutcome(
  */
 export function worktreeSizeBytes(path: string): Promise<number | null> {
   return new Promise((resolve) => {
-    execFile('du', ['-sk', path], { encoding: 'utf8' }, (err, stdout) => {
+    execFile('du', ['-sk', path], { encoding: 'utf8', windowsHide: true }, (err, stdout) => {
       if (err) {
         resolve(null);
         return;
@@ -935,7 +935,7 @@ function gitReadOnly(cwd: string, args: string[], signal: AbortSignal): Promise<
       execFile(
         'git',
         ['--no-optional-locks', '-c', 'core.quotepath=off', ...args],
-        { cwd, maxBuffer: 32 * 1024 * 1024, encoding: 'utf8', signal },
+        { cwd, maxBuffer: 32 * 1024 * 1024, encoding: 'utf8', signal, windowsHide: true },
         (err, stdout, stderr) => resolve({
           ok: !err,
           stdout: stdout ?? '',

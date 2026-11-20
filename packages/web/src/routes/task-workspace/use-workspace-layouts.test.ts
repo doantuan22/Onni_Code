@@ -325,7 +325,7 @@ describe('the contract bounds, client-side', () => {
 
 describe('Open in Browser on a fixed card', () => {
   it('opens the working arrangement and leaves the fixed card the one view it stands for', async () => {
-    // `null` is a task never opened: the Review working arrangement is active.
+    // A fresh task starts with Chat; opening a preview explicitly adds the second view.
     getRunLayouts.mockResolvedValue({ layouts: null })
     const hook = renderHook(() => useWorkspaceLayouts('r1'))
     await waitFor(() => expect(hook.result.current.ready).toBe(true))
@@ -337,8 +337,8 @@ describe('Open in Browser on a fixed card', () => {
     })
     expect(answer).toBe(true)
     expect(result.current.layout!.name).toBe('Custom')
-    expect(result.current.layout!.columns.map((column) => column.view)).toEqual(['session', 'changes', 'browser'])
-    expect(result.current.layout!.columns[2]!.browser).toEqual({ tabs: ['http://localhost:3000/'], active: 0 })
+    expect(result.current.layout!.columns.map((column) => column.view)).toEqual(['session', 'browser'])
+    expect(result.current.layout!.columns[1]!.browser).toEqual({ tabs: ['http://localhost:3000/'], active: 0 })
     expect(result.current.state.layouts.some((layout) => layout.name === 'Chat')).toBe(false)
 
     // Opening the Chat view creates its fixed card on demand.

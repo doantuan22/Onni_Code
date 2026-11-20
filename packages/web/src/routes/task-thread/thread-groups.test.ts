@@ -32,6 +32,23 @@ const tool = (id: string, toolKind: UiToolItem['toolKind'], status: ToolStatus, 
 
 const note = (id: string): ThreadEntry => ({ kind: 'note', id, text: `note ${id}`, tone: 'dim' })
 
+describe('execution diagnostics', () => {
+  it('folds consecutive lifecycle and error notes without dropping their contents', () => {
+    const first = note('started')
+    const error: ThreadEntry = { kind: 'note', id: 'failed', text: 'session closed after inactivity', tone: 'danger' }
+    expect(groupThreadItems([first, error], { collapseDiagnostics: true })).toEqual([
+      { kind: 'diagnostics', id: 'diagnostics:started', notes: [first, error] },
+    ])
+  })
+
+  it('keeps tools visible and preserves the order of diagnostics around them', () => {
+    const running = tool('command', 'execute', 'running')
+    const blocks = groupThreadItems([note('start'), running, note('end')], { collapseDiagnostics: true })
+    expect(blocks.map((block) => block.kind)).toEqual(['diagnostics', 'tool-card', 'diagnostics'])
+    expect(blocks[1]).toMatchObject({ item: running })
+  })
+})
+
 const shape = (blocks: ThreadBlock[]) => blocks.map((b) => b.kind)
 
 describe('groupThreadItems — context groups', () => {

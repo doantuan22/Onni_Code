@@ -1,7 +1,24 @@
-# Changelog — Onni Work
+# Changelog — OnniCode
 
-All notable changes to Onni Work are recorded here. This repository keeps the cezar engine's
+All notable changes to OnniCode are recorded here. This repository keeps the cezar engine's
 provenance in `NOTICE`; cezar's own release notes are not copied into it.
+
+## 2026-11-20 — Cockpit polish and local Windows packaging
+
+- **Workspace.** New tasks start with full-width Chat; Review stays an explicit preset and
+  saved arrangements remain available. Mobile navigation is compact, Context views stay
+  reachable, and the active conversation no longer has a purple outline.
+- **Controls and feedback.** Larger small-button targets, focused task-settings editors,
+  collapsible execution diagnostics and resume commands, and one ordinary waiting-task entry
+  in the sidebar. The footer and Tools tooltip show the running engine's version.
+- **Fonts and motion.** Local Vietnamese subsets for Inter and JetBrains Mono, reduced-motion
+  aware scrolling, and a static decorative backdrop.
+- **Windows.** Background process launches hide console windows. The packaging runbook now
+  documents the bundled engine, Node.js, RTK OSS and Repo Map assets, optional checkout linking,
+  script-owned desktop versioning and scoped cleanup of generated output.
+- **Documentation.** Current build/test guidance replaces stale Windows failure counts;
+  historical feature surveys and design records are explicitly distinguished from current
+  instructions. Old installer and staging artifacts are removed before rebuilding locally.
 
 ## 2026-10-30 — Cleanup: no network in the shell, local build only
 

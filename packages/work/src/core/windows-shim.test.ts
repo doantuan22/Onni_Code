@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { disclaimedCommand } from './disclaim-spawn.ts';
-import { shimScript, shimTarget, spawnableCommand } from './windows-shim.ts';
+import { shimScript, shimTarget, spawnableCommand, withWindowsCodexNpmBin } from './windows-shim.ts';
 
 // Verbatim shapes of what `npm i -g` (cmd-shim) and pnpm write on Windows.
 const NPM_SHIM = [
@@ -133,6 +133,19 @@ describe('spawnableCommand (telemetry a330744e)', () => {
     expect(spawnableCommand('codex', ['a'], { platform: 'win32', env: { PATH: '' } })).toEqual(['codex', ['a']]);
     expect(spawnableCommand('codex', ['login'], { platform: 'win32', nodePath: 'NODE', env }))
       .toEqual(['NODE', [script, 'login']]);
+  });
+
+  it('finds the default per-user Codex npm shim when the desktop PATH omits npm', () => {
+    const npmBin = join(dir, 'AppData', 'Roaming', 'npm');
+    const script = join(npmBin, 'node_modules', '@openai', 'codex', 'bin', 'codex.js');
+    mkdirSync(join(script, '..'), { recursive: true });
+    writeFileSync(script, '');
+    writeFileSync(join(npmBin, 'codex.cmd'), NPM_SHIM);
+
+    const env = withWindowsCodexNpmBin({ APPDATA: join(dir, 'AppData', 'Roaming'), Path: 'C:\\Windows\\System32' }, 'codex', 'win32');
+    expect(env.Path).toBe(`C:\\Windows\\System32;${npmBin}`);
+    expect(spawnableCommand('codex', ['app-server'], { platform: 'win32', nodePath: 'NODE', env }))
+      .toEqual(['NODE', [script, 'app-server']]);
   });
 
   it('resolves a bare native binary on PATH to its absolute path', () => {

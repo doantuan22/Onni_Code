@@ -86,6 +86,26 @@ it('keeps a newer persisted record when a stale store flushes an unrelated chang
   expect(RunStore.open(dir, { keepLive: true }).getRun(first.id)?.title).toBe('newer title');
 });
 
+it('keeps a deleted run out when a stale process flushes its cached copy', async () => {
+  const dir = setup();
+  const store = RunStore.open(dir, { keepLive: true });
+  const run = store.createRun({ id: 'doomed', title: 'doomed', workflow: 'test', task: 'test', steps: [] });
+  store.flush();
+  const stale = start(dir, 'survivor', 'stale', 'none');
+  await wait(dir, 'survivor-ready');
+
+  expect(store.deleteRun(run.id)).toBe(true);
+  store.flush();
+  expect(store.listPersistedRuns()).toEqual([]);
+  // The next owner must carry the deletion through its own index rewrite.
+  RunStore.open(dir, { keepLive: true }).flush();
+
+  signal(dir, 'survivor-start');
+  await stale.done;
+  expect(result(dir, 'survivor').error).toBeUndefined();
+  expect(result(dir, 'survivor').ids).toEqual(['survivor']);
+}, 20000);
+
 it('keeps viewed sequence monotonic when a stale process writes a lower receipt (QA7-A03)', () => {
   const dir = setup();
   const a = RunStore.open(dir, { keepLive: true });

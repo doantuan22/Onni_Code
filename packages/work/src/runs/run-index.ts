@@ -2,7 +2,7 @@ import { accessSync, constants, existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
 
-import { reconcileLoadedRun, runRecordSchema, type RunRecord } from './store.ts';
+import { readRunIndexTombstones, reconcileLoadedRun, runRecordSchema, type RunRecord } from './store.ts';
 
 /**
  * The READ-ONLY half of `runs.json`, for the workspace-level run index (`GET
@@ -28,10 +28,11 @@ export function readRunIndexFromDisk(dataDir: string): RunRecord[] {
     const raw = JSON.parse(readFileSync(indexPath, 'utf8'));
     const parsed = z.array(runRecordSchema).safeParse(raw);
     if (!parsed.success) return [];
+    const tombstones = readRunIndexTombstones(dataDir);
     // `reconcileLoadedRun` mutates, which is safe here in a way it is not in the store: these
     // records were just parsed into fresh objects that nothing else holds a reference to.
     // Never `keepLive` — this reader has no RunManager, so there is nothing to recover into.
-    return parsed.data.map((run) => reconcileLoadedRun(run));
+    return parsed.data.filter(run => !tombstones.has(run.id)).map(run => reconcileLoadedRun(run));
   } catch {
     // Corrupt or unreadable index. A project that cannot be read contributes nothing to the
     // index rather than failing the whole workspace's search — the same degrade-quietly rule
@@ -89,14 +90,18 @@ export function readRunIndexDiagnostic(dataDir: string, projectRoot: string): {
       throw error;
     }
     if (!Array.isArray(raw)) throw new Error('Invalid run index');
+    const tombstones = readRunIndexTombstones(dataDir);
     const runs: RunRecord[] = [];
     let omittedRuns = 0;
     for (const entry of raw) {
       const parsed = runRecordSchema.safeParse(entry);
+      if (!parsed.success) {
+        omittedRuns++;
+        continue;
+      }
       // Reading another project's index does not prove that its owning process exited.
       // Preserve its recorded state; only a real recovery path may declare interruption.
-      if (parsed.success) runs.push(reconcileLoadedRun(parsed.data, { keepLive: true }));
-      else omittedRuns++;
+      if (!tombstones.has(parsed.data.id)) runs.push(reconcileLoadedRun(parsed.data, { keepLive: true }));
     }
     const unverifiedLive = runs.some((run) => ['running', 'waiting', 'queued'].includes(run.status));
     const reasons = [

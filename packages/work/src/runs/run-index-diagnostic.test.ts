@@ -53,4 +53,24 @@ describe('diagnostic run index', () => {
       state: 'unavailable',
     });
   });
+
+  it('hides deleted runs when the tombstone is newer than the index snapshot', () => {
+    const p = root();
+    const dataDir = join(p, '.ai/onni');
+    const staleIndex = [record('deleted', 'done'), record('kept', 'done')];
+    disk(p, staleIndex);
+    const store = RunStore.open(dataDir);
+    expect(store.deleteRun('deleted')).toBe(true);
+    // Model an interruption between committing the tombstone and replacing the index.
+    disk(p, staleIndex);
+
+    expect(RunStore.open(dataDir).listRuns().map(run => run.id)).toEqual(['kept']);
+    expect(store.listPersistedRuns().map(run => run.id)).toEqual(['kept']);
+    expect(index.readRunIndexFromDisk(dataDir).map(run => run.id)).toEqual(['kept']);
+    expect(index.readRunIndexDiagnostic(dataDir, p)).toMatchObject({
+      state: 'complete',
+      runs: [{ id: 'kept' }],
+      omittedRuns: 0,
+    });
+  });
 });

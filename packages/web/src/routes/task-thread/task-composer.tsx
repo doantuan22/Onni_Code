@@ -215,7 +215,7 @@ export function TaskDock({
       {overlay}
       <div
         className={cn(
-          'mx-auto flex w-full max-w-[var(--chat-measure)] flex-col gap-1.5 md:gap-2',
+          'mx-auto flex w-full max-w-[var(--chat-measure)] flex-col gap-1.5 md:max-w-[calc(var(--chat-measure)-3rem)] md:gap-2',
           floating && 'pointer-events-auto',
         )}
       >

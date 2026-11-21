@@ -583,3 +583,23 @@ describe('WorkingIndicator — live clock', () => {
     expect(document.querySelector('[data-slot="working-last-activity"]')).toBeNull()
   })
 })
+
+describe('chat column layout', () => {
+  afterEach(() => cleanup())
+
+  it('renders the user message as a plain rounded bubble without the YOU label or accent rail', () => {
+    render(<QueryClientProvider client={createQueryClient()}><MemoryRouter><UserBubble text="hello" /></MemoryRouter></QueryClientProvider>)
+    const bubble = document.querySelector('[data-slot="user-bubble"]')!
+    expect(bubble.className).toContain('rounded-2xl')
+    expect(bubble.className).toContain('self-end')
+    expect(bubble.className).not.toContain('border-l-2')
+    expect(bubble.textContent).not.toContain('You')
+  })
+
+  it('lets the assistant message fill the centred chat column instead of a 78ch cap', () => {
+    render(<AssistantMessage text="answer" copyable={false} />)
+    const message = document.querySelector('[data-slot="assistant-message"]')!
+    expect(message.className).toContain('w-full')
+    expect(message.className).not.toContain('78ch')
+  })
+})

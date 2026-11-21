@@ -9,7 +9,7 @@ import { parseUsageLimit } from '../../core/usage-limit.ts';
 import { followupsEnabled } from '../../handoff.ts';
 import { chooseFallbackTarget, fallbacksEnabled } from './fallback.ts';
 import { compactionEnabled } from '../continuation-context.ts';
-import { describeHit, evaluateLimits, raiseLimits, subtreeOf } from '../limits.ts';
+import { describeHit, evaluateLimits, indexLimitTree, type LimitTree, raiseLimits, subtreeOf, subtreeOfIndexed } from '../limits.ts';
 import { stepKind, type WorkflowDef } from '../types.ts';
 import type { LimitHit } from '@onni/contract';
 import type { StartRunInput } from '../run.ts';
@@ -542,29 +542,30 @@ export async function startNow(context: SchedulingContext, runId: string): Promi
 }
 
 export function sweepLimits(context: SchedulingContext, now: number = Date.now()): void {
+  const runs = context.store.listRuns();
   const elapsed = Math.max(0, Math.min(now - context.lastLimitTick.value, 5 * 60_000));
   context.lastLimitTick.value = now;
   if (elapsed > 0) {
-    for (const run of context.store.listRuns()) {
+    for (const run of runs) {
       if (run.status === 'running') {
         context.store.updateRun(run.id, { limitUsage: { wallMs: (run.limitUsage?.wallMs ?? 0) + elapsed } });
       }
     }
   }
-  const runs = context.store.listRuns();
+  const tree = indexLimitTree(runs);
   for (const run of runs) {
     if (isTerminalStatus(run.status)) continue;
-    const hit = evaluateLimits(run, runs);
-    if (hit) stopForLimit(context, run.id, hit);
+    const hit = evaluateLimits(run, runs, undefined, tree);
+    if (hit) stopForLimit(context, run.id, hit, tree);
   }
 }
 
-export function stopForLimit(context: SchedulingContext, runId: string, hit: LimitHit): void {
+export function stopForLimit(context: SchedulingContext, runId: string, hit: LimitHit, tree?: LimitTree<RunRecord>): void {
   const run = context.store.getRun(runId);
   if (!run || isTerminalStatus(run.status)) return;
   const targetId = hit.scope === 'tree' ? (run.dispatch?.rootRunId ?? runId) : runId;
   const message = `stopped — ${describeHit(hit)}. The worktree and session are kept; Continue to raise the ceiling.`;
-  for (const member of subtreeOf(context.store.listRuns(), targetId)) {
+  for (const member of tree ? subtreeOfIndexed(tree, targetId) : subtreeOf(context.store.listRuns(), targetId)) {
     if (isTerminalStatus(member.status)) continue;
     context.store.updateRun(member.id, { limitHit: hit, error: describeHit(hit) });
     context.store.appendEvent(member.id, { type: 'lifecycle', message, tone: 'danger' });

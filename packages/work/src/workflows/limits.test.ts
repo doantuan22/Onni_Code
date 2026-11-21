@@ -1,9 +1,42 @@
 import { describe, expect, it } from 'vitest';
-import { carveChildLimits, describeHit, evaluateLimits, raiseLimits, resolveLimits, subtreeUsage } from './limits.ts';
+import type { RunRecord } from '../runs/store.ts';
+import {
+  carveChildLimits,
+  describeHit,
+  evaluateLimits,
+  indexLimitTree,
+  raiseLimits,
+  resolveLimits,
+  subtreeUsage,
+  subtreeUsageIndexed,
+} from './limits.ts';
 
 const DEFAULT = { mode: 'capped', maxCostUsd: 10, maxTokens: 10_000_000, maxWallClockMinutes: 240, maxStepIterations: 30 } as const;
 function run(id: string, patch: Record<string, unknown> = {}) {
   return { id, steps: [{ iterations: 1 }], tokensUsed: 0, runner: 'claude', ...patch } as never;
+}
+
+function legacySubtreeUsage(runs: Array<Pick<RunRecord, 'id' | 'costUsd' | 'tokensUsed' | 'limitUsage' | 'steps' | 'dispatch'>>, rootId: string) {
+  const total = { cost: 0, tokens: 0, wallMs: 0, iterations: 0 };
+  const seen = new Set([rootId]);
+  const queue = [rootId];
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    const member = runs.find((candidate) => candidate.id === id);
+    if (member) {
+      total.cost += member.costUsd ?? 0;
+      total.tokens += member.tokensUsed ?? 0;
+      total.iterations += member.steps.reduce((sum, step) => sum + step.iterations, 0);
+      if (member.id === rootId) total.wallMs = member.limitUsage?.wallMs ?? 0;
+    }
+    for (const child of runs) {
+      if (child.dispatch?.parentRunId === id && !seen.has(child.id)) {
+        seen.add(child.id);
+        queue.push(child.id);
+      }
+    }
+  }
+  return total;
 }
 
 describe('resolveLimits', () => {
@@ -51,6 +84,23 @@ describe('evaluateLimits', () => {
     const root = run('root', { limits: { mode: 'capped', maxWallClockMinutes: 10 }, limitUsage: { wallMs: 5 * 60_000 }, dispatch: { rootRunId: 'root' } });
     const kid = run('k', { limitUsage: { wallMs: 60 * 60_000 }, dispatch: { rootRunId: 'root', parentRunId: 'root' } });
     expect(evaluateLimits(kid, [root, kid])).toBeUndefined();
+  });
+  it('matches the previous breadth-first subtree results from one indexed sweep snapshot', () => {
+    const root = run('root', { limits: { mode: 'capped', maxCostUsd: 10 }, costUsd: 2, limitUsage: { wallMs: 1_000 }, dispatch: { rootRunId: 'root' } });
+    const first = run('first', { costUsd: 3, dispatch: { rootRunId: 'root', parentRunId: 'root' } });
+    const second = run('second', { costUsd: 4, dispatch: { rootRunId: 'root', parentRunId: 'root' } });
+    const leaf = run('leaf', { costUsd: 5, dispatch: { rootRunId: 'root', parentRunId: 'first' } });
+    const unrelated = run('unrelated', { costUsd: 99 });
+    const all = [root, first, second, leaf, unrelated];
+    const tree = indexLimitTree(all);
+
+    expect(subtreeUsageIndexed(tree, root.id)).toEqual(legacySubtreeUsage(all, root.id));
+    expect(tree.subtreeUsage.size).toBe(4);
+    for (const member of all) {
+      expect(subtreeUsageIndexed(tree, member.id)).toEqual(legacySubtreeUsage(all, member.id));
+      expect(evaluateLimits(member, all, 'now', tree)).toEqual(evaluateLimits(member, all, 'now'));
+    }
+    expect(tree.subtreeUsage.size).toBe(all.length);
   });
 });
 

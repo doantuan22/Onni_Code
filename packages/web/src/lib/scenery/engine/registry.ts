@@ -6,6 +6,8 @@ export type SceneLoader = () => Promise<{ default: SceneDef }>
 export const sceneLoaders: Readonly<Record<string, SceneLoader>> = {
   'world-matterhorn': () => import('../scenes/world/matterhorn'),
   'world-sahara': () => import('../scenes/world/sahara'),
+  'vn-fansipan': () => import('../scenes/vn/fansipan'),
+  'vn-phu-quoc': () => import('../scenes/vn/phu-quoc'),
 }
 
 export function createSceneRegistry(loaders: Readonly<Record<string, SceneLoader>> = sceneLoaders) {

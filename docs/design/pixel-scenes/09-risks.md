@@ -1,16 +1,21 @@
-## 9. Rủi ro và cách xử lý
+## 9. Rủi ro v2 và cách xử lý
 
-| Rủi ro | Cách xử lý |
-| --- | --- |
-| Văn bản khó đọc trên cảnh sáng | Trần độ hiện theo tương phản + scrim tối thiểu quanh cột đọc + chế độ Horizon cho chat |
-| Tranh "không đẹp" (rủi ro lớn nhất, mang tính chủ quan) | Quy trình checklist nghệ thuật, contact sheet duyệt trước khi nhận, mỗi cảnh một chủ, cho phép loại cảnh không đạt khỏi v1 thay vì kéo dài |
-| Worker/OffscreenCanvas thiếu trong một WebView | Phát hiện khả năng, lùi về main thread cùng lõi; phanh hiệu năng |
-| Pin/CPU trên laptop | 12 fps, dừng khi ẩn tab, tự hạ, tắt ở mobile mặc định |
-| Hai nền trang trí chồng nhau | Ẩn `TwinkleBackdrop`/`GhostCodeBackdrop` khi cảnh bật |
-| `design-guardian` | Palette số, màu UI chỉ qua token; kiểm lại sau khi viết |
-| Đổi `app-shell.tsx` làm vỡ test layout (`app-shell.test.tsx`, `sidebar-frame.test.tsx`) | Canvas là phần tử `absolute` thêm vào, không đổi lưới; chạy riêng các test đó |
-| Cảnh phản ứng theo agent (v2) gây phân tâm | Tách v2, chỉ đổi tốc độ/độ dày, mặc định tắt |
-| Credit | Ghi "kỹ thuật lấy cảm hứng từ Pixel Chat Themes (MIT)" trong docs; không sao chép mã/nghệ thuật |
+V2 sửa cả artwork lẫn composite UI, không bắt đầu lại engine. Theo [_SYNTHESIS](research/_SYNTHESIS.md), **đẹp và đọc được là hai cổng độc lập**; không lấy test kỹ thuật thay quyết định mỹ thuật của chủ sản phẩm.
+
+| Rủi ro / mức | Dấu hiệu, căn cứ | Cách xử lý / bằng chứng đóng rủi ro |
+| --- | --- | --- |
+| Hiệu năng, pin — cao | Layer/particle/aurora thêm pass; indexed→RGBA vẫn toàn ảnh. R2 tính riêng RGBA 480×270×4×60 = 31.104.000 byte/s, không phải benchmark ([R2 §4](research/R2-craft.md), [R3 chi phí](research/R3-audit-scenes.md)). | Giữ 12 fps, art ≤480×270, pool hữu hạn, bake/cache/mask ROI, không cấp phát mỗi frame. Giữ phanh 12→6→0, hidden/reduced-motion; đo off/v1/v2 cùng máy, warm-up 10s + trace 60s lúc idle/stream/scroll, tách core/convert/present, p50/p95 và CPU/RAM. Mục tiêu lõi ≤2 ms; không hứa toàn UI từ số lõi. |
+| Thẩm mỹ chủ quan — cao nhất | Khối phẳng, sọc/noise; thêm ≥3 effect vẫn có thể xấu. R3 không có cảnh nào đạt ≥4 ở mọi tiêu chí ([R1 §4](research/R1-upstream.md), [R3 bảng điểm](research/R3-audit-scenes.md)). | Duyệt silhouette/value tĩnh trước texture/motion; mỗi cảnh một chủ, ≥5 lớp, sprite có câu chuyện, ánh sáng có hướng. Contact sheet + ảnh app 2 theme × `/new`/chat + so cạnh upstream; chủ sản phẩm chấm 1–5 và ký, mỗi tiêu chí ≥4; dưới 4 sửa/loại, không rebaseline hash để hợp thức hoá. |
+| Độ đọc — cao | Gỡ clamp toàn cục có thể lộ highlight dưới chữ; v1 chưa kiểm soft/cú pháp/status. Giảm kép hiện chỉ còn ~4–8% giữa cột ([R4 §3](research/R4-audit-theme-ui.md)). | Panel tint sáng thử 96%, tối 94%, viền 1px không blur; bảo vệ mọi chữ, không chỉ composer. Kiểm ≥4,5:1 cho chữ thường trên composite cuối ở cực trị palette/cycle/theme, kể cả đổi theme lúc stream; icon/focus kiểm riêng. Thiếu thì tăng nền cục bộ/fallback đặc. Default .9 chỉ sau gate, không xoá bảo vệ để làm tranh đậm. |
+| Công sức vẽ và duyệt — cao | 8 cảnh × 2 theme × 4 mốc = 64 tổ hợp palette trước crop/surface; pose/foreground cần art riêng ([R2 §3,5C](research/R2-craft.md), [R3](research/R3-audit-scenes.md)). | Hai cảnh mẫu nước/đất kiểm pipeline trước; mỗi worker ≤2 cảnh, file rời, một chủ primitive/CSS. Tái dùng helper, không lặp một silhouette cho mọi cảnh. Giữ Phú Quốc/Matterhorn nhưng chỉnh lớn; loại Santorini; danh sách thay ở [03](03-scene-set.md). Không định ngày/công tuyệt đối khi chưa duyệt mẫu. |
+| Giấy phép / nguồn gốc — cao | MIT code không tự cho phép dùng mọi ảnh tham chiếu/tài sản bên thứ ba; “lấy cảm hứng” không thay nghĩa vụ attribution ([R1 phần giấy phép](research/R1-upstream.md), [R2 sổ nguồn](research/R2-craft.md)). | Chỉ học kỹ thuật, tự viết mã/sprite/palette; ghi nguồn tham khảo và tác giả asset trong thay đổi. Không nhập mã/tài sản upstream theo brief. Nếu tương lai muốn dùng phần đáng kể phải xét quyền riêng, giữ copyright + permission MIT; không tự nới phạm vi hiện tại. |
+| Nhầm chứng cứ — cao | Sheet bỏ ceiling/CSS, PNG thiếu sidecar; ảnh tĩnh không chứng minh aurora động ([R1 §3](research/R1-upstream.md), [R4 §2](research/R4-audit-theme-ui.md)). | Lưu commit/scene/seed/timeSource/time/theme/viewport/visibility/backend/panel alpha cùng ảnh; raw → sau LUT → app. Clip/chuỗi t=0/5/15/30s cho motion. Giữ ảnh v1 để so, đánh dấu v2 riêng. |
+| Thay nghĩa state — vừa | `auto` cũ theo đồng hồ; chuyển theo theme dễ đổi sở thích người dùng; .9 ghi đè .7 là hồi quy ([R4 §6](research/R4-audit-theme-ui.md)). | Optional `timeSource`, migration tại [10](10-assumptions.md)/[06](06-data-contract.md); giữ explicit on/visibility/mode/surfaces, kiểm record cũ/thiếu/hỏng/id lạ, sync mirror/pre-paint. |
+| WebView/worker/bitmap — vừa | Worker lỗi, bitmap tồn đọng hoặc fallback khác palette gây trắng/mất cảnh ([R2 §1,4](research/R2-craft.md)). | Giữ ACK/close một frame chờ, dispose worker/timer, main fallback cùng semantics/phanh; thiếu khả năng chỉ giảm cảnh. WebGL không phải đường mặc định, chỉ spike khi trace có lý do. |
+| Layout/mobile và xao nhãng — vừa | Dock che landmark, strip hẹp, parallax giật/để lộ mép; renderer không được cản chọn chữ/scroll ([R2 §3.8](research/R2-craft.md), [R4 §5](research/R4-audit-theme-ui.md)). | Horizon kết thúc trên dock; clip/focus/overscan theo crop. Canvas pointer-events-none, parallax nhỏ và tắt khi reduced-motion; không cần motion để tranh đẹp. Kiểm bàn phím mobile, virtualizer, stream; activity theo agent hoãn khỏi phạm vi bắt buộc v2. |
+| Hồi quy tích hợp — vừa | Nền cũ chồng cảnh; app-shell/pre-paint/i18n/guardian dễ lệch | Chỉ bật CSS khi đúng surface + ready, ẩn Twinkle/Ghost khi cảnh bật; giữ sidebar đặc, màu UI qua token/palette số. Task triển khai kiểm layout/provider/contract/i18n và e2e; lượt kế hoạch này không chạy npm ([R4 §6–7](research/R4-audit-theme-ui.md)). |
+
+**Truy vết v1:** giữ fallback, phanh, ẩn hai nền cũ, guardian và credit. **Thay** giải pháp “trần toàn cảnh + scrim cột” bằng panel cục bộ. **Sửa** quan niệm “v2 chỉ là parallax/activity”: v2 nay bắt buộc sửa tranh và sáng/tối; activity không phải điều kiện nghiệm thu. Mức rủi ro là đánh giá kế hoạch, không xác suất đã đo.
 
 ---
 [← Mục lục](README.md)

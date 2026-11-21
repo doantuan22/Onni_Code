@@ -10,6 +10,27 @@ type Limited = Pick<RunRecord, 'id' | 'limits' | 'limitUsage' | 'steps' | 'token
 
 export interface Usage { cost: number; tokens: number; wallMs: number; iterations: number }
 
+export interface LimitTree<T extends Limited> {
+  readonly runsById: ReadonlyMap<string, T>;
+  readonly childrenByParentId: ReadonlyMap<string, readonly T[]>;
+  readonly subtreeUsage: Map<string, Usage>;
+}
+
+/** Index a sweep's snapshot once so descendant lookups do not repeatedly scan every run. */
+export function indexLimitTree<T extends Limited>(runs: readonly T[]): LimitTree<T> {
+  const runsById = new Map<string, T>();
+  const childrenByParentId = new Map<string, T[]>();
+  for (const run of runs) {
+    if (!runsById.has(run.id)) runsById.set(run.id, run);
+    const parentId = run.dispatch?.parentRunId;
+    if (!parentId) continue;
+    const children = childrenByParentId.get(parentId);
+    if (children) children.push(run);
+    else childrenByParentId.set(parentId, [run]);
+  }
+  return { runsById, childrenByParentId, subtreeUsage: new Map() };
+}
+
 const KEY: Record<LimitKind, 'maxCostUsd' | 'maxTokens' | 'maxWallClockMinutes' | 'maxStepIterations'> = {
   cost: 'maxCostUsd', tokens: 'maxTokens', time: 'maxWallClockMinutes', iterations: 'maxStepIterations',
 };
@@ -34,15 +55,19 @@ export function ownUsage(run: Limited): Usage {
 
 /** The run and every descendant (by `parentRunId`). */
 export function subtreeOf<T extends Limited>(runs: readonly T[], rootId: string): T[] {
+  return subtreeOfIndexed(indexLimitTree(runs), rootId);
+}
+
+export function subtreeOfIndexed<T extends Limited>(tree: LimitTree<T>, rootId: string): T[] {
   const out: T[] = [];
   const seen = new Set<string>([rootId]);
   const queue = [rootId];
   while (queue.length > 0) {
     const id = queue.shift()!;
-    const run = runs.find((r) => r.id === id);
+    const run = tree.runsById.get(id);
     if (run) out.push(run);
-    for (const child of runs) {
-      if (child.dispatch?.parentRunId === id && !seen.has(child.id)) {
+    for (const child of tree.childrenByParentId.get(id) ?? []) {
+      if (!seen.has(child.id)) {
         seen.add(child.id);
         queue.push(child.id);
       }
@@ -57,15 +82,30 @@ export function subtreeOf<T extends Limited>(runs: readonly T[], rootId: string)
  * the same minute several times.
  */
 export function subtreeUsage(runs: readonly Limited[], rootId: string): Usage {
-  const total: Usage = { cost: 0, tokens: 0, wallMs: 0, iterations: 0 };
-  for (const run of subtreeOf(runs, rootId)) {
-    const usage = ownUsage(run);
-    total.cost += usage.cost;
-    total.tokens += usage.tokens;
-    total.iterations += usage.iterations;
-    if (run.id === rootId) total.wallMs = usage.wallMs;
-  }
-  return total;
+  return subtreeUsageIndexed(indexLimitTree(runs), rootId);
+}
+
+export function subtreeUsageIndexed(tree: LimitTree<Limited>, rootId: string): Usage {
+  const ancestors = new Set<string>();
+  const accumulate = (id: string): Usage => {
+    const cached = tree.subtreeUsage.get(id);
+    if (cached) return cached;
+    const run = tree.runsById.get(id);
+    if (!run || ancestors.has(id)) return { cost: 0, tokens: 0, wallMs: 0, iterations: 0 };
+    const own = ownUsage(run);
+    const total: Usage = { cost: own.cost, tokens: own.tokens, wallMs: own.wallMs, iterations: own.iterations };
+    ancestors.add(id);
+    for (const child of tree.childrenByParentId.get(id) ?? []) {
+      const childUsage = accumulate(child.id);
+      total.cost += childUsage.cost;
+      total.tokens += childUsage.tokens;
+      total.iterations += childUsage.iterations;
+    }
+    ancestors.delete(id);
+    tree.subtreeUsage.set(id, total);
+    return total;
+  };
+  return accumulate(rootId);
 }
 
 function figure(usage: Usage, kind: LimitKind): number {
@@ -96,13 +136,18 @@ function firstBreach(limits: RunLimits | undefined, usage: Usage, runner: string
  * A tree total is checked against the root's snapshot, so a child can never spend what its parent
  * was not given, whatever limits the child itself carries.
  */
-export function evaluateLimits(run: Limited, runs: readonly Limited[], at: string = new Date().toISOString()): LimitHit | undefined {
-  const own = firstBreach(run.limits, subtreeUsage(runs, run.id), run.runner, 'run', at);
+export function evaluateLimits(
+  run: Limited,
+  runs: readonly Limited[],
+  at: string = new Date().toISOString(),
+  tree: LimitTree<Limited> = indexLimitTree(runs),
+): LimitHit | undefined {
+  const own = firstBreach(run.limits, subtreeUsageIndexed(tree, run.id), run.runner, 'run', at);
   if (own) return own;
   const rootId = run.dispatch?.rootRunId;
   if (!rootId || rootId === run.id) return undefined;
-  const root = runs.find((r) => r.id === rootId);
-  return root ? firstBreach(root.limits, subtreeUsage(runs, rootId), root.runner, 'tree', at) : undefined;
+  const root = tree.runsById.get(rootId);
+  return root ? firstBreach(root.limits, subtreeUsageIndexed(tree, rootId), root.runner, 'tree', at) : undefined;
 }
 
 /** A child's snapshot: the parent's mode, each number capped by what the parent subtree has left. */

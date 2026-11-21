@@ -702,8 +702,10 @@ task that waits for an answer longer than `safety.waitExpiryMinutes` (default 30
 workers (default 50, or unlimited with the switch) and `retry_limit`.
 Autonomous and dispatched runs also never auto-land: `landing: "auto"` applies to attended in-place
 runs only. They get a `pre-push` hook refusing any ref outside `refs/heads/onni/*`, and Claude
-sessions deny `git push`. **This is a fence, not a sandbox**: `--no-verify`, an agent that rewrites its
-own git config, writes outside its worktree, reads `$HOME` or uses the network are not stopped.
+sessions deny `git push`. **This is a fence, not a sandbox**: `git push --no-verify`, unsetting its
+injected Git config or rewriting `core.hooksPath`, and pushes through tools outside Git (such as
+`gh api` or `curl`) bypass it; it also does not stop writes outside the worktree, `$HOME` reads or
+network access.
 
 `POST /api/v1/workspace/stop-all` → `{ "stopped": n }` is the emergency stop. `POST /runs` accepts
 `limits` (`{ mode: "default" | "none" | "capped", maxCostUsd?, maxTokens?, maxWallClockMinutes?,

@@ -14,8 +14,10 @@ const ID = ['-c', 'user.name=test', '-c', 'user.email=test@local'];
 let dir: string;
 let remote: string;
 let work: string;
+// The worker itself can inherit the guard through GIT_CONFIG_*; fixtures must start unarmed.
+const fixtureEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== 'GIT_CONFIG_COUNT' && !/^GIT_CONFIG_(?:KEY|VALUE)_\d+$/.test(key)));
 const sh = (cwd: string, args: string[], env: NodeJS.ProcessEnv = {}) =>
-  execFileSync('git', args, { cwd, encoding: 'utf8', env: { ...process.env, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
+  execFileSync('git', args, { cwd, encoding: 'utf8', env: { ...fixtureEnv, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
 const tryPush = (env: NodeJS.ProcessEnv, refspec: string): { ok: boolean; stderr: string } => {
   try {
     sh(work, ['push', 'origin', refspec], env);
@@ -46,7 +48,17 @@ describe('the pre-push fence for unattended runs', () => {
     expect(ensurePushGuard(join(dir, 'data'))).toBe(hooks);
   });
 
-  it('refuses a push to the default branch, a tag and a deletion, and allows only onni/* or the run\'s own branch', () => {
+  it('allows onni/* refs and the run\'s own recorded branch', () => {
+    const env = pushGuardEnv(join(dir, 'data'), { branch: 'feat/named-by-namer' });
+    sh(work, ['checkout', '-q', '-b', 'onni/abcd1234']);
+    sh(work, [...ID, 'commit', '-q', '--allow-empty', '-m', 'work']);
+
+    expect(tryPush(env, 'HEAD:onni/abcd1234').ok).toBe(true);
+    expect(tryPush(env, 'HEAD:onni/nested/branch').ok).toBe(true);
+    expect(tryPush(env, 'HEAD:feat/named-by-namer').ok).toBe(true);
+  }, 60_000);
+
+  it('refuses every remote ref outside onni/* and the run\'s own recorded branch', () => {
     const env = pushGuardEnv(join(dir, 'data'), { branch: 'feat/named-by-namer' });
     sh(work, ['checkout', '-q', '-b', 'onni/abcd1234']);
     sh(work, [...ID, 'commit', '-q', '--allow-empty', '-m', 'work']);
@@ -60,9 +72,6 @@ describe('the pre-push fence for unattended runs', () => {
     expect(tryPush(env, 'v1').ok).toBe(false);
     expect(tryPush(env, ':main').ok).toBe(false);
     expect(tryPush(env, '+HEAD:main').ok).toBe(false);
-
-    expect(tryPush(env, 'HEAD:onni/abcd1234').ok).toBe(true);
-    expect(tryPush(env, 'HEAD:feat/named-by-namer').ok).toBe(true);
     expect(tryPush(env, 'HEAD:feat/someone-elses').ok).toBe(false);
   }, 60_000);
 

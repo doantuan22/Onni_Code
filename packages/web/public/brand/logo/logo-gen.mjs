@@ -1,4 +1,6 @@
 // Run with node logo-gen.mjs. All geometry comes from the grids below.
+// Owner-approved brief exception: horizontal lockups may use rectangular viewBoxes.
+// onni-lockup-rects.svg is canonical; onni-lockup.svg mirrors it without font dependencies.
 import { writeFileSync } from 'node:fs'
 import { deflateSync } from 'node:zlib'
 
@@ -10,45 +12,29 @@ const palette = {
   I: '#06101F',
 }
 
-// Blue body, a sky-blue bevel, and a left prompt with a block cursor.
+// A symmetric one-cell navy rim gives the azure chevron room at native 16px.
 const mark = [
   '................',
-  '....AAAAASSS....',
-  '...AAAAAAAASS...',
-  '..AAA......ASS..',
-  '.AAA........AAA.',
-  '.AA..........AA.',
-  '.AA....AA....AA.',
-  '.AA...AA.....AA.',
-  '.AA..AA......AA.',
-  '.AA...AA.....AA.',
-  '.AA....AA.AA.AA.',
-  '.AAA........AAA.',
-  '..AAA......AAA..',
-  '...AAAAAAAAAA...',
-  '....AAAAAAAA....',
+  '....NNNNNNNN....',
+  '...N........N...',
+  '..N..........N..',
+  '.N......AA....N.',
+  '.N.....AA.....N.',
+  '.N....AA......N.',
+  '.N...AA.......N.',
+  '.N...AA.......N.',
+  '.N....AA......N.',
+  '.N.....AA.....N.',
+  '.N......AA....N.',
+  '..N..........N..',
+  '...N........N...',
+  '....NNNNNNNN....',
   '................',
 ]
 
-// The favicon uses two corner steps and solid blue at actual pixel size.
-const mark16 = [
-  '................',
-  '...AAAAAAAAAA...',
-  '..AAAAAAAAAAAA..',
-  '.AAA........AAA.',
-  '.AA..........AA.',
-  '.AA..........AA.',
-  '.AA....AA....AA.',
-  '.AA...AA.....AA.',
-  '.AA..AA......AA.',
-  '.AA...AA.....AA.',
-  '.AA....AA.AA.AA.',
-  '.AA..........AA.',
-  '.AAA........AAA.',
-  '..AAAAAAAAAAAA..',
-  '...AAAAAAAAAA...',
-  '................',
-]
+// Use the identical silhouette at favicon size; white preserves the rim on navy.
+const mark16 = [...mark]
+const markDark = mark.map((row) => row.replaceAll('N', 'W'))
 
 // Hand-set pixel letters echo the mark's clipped corners.
 const letters = {
@@ -136,17 +122,13 @@ function writeSvg(name, title, grid, extra = '', width = grid[0].length) {
 
 const wordmark = typeset('OnniCode', letters, (i) => i < 4 ? 'A' : 'N')
 const lockup = mark.map((row, y) =>
-  row + '....' + (wordmark[y - 4] ?? '.'.repeat(wordmark[0].length)),
+  row + '....' + (wordmark[y - 4] ?? '.'.repeat(wordmark[0].length)) + '..',
 )
 writeSvg('onni-mark.svg', 'OnniCode mark', mark)
+writeSvg('onni-mark-dark.svg', 'OnniCode mark for dark surfaces', markDark)
 writeSvg('onni-mark-mono.svg', 'OnniCode monochrome mark', mark.map((row) => row.replace(/[AS]/g, 'N')))
-writeSvg('onni-lockup.svg', 'OnniCode', mark, [
-  '  <g font-family="Chakra Petch, sans-serif" font-weight="600" font-size="12">',
-  '    <text x="20" y="12" textLength="22" lengthAdjust="spacingAndGlyphs" fill="' + palette.A + '">Onni</text>',
-  '    <text x="42" y="12" textLength="28" lengthAdjust="spacingAndGlyphs" fill="' + palette.N + '">Code</text>',
-  '  </g>',
-].join('\n'), 72)
-writeSvg('onni-lockup-rects.svg', 'OnniCode pixel wordmark and mark', lockup)
+writeSvg('onni-lockup.svg', 'OnniCode pixel lockup (canonical: onni-lockup-rects.svg)', lockup)
+writeSvg('onni-lockup-rects.svg', 'OnniCode canonical pixel lockup', lockup)
 writeSvg('onni-mark-16.svg', 'OnniCode 16 pixel mark', mark16)
 
 const sheetWidth = 768
@@ -174,13 +156,14 @@ function caption(label, center, y, color) {
 
 paint(0, 0, sheetWidth, sheetHeight, 'I')
 for (const [x, surface, ink, label] of [[16, 'W', 'N', 'LIGHT'], [390, 'N', 'S', 'DARK']]) {
+  const surfaceMark = surface === 'N' ? markDark : mark
   paint(x, 16, 362, 418, surface)
   caption(label, x + 181, 32, ink)
   for (const [size, center] of [[16, 61], [32, 141], [64, 263]]) {
-    stamp(size === 16 ? mark16 : mark, x + center - size / 2, 120 - size, size / 16)
+    stamp(surfaceMark, x + center - size / 2, 120 - size, size / 16)
     caption(String(size), x + center, 130, ink)
   }
-  stamp(mark, x + 53, 152, 16)
+  stamp(surfaceMark, x + 53, 152, 16)
   caption('256', x + 181, 414, ink)
 }
 

@@ -167,6 +167,24 @@ async function openMore(): Promise<ReturnType<typeof within>> {
   return within(await screen.findByRole('menu'))
 }
 
+describe('history persistence notice', () => {
+  it('shows live-only history even when the header is collapsed', () => {
+    stubFetch()
+    renderHeader(run('running', { historyLiveOnly: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse header' }))
+    const notice = screen.getByRole('status', { name: 'History live-only' })
+    expect(notice.textContent).toContain('New events are not being saved')
+    expect(notice.closest('.md\\:hidden')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Expand header' }))
+  })
+
+  it.each([undefined, false])('omits the notice for historyLiveOnly=%s', (historyLiveOnly) => {
+    stubFetch()
+    renderHeader(run('running', { historyLiveOnly }))
+    expect(screen.queryByRole('status', { name: 'History live-only' })).toBeNull()
+  })
+})
+
 describe('monitoring schedule', () => {
   it('shows the exact persisted deadline in a time element', () => {
     stubFetch()

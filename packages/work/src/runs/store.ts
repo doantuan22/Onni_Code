@@ -195,6 +195,8 @@ export type RunPrRef = z.infer<typeof prRefSchema>;
  *  parse `runs.json` — see `reconcileLoadedRun` for why a second parser is a correctness risk. */
 export const runRecordSchema = z.object({
   id: safeRunIdSchema,
+  /** Survey 2026-11-21 B §4: last event append was live-only; recovery cannot replay the gap. */
+  historyLiveOnly: z.boolean().optional(),
   title: z.string(),
   /** Display title (#389): the auto-derived summary of the first agent turn,
    *  or the user's inline edit (`PATCH /api/runs/:id` sets it together with
@@ -1772,9 +1774,11 @@ export class RunStore extends EventEmitter {
         // else — a removed project's ENOENT (#1105) — still throws.
         if (!isAccessDenied(err)) throw err;
         this.eventsUnwritable = true;
+        this.setHistoryLiveOnly(runId, true);
         const message = err instanceof Error ? err.message : String(err);
         console.error(`[onni] cannot write task history (${message}); events stay live-only until it is writable again`);
       }
+      if (!this.eventsUnwritable) this.setHistoryLiveOnly(runId, false);
       return;
     }
     // Degraded (already warned): retry, so access granted mid-session starts persisting.
@@ -1782,9 +1786,19 @@ export class RunStore extends EventEmitter {
       mkdirSync(join(this.dataDir, 'runs'), { recursive: true });
       appendFileSync(this.eventsPath(runId), line, { encoding: 'utf8', mode: 0o600 });
       this.eventsUnwritable = false;
+      this.setHistoryLiveOnly(runId, false);
     } catch {
+      this.setHistoryLiveOnly(runId, true);
       // live-only — the SSE stream still carries it
     }
+  }
+
+  private setHistoryLiveOnly(runId: string, liveOnly: boolean): void {
+    const run = this.runs.get(runId);
+    if (!run || (run.historyLiveOnly ?? false) === liveOnly) return;
+    run.historyLiveOnly = liveOnly;
+    // Publish only transitions so the existing run subscription refreshes the notice.
+    this.touch(run);
   }
 
   appendEvent(runId: string, event: { type: string; stepId?: string; [key: string]: unknown }): RunEvent {

@@ -74,9 +74,11 @@ describe('RunStore — uncreatable data dir (telemetry 5af5aec6)', () => {
     expect(() => store.appendEvent(run.id, { type: 'note', text: 'one' })).not.toThrow();
     expect(live).toHaveLength(1);
     expect(store.getRun(run.id)?.id).toBe(run.id);
+    expect(store.getRun(run.id)?.historyLiveOnly).toBe(true);
 
     rmSync(blocker);
     store.appendEvent(run.id, { type: 'note', text: 'two' });
+    expect(store.getRun(run.id)?.historyLiveOnly).toBe(false);
     expect(readFileSync(join(dataDir, 'runs', `${run.id}.ndjson`), 'utf8')).toContain('"text":"two"');
   });
 

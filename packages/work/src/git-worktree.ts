@@ -475,14 +475,26 @@ export async function createWorktreeWithOutcome(
  */
 export function worktreeSizeBytes(path: string): Promise<number | null> {
   return new Promise((resolve) => {
-    execFile('du', ['-sk', path], { encoding: 'utf8', windowsHide: true }, (err, stdout) => {
-      if (err) {
-        resolve(null);
-        return;
-      }
-      const kib = Number.parseInt(stdout.trim().split(/\s+/)[0] ?? '', 10);
-      resolve(Number.isFinite(kib) ? kib * 1024 : null);
-    });
+    let child: ReturnType<typeof execFile> | undefined;
+    const deadline = setTimeout(() => {
+      // Retention must keep working when the size probe never exits (survey A3.1).
+      try { child?.kill('SIGKILL'); } catch { /* best-effort cleanup of this PID only */ }
+      resolve(null);
+    }, 5_000);
+    try {
+      child = execFile('du', ['-sk', path], { encoding: 'utf8', windowsHide: true }, (err, stdout) => {
+        clearTimeout(deadline);
+        if (err) {
+          resolve(null);
+          return;
+        }
+        const kib = Number.parseInt(stdout.trim().split(/\s+/)[0] ?? '', 10);
+        resolve(Number.isFinite(kib) ? kib * 1024 : null);
+      });
+    } catch {
+      clearTimeout(deadline);
+      resolve(null);
+    }
   });
 }
 

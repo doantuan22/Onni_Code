@@ -1,3 +1,5 @@
+export const MAX_NDJSON_LINE_LENGTH = 32 * 1024 * 1024; // UTF-16 code units, before trimming
+
 /**
  * Async line iterator over a readable stream of UTF-8 NDJSON — one trimmed,
  * non-empty line per yield. Shared by every stdout/stdin-JSONL runner
@@ -11,17 +13,29 @@
 export async function* readNdjson(stream: NodeJS.ReadableStream): AsyncGenerator<string> {
   stream.setEncoding('utf8');
   const pending: string[] = [];
+  let pendingLength = 0;
+  const checkLength = (length: number): void => {
+    if (length > MAX_NDJSON_LINE_LENGTH) {
+      throw new Error(`NDJSON line exceeds maximum length of ${MAX_NDJSON_LINE_LENGTH} UTF-16 code units`);
+    }
+  };
   for await (const chunk of stream as AsyncIterable<string>) {
     let start = 0;
     let idx: number;
     while ((idx = chunk.indexOf('\n', start)) >= 0) {
+      checkLength(pendingLength + idx - start);
       pending.push(chunk.slice(start, idx));
       const line = pending.join('').trim();
       pending.length = 0;
+      pendingLength = 0;
       start = idx + 1;
       if (line) yield line;
     }
-    if (start < chunk.length) pending.push(chunk.slice(start));
+    if (start < chunk.length) {
+      pendingLength += chunk.length - start;
+      checkLength(pendingLength);
+      pending.push(chunk.slice(start));
+    }
   }
   const tail = pending.join('').trim();
   if (tail) yield tail;

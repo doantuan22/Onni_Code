@@ -4,6 +4,7 @@ import {
   API_PREFIX,
   apiBase,
   apiPath,
+  createProjectScope,
   getApiBaseUrl,
   getApiScope,
   queryScope,
@@ -42,6 +43,25 @@ describe('apiPath — unscoped', () => {
     expect(API_PREFIX).toBe('/api/v1')
     expect(apiPath('/runs').startsWith(API_PREFIX)).toBe(true)
     expect(apiBase().startsWith(API_PREFIX)).toBe(true)
+  })
+})
+
+describe('createProjectScope', () => {
+  it('keeps independent clients from overwriting each other or the default scope', () => {
+    const first = createProjectScope()
+    const second = createProjectScope()
+
+    first.setApiBaseUrl('https://first.example.com')
+    first.setApiScope('first')
+    second.setApiBaseUrl('https://second.example.com')
+    second.setApiScope('second')
+
+    expect(first.apiPath('/runs')).toBe('https://first.example.com/api/v1/p/first/runs')
+    expect(second.apiPath('/runs')).toBe('https://second.example.com/api/v1/p/second/runs')
+    expect(first.resolveApiUrl('/api/runs/r1/images/shot.png')).toBe(
+      'https://first.example.com/api/v1/p/first/runs/r1/images/shot.png',
+    )
+    expect(apiPath('/runs')).toBe('/api/v1/runs')
   })
 })
 

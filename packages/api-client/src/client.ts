@@ -19,9 +19,9 @@ import type { SuccessStatusCode } from 'hono/utils/http-status'
  * const res = await onni.api.v1['agent-config'].$get()
  * ```
  *
- * Only the versioned surface (`/api/v1/*`) is typed. The legacy `/api/*` paths stay frozen for
- * the bookmarklets and scripts that already call them (BACKWARD_COMPATIBILITY.md §2) and are
- * deliberately not part of what a new consumer is invited to build on.
+ * Only the versioned surface (`/api/v1/*`) is typed. The former unversioned `/api/*` surface
+ * was removed; consumers must use the versioned routes. `resolveApiUrl` in the project-scope
+ * helper only rewrites historical URLs persisted before that migration.
  */
 export interface OnniClientOptions {
   /**

@@ -2,8 +2,8 @@ import { BrandMark } from '@/components/brand-mark'
 import { cn } from '@/lib/utils'
 
 /**
- * The cockpit's loading surface, in the Codex app's splash grammar: the mark, the wordmark,
- * the one action in progress, and a hairline track with a single violet sweep. Nothing else —
+ * The cockpit's loading surface, in the Codex app's splash grammar. Full-page (`wordmark`), it is the mark alone, breathing:
+ * nothing else. In-page (`wordmark={false}`) it keeps the action in progress and a hairline violet sweep —
  * a loader is a moment, not a screen (no icon tile, no twinkle backdrop).
  *
  * `title` is the heading on full-page fallbacks: routes.test pins each lazy route's h1 to its
@@ -24,22 +24,34 @@ export function LoadingSplash({
   wordmark?: boolean
   className?: string
 }) {
+  if (wordmark) {
+    // Full-page boot/route fallback: the mark alone, breathing — no wordmark, status line or track.
+    // The title stays as screen-reader text because routes pin each lazy route's h1 to it.
+    return (
+      <div
+        data-slot="loading-splash"
+        data-variant="mark"
+        className={cn('flex flex-1 flex-col items-center justify-center px-6 py-12 text-center', className)}
+      >
+        <div role="status" className="flex flex-col items-center">
+          <span className="loading-mark">
+            <BrandMark height={56} />
+          </span>
+          <Heading data-slot="loading-title" className="sr-only">
+            {title}
+          </Heading>
+          {detail ? <p className="mt-4 text-[11.5px] leading-[1.55] text-soft-foreground">{detail}</p> : null}
+        </div>
+      </div>
+    )
+  }
   return (
     <div
       data-slot="loading-splash"
       className={cn('flex flex-1 flex-col items-center justify-center px-6 py-12 text-center', className)}
     >
       <div role="status" className="flex w-full max-w-[320px] flex-col items-center">
-        <BrandMark height={wordmark ? 52 : 40} />
-        {wordmark ? (
-          <p
-            data-slot="loading-wordmark"
-            className="mt-4 text-[17px] leading-none font-semibold tracking-tight text-foreground"
-            style={{ fontFamily: 'var(--brand)' }}
-          >
-            OnniCode
-          </p>
-        ) : null}
+        <BrandMark height={40} />
         <Heading
           data-slot="loading-title"
           className="shimmer mt-3.5 block max-w-full text-[12px] font-medium break-words"

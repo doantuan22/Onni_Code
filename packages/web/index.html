@@ -70,62 +70,31 @@
         color: #171717;
       }
       .onni-boot-mark {
-        width: 52px;
-        height: 52px;
+        width: 56px;
+        height: 56px;
         border-radius: 10px;
         background: #ffffff;
       }
       html.light .onni-boot-mark {
         background: transparent;
       }
-      .onni-boot-name {
-        margin: 16px 0 0;
-        font: 600 17px/1 system-ui, -apple-system, 'Segoe UI', sans-serif;
-        letter-spacing: -0.01em;
+      .onni-boot-mark {
+        animation: onni-boot-breathe 1.8s ease-in-out infinite;
       }
-      .onni-boot-status {
-        margin: 14px 0 0;
-        font: 500 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-        color: #8a8a8a;
-      }
-      html.light .onni-boot-status {
-        color: #6b6b6b;
-      }
-      .onni-boot-track {
-        width: 160px;
-        height: 2px;
-        margin-top: 16px;
-        border-radius: 999px;
-        background: #242424;
-        overflow: hidden;
-      }
-      html.light .onni-boot-track {
-        background: #e4e4e4;
-      }
-      .onni-boot-sweep {
-        display: block;
-        width: 40%;
-        height: 100%;
-        border-radius: 999px;
-        background: #8f86e8;
-        animation: onni-boot-sweep 1.5s cubic-bezier(0.65, 0, 0.35, 1) infinite;
-      }
-      html.light .onni-boot-sweep {
-        background: #6d5fd6;
-      }
-      @keyframes onni-boot-sweep {
-        from {
-          transform: translateX(-110%);
+      @keyframes onni-boot-breathe {
+        0%,
+        100% {
+          opacity: 0.55;
+          transform: scale(0.97);
         }
-        to {
-          transform: translateX(360%);
+        50% {
+          opacity: 1;
+          transform: scale(1);
         }
       }
       @media (prefers-reduced-motion: reduce) {
-        .onni-boot-sweep {
+        .onni-boot-mark {
           animation: none;
-          width: 100%;
-          opacity: 0.45;
         }
       }
     </style>
@@ -133,10 +102,7 @@
   <body>
     <div id="root">
       <div class="onni-boot" role="status" aria-label="Starting OnniCode">
-        <img class="onni-boot-mark" src="/icon.svg" alt="" width="52" height="52" />
-        <p class="onni-boot-name">OnniCode</p>
-        <p class="onni-boot-status">Starting the cockpit…</p>
-        <div class="onni-boot-track"><span class="onni-boot-sweep"></span></div>
+        <img class="onni-boot-mark" src="/icon.svg" alt="" width="56" height="56" />
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>

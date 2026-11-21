@@ -633,6 +633,19 @@
   }
 }
 
+/* The full-page loader's only motion: the mark fades in and breathes. Reduced motion: static. */
+.loading-mark {
+  display: block;
+  animation: loading-mark 1.8s ease-in-out infinite;
+}
+@keyframes loading-mark {
+  0%, 100% { opacity: 0.55; transform: scale(0.97); }
+  50% { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-mark { animation: none; }
+}
+
 /* ---------- ghost code (new-task hero backdrop) ----------
  * The `/new` hero's "someone is quietly writing code" texture (ghost-code-backdrop.tsx).
  * Character-by-character reveal is the classic CSS typewriter: the line clips at `width`,

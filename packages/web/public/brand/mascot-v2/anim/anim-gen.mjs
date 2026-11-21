@@ -3,6 +3,8 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { Script } from 'node:vm';
+import assert from 'node:assert/strict';
+import { validateManifest, playbackOrder, chooseVariation, resolveChange } from './player-contract.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const finalDir = path.resolve(here, '..', 'final');
@@ -85,9 +87,17 @@ function eyes(src, expression) {
     for (let y = 30; y <= 39; y++) for (let x = left; x <= right; x++) {
       out.set(cheek, offset(x, y));
     }
-    if (expression === 'closed') {
+    if (expression === 'closed' || expression === 'half') {
+      // Compress the actual socket/iris; retain the curved outer corners and cheek.
+      const height = expression === 'half' ? 5 : 2;
+      for (let x = left; x <= right; x++) for (let yy = 0; yy < height; yy++) {
+        const y = 35 + yy + (x === left || x === right ? -1 : 0);
+        const ink = sample(src.pixels, x, 30 + Math.round(yy * 9 / (height - 1)));
+        out.set(ink, offset(x, y));
+      }
       for (let x = center - 3; x <= center + 3; x++) {
-        out.set(NAVY, offset(x, Math.abs(x - center) >= 3 ? 36 : 37));
+        const y = 35 + (Math.abs(x - center) < 3 ? 1 : 0) + (center === 54 ? 1 : 0);
+        out.set(NAVY, offset(x, y));
       }
     } else {
       for (let y = 30; y <= 39; y++) for (let x = left; x <= right; x++) {
@@ -110,11 +120,85 @@ const idleMotion = (src, breathe, tail, ear) => transform(src, {
   ],
 });
 const typing = (src, phase) => transform(src, {
-  local: (x, y) => [0, phase * (
-    falloff(x, 49, 11) * falloff(y, 73, 8) -
-    falloff(x, 58, 10) * falloff(y, 67, 9)
+  // Flat-topped envelopes move each paw a full two pixels, leaving feet/laptop fixed.
+  local: (x, y) => [0, phase * 2 * (
+    Math.min(1, falloff(x, 41, 8) * 2) * Math.min(1, falloff(y, 68, 7) * 2) -
+    Math.min(1, falloff(x, 55, 6) * 2) * Math.min(1, falloff(y, 67, 7) * 2)
   )],
 });
+
+// Row registration moves the existing art, including ears/tail, along a continuous
+// silhouette path. Semantic height landmarks stop the face sliding into the torso.
+function bridge(a, b, t, aY, bY, handover = 0.5) {
+  const out = blank(), mid = aY.map((y, i) => y + (bY[i] - y) * t);
+  function rowBounds(src, y) {
+    let lo = SIZE, hi = -1;
+    for (let x = 0; x < SIZE; x++) if (src.pixels[offset(x, y) + 3]) { lo = Math.min(lo, x); hi = x; }
+    return hi < lo ? null : [lo, hi];
+  }
+  for (let y = Math.ceil(mid[0]); y <= Math.floor(mid.at(-1)); y++) {
+    let k = 0;
+    while (k < mid.length - 2 && y > mid[k + 1]) k++;
+    const f = (y - mid[k]) / (mid[k + 1] - mid[k]);
+    const ay = Math.round(aY[k] + f * (aY[k + 1] - aY[k]));
+    const by = Math.round(bY[k] + f * (bY[k + 1] - bY[k]));
+    const ab = rowBounds(a, ay), bb = rowBounds(b, by);
+    if (!ab && !bb) continue;
+    const aa = ab ?? bb, ba = bb ?? ab;
+    const lo = Math.round(aa[0] + (ba[0] - aa[0]) * t), hi = Math.round(aa[1] + (ba[1] - aa[1]) * t);
+    for (let x = lo; x <= hi; x++) {
+      const u = (x - lo) / Math.max(1, hi - lo);
+      const ca = ab ? sample(a.pixels, Math.round(aa[0] + u * (aa[1] - aa[0])), ay) : [0, 0, 0, 0];
+      const cb = bb ? sample(b.pixels, Math.round(ba[0] + u * (ba[1] - ba[0])), by) : [0, 0, 0, 0];
+      // Switch a whole registered part together; a row wipe would bisect the eyes.
+      const c = t >= handover ? cb : ca;
+      out.set(c, offset(x, y));
+    }
+  }
+  return out;
+}
+
+function wakingHead(src) {
+  const out = Buffer.from(src.pixels);
+  // Open the two existing sleeping sockets in place before any stand-up motion.
+  for (const [cx, cy] of [[29, 67], [48, 65]]) {
+    for (let y = -2; y <= 2; y++) for (let x = -3; x <= 3; x++) {
+      const edge = Math.abs(y) === 2 || Math.abs(x) === 3;
+      out.set(edge ? NAVY : x === -1 && y === -1 ? WHITE : AMBER, offset(cx + x, cy + y));
+    }
+  }
+  return asPose(transform(asPose(out), { local: (x, y) => [0, -2 * falloff(x, 35, 31) * falloff(y, 57, 32)] }));
+}
+
+function layer(src, predicate) {
+  const pixels = blank();
+  for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) if (predicate(x, y)) pixels.set(sample(src.pixels, x, y), offset(x, y));
+  return asPose(pixels);
+}
+function rig(src, sleeping = false, seated = false) {
+  const head = sleeping ? (x, y) => y < 54 || (y < 77 && x < 60 && x > 12) : (x, y) => y < (seated ? 55 : 52);
+  const tail = (x, y) => !head(x, y) && x >= (sleeping ? 57 : seated ? 62 : 60);
+  return { head: layer(src, head), tail: layer(src, tail), body: layer(src, (x, y) => !head(x, y) && !tail(x, y)) };
+}
+function rigBridge(a, b, t, sleeping = false) {
+  const left = rig(a, sleeping), right = rig(b, false, !sleeping);
+  const out = asPose(blank());
+  const mappings = sleeping ? {
+    head: [[22, 40, 54, 66, 76], [8, 21, 28, 38, 51]],
+    body: [[54, 77, 84, 90], [52, 70, 83, 90]],
+    tail: [[54, 65, 78, 90], [54, 65, 78, 90]],
+  } : {
+    head: [[8, 21, 30, 40, 51], [9, 22, 31, 42, 54]],
+    body: [[52, 65, 78, 90], [55, 66, 80, 90]],
+    tail: [[54, 65, 78, 90], [56, 67, 80, 90]],
+  };
+  for (const name of ['tail', 'body', 'head']) {
+    const [aY, bY] = mappings[name];
+    // Change expression, paws and tail on different beats instead of one pose cut.
+    composite(out, asPose(bridge(left[name], right[name], t, aY, bY, { head: 0.35, body: 0.55, tail: 0.75 }[name])), 0, 0);
+  }
+  return out.pixels;
+}
 const jump = (src, dy, sy = 1, sx = 1) => transform(src, { dy, sy, sx });
 const breathe = (src, amount) => transform(src, {
   local: (x, y) => [0, -amount * falloff(x, 64, 38) * falloff(y, 59, 29)],
@@ -162,7 +246,9 @@ const pose = name => {
   return im;
 };
 const idle = pose('idle'), working = pose('working'), success = pose('success'), error = pose('error'), sleep = pose('sleep');
-const blink = eyes(idle, 'closed'), up = eyes(idle, 'up');
+const blink = eyes(idle, 'closed'), half = eyes(idle, 'half'), up = eyes(idle, 'up');
+const awake = wakingHead(sleep);
+const workBridge = [idle.pixels, ...[1, 2, 3, 4, 5, 6].map(n => rigBridge(idle, working, n / 7)), working.pixels];
 const frameMap = new Map();
 
 const allowed = new Set(['10,26,47', '5,16,31', '23,43,68', '11,107,255', '92,168,255', '255,255,255', '220,239,255', '255,176,32', '220,132,24']);
@@ -178,20 +264,21 @@ function checkFrame(file, pixels) {
 }
 
 const sequences = {
-  idle: [idle.pixels, idleMotion(idle, 1, 2, 0), idleMotion(blink, 1, 2, 0), idleMotion(idle, 0, -2, 2)],
-  working: [working.pixels, typing(working, 3), typing(working, 0.6), typing(working, -3)],
-  thinking: [idle.pixels, idleMotion(up, 1, 1, 1), idleMotion(up, 2, -1, 0), idleMotion(up, 1, 1, 0)],
+  idle: [idle.pixels, idleMotion(idle, 1, 0, 0), idleMotion(half, 1, 0, 0), idleMotion(blink, 1, 0, 0), idleMotion(half, 1, 0, 0)],
+  working: [working.pixels, typing(working, 1), working.pixels, typing(working, -1)],
+  thinking: [idle.pixels, up.pixels, up.pixels, up.pixels],
   success: [jump(success, 0, 0.94, 1.04), jump(success, -4, 0.97, 0.98), jump(success, -2), success.pixels],
   error: [error.pixels, transform(error, { dx: -2 }), transform(error, { dx: 2 }), transform(error, { dx: -1 })],
   sleep: [sleep.pixels, breathe(sleep, 1), breathe(sleep, 2), breathe(sleep, 1)],
-  wake: [sleep.pixels, breathe(sleep, 2), jump(blink, 0, 0.82, 1.03), idle.pixels],
+  wake: [sleep.pixels, breathe(sleep, 1), awake.pixels,
+    ...[0.2, 0.4, 0.6, 0.8].map(t => rigBridge(awake, idle, t, true)), idle.pixels],
   loading: [
     jump(idle, 0, 0.94, 1.04), jump(idle, -2, 0.97, 1), jump(idle, -5, 0.97, 0.98),
     jump(idle, -3, 0.97, 0.98), jump(idle, -1), idle.pixels,
   ],
-  celebrate: [jump(success, 0, 0.92, 1.05), jump(success, -6, 0.98, 0.98), jump(success, -4), jump(success, 0, 0.95, 1.04), success.pixels],
-  'idle-to-working': [idle.pixels, jump(blink, 0, 0.89, 1.01), jump(working, -1, 0.97), working.pixels],
-  'working-to-idle': [working.pixels, typing(working, 2), jump(blink, 0, 0.89, 1.01), idle.pixels],
+  celebrate: [jump(success, 0, 0.92, 1.05), jump(success, -6, 0.98, 0.98), jump(success, -4), jump(success, -2, 0.99, 1.01), jump(success, 0, 0.95, 1.04), success.pixels],
+  'idle-to-working': workBridge,
+  'working-to-idle': [...workBridge].reverse(),
 };
 
 const effects = {
@@ -200,9 +287,9 @@ const effects = {
   sweat: glyph('sweat', ['..b...', '..sb..', '.swsb.', '.swsb.', '.sssb.', '..bb..'], 2),
   bang: glyph('bang', ['aa', 'aa', 'aa', 'aa', '..', 'aa'], 2),
   question: glyph('question', ['.bbb.', 'bb.bb', '...bb', '..bb.', '..b..', '.....', '..b..'], 2),
-  zzz: glyph('zzz', ['...........bbbbb', '..............b.', '.....ssss....b..', '.......s....b...', '......s....bbbbb', 'sss..ssss.......', '.s..............', 'sss.............'], 1),
-  'typing-dots': glyph('typing-dots', ['ss..bb..bb', 'ss..bb..bb']),
-  'loading-dots': glyph('loading-dots', ['bb..bb..aa', 'bb..bb..aa']),
+  zzz: glyph('zzz', ['...........wwwww', '...........bbbbw', '.....wwww....bw.', '.....sssw...bw..', '......sw...wwwww', 'www..wwww.......', 'ssw.............', 'www.............'], 1),
+  'typing-dots': glyph('typing-dots', ['ww..ww..ww', 'sb..sb..sb', 'ww..ww..ww']),
+  'loading-dots': glyph('loading-dots', ['ww..ww..ww', 'bb..bb..aa', 'ww..ww..ww']),
   confetti: glyph('confetti', ['.b....a....s.', '.bb..aa..ss..', '..b..a..s....', '....w.....w..', '..a....b.....', '.aa..bb..s...', '..a..b..ss..a'], 2)
 };
 
@@ -214,11 +301,11 @@ for (const state of states) sequences[state].forEach((pixels, n) => {
   frameMap.get(state).push(file);
 });
 
-const durations = { idle: [900, 900, 135, 420], working: [120, 100, 100, 100], thinking: [260, 340, 420, 520], success: [120, 135, 160, 420], error: [480, 75, 75, 75], sleep: [650, 650, 650, 650], wake: [220, 175, 125, 420], loading: [120, 90, 100, 90, 80, 140], celebrate: [110, 170, 160, 100, 460], 'idle-to-working': [140, 110, 150, 260], 'working-to-idle': [140, 110, 130, 260] };
+const durations = { idle: [900, 900, 55, 95, 65], working: [120, 100, 100, 100], thinking: [260, 340, 420, 520], success: [120, 135, 160, 420], error: [210, 100, 100, 100], sleep: [650, 650, 650, 650], wake: [180, 160, 160, 160, 160, 160, 160, 420], loading: [120, 90, 100, 90, 80, 140], celebrate: [110, 170, 160, 120, 100, 460], 'idle-to-working': [140, 100, 100, 100, 100, 100, 100, 260], 'working-to-idle': [140, 100, 100, 100, 100, 100, 100, 260] };
 const playback = { idle: 'loop', working: 'loop', thinking: 'loop', success: 'once', error: 'pingpong', sleep: 'loop', wake: 'once', loading: 'loop', celebrate: 'once', 'idle-to-working': 'once', 'working-to-idle': 'once' };
-const manifest = { version: 1, canvas: { width: SIZE, height: SIZE }, anchor: { x: 48, y: BASELINE, baseline: BASELINE }, palette: { navy: '#0a1a2f', azure: '#0b6bff', sky: '#5ca8ff', white: '#ffffff', amber: '#ffb020' }, states: {} };
+const manifest = { version: 2, canvas: { width: SIZE, height: SIZE }, sizes: [24, 48, 96, 192, 288], anchor: { x: 48, y: BASELINE, baseline: BASELINE }, fallbackState: 'idle', transitionPolicy: { unsupported: 'snap-to-static', reducedMotion: 'destination-static', interrupt: 'destination-static', sameState: 'continue' }, palette: { navy: '#0a1a2f', azure: '#0b6bff', sky: '#5ca8ff', white: '#ffffff', amber: '#ffb020' }, states: {} };
 const track = (name, ...positions) => ({
-  name, src: effects[name].src,
+  name, src: effects[name].src, width: effects[name].w, height: effects[name].h, origin: { x: 0, y: 0 },
   ...(name === 'confetti' && { behind: true }),
   cues: positions.map(([frame, x, y]) => ({ frame, attach: { x, y } })),
 });
@@ -243,15 +330,21 @@ for (const state of states) {
   const files = frameMap.get(state);
   if (!files.length || files.length > 8 || files.length !== durations[state].length) throw Error(`Invalid frame budget or timing: ${state}`);
   manifest.states[state] = {
-    frames: files.map((src, i) => ({ src, durationMs: durations[state][i] })),
+    frames: files.map((src, i) => ({ src, durationMs: durations[state][i], anchor: { ...manifest.anchor } })),
     playback: playback[state],
-    staticFrame: { thinking: 2, success: 3, wake: 3, celebrate: 4, 'idle-to-working': 3, 'working-to-idle': 3 }[state] ?? 0,
+    onComplete: 'hold-last',
+    staticFrame: { thinking: 2, success: 3, wake: 7, celebrate: 5, 'idle-to-working': 7, 'working-to-idle': 7 }[state] ?? 0,
     effects: tracks[state] ?? [],
   };
 }
-manifest.states.idle.sequence = [0, 1, 3];
-manifest.states.idle.idleVariations = { intervalMs: [3000, 5000], choices: [{ frame: 2, weight: 1 }] };
+manifest.states.idle.sequence = [0, 1];
+manifest.states.idle.idleVariations = { intervalMs: [3000, 5000], choices: [{ frames: [2, 3, 4, 1], weight: 1 }] };
 manifest.transitions = { 'idle->working': 'idle-to-working', 'working->idle': 'working-to-idle', 'sleep->idle': 'wake' };
+validateManifest(manifest);
+for (const state of Object.values(manifest.states)) {
+  for (const f of state.frames) { const im = decode(path.join(here, f.src)); checkFrame(f.src, im.pixels); }
+  for (const effect of state.effects) { const im = decode(path.join(here, effect.src)); if (im.w !== effect.width || im.h !== effect.height) throw Error('Effect size: ' + effect.src); }
+}
 fs.writeFileSync(path.join(here, 'animations.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 
 // Show the same effect placements as the player, while keeping the frame PNGs reusable.
@@ -275,6 +368,7 @@ for (const [si, state] of states.entries()) for (const [theme, bg] of [BG_LIGHT,
 fs.writeFileSync(path.join(here, 'strips.png'), png(stripW, stripH, strip));
 
 const previewManifest = JSON.stringify({ manifest, assets });
+const contractSource = fs.readFileSync(path.join(here, 'player-contract.mjs'), 'utf8').replace(/^export /gm, '');
 const preview = `<!doctype html>
 <html lang="en">
 <meta charset="utf-8">
@@ -299,10 +393,11 @@ const preview = `<!doctype html>
   <p>Choose a pose or transition to see the body frames and pixel effects together.</p>
   <div id="controls" role="group" aria-label="Animation states"></div>
   <canvas id="stage" width="96" height="96" role="img" aria-label="Onni mascot sprite"></canvas>
-  <div class="tools"><button id="theme" aria-pressed="false" type="button">Dark backdrop</button></div>
-  <output id="status"></output>
+  <div class="tools"><button id="theme" aria-pressed="false" type="button">Dark backdrop</button><button id="size" type="button">Size: 3×</button></div>
+  <output id="status" role="status" aria-live="polite"></output>
 <script>
 const { manifest, assets } = ${previewManifest};
+${contractSource}
 const controls = document.querySelector('#controls');
 const stage = document.querySelector('#stage');
 const caption = document.querySelector('#status');
@@ -310,31 +405,32 @@ const ctx = stage.getContext('2d');
 ctx.imageSmoothingEnabled = false;
 const motion = matchMedia('(prefers-reduced-motion: reduce)');
 const images = new Map();
-let timer, generation = 0, current = 'idle';
+let timer, generation = 0, current = 'idle', requestedState = 'idle', bridgeActive = false;
 
 function load(src) {
   if (!images.has(src)) {
     const im = new Image();
+    if (!assets[src]) return Promise.reject(new Error('Missing embedded sprite: ' + src));
     im.src = assets[src];
-    images.set(src, im.decode().then(() => im));
+    images.set(src, im.decode().then(() => im, () => { images.delete(src); throw new Error('Image decode failed: ' + src); }));
   }
   return images.get(src);
 }
 
-async function select(name) {
+async function select(name, initialFrame, thenState) {
   current = name;
+  bridgeActive = Boolean(thenState);
   const id = ++generation;
   clearTimeout(timer);
   for (const button of controls.children) button.setAttribute('aria-pressed', button.dataset.state === name);
   const state = manifest.states[name];
   const frames = await Promise.all(state.frames.map(({src}) => load(src)));
-  const tracks = await Promise.all(state.effects.map(async ({src,cues,behind}) => ({ image: await load(src), cues, behind })));
+  const tracks = await Promise.all(state.effects.map(async ({src,cues,behind,origin}) => ({ image: await load(src), cues, behind, origin })));
   if (generation !== id) return;
 
-  const sequence = state.sequence ?? state.frames.map((_, i) => i);
-  const order = state.playback === 'pingpong' ? sequence.concat(sequence.slice(1, -1).reverse()) : sequence;
+  const order = playbackOrder(state);
   const variation = state.idleVariations;
-  let cursor = 0;
+  let cursor = 0, variationFrames = [];
   function nextVariation() {
     const [lo, hi] = variation.intervalMs;
     return performance.now() + lo + Math.random() * (hi - lo);
@@ -344,8 +440,8 @@ async function select(name) {
   function paint(index) {
     ctx.clearRect(0, 0, stage.width, stage.height);
     for (const behind of [true, false]) {
-      for (const {image,cues,behind:back} of tracks) for (const {frame,attach} of cues) {
-        if (frame === index && Boolean(back) === behind) ctx.drawImage(image, attach.x, attach.y);
+      for (const {image,cues,behind:back,origin} of tracks) for (const {frame,attach} of cues) {
+        if (frame === index && Boolean(back) === behind) ctx.drawImage(image, attach.x - origin.x, attach.y - origin.y);
       }
       if (behind) ctx.drawImage(frames[index], 0, 0);
     }
@@ -358,26 +454,47 @@ async function select(name) {
   function tick() {
     if (generation !== id) return;
     let index;
-    if (performance.now() >= due) {
-      const total = variation.choices.reduce((sum, choice) => sum + choice.weight, 0);
-      let pick = Math.random() * total;
-      index = variation.choices.find(choice => (pick -= choice.weight) < 0).frame;
+    if (!variationFrames.length && performance.now() >= due) {
+      variationFrames = [...chooseVariation(variation)];
       due = nextVariation();
-    } else {
-      index = order[cursor++];
     }
+    const isVariation = variationFrames.length > 0;
+    index = isVariation ? variationFrames.shift() : order[cursor++];
     paint(index);
-    if (cursor === order.length) {
-      if (state.playback === 'once') return;
+    if (!isVariation && cursor === order.length) {
+      if (state.playback === 'once') {
+        if (thenState) timer = setTimeout(() => show(thenState, true), state.frames[index].durationMs);
+        return;
+      }
       cursor = 0;
     }
     timer = setTimeout(tick, state.frames[index].durationMs);
   }
-  tick();
+  if (initialFrame !== undefined) {
+    paint(initialFrame);
+    if (initialFrame === order[0] && order.length > 1) cursor = 1;
+    timer = setTimeout(tick, state.frames[initialFrame].durationMs);
+  } else tick();
 }
 
-function show(name) {
-  select(name).catch(() => { caption.textContent = 'Could not load the embedded sprites.'; });
+function show(name, force = false) {
+  const before = generation;
+  try {
+    validateManifest(manifest);
+    requestedState = name;
+    const directBridge = Object.values(manifest.transitions).includes(name) && !motion.matches;
+    const change = directBridge ? { state: name, initialFrame: 0 } : resolveChange(manifest, current, name, motion.matches, bridgeActive);
+    if (change.continue && !force) return;
+    select(change.state, change.initialFrame, change.thenState).catch(error => {
+      if (generation === before + 1) { clearTimeout(timer); caption.textContent = error.message; caption.dataset.error = 'true'; }
+    });
+    delete caption.dataset.error;
+  } catch (error) {
+    ++generation;
+    clearTimeout(timer);
+    caption.textContent = error.message;
+    caption.dataset.error = 'true';
+  }
 }
 for (const name of Object.keys(manifest.states)) {
   const button = document.createElement('button');
@@ -390,14 +507,115 @@ for (const name of Object.keys(manifest.states)) {
 document.querySelector('#theme').addEventListener('click', event => {
   event.currentTarget.setAttribute('aria-pressed', stage.classList.toggle('dark'));
 });
-motion.addEventListener('change', () => show(current));
-show(current);
+motion.addEventListener('change', () => show(requestedState, true));
+let scale = 3;
+document.querySelector('#size').addEventListener('click', event => {
+  scale = scale === 3 ? 1 : scale + 1;
+  stage.style.width = (manifest.canvas.width * scale) + 'px';
+  event.currentTarget.textContent = 'Size: ' + scale + '×';
+});
+show(current, true);
 </script>
 </body>
 </html>
 `;
 new Script(preview.slice(preview.indexOf('<script>') + 8, preview.indexOf('</script>')));
 fs.writeFileSync(path.join(here, 'anim-preview.html'), preview);
+
+// Asset-local checks run with the generator; no app, server or browser is started.
+let rejected = 0;
+for (const [field, mutate] of [
+  ['version', m => m.version = 1], ['states', m => m.states.typo = m.states.idle],
+  ['durationMs', m => m.states.idle.frames[0].durationMs = 0],
+  ['staticFrame', m => m.states.idle.staticFrame = 99],
+  ['sequence', m => m.states.idle.sequence = [-1]],
+  ['intervalMs', m => m.states.idle.idleVariations.intervalMs = [5000, 3000]],
+  ['intervalMs', m => m.states.idle.idleVariations.intervalMs = [1, Infinity]],
+  ['choices', m => m.states.idle.idleVariations.choices = []],
+  ['weight', m => m.states.idle.idleVariations.choices[0].weight = 0],
+  ['weight', m => m.states.idle.idleVariations.choices[0].weight = NaN],
+  ['frames index', m => m.states.idle.idleVariations.choices[0].frames = [99]],
+  ['dimensions', m => m.states.sleep.effects[0].width = 0],
+  ['origin', m => m.states.sleep.effects[0].origin.x = 99],
+  ['bounds', m => m.states.sleep.effects[0].cues[0].attach.x = 95],
+  ['frame', m => m.states.sleep.effects[0].cues[0].frame = 99],
+  ['fallbackState', m => m.fallbackState = 'typo'],
+  ['transitions', m => m.transitions['idle->typo'] = 'wake'],
+]) {
+  const bad = structuredClone(manifest); mutate(bad);
+  assert.throws(() => validateManifest(bad), error => error.message.includes(field)); rejected++;
+}
+assert.deepEqual(playbackOrder(manifest.states.error), [0, 1, 2, 3, 2, 1]);
+assert.deepEqual(chooseVariation(manifest.states.idle.idleVariations, 0.999999), [2, 3, 4, 1]);
+for (const from of states) for (const to of states) {
+  const result = resolveChange(manifest, from, to);
+  assert.ok(manifest.states[result.state]);
+  assert.equal(resolveChange(manifest, from, to, true).initialFrame, manifest.states[to].staticFrame);
+}
+assert.equal(resolveChange(manifest, 'idle', 'missing').state, 'idle');
+for (const name of ['idle-to-working', 'working-to-idle']) {
+  assert.deepEqual(sequences[name][0], name === 'idle-to-working' ? idle.pixels : working.pixels);
+  assert.deepEqual(sequences[name].at(-1), name === 'idle-to-working' ? working.pixels : idle.pixels);
+}
+const changedPixels = (a, b) => {
+  let count = 0;
+  for (let i = 0; i < a.length; i += 4) if (!a.subarray(i, i + 4).equals(b.subarray(i, i + 4))) count++;
+  return count;
+};
+const bridgeDeltas = Object.fromEntries(['wake', 'idle-to-working', 'working-to-idle'].map(name => [name,
+  sequences[name].slice(1).map((frame, i) => changedPixels(sequences[name][i], frame)),
+]));
+
+const playerScript = preview.slice(preview.indexOf('<script>') + 8, preview.indexOf('</script>'));
+async function playerFixture(failSrc) {
+  const timers = new Map(), drawn = [], handlers = {};
+  let now = 0, serial = 0;
+  const caption = { textContent: '', dataset: {} };
+  const controls = { children: [], append(b) { this.children.push(b); } };
+  const button = () => ({ dataset: {}, setAttribute() {}, addEventListener() {} });
+  const stage = { width: SIZE, height: SIZE, style: {}, classList: { toggle: () => true }, getContext: () => ({ clearRect() {}, drawImage(im) { drawn.push(im.src); } }) };
+  const nodes = { '#controls': controls, '#stage': stage, '#status': caption, '#theme': button(), '#size': button() };
+  const motion = { matches: false, addEventListener(event, fn) { handlers[event] = fn; } };
+  const sandbox = {
+    document: { querySelector: q => nodes[q], createElement: button },
+    matchMedia: () => motion, performance: { now: () => now },
+    Image: class { decode() { return this.src === assets[failSrc] ? Promise.reject(new Error('fixture decode')) : Promise.resolve(); } },
+    setTimeout(fn, ms) { assert.ok(Number.isFinite(ms) && ms > 0); timers.set(++serial, { fn, ms }); return serial; },
+    clearTimeout(id) { timers.delete(id); },
+  };
+  new Script(playerScript + ';globalThis.api = { show, manifest, load };').runInNewContext(sandbox, { timeout: 2000 });
+  const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve(); };
+  await flush();
+  return { api: sandbox.api, motion, handlers, caption, timers, drawn, flush, step() {
+    const [id, job] = timers.entries().next().value ?? [];
+    if (!job) return false;
+    timers.delete(id); now += job.ms; job.fn(); return true;
+  } };
+}
+const fixture = await playerFixture();
+assert.equal(fixture.timers.size, 1);
+for (let i = 0; i < 20; i++) fixture.step(); // includes the complete blink variation
+fixture.api.show('success'); await fixture.flush();
+for (let i = 0; i < 12 && fixture.step(); i++) {}
+assert.equal(fixture.timers.size, 0, 'once holds its last frame');
+fixture.api.show('idle'); fixture.api.show('working'); await fixture.flush();
+assert.equal(fixture.timers.size, 1, 'rapid selections keep one timer');
+fixture.motion.matches = true; fixture.handlers.change(); await fixture.flush();
+assert.equal(fixture.timers.size, 0, 'reduced motion cancels playback');
+assert.match(fixture.caption.textContent, /^working /, 'reduced motion during a bridge paints the destination');
+fixture.motion.matches = false; fixture.handlers.change(); await fixture.flush();
+assert.equal(fixture.timers.size, 1, 'motion preference change restarts the same loop');
+fixture.api.manifest.states.idle.idleVariations.intervalMs = [10, 1]; fixture.api.show('idle');
+assert.match(fixture.caption.textContent, /idleVariations.intervalMs/);
+assert.equal(fixture.timers.size, 0);
+const failed = await playerFixture('frames/idle-0.png');
+assert.match(failed.caption.textContent, /Image decode failed: frames\/idle-0.png/);
+failed.api.show('sleep'); await failed.flush();
+assert.ok(!failed.caption.dataset.error, 'decode failure does not prevent selecting another state');
+failed.api.show('idle'); failed.api.show('sleep'); await failed.flush();
+assert.match(failed.caption.textContent, /^sleep /, 'stale decode failure cannot overwrite the newer state');
+console.log(`Validated v2 contract, ${rejected} malformed-manifest cases, all ${states.length ** 2} state pairs, and preview playback/variation/cancellation/reduced-motion/decode fixtures`);
+console.log('Adjacent changed pixels (pose diagnostics, not a motion-quality score): ' + JSON.stringify(bridgeDeltas));
 console.log(`Generated ${states.length} states, ${[...frameMap.values()].reduce((n, xs) => n + xs.length, 0)} frames, ${Object.keys(effects).length} effect PNG/SVG pairs`);
 console.log(`Verified binary alpha, source palette, and canvas margin (minimum ${margin}px) on all body frames`);
 console.log(`Wrote animations.json, anim-preview.html, strips.png (${stripW}x${stripH}; light and dark rows)`);

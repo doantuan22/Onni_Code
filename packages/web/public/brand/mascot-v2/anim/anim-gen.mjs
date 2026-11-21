@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { Script } from 'node:vm';
 import assert from 'node:assert/strict';
 import { validateManifest, playbackOrder, chooseVariation, resolveChange } from './player-contract.mjs';
+import { buildTimeline, createMascotPlayer } from './player-runtime.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const finalDir = path.resolve(here, '..', 'final');
@@ -303,7 +304,7 @@ for (const state of states) sequences[state].forEach((pixels, n) => {
 
 const durations = { idle: [900, 900, 55, 95, 65], working: [120, 100, 100, 100], thinking: [260, 340, 420, 520], success: [120, 135, 160, 420], error: [210, 100, 100, 100], sleep: [650, 650, 650, 650], wake: [180, 160, 160, 160, 160, 160, 160, 420], loading: [120, 90, 100, 90, 80, 140], celebrate: [110, 170, 160, 120, 100, 460], 'idle-to-working': [140, 100, 100, 100, 100, 100, 100, 260], 'working-to-idle': [140, 100, 100, 100, 100, 100, 100, 260] };
 const playback = { idle: 'loop', working: 'loop', thinking: 'loop', success: 'once', error: 'pingpong', sleep: 'loop', wake: 'once', loading: 'loop', celebrate: 'once', 'idle-to-working': 'once', 'working-to-idle': 'once' };
-const manifest = { version: 2, canvas: { width: SIZE, height: SIZE }, sizes: [24, 48, 96, 192, 288], anchor: { x: 48, y: BASELINE, baseline: BASELINE }, fallbackState: 'idle', transitionPolicy: { unsupported: 'snap-to-static', reducedMotion: 'destination-static', interrupt: 'destination-static', sameState: 'continue' }, palette: { navy: '#0a1a2f', azure: '#0b6bff', sky: '#5ca8ff', white: '#ffffff', amber: '#ffb020' }, states: {} };
+const manifest = { version: 2, canvas: { width: SIZE, height: SIZE }, sizes: [24, 48, 96, 192, 288, 384], anchor: { x: 48, y: BASELINE, baseline: BASELINE }, fallbackState: 'idle', transitionPolicy: { unsupported: 'snap-to-static', reducedMotion: 'destination-static', interrupt: 'destination-static', sameState: 'continue' }, palette: { navy: '#0a1a2f', azure: '#0b6bff', sky: '#5ca8ff', white: '#ffffff', amber: '#ffb020' }, states: {} };
 const track = (name, ...positions) => ({
   name, src: effects[name].src, width: effects[name].w, height: effects[name].h, origin: { x: 0, y: 0 },
   ...(name === 'confetti' && { behind: true }),
@@ -614,6 +615,99 @@ failed.api.show('sleep'); await failed.flush();
 assert.ok(!failed.caption.dataset.error, 'decode failure does not prevent selecting another state');
 failed.api.show('idle'); failed.api.show('sleep'); await failed.flush();
 assert.match(failed.caption.textContent, /^sleep /, 'stale decode failure cannot overwrite the newer state');
+
+// The React adapter uses this actual DOM runtime; native animations are controlled
+// here so boundary behavior is checked without starting an app/browser/test suite.
+function runtimeFixture({ failedSrc, pendingDecode = false, nativeMotion = true } = {}) {
+  const jobs = new Map(), native = [], errors = [], completed = [];
+  let serial = 0;
+  const doc = { createElement: () => {
+    const node = { style: {}, children: [], ownerDocument: doc, setAttribute() {},
+      append(child) { child.parent = this; this.children.push(child); },
+      replaceChildren() { this.children = []; },
+      remove() { if (this.parent) this.parent.children = this.parent.children.filter(c => c !== this); },
+      animate(keyframes, options) {
+        let resolve, reject;
+        const animation = { keyframes, options, playState: 'running',
+          finished: new Promise((yes, no) => { resolve = yes; reject = no; }),
+          finish() { if (this.playState !== 'idle') { this.playState = 'finished'; resolve(); } },
+          cancel() { this.playState = 'idle'; reject(Error('cancelled')); },
+          pause() { this.playState = 'paused'; }, play() { this.playState = 'running'; },
+        };
+        native.push(animation); return animation;
+      },
+    };
+    return node;
+  } };
+  const root = doc.createElement();
+  if (!nativeMotion) root.animate = undefined;
+  const player = createMascotPlayer(root, manifest, { baseUrl: 'https://mascot.invalid/anim/',
+    onError: error => errors.push(error.message), onComplete: name => completed.push(name), random: () => 0,
+    imageFactory: () => ({ src: '', decode() {
+      return pendingDecode ? new Promise(() => {}) : this.src.endsWith(failedSrc ?? '<none>') ? Promise.reject(Error('decode fixture')) : Promise.resolve();
+    } }),
+    schedule(fn, ms) { jobs.set(++serial, { fn, ms }); return serial; }, unschedule(id) { jobs.delete(id); },
+  });
+  return { player, root, jobs, native, errors, completed,
+    async flush() { for (let i = 0; i < 60; i++) await Promise.resolve(); },
+    finish() { for (const animation of native.filter(a => a.playState === 'running' && a.options.iterations === 1)) animation.finish(); },
+  };
+}
+const native = runtimeFixture();
+native.player.setState({ state: 'idle', animated: true, loop: true, reducedMotion: false }); await native.flush();
+assert.equal(native.jobs.size, 1, 'only a bounded idle-variation deadline remains');
+const variationJob = [...native.jobs.entries()][0];
+native.jobs.delete(variationJob[0]); variationJob[1].fn();
+assert.equal(native.root.children.length, 2, 'variation overlays a paused normal timeline');
+assert.ok(native.native.some(a => a.playState === 'paused'));
+native.finish(); await native.flush();
+assert.equal(native.root.children.length, 1);
+assert.equal(native.jobs.size, 1, 'normal cursor resumes and next variation is bounded');
+native.player.setState({ state: 'working', animated: true, loop: true, reducedMotion: false }); await native.flush();
+assert.ok(native.root.children[0].children.some(im => im.src.endsWith('idle-to-working-0.png')));
+native.finish(); await native.flush();
+assert.ok(native.root.children[0].children.some(im => im.src.endsWith('working-0.png')), 'bridge hands off after final duration');
+native.player.setState({ state: 'working', animated: true, loop: true, reducedMotion: true }); await native.flush();
+assert.equal(native.root.children[0].children.length, 1);
+assert.equal(native.native.filter(a => a.playState === 'running').length, 0, 'reduced motion creates no native animation');
+native.player.setState({ state: 'unknown', animated: false, reducedMotion: false }); await native.flush();
+assert.ok(native.root.children[0].children[0].src.endsWith('idle-0.png'));
+native.player.setState({ state: 'success', animated: true, loop: false, reducedMotion: false }); await native.flush();
+native.finish(); await native.flush(); // destination-static introduction
+native.finish(); await native.flush(); // the once timeline
+assert.deepEqual(native.completed, ['success']);
+native.player.destroy(); await native.flush();
+assert.equal(native.root.children.length, 0); assert.equal(native.jobs.size, 0);
+assert.equal(native.native.filter(a => a.playState === 'running').length, 0);
+const interrupted = runtimeFixture();
+interrupted.player.setState({ state: 'idle', animated: true, loop: true, reducedMotion: false }); await interrupted.flush();
+const previousAnimation = interrupted.native[0];
+interrupted.player.setState({ state: 'idle', animated: true, loop: true, reducedMotion: false });
+assert.equal(previousAnimation.playState, 'running', 'same-state requests retain the cursor');
+interrupted.player.setState({ state: 'working', animated: true, loop: true, reducedMotion: false }); await interrupted.flush();
+interrupted.player.setState({ state: 'working', animated: true, loop: true, reducedMotion: true }); await interrupted.flush();
+assert.ok(interrupted.root.children[0].children[0].src.endsWith('working-0.png'), 'reduce during bridge selects destination staticFrame');
+assert.equal(interrupted.native.filter(a => a.playState === 'running').length, 0);
+interrupted.player.destroy();
+const stale = runtimeFixture({ failedSrc: 'error-0.png' });
+stale.player.setState({ state: 'error', animated: true, reducedMotion: false });
+stale.player.setState({ state: 'sleep', animated: false, reducedMotion: false }); await stale.flush();
+assert.deepEqual(stale.errors, [], 'superseded image failures are ignored');
+assert.ok(stale.root.children[0].children[0].src.endsWith('sleep-0.png')); stale.player.destroy();
+const pending = runtimeFixture({ pendingDecode: true });
+pending.player.setState({ state: 'working', animated: true, reducedMotion: false });
+pending.player.destroy(); await pending.flush();
+assert.equal(pending.jobs.size, 0, 'unmount cancels outstanding decode deadlines');
+assert.equal(pending.root.children.length, 0); assert.deepEqual(pending.errors, []);
+const unsupported = runtimeFixture({ nativeMotion: false });
+unsupported.player.setState({ state: 'success', animated: true, reducedMotion: false }); await unsupported.flush();
+assert.ok(unsupported.root.children[0].children[0].src.endsWith('success-3.png'));
+unsupported.player.destroy();
+const timeline = buildTimeline(manifest, 'celebrate');
+assert.equal(timeline.durationMs, durations.celebrate.reduce((a, b) => a + b));
+assert.ok(timeline.layers[0].src.endsWith('confetti.png'), 'behind effects precede body');
+assert.ok(timeline.layers.every(layer => layer.keyframes[0].offset === 0 && layer.keyframes.at(-1).offset === 1));
+console.log('Validated native React-consumer runtime: stepped timing, effect layers, variations, bridge handoff, reduced motion, once completion, fallback, stale decode suppression, unmount cleanup and static degradation');
 console.log(`Validated v2 contract, ${rejected} malformed-manifest cases, all ${states.length ** 2} state pairs, and preview playback/variation/cancellation/reduced-motion/decode fixtures`);
 console.log('Adjacent changed pixels (pose diagnostics, not a motion-quality score): ' + JSON.stringify(bridgeDeltas));
 console.log(`Generated ${states.length} states, ${[...frameMap.values()].reduce((n, xs) => n + xs.length, 0)} frames, ${Object.keys(effects).length} effect PNG/SVG pairs`);

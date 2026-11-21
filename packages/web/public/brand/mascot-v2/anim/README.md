@@ -1,4 +1,4 @@
-﻿# Onni motion library — player contract v2
+# Onni motion library — player contract v2
 
 Open `anim-preview.html` directly, including offline. It embeds the sprites and the **same** `player-contract.mjs` used by the generator. Choose a state/bridge, use **Dark backdrop**, and cycle **Size** through 1×, 2× and 3×. System reduced motion paints `staticFrame` with its effects and cancels animation timers immediately.
 
@@ -23,7 +23,7 @@ Idle breathing uses frames `[0,1]`; a weighted variation inserts the complete `[
 `player-contract.d.mts` is the versioned TypeScript contract, paired with the browser-safe validator/helpers in `player-contract.mjs`. Pass the manifest through `validateManifest(unknown)` **before** requesting images/timers. Invalid data throws an Error naming the field; do not silently play partial data. The validator rejects unknown/missing states, nonpositive/nonfinite durations, out-of-range static/sequence/variation/cue indices, invalid intervals or weights, missing effect dimensions/origin and out-of-canvas effect placement.
 
 - `version` must be `2`. Version 1's variation `{frame}` became `{frames:[...]}`; do not treat old single-frame choices as v2 data.
-- Canvas is 96 × 96 with top-left origin. `sizes` lists suggested CSS pixel sizes `[24,48,96,192,288]`; preserve the square aspect ratio and use pixelated scaling. The 24 px size is a compact static badge; fine details are clearest at 96+ px.
+- Canvas is 96 × 96 with top-left origin. `sizes` lists suggested CSS pixel sizes `[24,48,96,192,288,384]`; preserve the square aspect ratio and use pixelated scaling. The 24 px size is a compact static badge; fine details are clearest at 96+ px.
 - `anchor` and every frame's `anchor` are canvas-space `(48,91)` with `baseline:91`. Align that point to the component's placement anchor.
 - Paths resolve relative to `animations.json`, **not the application route**. Decode before switching; decode errors should include the relative `src`.
 - Each frame owns its positive `durationMs`. `playbackOrder(state)` expands `pingpong` without repeating endpoints. `loop` repeats. `once` honors the last duration, then `onComplete:'hold-last'` leaves the final frame painted until a new request. It does not implicitly return to idle.
@@ -38,19 +38,21 @@ The three named directed edges play a bridge and then start the destination: `id
 
 The preview's bridge buttons also allow playing each bridge directly from frame 0 for inspection; that is a preview control, not an extra state-change policy.
 
-## React integration handoff
+## React consumer
 
-No React `<Mascot/>` implementation currently exists under `packages/web/src`. Adding one is outside this asset-only folder. A future component should import the `.mjs` helpers (with the adjacent `.d.mts` declarations), fetch and validate the manifest once, resolve paths against its URL, and use these helpers rather than copy assumptions from the HTML. For example:
+`packages/web/src/components/mascot.tsx` is the actual React consumer. It loads and validates `animations.json` and the browser-safe `player-runtime.mjs`/`player-contract.mjs` from the local public asset directory. Only type imports reach the adjacent `.d.mts` declarations at build time; public runtime modules remain separately served assets. The shared runtime calls the contract helpers; it does not duplicate the preview's frame/variation/transition assumptions.
 
-```ts
-import { validateManifest, playbackOrder, resolveChange } from './player-contract.mjs'
+```tsx
+import { Mascot } from '@/components/mascot'
 
-const manifest = validateManifest(await response.json())
-const next = resolveChange(manifest, previous, requested, reducedMotion, interrupted)
-const state = manifest.states[next.state]
-const order = playbackOrder(state)
+<Mascot state="loading" size={96} />
+<Mascot state="success" size={192} animated />
+<Mascot state="idle" size={96} animated loop />
 ```
 
-Clean up the timer and invalidate pending decodes on prop changes/unmount. Keep the manifest immutable after validation. Use the returned initial/static frame and `thenState`, the explicit origins, and the declared per-frame timing. The preview demonstrates cancellation and rendering but is not itself a React hook.
+Props: `state`, `size` (manifest-supported CSS pixels; invalid values fall back to 96), `animated`, `loop`, `decorative`, `label`, `className`, `onError`, and `onComplete`. Loading animates and loops by default. Other states default to static; explicitly opt in to animation. Working loops when animated; idle/thinking/error/sleep need `loop` to repeat. Once states always finish and hold. Decorative is true by default; `decorative={false}` requires a caller-localized `label`.
 
+The component reserves a square box before loading and respects reduced motion. The native runtime lays out individual PNG images at their declared dimensions, frame anchors and effect origins, and uses stepped Web Animations timelines with exact frame durations. There is no canvas or per-frame JavaScript animation loop. Idle variations briefly pause the native normal timeline, play their sequence, then resume the saved cursor. Named bridge completion hands off after the final-frame duration. Cues marked behind precede the body; multiple cues on one frame remain independent.
+
+Images decode before switching; decode errors identify the source and failures can be retried on the next state request. Asset loads have a 10-second deadline. Prop changes invalidate pending work, unmount cancels animations/decode deadlines, and missing native animation support degrades to `staticFrame`. Native runtime fixtures run in the generator. The permitted `brand-asset.test.ts` verifies the React component's SSR dimensions/decorative/accessibility markup; browser playback was not exercised by those checks. App placements remain opt-in through importing this component.
 The master art still constrains topology: wake changes from a curled body to a standing body and the laptop enters during seating. The new registered parts reduce the former full-silhouette cuts; they are not newly painted pose masters. Navy outlines also remain intentionally low contrast on navy; use the white backdrop when maximum outline separation is needed.

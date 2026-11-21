@@ -1,4 +1,4 @@
-/** Shared v2 boundary for the offline preview and a future React <Mascot/>. No DOM dependencies. */
+/** Shared v2 boundary for the offline preview and React <Mascot/>. No DOM dependencies. */
 export const STATE_NAMES = Object.freeze(['idle', 'working', 'thinking', 'success', 'error', 'sleep', 'wake', 'loading', 'celebrate', 'idle-to-working', 'working-to-idle']);
 
 export function validateManifest(m) {

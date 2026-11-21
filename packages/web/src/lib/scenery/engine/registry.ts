@@ -10,6 +10,8 @@ export const sceneLoaders: Readonly<Record<string, SceneLoader>> = {
   'vn-phu-quoc': () => import('../scenes/vn/phu-quoc'),
   'world-santorini': () => import('../scenes/world/santorini'),
   'world-tromso': () => import('../scenes/world/tromso'),
+  'vn-halong': () => import('../scenes/vn/halong'),
+  'vn-mu-cang-chai': () => import('../scenes/vn/mu-cang-chai'),
 }
 
 export function createSceneRegistry(loaders: Readonly<Record<string, SceneLoader>> = sceneLoaders) {

@@ -3,7 +3,9 @@ import { MemoryRouter, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { HealthResponse } from '@onni/api-client'
+import { DEFAULT_SCENE_PREFERENCES } from '@/lib/appearance'
 import { AppShell } from './app-shell'
+import { SceneProvider } from './scene-provider'
 import { ThemeProvider } from './theme-provider'
 import { ToolsMenu, diskNote, forgeNote, toolsBlocker, toolsTooltip } from './tools-menu'
 
@@ -297,11 +299,13 @@ describe('ToolsMenu in the app shell', () => {
   function renderShell() {
     return render(
       <ThemeProvider>
-        <MemoryRouter initialEntries={['/']}>
-          <AppShell toolsMenu={<ToolsMenu health={HEALTH} forge={HEALTH.forge} />}>
-            <p>route content</p>
-          </AppShell>
-        </MemoryRouter>
+        <SceneProvider scene={DEFAULT_SCENE_PREFERENCES} onChange={() => {}}>
+          <MemoryRouter initialEntries={['/']}>
+            <AppShell toolsMenu={<ToolsMenu health={HEALTH} forge={HEALTH.forge} />}>
+              <p>route content</p>
+            </AppShell>
+          </MemoryRouter>
+        </SceneProvider>
       </ThemeProvider>
     )
   }

@@ -2,8 +2,9 @@
 
 ## Generation status
 
-No PNG assets were produced: all four image requests were rejected before rendering because the
-configured OpenCode image provider has insufficient paid credits.
+No PNG assets were produced: all four default-provider requests and all four requests made with
+the explicitly authorized `opencode/grok-imagine-image-2.0` alternative were rejected before
+rendering because the available OpenCode Models credit balance is insufficient.
 
 ## Prompts attempted
 

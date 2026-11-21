@@ -7,7 +7,7 @@
     <title>OnniCode</title>
     <style>
       /* The boot surface, in the same grammar as the cockpit's loading splash
-         (packages/web/src/components/loading-splash.tsx): the mark, the wordmark, one status
+         (packages/web/src/components/loading-splash.tsx): the mark alone while loading; a failure adds the wordmark, status
          line, and a hairline track with a single violet sweep. Dark is the cockpit's default,
          light follows the system — the splash cannot read the cockpit's saved theme (different
          origin), so this is the closest honest match. Tokens mirror styles/index.css. */
@@ -202,6 +202,45 @@
         border: 1px solid var(--line);
         border-radius: 10px;
         background: var(--panel);
+      }
+
+      /* ---- loading state: the mark alone, breathing -------------------------------- */
+      /* Text and track stay in the DOM (screen readers, the Rust `set` calls) but are not drawn
+         until the page is a failure, which needs its message, log and restart button. */
+      body:not(.failed) .name,
+      body:not(.failed) h1,
+      body:not(.failed) .detail,
+      body:not(.failed) .progress {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      body:not(.failed) .mark {
+        width: 72px;
+        height: 72px;
+        animation: breathe 1.8s ease-in-out infinite;
+      }
+      @keyframes breathe {
+        0%,
+        100% {
+          opacity: 0.55;
+          transform: scale(0.97);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        body:not(.failed) .mark {
+          animation: none;
+        }
       }
 
       @keyframes sweep {

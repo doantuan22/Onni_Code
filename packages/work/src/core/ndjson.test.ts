@@ -2,6 +2,8 @@ import { Readable } from 'node:stream';
 import { describe, expect, it } from 'vitest';
 import { isJsonObject, readNdjson } from './ndjson.ts';
 
+const MAX_NDJSON_LINE_LENGTH = 32 * 1024 * 1024;
+
 const collect = async (chunks: Array<Buffer | string>): Promise<string[]> => {
   const lines: string[] = [];
   for await (const line of readNdjson(Readable.from(chunks, { objectMode: false }))) lines.push(line);
@@ -9,6 +11,27 @@ const collect = async (chunks: Array<Buffer | string>): Promise<string[]> => {
 };
 
 describe('readNdjson', () => {
+  it.each(['', '\n'])('rejects an oversized single chunk with terminator %j', async (terminator) => {
+    await expect(collect(['x'.repeat(MAX_NDJSON_LINE_LENGTH + 1) + terminator]))
+      .rejects.toThrow(`NDJSON line exceeds maximum length of ${MAX_NDJSON_LINE_LENGTH} UTF-16 code units`);
+  });
+
+  it('rejects chunked oversized input before waiting for newline or EOF', async () => {
+    const stream = Readable.from((async function* () {
+      yield 'x'.repeat(MAX_NDJSON_LINE_LENGTH);
+      yield 'x';
+      throw new Error('must reject before consuming more input');
+    })(), { objectMode: false, highWaterMark: 1 });
+    await expect((async () => { for await (const _line of readNdjson(stream)) { /* consume */ } })())
+      .rejects.toThrow(/NDJSON line exceeds maximum length/);
+    expect(stream.destroyed).toBe(true);
+  });
+
+  it('resets the length budget for each complete line', async () => {
+    const line = 'x'.repeat(MAX_NDJSON_LINE_LENGTH);
+    expect((await collect([line, '\n', line])).map((value) => value.length))
+      .toEqual([MAX_NDJSON_LINE_LENGTH, MAX_NDJSON_LINE_LENGTH]);
+  });
   const text = '{"a":"Kiểm tra ệ"}\n\n  {"b":2}  \r\n{"c":"😀"}\n{"d":4}';
   const expected = ['{"a":"Kiểm tra ệ"}', '{"b":2}', '{"c":"😀"}', '{"d":4}'];
 

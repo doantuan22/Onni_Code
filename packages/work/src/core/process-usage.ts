@@ -231,26 +231,31 @@ async function sample(): Promise<void> {
  *  any failure. Unix uses `ps`; Windows uses PowerShell's Win32_Process (WorkingSetSize → KB,
  *  cpu reported as 0 — the memory guard only needs RSS). */
 function runPs(): Promise<string | null> {
-  if (process.platform === 'win32') {
-    return new Promise((resolve) => {
-      execFile(
-        'powershell',
-        [
+  return new Promise((resolve) => {
+    let child: ReturnType<typeof execFile> | undefined;
+    const deadline = setTimeout(() => {
+      // A stuck helper must release sampling even without an exit callback (survey A3.1).
+      try { child?.kill('SIGKILL'); } catch { /* best-effort cleanup of this PID only */ }
+      resolve(null);
+    }, 5_000);
+    const windows = process.platform === 'win32';
+    try {
+      child = execFile(
+        windows ? 'powershell' : 'ps',
+        windows ? [
           '-NoProfile',
           '-Command',
-          "Get-CimInstance Win32_Process | ForEach-Object { \"$($_.ProcessId) $($_.ParentProcessId) $([math]::Round($_.WorkingSetSize/1024)) 0\" }",
-        ],
+          'Get-CimInstance Win32_Process | ForEach-Object { "$($_.ProcessId) $($_.ParentProcessId) $([math]::Round($_.WorkingSetSize/1024)) 0" }',
+        ] : ['-axo', 'pid=,ppid=,rss=,%cpu='],
         { maxBuffer: 16 * 1024 * 1024, windowsHide: true },
-        (err, stdout) => resolve(err ? null : stdout),
+        (err, stdout) => {
+          clearTimeout(deadline);
+          resolve(err ? null : stdout);
+        },
       );
-    });
-  }
-  return new Promise((resolve) => {
-    execFile(
-      'ps',
-      ['-axo', 'pid=,ppid=,rss=,%cpu='],
-      { maxBuffer: 16 * 1024 * 1024 },
-      (err, stdout) => resolve(err ? null : stdout),
-    );
+    } catch {
+      clearTimeout(deadline);
+      resolve(null);
+    }
   });
 }

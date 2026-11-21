@@ -10,6 +10,35 @@ function answer(text: string | null) {
   exec.mockImplementation((_cmd, _args, _opts, cb) => cb(text === null ? new Error('ps unavailable') : null, text));
 }
 describe('timestamped process telemetry', () => {
+  it.each(['linux', 'win32'])('kills a hung %s sampler and recovers on the next tick', async (platform) => {
+    vi.stubGlobal('process', Object.create(process, { platform: { value: platform } }));
+    const usage = await import('./process-usage.ts');
+    const kill = vi.fn();
+    let lateAnswer: (err: Error | null, stdout: string) => void = () => {};
+    exec.mockImplementationOnce((_cmd, _args, _opts, cb) => {
+      lateAnswer = cb;
+      return { pid: 12345, kill };
+    });
+    answer('100 1 100 1\n');
+    usage.registerRunProcess('hung', 100);
+    try {
+      await vi.advanceTimersByTimeAsync(4_999);
+      expect(exec).toHaveBeenCalledTimes(1);
+      expect(kill).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(kill).toHaveBeenCalledExactlyOnceWith('SIGKILL');
+      expect(usage.currentUsage('hung')).toBeUndefined();
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(exec).toHaveBeenCalledTimes(2);
+      expect(usage.currentUsage('hung')?.rssBytes).toBe(102400);
+      lateAnswer(null, '100 1 999 9\n');
+      await tick();
+      expect(usage.currentUsage('hung')?.rssBytes).toBe(102400);
+    } finally {
+      usage.unregisterRunProcess('hung');
+    }
+    expect(vi.getTimerCount()).toBe(0);
+  });
   it('records sampling time, not time a cached sample is requested', async () => {
     // `ps` is the Unix sampler: a Windows host reports CPU as unmeasured by design, so the POSIX
     // contract is asserted on an explicit platform rather than on whatever host runs the suite.

@@ -1748,7 +1748,7 @@ export class RunStore extends EventEmitter {
     const line = `${JSON.stringify(event)}\n`;
     if (!this.eventsUnwritable) {
       try {
-        appendFileSync(this.eventsPath(runId), line, 'utf8');
+        appendFileSync(this.eventsPath(runId), line, { encoding: 'utf8', mode: 0o600 });
       } catch (err) {
         // Access denied mid-session (macOS privacy prompt, EPERM on the file) degrades like `open`
         // does: a throw here 500'd the message the user was sending (telemetry 73c6e796). Anything
@@ -1763,7 +1763,7 @@ export class RunStore extends EventEmitter {
     // Degraded (already warned): retry, so access granted mid-session starts persisting.
     try {
       mkdirSync(join(this.dataDir, 'runs'), { recursive: true });
-      appendFileSync(this.eventsPath(runId), line, 'utf8');
+      appendFileSync(this.eventsPath(runId), line, { encoding: 'utf8', mode: 0o600 });
       this.eventsUnwritable = false;
     } catch {
       // live-only — the SSE stream still carries it
@@ -2294,7 +2294,10 @@ export class RunStore extends EventEmitter {
       // later rename from overwriting another writer's acknowledged additions.
       release = lockRunIndex(this.dataDir);
       const merged = this.mergeWithIndexOnDisk(indexPath);
-      writeFileSync(tmpPath, JSON.stringify(merged, null, pretty ? 2 : undefined), 'utf8');
+      writeFileSync(tmpPath, JSON.stringify(merged, null, pretty ? 2 : undefined), {
+        encoding: 'utf8',
+        mode: 0o600,
+      });
       renameSyncWithRetry(tmpPath, indexPath);
       // Do not reconcile/adopt foreign state into live manager-owned records. Remember our
       // local snapshot so future unchanged fields still defer to the latest persisted value.

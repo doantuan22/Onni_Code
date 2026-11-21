@@ -1,4 +1,4 @@
-import { appendFileSync, chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import { appendFileSync, chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { threadId } from 'node:worker_threads';
 import { hostname, tmpdir, uptime } from 'node:os';
@@ -113,6 +113,30 @@ describe('RunStore — uncreatable data dir (telemetry 5af5aec6)', () => {
     rmSync(dataDir, { recursive: true, force: true });
 
     expect(() => store.appendEvent(run.id, { type: 'note', text: 'late' })).toThrow(/ENOENT/);
+  });
+});
+
+describe('RunStore — private persistence files', () => {
+  let dataDir: string;
+
+  beforeEach(() => {
+    dataDir = mkdtempSync(join(tmpdir(), 'onni-store-private-'));
+  });
+
+  afterEach(() => {
+    rmSync(dataDir, { recursive: true, force: true });
+  });
+
+  it('creates the index and event journal with mode 0600', () => {
+    const store = RunStore.open(dataDir);
+    const run = store.createRun({ title: 't', workflow: 'w', task: 't', steps: [] });
+    store.appendEvent(run.id, { type: 'note', message: 'private' });
+    store.flush();
+
+    if (process.platform !== 'win32') {
+      expect(statSync(join(dataDir, 'runs.json')).mode & 0o777).toBe(0o600);
+      expect(statSync(join(dataDir, 'runs', `${run.id}.ndjson`)).mode & 0o777).toBe(0o600);
+    }
   });
 });
 

@@ -8,6 +8,8 @@ export const sceneLoaders: Readonly<Record<string, SceneLoader>> = {
   'world-sahara': () => import('../scenes/world/sahara'),
   'vn-fansipan': () => import('../scenes/vn/fansipan'),
   'vn-phu-quoc': () => import('../scenes/vn/phu-quoc'),
+  'world-santorini': () => import('../scenes/world/santorini'),
+  'world-tromso': () => import('../scenes/world/tromso'),
 }
 
 export function createSceneRegistry(loaders: Readonly<Record<string, SceneLoader>> = sceneLoaders) {

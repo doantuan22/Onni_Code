@@ -28,5 +28,17 @@
     "day": "ae5d9d34",
     "dusk": "5ac9bff6",
     "night": "e9068f11"
+  },
+  "world-santorini": {
+    "dawn": "da4d1417",
+    "day": "845fadbd",
+    "dusk": "5aa7c498",
+    "night": "54e5be8f"
+  },
+  "world-tromso": {
+    "dawn": "a25528ce",
+    "day": "a88da5f5",
+    "dusk": "3b7ff65d",
+    "night": "0fa659a3"
   }
 }

@@ -49,4 +49,20 @@ describe('check-env-reference', () => {
       },
     );
   });
+
+  it('ignores runtime-injected, test-only, and desktop-managed names', () => {
+    withFixture(
+      '# ONNI_API_URL=http://127.0.0.1:4321\n# ONNI_MOCK_PACE=slow\n# ONNI_DESKTOP_DEBUG_IPC=1\n',
+      'Useful environment variables:\n\n| Var | Effect |\n|---|---|\n',
+      (directory) => {
+        const result = spawnSync(process.execPath, [
+          script,
+          '--env-example', join(directory, '.env.example'),
+          '--reference', join(directory, 'reference.md'),
+        ], { encoding: 'utf8' });
+        expect(result.status).toBe(0);
+        expect(result.stdout).toContain('All ONNI_* names');
+      },
+    );
+  });
 });

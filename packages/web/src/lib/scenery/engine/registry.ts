@@ -3,7 +3,10 @@ import type { SceneDef } from './types'
 export type SceneLoader = () => Promise<{ default: SceneDef }>
 
 /** Each production entry must be () => import('../scenes/…'), never an eager import. */
-export const sceneLoaders: Readonly<Record<string, SceneLoader>> = {}
+export const sceneLoaders: Readonly<Record<string, SceneLoader>> = {
+  'world-santorini': () => import('../scenes/world/santorini'),
+  'world-tromso': () => import('../scenes/world/tromso'),
+}
 
 export function createSceneRegistry(loaders: Readonly<Record<string, SceneLoader>> = sceneLoaders) {
   const pending = new Map<string, Promise<SceneDef>>()

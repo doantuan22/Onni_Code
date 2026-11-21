@@ -207,9 +207,18 @@ describe('live cursor replay and compact context', () => {
     ]);
     const page = await readRunHistoryPage(file);
     appendFileSync(file, JSON.stringify({ seq: 4, ts: 'x', type: 'note', message: 'after gap' }) + '\n');
-    const replay = await readEventsAfterLiveCursor(file, page.liveCursor);
-    expect(replay.boundarySeq).toBe(2);
-    expect(replay.events.map(({ seq }) => seq)).toEqual([4]);
+    const replay = [];
+    for await (const event of readEventsAfterLiveCursor(file, page.liveCursor)) replay.push(event);
+    expect(replay.map(({ seq }) => seq)).toEqual([4]);
+  });
+
+  it('stops cursor replay when its signal is aborted', async () => {
+    const file = fixture(Array.from({ length: 500 }, (_, index) => ({ seq: index + 1, type: 'note', message: 'x'.repeat(100) })));
+    const page = await readRunHistoryPage(file);
+    const controller = new AbortController();
+    const iterator = readEventsAfterLiveCursor(file, page.liveCursor, controller.signal);
+    controller.abort();
+    expect(await iterator.next()).toMatchObject({ done: true });
   });
 
   it('returns 409 when a valid live cursor points beyond a replaced transcript', async () => {
@@ -218,7 +227,8 @@ describe('live cursor replay and compact context', () => {
     ]);
     const page = await readRunHistoryPage(file);
     writeFileSync(file, '');
-    await expect(readEventsAfterLiveCursor(file, page.liveCursor)).rejects.toEqual(
+    const replay = readEventsAfterLiveCursor(file, page.liveCursor);
+    await expect(replay.next()).rejects.toEqual(
       expect.objectContaining<Partial<HistoryCursorError>>({ status: 409 }),
     );
   });

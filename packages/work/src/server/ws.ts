@@ -38,6 +38,7 @@ const HEARTBEAT_MS = 30_000;
 /** Client frames are tiny control messages; anything bigger is not our
  *  protocol. Kills the abuse case of a page streaming megabytes at the hub. */
 const MAX_PAYLOAD_BYTES = 4_096;
+const MAX_BUFFERED_BYTES = 1_048_576;
 
 /** Everything a client may say. Malformed frames get an `error` frame back
  *  (not a disconnect — one buggy caller must not tear down its tab's other
@@ -137,7 +138,12 @@ export function createSocketHub(options: SocketHubOptions = {}): SocketHub {
 
   // OPEN as the literal 1: the check must hold for any socket implementation.
   const sendText = (ws: WebSocket, text: string): void => {
-    if (ws.readyState === 1) ws.send(text);
+    if (ws.readyState !== 1) return;
+    if (ws.bufferedAmount > MAX_BUFFERED_BYTES) {
+      ws.close(1013, 'reload to resume');
+      return;
+    }
+    ws.send(text);
   };
   const send = (ws: WebSocket, frame: unknown): void => sendText(ws, JSON.stringify(frame));
 

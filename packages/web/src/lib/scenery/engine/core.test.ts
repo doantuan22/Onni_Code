@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import { SCENE_IDS } from '../../appearance'
 import { createContext } from './context'
 import { contrastCeiling, contrastRatio, luminance } from './contrast'
 import { BAYER_4, BAYER_8, dither } from './dither'
 import fixture from './fixture-scene'
 import { createNoiseAtlas } from './noise'
 import { channels, createLut, expandPalette, indexedToRgba, interpolatePalette, mixColor, packRgba, resolveTime, TIME_ANCHORS } from './palette'
-import { createSceneRegistry } from './registry'
+import { createSceneRegistry, sceneRegistry } from './registry'
 import { bufferSize, SceneRenderer } from './renderer'
 import { mulberry32 } from './rng'
 import { parseSprite } from './sprite'
@@ -156,6 +157,18 @@ describe('palette pipeline and contrast ceiling', () => {
 })
 
 describe('scene rendering and lazy registry', () => {
+  it('registers all eight v1 scenes with the same ids as appearance preferences', async () => {
+    const expected = [
+      'vn-halong', 'vn-mu-cang-chai', 'vn-fansipan', 'vn-phu-quoc',
+      'world-tromso', 'world-santorini', 'world-matterhorn', 'world-sahara',
+    ].sort()
+    expect([...SCENE_IDS].sort()).toEqual(expected)
+    expect([...sceneRegistry.ids].sort()).toEqual(expected)
+    for (const id of SCENE_IDS) {
+      expect(await sceneRegistry.load(id)).toMatchObject({ id })
+    }
+  })
+
   it('loads only the requested scene chunk and caches it', async () => {
     const loader = vi.fn(() => import('./fixture-scene'))
     const registry = createSceneRegistry({ 'engine-fixture': loader })

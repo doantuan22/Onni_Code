@@ -1,6 +1,8 @@
 # Cảnh nền pixel ("Scenery") — kế hoạch
 
-Trạng thái: nghiên cứu và kế hoạch, **chưa triển khai**. Chỉ học kỹ thuật từ [Pixel Chat Themes](https://github.com/Aqua2409z/pixel-chat-themes) (MIT); bộ cảnh là của riêng OnniCode (phong cảnh Việt Nam và thế giới).
+Trạng thái: **đã triển khai v1** — 8 cảnh, engine canvas pixel, lưu tuỳ chọn, tích hợp giao diện và điều khiển. v2 (parallax khi cuộn và cảnh phản ứng theo hoạt động agent) để sau. Chỉ học kỹ thuật từ [Pixel Chat Themes](https://github.com/Aqua2409z/pixel-chat-themes) (MIT); bộ cảnh là của riêng OnniCode (phong cảnh Việt Nam và thế giới).
+
+Hướng dẫn sử dụng và mặc định hiện hành: [Appearance](../../reference.md#appearance). Các mục dưới giữ lại quyết định và kế hoạch thiết kế; kiểm thử e2e có kịch bản bật/tắt qua sidebar trên `/new` và chat, cần chạy riêng để xác minh giao diện thực.
 
 Đọc `00` là nắm hướng; các mục còn lại đi sâu từng phần.
 

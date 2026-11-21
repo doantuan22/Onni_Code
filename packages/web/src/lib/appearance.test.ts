@@ -3,10 +3,14 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   ACCENT_STORAGE_KEY,
   DENSITY_STORAGE_KEY,
+  DEFAULT_SCENE_PREFERENCES,
+  SCENE_STORAGE_KEY,
+  SCENE_IDS,
   WIDTH_STORAGE_KEY,
   applyAppearance,
   normalizeAccent,
   normalizeAppearance,
+  normalizeScenePreferences,
   normalizeDensity,
   normalizeWidth,
   readStoredAppearance,
@@ -18,6 +22,7 @@ afterEach(() => {
   delete document.documentElement.dataset.accent
   delete document.documentElement.dataset.density
   delete document.documentElement.dataset.width
+  delete document.documentElement.dataset.scene
 })
 
 describe('normalize', () => {
@@ -42,6 +47,7 @@ describe('normalize', () => {
       accent: 'violet',
       density: 'compact',
       width: 'narrow',
+      scene: DEFAULT_SCENE_PREFERENCES,
     })
   })
 
@@ -50,36 +56,96 @@ describe('normalize', () => {
       accent: 'violet',
       density: 'comfortable',
       width: 'wide',
+      scene: DEFAULT_SCENE_PREFERENCES,
     })
     expect(normalizeAppearance('not-an-object')).toEqual({
       accent: 'violet',
       density: 'comfortable',
       width: 'wide',
+      scene: DEFAULT_SCENE_PREFERENCES,
     })
     expect(normalizeAppearance({ accent: 'violet' })).toEqual({
       accent: 'violet',
       density: 'comfortable',
       width: 'wide',
+      scene: DEFAULT_SCENE_PREFERENCES,
     })
     expect(normalizeAppearance({ accent: 'nope', density: 'compact', width: 'wide' })).toEqual({
       accent: 'violet',
       density: 'compact',
       width: 'wide',
+      scene: DEFAULT_SCENE_PREFERENCES,
     })
+  })
+
+  it('clamps scene preferences and disables unknown scene ids', () => {
+    expect(normalizeScenePreferences({
+      on: true,
+      id: SCENE_IDS[0],
+      visibility: 3,
+      speed: 0,
+      time: 'day',
+      motion: false,
+      surfaces: { new: false, chat: true },
+      mode: { new: 'horizon' },
+    })).toEqual({
+      on: true,
+      id: SCENE_IDS[0],
+      visibility: 1,
+      speed: 0.25,
+      time: 'day',
+      motion: false,
+      surfaces: { new: false, chat: true, other: false },
+      mode: { new: 'horizon', chat: 'horizon' },
+    })
+    expect(normalizeScenePreferences({ on: true, id: 'future-scene' })).toEqual({
+      ...DEFAULT_SCENE_PREFERENCES,
+      on: false,
+      id: 'future-scene',
+    })
+    expect(normalizeScenePreferences({ visibility: Number.NaN, speed: Infinity }).visibility).toBe(0.7)
   })
 })
 
 describe('the localStorage mirror', () => {
   it('round-trips through the same keys the index.html pre-paint script reads', () => {
-    writeStoredAppearance({ accent: 'violet', density: 'compact', width: 'wide' })
+    writeStoredAppearance({
+      accent: 'violet',
+      density: 'compact',
+      width: 'wide',
+      scene: DEFAULT_SCENE_PREFERENCES,
+    })
     expect(localStorage.getItem(ACCENT_STORAGE_KEY)).toBe('violet')
     expect(localStorage.getItem(DENSITY_STORAGE_KEY)).toBe('compact')
     expect(localStorage.getItem(WIDTH_STORAGE_KEY)).toBe('wide')
-    expect(readStoredAppearance()).toEqual({ accent: 'violet', density: 'compact', width: 'wide' })
+    expect(JSON.parse(localStorage.getItem(SCENE_STORAGE_KEY) ?? 'null')).toEqual({ on: false })
+    expect(readStoredAppearance()).toEqual({
+      accent: 'violet',
+      density: 'compact',
+      width: 'wide',
+      scene: DEFAULT_SCENE_PREFERENCES,
+    })
+  })
+
+  it('mirrors only scene enabled state and id for pre-paint', () => {
+    const appearance = {
+      accent: 'violet' as const,
+      density: 'comfortable' as const,
+      width: 'wide' as const,
+      scene: { ...DEFAULT_SCENE_PREFERENCES, on: true, id: SCENE_IDS[0], visibility: 0.2, motion: false },
+    }
+    writeStoredAppearance(appearance)
+    expect(localStorage.getItem(SCENE_STORAGE_KEY)).toBe(JSON.stringify({ on: true, id: SCENE_IDS[0] }))
+    expect(readStoredAppearance().scene).toEqual({ ...DEFAULT_SCENE_PREFERENCES, on: true, id: SCENE_IDS[0] })
   })
 
   it('defaults when the mirror is empty', () => {
-    expect(readStoredAppearance()).toEqual({ accent: 'violet', density: 'comfortable', width: 'wide' })
+    expect(readStoredAppearance()).toEqual({
+      accent: 'violet',
+      density: 'comfortable',
+      width: 'wide',
+      scene: DEFAULT_SCENE_PREFERENCES,
+    })
   })
 })
 
@@ -87,15 +153,22 @@ describe('applyAppearance', () => {
   it('clears a historical accent stamp while preserving the independent preferences', () => {
     const root = document.documentElement
     root.dataset.accent = 'lime'
-    applyAppearance(root, { accent: 'violet', density: 'compact', width: 'narrow' })
+    applyAppearance(root, {
+      accent: 'violet',
+      density: 'compact',
+      width: 'narrow',
+      scene: { ...DEFAULT_SCENE_PREFERENCES, id: SCENE_IDS[0], on: true },
+    })
     expect(root.hasAttribute('data-accent')).toBe(false)
     expect(root.dataset.density).toBe('compact')
     expect(root.dataset.width).toBe('narrow')
+    expect(root.dataset.scene).toBe('on')
 
     // Back to defaults: independent preference attributes still come off as before.
-    applyAppearance(root, { accent: 'violet', density: 'comfortable', width: 'wide' })
+    applyAppearance(root, { accent: 'violet', density: 'comfortable', width: 'wide', scene: DEFAULT_SCENE_PREFERENCES })
     expect(root.hasAttribute('data-accent')).toBe(false)
     expect(root.hasAttribute('data-density')).toBe(false)
     expect(root.hasAttribute('data-width')).toBe(false)
+    expect(root.dataset.scene).toBe('off')
   })
 })

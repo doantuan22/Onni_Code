@@ -12,6 +12,7 @@ import {
   workspaceLayoutsSchema,
   workspacePanesSchema,
   workspacePanesInputSchema,
+  workspaceUiStateSchema,
 } from '@onni/contract';
 import type { brandingLogoUploadSchema } from './server.ts';
 import type {
@@ -49,7 +50,6 @@ import type {
   attachmentInputSchema,
   deleteUploadResponseSchema,
   stagedUploadSchema,
-  workspaceUiStateSchema,
 } from '@onni/contract';
 import type { AppType } from './app-type.ts';
 
@@ -298,5 +298,25 @@ describe('src/contract projects/workspace schemas match the routes exactly', () 
     };
     expect(workspaceLayoutsSchema.safeParse(oldLayout).success).toBe(true);
     expect(workspaceLayoutsSchema.safeParse(phaseThreeLayout).success).toBe(true);
+  });
+
+  it('accepts older appearance values and the optional scene preferences', () => {
+    expect(workspaceUiStateSchema.safeParse({ appearance: { density: 'compact' } }).success).toBe(true);
+    expect(workspaceUiStateSchema.safeParse({
+      appearance: {
+        scene: {
+          on: true,
+          id: 'vn-halong',
+          visibility: 0.7,
+          speed: 1,
+          time: 'auto',
+          motion: true,
+          surfaces: { new: true, chat: true, other: false },
+          mode: { new: 'full', chat: 'horizon' },
+        },
+      },
+    }).success).toBe(true);
+    expect(workspaceUiStateSchema.safeParse({ appearance: { scene: { visibility: 1.1 } } }).success).toBe(false);
+    expect(workspaceUiStateSchema.safeParse({ appearance: { scene: { id: 'x'.repeat(41) } } }).success).toBe(false);
   });
 });

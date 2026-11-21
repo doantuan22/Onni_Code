@@ -185,6 +185,23 @@ const appearanceSchema = z.object({
   accent: z.enum(['lime', 'violet']).optional(),
   density: z.enum(['comfortable', 'compact', 'ultra']).optional(),
   width: z.enum(['narrow', 'wide']).optional(),
+  scene: z.object({
+    on: z.boolean().optional(),
+    id: z.string().max(40).optional(),
+    visibility: z.number().min(0).max(1).optional(),
+    speed: z.number().min(0.25).max(2).optional(),
+    time: z.enum(['auto', 'dawn', 'day', 'dusk', 'night']).optional(),
+    motion: z.boolean().optional(),
+    surfaces: z.object({
+      new: z.boolean().optional(),
+      chat: z.boolean().optional(),
+      other: z.boolean().optional(),
+    }).optional(),
+    mode: z.object({
+      new: z.enum(['full', 'horizon']).optional(),
+      chat: z.enum(['full', 'horizon']).optional(),
+    }).optional(),
+  }).optional(),
 });
 
 const taskTableUiStateSchema = z.looseObject({

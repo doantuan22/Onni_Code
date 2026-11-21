@@ -4,5 +4,17 @@
     "day": "f88accda",
     "dusk": "868aa6a3",
     "night": "70dd44c5"
+  },
+  "vn-halong": {
+    "dawn": "36dd3b33",
+    "day": "31977f51",
+    "dusk": "951a5467",
+    "night": "04497376"
+  },
+  "vn-mu-cang-chai": {
+    "dawn": "8db041e1",
+    "day": "4ef64019",
+    "dusk": "1de4f9ac",
+    "night": "501b0d94"
   }
 }

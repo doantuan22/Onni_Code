@@ -195,7 +195,7 @@ export function UserBubble({
       <div
         data-slot="user-bubble"
         data-editing="true"
-        className="max-w-[85%] self-end rounded-sm border-l-2 border-violet/60 bg-muted/60 px-3 py-2 text-[13.5px] leading-[1.6] md:max-w-[75%]"
+        className="max-w-[85%] self-end rounded-2xl bg-muted/70 px-4 py-2.5 text-[14px] leading-[1.65] md:max-w-[80%]"
       >
         <textarea
           autoFocus
@@ -241,11 +241,8 @@ export function UserBubble({
   return (
     <div
       data-slot="user-bubble"
-      className="group max-w-[85%] min-w-0 self-end rounded-sm border-l-2 border-violet/60 bg-muted/60 px-3 py-2 text-[13.5px] leading-[1.6] md:max-w-[75%]"
+      className="group max-w-[85%] min-w-0 self-end rounded-2xl bg-muted/70 px-4 py-2.5 text-[14px] leading-[1.65] md:max-w-[80%]"
     >
-      <span className="mb-1 block font-mono text-[10px] font-medium tracking-[0.08em] text-violet uppercase">
-        {t('You')}
-      </span>
       {onEdit || onRemove ? (
         <span
           data-slot="bubble-actions"
@@ -340,7 +337,7 @@ export function AssistantMessage({ text, streaming = false, copyable = true }: {
   const { t } = useI18n()
   const reducedMotion = usePrefersReducedMotion()
   return (
-    <div data-slot="assistant-message" data-streaming={streaming ? 'true' : undefined} className="group/answer w-full min-w-0 max-w-[78ch] self-start text-[14px] leading-[1.75]">
+    <div data-slot="assistant-message" data-streaming={streaming ? 'true' : undefined} className="group/answer w-full min-w-0 self-start text-[14px] leading-[1.75]">
       <Markdown streaming={streaming} animate={streaming && !reducedMotion}>{text}</Markdown>
       {!streaming && copyable ? <button
         type="button"

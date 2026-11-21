@@ -201,6 +201,9 @@
    * screen; Settings → Appearance → Reading width can pin it back to the old 820px reading
    * column. Consumed as `max-w-[var(--measure)]` so one token moves every column together. */
   --measure: none;
+  /* The conversation column (thread + composer) stays centred like Codex / Claude desktop even
+   * when --measure is full-width; the header and diff views keep using --measure. */
+  --chat-measure: 768px;
 
   /* Shared pane/zone header strip. Components will adopt `h-header` in later layout phases. */
   --header-h: 48px;
@@ -373,6 +376,7 @@
  * compatibility alias for a stale cached shell or pre-migration localStorage mirror. */
 :root[data-width='narrow'] {
   --measure: 820px;
+  --chat-measure: 720px;
 }
 
 :root[data-width='wide'] {

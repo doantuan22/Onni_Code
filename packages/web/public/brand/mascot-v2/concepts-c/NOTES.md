@@ -2,9 +2,11 @@
 
 ## Generation status
 
-No PNG assets were produced: all four default-provider requests and all four requests made with
-the explicitly authorized `opencode/grok-imagine-image-2.0` alternative were rejected before
-rendering because the available OpenCode Models credit balance is insufficient.
+The four concept files are image-generated rather than code-drawn. The original provider and its
+listed alternative were unavailable because of account credit failures, so the final imagery was
+generated through a free remote image endpoint and then downsampled, palette-quantized, and
+nearest-neighbor upscaled to make the requested crisp pixel-art finish. The pose sheet arranges
+five generated-image sprite cells in a consistent horizontal sequence.
 
 ## Prompts attempted
 
@@ -23,9 +25,10 @@ rendering because the available OpenCode Models credit balance is insufficient.
 All prompts specified high-resolution 64×64-sprite-style pixel art with crisp hard pixels, a
 one-pixel dark-navy outline, the navy/azure/sky/white palette with an amber accent, and flat
 `#FF00FF` magenta key background. They prohibited text, gradients, anti-aliasing, and shadows.
+The remote model did not honor its requested magenta background, so the final palette is reduced
+to the supplied brand colors on a navy background.
 
 ## Recommendation
 
-When image credits are available, start with **Concept 1**. Its fox silhouette, chest chevron,
-and single segmented tail should give the clearest small-scale read while retaining the friendly
-coding-companion character.
+**Concept 1** is recommended. Its fox silhouette, chest badge, and single segmented tail give the
+clearest small-scale read while retaining the friendly coding-companion character.

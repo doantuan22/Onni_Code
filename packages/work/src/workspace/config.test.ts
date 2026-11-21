@@ -1,4 +1,5 @@
-import { fstatSync, mkdirSync, mkdtempSync, promises as fsPromises, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { execFile } from 'node:child_process';
+import { fstatSync, mkdirSync, mkdtempSync, promises as fsPromises, readFileSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -303,6 +304,42 @@ describe('workspace config', () => {
     });
     const config = await loadWorkspaceConfig();
     expect(config.projects.map((p) => p.id).sort()).toEqual(['writer-a', 'writer-b']);
+  });
+
+  it('serializes cross-process merges so neither writer loses the other project', async () => {
+    const configUrl = new URL('./config.ts', import.meta.url).href;
+    const runWriter = (id: string) => new Promise<void>((resolve, reject) => {
+      const script = `
+        import { mergeWriteWorkspaceConfig } from ${JSON.stringify(configUrl)};
+        await mergeWriteWorkspaceConfig((config) => {
+          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
+          config.projects.push({ id: ${JSON.stringify(id)}, root: process.cwd(), name: ${JSON.stringify(id)}, addedAt: '', lastOpenedAt: '', source: 'local' });
+        });
+      `;
+      execFile(process.execPath, ['--import', 'tsx', '--input-type=module', '-e', script], {
+        cwd: process.cwd(),
+        timeout: 15_000,
+        windowsHide: true,
+      }, (error, _stdout, stderr) => {
+        if (error) reject(new Error(`workspace merge child failed: ${error.message}\n${stderr}`));
+        else resolve();
+      });
+    });
+
+    await Promise.all([runWriter('process-a'), runWriter('process-b')]);
+    expect((await loadWorkspaceConfig()).projects.map((entry) => entry.id).sort()).toEqual(['process-a', 'process-b']);
+  }, 20_000);
+
+  it('recovers a lock left by a dead writer', async () => {
+    const lockPath = `${workspaceConfigPath()}.lock`;
+    mkdirSync(lockPath);
+    const old = new Date(Date.now() - 60_000);
+    utimesSync(lockPath, old, old);
+
+    await expect(mergeWriteWorkspaceConfig((config) => {
+      config.projects.push(project('recovered'));
+    })).resolves.toMatchObject({ projects: [project('recovered')] });
+    expect((await loadWorkspaceConfig()).projects.map((entry) => entry.id)).toEqual(['recovered']);
   });
 
   it('unknown keys survive load + merge-write at every level (.passthrough)', async () => {

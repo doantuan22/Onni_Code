@@ -55,6 +55,7 @@ syncBuiltinESMExports();
 fs.writeFileSync(join(dir, `${id}-attempt`), '');
 let error;
 try {
+  if (operation === 'stale') store.updateRun('doomed', { title: 'stale update' });
   if (operation === 'ordinary') store.flush();
   else store.flushCreatedRun(run);
 } catch (e) { error = e.message; }

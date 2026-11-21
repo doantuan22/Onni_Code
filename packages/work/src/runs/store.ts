@@ -37,6 +37,19 @@ export const safeRunIdSchema = z
     message: 'Invalid run id',
   });
 
+const runIndexTombstonesPath = (dataDir: string) => join(dataDir, 'runs', '.index-tombstones.json');
+const runIndexTombstonesSchema = z.array(safeRunIdSchema);
+
+/** Missing on older projects. Other read failures cannot safely stand for no deletions. */
+export function readRunIndexTombstones(dataDir: string): Set<string> {
+  try {
+    return new Set(runIndexTombstonesSchema.parse(JSON.parse(readFileSync(runIndexTombstonesPath(dataDir), 'utf8'))));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return new Set();
+    throw error;
+  }
+}
+
 export function isPathInsideDir(filePath: string, parentDir: string): boolean {
   const resolvedParent = resolve(parentDir);
   const resolvedFile = resolve(filePath);
@@ -1227,8 +1240,8 @@ export class RunStore extends EventEmitter {
   }
   /** Local snapshot at open/last successful save, for merging only our subsequent changes. */
   private persisted = new Map<string, string>();
-  /** Ids this process removed on purpose — see `forget`, which is the only thing that writes it. */
-  private forgotten = new Set<string>();
+  /** Local deletions waiting to be recorded under the index lock. */
+  private pendingDeletions = new Set<string>();
   private saveTimer: NodeJS.Timeout | null = null;
   // Preserve failed-load evidence even after a later save rewrites the index. A workspace
   // summary must not call an owner that silently dropped records a complete empty project.
@@ -1267,7 +1280,9 @@ export class RunStore extends EventEmitter {
         const raw = JSON.parse(readFileSync(indexPath, 'utf8'));
         const parsed = z.array(runRecordSchema).safeParse(raw);
         if (parsed.success) {
+          const tombstones = readRunIndexTombstones(dataDir);
           for (const run of parsed.data) {
+            if (tombstones.has(run.id)) continue;
             store.persisted.set(run.id, JSON.stringify(run));
             store.runs.set(run.id, reconcileLoadedRun(run, opts));
           }
@@ -1350,7 +1365,9 @@ export class RunStore extends EventEmitter {
   /** Fresh durable evidence for receipt reconciliation; never replaces live in-memory runs. */
   listPersistedRuns(): RunRecord[] {
     try {
-      return z.array(runRecordSchema).parse(JSON.parse(readFileSync(join(this.dataDir, 'runs.json'), 'utf8')));
+      const runs = z.array(runRecordSchema).parse(JSON.parse(readFileSync(join(this.dataDir, 'runs.json'), 'utf8')));
+      const tombstones = readRunIndexTombstones(this.dataDir);
+      return runs.filter(run => !tombstones.has(run.id));
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
       throw new Error('Could not read persisted runs to verify automation delivery.');
@@ -2091,6 +2108,7 @@ export class RunStore extends EventEmitter {
     if (!isSafeRunId(id) || !resolveRunEventsPath(this.dataDir, id)) return false;
     const existed = this.forget(id);
     if (existed) {
+      if (!this.saveNow()) this.scheduleSave();
       try {
         rmSync(this.eventsPath(id), { force: true });
         rmSync(this.handoffPath(id), { force: true }); // spec 007: the journal goes with the task
@@ -2102,7 +2120,6 @@ export class RunStore extends EventEmitter {
         // best effort — the index is authoritative
       }
       this.seqs.delete(id);
-      this.scheduleSave();
       this.emit('deleted', id);
     }
     return existed;
@@ -2125,7 +2142,7 @@ export class RunStore extends EventEmitter {
   flushCreatedRun(run: RunRecord): void {
     try {
       this.flush({ throwOnError: true });
-      if (this.runs.get(run.id) !== run) {
+      if (this.runs.get(run.id) !== run || !this.persisted.has(run.id)) {
         throw new Error('Could not persist automation run provenance; the launch was not confirmed.');
       }
     } catch (error) {
@@ -2232,14 +2249,11 @@ export class RunStore extends EventEmitter {
     this.emit('run', run);
   }
 
-  /** Forget a run, and remember that we did. Dropping it from the map is no longer enough on its
-   *  own: `saveNow` unions the on-disk index back in, and the copy it re-reads is one THIS process
-   *  wrote moments ago — so a plain `delete` would come straight back as a record whose event file
-   *  `deleteRun` has already removed. A set of uuid strings that lives as long as the process,
-   *  which is exactly how long a deletion has to outlive its own index entry. */
+  /** The tombstone outlives the index row because another process may still hold that row. */
   private forget(id: string): boolean {
-    this.forgotten.add(id);
-    if (this.runs.has(id)) this.observeLifecycle(id, undefined);
+    if (!this.runs.has(id)) return false;
+    this.pendingDeletions.add(id);
+    this.observeLifecycle(id, undefined);
     this.persisted.delete(id);
     return this.runs.delete(id);
   }
@@ -2284,7 +2298,7 @@ export class RunStore extends EventEmitter {
     this.saveTimer.unref?.();
   }
 
-  private saveNow(throwOnError = false, pretty = false): void {
+  private saveNow(throwOnError = false, pretty = false): boolean {
     const indexPath = join(this.dataDir, 'runs.json');
     const tmpPath = join(this.dataDir, 'runs', `.index-${process.pid}-${randomUUID()}.tmp`);
     let release: (() => void) | undefined;
@@ -2293,19 +2307,31 @@ export class RunStore extends EventEmitter {
       // lock BEFORE reading. A unique temp protects payload identity but cannot prevent a
       // later rename from overwriting another writer's acknowledged additions.
       release = lockRunIndex(this.dataDir);
-      const merged = this.mergeWithIndexOnDisk(indexPath);
-      writeFileSync(tmpPath, JSON.stringify(merged, null, pretty ? 2 : undefined), {
-        encoding: 'utf8',
-        mode: 0o600,
-      });
-      renameSyncWithRetry(tmpPath, indexPath);
+      const tombstones = readRunIndexTombstones(this.dataDir);
+      const writeIndexFile = (path: string, json: string) => {
+        writeFileSync(tmpPath, json, { encoding: 'utf8', mode: 0o600 });
+        renameSyncWithRetry(tmpPath, path);
+      };
+      if (this.pendingDeletions.size) {
+        for (const id of this.pendingDeletions) tombstones.add(id);
+        // Commit deletions first so readers can hide the old row if index replacement fails.
+        writeIndexFile(runIndexTombstonesPath(this.dataDir), JSON.stringify([...tombstones]));
+        this.pendingDeletions.clear();
+      }
+      const merged = this.mergeWithIndexOnDisk(indexPath, tombstones);
+      writeIndexFile(indexPath, JSON.stringify(merged, null, pretty ? 2 : undefined));
       // Do not reconcile/adopt foreign state into live manager-owned records. Remember our
       // local snapshot so future unchanged fields still defer to the latest persisted value.
-      for (const [id, run] of this.runs) this.persisted.set(id, JSON.stringify(run));
+      for (const [id, run] of this.runs) {
+        if (tombstones.has(id)) this.persisted.delete(id);
+        else this.persisted.set(id, JSON.stringify(run));
+      }
+      return true;
     } catch (err) {
       if (throwOnError) throw new Error('Could not persist automation run provenance; the launch was not confirmed.');
       const message = err instanceof Error ? err.message : String(err);
       console.error(`[onni] failed to save runs.json: ${message}`);
+      return false;
     } finally {
       // Cleanup failure after a successful rename must not turn a durable creation into a
       // false failure/rollback. Failed own-ticket cleanup is retained and retried;
@@ -2320,23 +2346,22 @@ export class RunStore extends EventEmitter {
    * cockpit's unrelated flush from reverting another process's later update. Concurrent edits
    * to the same field use the last serialized writer except lastViewedSeq, whose receipt is
    * monotonic across processes; this is not execution ownership.
-   * Local deletion tombstones still veto adoption. Absence alone is NOT a deletion signal:
-   * older writers could have dropped our records. Cross-process deletion ownership requires a
-   * separate durable tombstone protocol; it is not provided here. An unreadable index retains
-   * the historical best-effort behavior of preserving our local records.
+   * Only a tombstone marks a deletion. An unreadable index still preserves local records
+   * except for those marked deleted.
    */
-  private mergeWithIndexOnDisk(indexPath: string): RunRecord[] {
+  private mergeWithIndexOnDisk(indexPath: string, tombstones: ReadonlySet<string>): RunRecord[] {
     let raw: unknown;
-    try { raw = JSON.parse(readFileSync(indexPath, 'utf8')); } catch { return this.listRuns(); }
-    if (!Array.isArray(raw)) return this.listRuns();
+    try { raw = JSON.parse(readFileSync(indexPath, 'utf8')); } catch { /* Preserve local runs below. */ }
+    if (!Array.isArray(raw)) return this.listRuns().filter(run => !tombstones.has(run.id));
     const merged = new Map<string, RunRecord>();
     for (const entry of raw) {
       const id: unknown = (entry as { id?: unknown } | null)?.id;
-      if (typeof id !== 'string' || this.forgotten.has(id)) continue;
+      if (typeof id !== 'string' || tombstones.has(id)) continue;
       const parsed = runRecordSchema.safeParse(entry);
       if (parsed.success) merged.set(id, parsed.data);
     }
     for (const mine of this.runs.values()) {
+      if (tombstones.has(mine.id)) continue;
       const before = this.persisted.get(mine.id);
       const disk = merged.get(mine.id);
       if (!before || !disk || disk.createdAt !== mine.createdAt) {

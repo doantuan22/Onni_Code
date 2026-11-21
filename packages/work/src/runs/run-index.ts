@@ -1,4 +1,4 @@
-import { accessSync, constants, existsSync, readFileSync } from 'node:fs';
+import { accessSync, constants, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
 
@@ -22,12 +22,15 @@ import { reconcileLoadedRun, runRecordSchema, type RunRecord } from './store.ts'
  * running in the palette and failed the moment you clicked it.
  */
 export function readRunIndexFromDisk(dataDir: string): RunRecord[] {
+  return readRunIndex(dataDir) ?? [];
+}
+
+function readRunIndex(dataDir: string): RunRecord[] | undefined {
   const indexPath = join(dataDir, 'runs.json');
-  if (!existsSync(indexPath)) return [];
   try {
     const raw = JSON.parse(readFileSync(indexPath, 'utf8'));
     const parsed = z.array(runRecordSchema).safeParse(raw);
-    if (!parsed.success) return [];
+    if (!parsed.success) return undefined;
     // `reconcileLoadedRun` mutates, which is safe here in a way it is not in the store: these
     // records were just parsed into fresh objects that nothing else holds a reference to.
     // Never `keepLive` — this reader has no RunManager, so there is nothing to recover into.
@@ -36,8 +39,41 @@ export function readRunIndexFromDisk(dataDir: string): RunRecord[] {
     // Corrupt or unreadable index. A project that cannot be read contributes nothing to the
     // index rather than failing the whole workspace's search — the same degrade-quietly rule
     // the rest of the registry follows.
-    return [];
+    return undefined;
   }
+}
+
+/** Finder-local cache: unopened projects change only through disk; never retain workflow snapshots. */
+export function createRunIndexReader() {
+  const cache = new Map<string, { mtimeMs: number; size: number; runs: RunRecord[] }>();
+  const read = (dataDir: string): RunRecord[] => {
+    const indexPath = join(dataDir, 'runs.json');
+    try {
+      const { mtimeMs, size } = statSync(indexPath);
+      const cached = cache.get(indexPath);
+      if (cached?.mtimeMs === mtimeMs && cached.size === size) return [...cached.runs];
+      const parsed = readRunIndex(dataDir);
+      // A transient read failure must be retried even when the file metadata stays unchanged.
+      if (!parsed) {
+        cache.delete(indexPath);
+        return [];
+      }
+      const runs = parsed.map(({ workflowDef: _workflowDef, ...run }) => run);
+      cache.set(indexPath, { mtimeMs, size, runs });
+      // Callers sort their own array; cached order must remain independent of each request.
+      return [...runs];
+    } catch {
+      cache.delete(indexPath);
+      return [];
+    }
+  };
+  return {
+    read,
+    retain(dataDirs: readonly string[]) {
+      const retained = new Set(dataDirs.map((dataDir) => join(dataDir, 'runs.json')));
+      for (const path of cache.keys()) if (!retained.has(path)) cache.delete(path);
+    },
+  };
 }
 
 type ActivityInput = Pick<RunRecord, 'createdAt' | 'startedAt' | 'finishedAt'> & {

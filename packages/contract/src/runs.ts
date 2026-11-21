@@ -9,7 +9,14 @@ import { referenceStatusSchema } from './github.ts';
 import { workflowDefSchema, workflowStepDefSchema } from './workflows.ts';
 
 /** `GET /runs` query: `full=1` keeps each run's `workflowDef` (about 1.3 MB per run), which the list omits by default. */
-export const runsListQuerySchema = z.object({ full: z.enum(['1']).optional() });
+export const runsListQuerySchema = z.object({
+  full: z.enum(['1']).optional(),
+  /** Omit for the complete list. Pagination preserves the existing newest-created-first order. */
+  limit: z.string().regex(/^[1-9]\d{0,2}$/).refine((value) => Number(value) <= 500, 'limit must be at most 500').optional(),
+  /** Continue after this run ID (exclusive); an unknown/deleted ID yields an empty page.
+   *  A bounded page with more rows supplies the next ID in the X-Next-Cursor response header. */
+  cursor: z.string().min(1).max(200).optional(),
+});
 export type RunsListQuery = z.infer<typeof runsListQuerySchema>;
 // Same one-way direction: the dispatch family owns the `dispatch` object's shape, the run record embeds
 // one. `src/runs/store.ts` imports the SAME value for its persistence twin, so the two halves of

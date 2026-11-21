@@ -8,3 +8,6 @@
  */
 export const fieldClass =
   'block min-h-8 w-full rounded-sm border border-input bg-background px-2.5 py-1 text-[13px] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50'
+
+/** Use on row actions that sit beside a shared 32px field. */
+export const controlButtonClass = 'h-8 rounded-sm px-2.5 text-[13px]'

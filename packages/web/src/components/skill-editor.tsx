@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/components/ui/toaster'
+import { fieldClass } from '@/components/form-field'
 import { useI18n } from '@/lib/i18n'
 import { Markdown } from '@/routes/task-thread/markdown'
 
@@ -130,7 +131,7 @@ export function SkillEditor({
                 aria-label={t('Scope')}
                 value={scope}
                 onChange={(event) => setScope(event.target.value as Scope)}
-                className="h-8 w-full rounded-md border border-input bg-card px-2 text-[13px] text-foreground outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className={fieldClass}
               >
                 <option value="project">{t('This project (.ai/onni/skills)')}</option>
                 <option value="global">{t('All projects (~/.onni/skills)')}</option>
@@ -158,7 +159,7 @@ export function SkillEditor({
                 size="sm"
                 data-slot="skill-editor-preview-toggle"
                 onClick={() => setPreview((value) => !value)}
-                className="h-7 gap-1.5 px-2 text-xs"
+                className="gap-1.5 px-2"
               >
                 {preview ? <PencilIcon aria-hidden="true" className="size-3.5" /> : <EyeIcon aria-hidden="true" className="size-3.5" />}
                 {preview ? t('Write') : t('Preview')}

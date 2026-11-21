@@ -8,6 +8,7 @@ import { useWorkspaceConfig, workspaceQueryKeys } from '@/api/queries'
 import type { SetWorkspaceConfigInput, WorkspaceConfigResponse } from '@onni/api-client'
 import { CenteredState } from '@/components/centered-state'
 import { IntegerStepper } from '@/components/integer-stepper'
+import { controlButtonClass, fieldClass } from '@/components/form-field'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/toaster'
 import { useI18n } from '@/lib/i18n'
@@ -247,13 +248,14 @@ function ResourcesForm({ config }: { config: WorkspaceConfigResponse }) {
             disabled={save.isPending}
             placeholder={t('no limit')}
             onChange={(event) => setMemory(event.target.value)}
-            className="block w-40 rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+            className={`${fieldClass} w-40`}
           />
           <span className="text-xs text-soft-foreground">MiB</span>
           <Button
             type="button"
             variant="outline"
             size="sm"
+            className={controlButtonClass}
             data-action="resources-save-memory"
             disabled={memorySaved || memoryInvalid || save.isPending}
             onClick={saveMemory}
@@ -282,7 +284,7 @@ function ResourcesForm({ config }: { config: WorkspaceConfigResponse }) {
             value={wakeMode}
             disabled={save.isPending}
             onChange={(event) => setWakeMode(event.target.value as 'park' | 'interval')}
-            className="rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+            className={fieldClass}
           >
             <option value="park">{t('Park until resumed')}</option>
             <option value="interval">{t('Re-check on an interval')}</option>
@@ -298,12 +300,12 @@ function ResourcesForm({ config }: { config: WorkspaceConfigResponse }) {
                 value={wakeInterval}
                 disabled={save.isPending}
                 onChange={(event) => setWakeInterval(event.target.value)}
-                className="block w-24 rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+                className={`${fieldClass} w-24`}
               />
               <span className="text-xs text-soft-foreground">{t('minutes')}</span>
             </>
           ) : null}
-          <Button type="button" variant="outline" size="sm" data-action="resources-save-monitoring-wake" disabled={wakeSaved || (wakeMode === 'interval' && wakeInvalid) || save.isPending} onClick={saveWake}>{t('Save')}</Button>
+          <Button type="button" variant="outline" size="sm" className={controlButtonClass} data-action="resources-save-monitoring-wake" disabled={wakeSaved || (wakeMode === 'interval' && wakeInvalid) || save.isPending} onClick={saveWake}>{t('Save')}</Button>
         </div>
         {wakeMode === 'interval' && wakeInvalid ? (
           <p data-slot="resources-monitoring-wake-invalid" className="text-[11px] text-danger">{t('Enter a whole number from 1 to 60 minutes.')}</p>
@@ -322,7 +324,7 @@ function ResourcesForm({ config }: { config: WorkspaceConfigResponse }) {
           value={autoResume ? 'on' : 'off'}
           disabled={save.isPending}
           onChange={(event) => saveAutoResume(event.target.value === 'on')}
-          className="block w-28 rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+          className={`${fieldClass} w-28`}
         >
           <option value="on">{t('On')}</option>
           <option value="off">{t('Off')}</option>
@@ -345,7 +347,7 @@ function ResourcesForm({ config }: { config: WorkspaceConfigResponse }) {
               value={composerDefaults.autonomous === null ? 'inherit' : composerDefaults.autonomous ? 'on' : 'off'}
               disabled={save.isPending}
               onChange={(event) => saveComposerDefault('autonomous', event.target.value)}
-              className="rounded-md border border-input bg-card px-3 py-1.5 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className={fieldClass}
             >
               <option value="inherit">{t('Inherit environment')}</option>
               <option value="on">{t('On')}</option>
@@ -364,7 +366,7 @@ function ResourcesForm({ config }: { config: WorkspaceConfigResponse }) {
               value={composerDefaults.worktree === null ? 'inherit' : composerDefaults.worktree ? 'on' : 'off'}
               disabled={save.isPending}
               onChange={(event) => saveComposerDefault('worktree', event.target.value)}
-              className="rounded-md border border-input bg-card px-3 py-1.5 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className={fieldClass}
             >
               <option value="inherit">{t('Inherit environment')}</option>
               <option value="on">{t('On')}</option>

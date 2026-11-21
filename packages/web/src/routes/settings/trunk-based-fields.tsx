@@ -8,9 +8,9 @@ import { useI18n } from '@/lib/i18n'
 import { SettingsField } from './settings-field'
 import { useConfigSave } from './use-config-save'
 import { AppSelect } from '@/components/ui/app-select'
+import { fieldClass } from '@/components/form-field'
 
-const selectClass =
-  'block w-full max-w-md rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50'
+const selectClass = `${fieldClass} max-w-md`
 
 /** The trunk-based preset (spec 2026-10-20-trunk-based-projects). Each key stays adjustable on
  *  its own below; switching back to branch-per-task clears every key the preset set. */
@@ -231,7 +231,7 @@ function RequiredChecksField({ config }: { config: ConfigResponse }) {
         disabled={save.isPending}
         onChange={(event) => setText(event.target.value)}
         onBlur={commit}
-        className="block w-full max-w-md rounded-md border border-input bg-card px-3 py-1.5 font-mono text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+        className={`${fieldClass} max-w-md min-h-20 font-mono`}
       />
     </SettingsField>
   )

@@ -9,6 +9,7 @@ import {
 } from '@/api/client'
 import { queryKeys, useProjectSecrets, useWorkspaceSecrets, workspaceQueryKeys } from '@/api/queries'
 import { Button } from '@/components/ui/button'
+import { fieldClass } from '@/components/form-field'
 import { toast } from '@/components/ui/toaster'
 import { useI18n } from '@/lib/i18n'
 
@@ -111,12 +112,12 @@ function SecretsSection({ scope, list, save, remove, invalidate }: SecretsSectio
         <label className="mt-3 block text-[12.5px]">{t('Name')}
           <input aria-label={t('Name')} value={name} onChange={(event) => { setName(event.target.value.toUpperCase()); setError(null) }}
             autoComplete="off" spellCheck={false} placeholder="AI_GATEWAY_API_KEY" aria-invalid={nameIssue ? true : undefined}
-            className="mt-1 block w-full rounded border border-border bg-background p-2 font-mono" />
+            className={`mt-1 ${fieldClass} font-mono`} />
         </label>
         {nameIssue ? <p className="mt-1 text-xs text-danger">{nameIssue}</p> : null}
         <label className="mt-3 block text-[12.5px]">{t('Value')}
           <input aria-label={t('Value')} type="password" autoComplete="off" required value={value} onChange={(event) => setValue(event.target.value)}
-            className="mt-1 block w-full rounded border border-border bg-background p-2" />
+            className={`mt-1 ${fieldClass}`} />
         </label>
         <fieldset className="mt-3">
           <legend className="text-[12.5px]">{t('Who may read it')}</legend>

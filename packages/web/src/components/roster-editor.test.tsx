@@ -55,6 +55,10 @@ describe('RosterEditor', () => {
     renderEditor(<RosterEditor draft={withReview} onChange={onChange} connected={['claude', 'codex']} />)
     const group = screen.getByRole('group', { name: 'Worker 1 suits' })
     const review = group.querySelector('[data-kind="review"]')!
+    expect(screen.getByLabelText('Worker 1 backend').className).toContain('rounded-sm')
+    expect(screen.getByLabelText('Worker 1 model').className).toContain('h-8')
+    expect(review.className).toContain('h-8')
+    expect(review.className).toContain('rounded-sm')
     expect(review.getAttribute('aria-pressed')).toBe('true')
     expect(group.querySelector('[data-kind="test"]')!.getAttribute('aria-pressed')).toBe('false')
     fireEvent.click(group.querySelector('[data-kind="implement"]')!)
@@ -65,6 +69,12 @@ describe('RosterEditor', () => {
   it('locks tier and kinds while the editor is disabled', () => {
     renderEditor(<RosterEditor draft={draft} onChange={vi.fn()} connected={['claude', 'codex']} disabled />)
     expect(screen.getByRole('group', { name: 'Worker 1 suits' }).querySelectorAll('button:disabled')).toHaveLength(4)
+  })
+  it('keeps the remove action the same height and radius as the worker fields', () => {
+    renderEditor(<RosterEditor draft={draft} onChange={vi.fn()} connected={['claude', 'codex']} />)
+    const remove = screen.getByLabelText('Remove worker 1')
+    expect(remove.className).toContain('size-8')
+    expect(remove.className).toContain('rounded-sm')
   })
   it('keeps the manager fixed while allowing worker edits for an active task', () => {
     renderEditor(<RosterEditor draft={draft} onChange={vi.fn()} connected={['claude', 'codex']} managerLocked />)

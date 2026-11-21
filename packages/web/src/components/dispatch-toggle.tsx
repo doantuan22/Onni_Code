@@ -7,6 +7,7 @@ import {
   type Runner,
 } from '@onni/api-client'
 import { useRunnerModels } from '@/api/queries'
+import { fieldClass } from '@/components/form-field'
 import { chipClass } from '@/components/picker-pill'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
@@ -239,7 +240,7 @@ function Row({ label, htmlFor, children }: { label: string; htmlFor: string; chi
 }
 
 const selectClass =
-  'h-7 max-w-[180px] rounded-md border border-input bg-card px-2 text-xs outline-none transition-[color,box-shadow] hover:bg-muted focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50'
+  `${fieldClass} max-w-[180px]`
 
 const MAX_SUBTASKS_CHOICES = [2, 3, 4, 5, 8, 10, 15, 20, 30, 50] as const
 const BUDGET_MIN_USD = 0.5
@@ -411,7 +412,7 @@ function DispatchSettings({
               step={0.5}
               min={BUDGET_MIN_USD}
               max={BUDGET_MAX_USD}
-              className="h-7 w-24 px-2 text-xs md:text-xs"
+              className="w-24"
               value={intent.budgetUsd ?? ''}
               onChange={(event) => {
                 const raw = event.target.value

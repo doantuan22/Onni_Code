@@ -7,6 +7,7 @@ import { queryKeys, useSkills, useUiState } from '@/api/queries'
 import type { Skill } from '@onni/api-client'
 import { CenteredState } from '@/components/centered-state'
 import { Button } from '@/components/ui/button'
+import { controlButtonClass } from '@/components/form-field'
 import {
   Command,
   CommandEmpty,
@@ -166,6 +167,7 @@ function PromptTemplatesForm({ initial, embedded }: { initial: PromptTemplate[];
                     type="button"
                     variant="ghost"
                     size="sm"
+                    className={controlButtonClass}
                     data-action="prompt-template-remove"
                     title={t('Remove this template')}
                     onClick={() => removeTemplate(template.id)}

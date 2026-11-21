@@ -76,6 +76,8 @@ describe('SkillEditor', () => {
     const onSaved = vi.fn()
     renderEditor(null, onSaved)
     await waitFor(() => expect(slot('skill-editor-scope')).toBeTruthy())
+    expect(slot('skill-editor-scope')!.className).toContain('rounded-sm')
+    expect(slot('skill-editor-scope')!.className).toContain('bg-background')
 
     fireEvent.change(nameInput(), { target: { value: 'deploy-checklist' } })
     fireEvent.change(slot('skill-editor-description') as HTMLInputElement, { target: { value: 'Deploy a change' } })

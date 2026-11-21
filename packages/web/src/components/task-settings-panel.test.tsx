@@ -145,6 +145,8 @@ describe('Task settings panel', () => {
     const onSavePreset = vi.fn()
     render(panel({ onSavePreset }))
     fireEvent.click(screen.getByRole('button', { name: /Save current as preset/ }))
+    expect((screen.getByLabelText('Preset name') as HTMLInputElement).className).toContain('h-8')
+    expect(screen.getByRole('button', { name: 'Save' }).className).toContain('h-8')
     fireEvent.change(screen.getByLabelText('Preset name'), { target: { value: '  Review  ' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     expect(onSavePreset).toHaveBeenCalledWith('Review')

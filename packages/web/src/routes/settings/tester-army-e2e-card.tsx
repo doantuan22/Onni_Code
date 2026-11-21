@@ -12,6 +12,7 @@ import { useI18n, type Translate } from '@/lib/i18n'
 import { scopeTo } from '@/lib/project-router'
 import testerArmyLogo from '@/assets/integrations/tester-army.png'
 import { AppSelect } from '@/components/ui/app-select'
+import { fieldClass } from '@/components/form-field'
 
 /** TesterArmy's own repository — where the card sends someone who wants to know what e2e is. */
 export const TESTER_ARMY_REPO = 'https://github.com/tester-army/e2e'
@@ -162,7 +163,7 @@ export function TesterArmyE2eCard() {
         <h2 className="text-[12.5px] font-semibold">{installed ? t('Set up again') : t('Set up e2e')}</h2>
         <label className="mt-3 block text-[12.5px]">{t('Model provider')}
           <AppSelect aria-label={t('Model provider')} value={provider} onChange={(event) => setProvider(event.target.value as E2eCredentialName)}
-            className="mt-1 block w-full rounded border border-border bg-background p-2 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50">
+            className={`mt-1 ${fieldClass}`}>
             {E2E_CREDENTIAL_NAMES.map((name) => (
               <option key={name} value={name}>{PROVIDER_LABELS[name]} ({name}){credentials.includes(name) ? ` — ${t('stored')}` : ''}</option>
             ))}
@@ -171,7 +172,7 @@ export function TesterArmyE2eCard() {
         <label className="mt-3 block text-[12.5px]">{t('API key')} <span className="text-muted-foreground">{t('(optional)')}</span>
           <input aria-label={t('API key')} type="password" autoComplete="off" value={key} onChange={(event) => setKey(event.target.value)}
             placeholder={credentials.includes(provider) ? t('stored — leave empty to keep it') : ''}
-            className="mt-1 block w-full rounded border border-border bg-background p-2" />
+            className={`mt-1 ${fieldClass}`} />
         </label>
         <p className="mt-1 text-xs text-muted-foreground">
           {t('Stored encrypted as a project secret for check steps only — never handed to an agent session.')}

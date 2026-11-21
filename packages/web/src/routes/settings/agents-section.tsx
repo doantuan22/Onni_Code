@@ -12,6 +12,7 @@ import {
 import { useProjectScope } from '@/api/project-scope-context'
 import type { ConfigResponse, Runner } from '@onni/api-client'
 import { CenteredState } from '@/components/centered-state'
+import { fieldClass } from '@/components/form-field'
 import { toast } from '@/components/ui/toaster'
 import { providerStatusFor } from '@/lib/provider-status'
 import {
@@ -139,7 +140,7 @@ function AgentsForm({
                     data-slot="agents-model"
                     data-runner={runner.id}
                     title={t('Model selection is locked to native coding-agent settings.')}
-                    className="block w-full rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px]"
+                    className={fieldClass}
                   >
                     {configuredModelLabel}
                   </output>
@@ -165,7 +166,7 @@ function AgentsForm({
                         >,
                       })
                     }
-                    className="block w-full rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+                    className={fieldClass}
                   >
                     {modelOptions.map((model) => (
                       <option key={model.id} value={model.id}>

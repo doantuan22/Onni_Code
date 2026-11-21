@@ -25,6 +25,10 @@ describe('AppSelect', () => {
     // `flex!` (important) is what beats a caller's `block`.
     expect(trigger.className).toContain('flex!')
     expect(trigger.querySelector('svg')).not.toBeNull()
+    expect(trigger.className).toContain('h-8')
+    expect(trigger.className).toContain('rounded-sm')
+    expect(trigger.className).toContain('bg-background')
+    expect(trigger.className).toContain('text-[13px]')
   })
 
   it('a short list is the plain select, a long one gains a search box', async () => {
@@ -33,6 +37,7 @@ describe('AppSelect', () => {
     rerender(<Harness />)
     expect(screen.getByLabelText('Model').getAttribute('data-searchable')).toBe('true')
     expect(await optionValues(screen.getByLabelText('Model'))).toEqual(MODELS)
+    expect(screen.getByLabelText('Model').className).toContain('h-8')
   })
 
   it('filters by typed characters, ignoring case, and picks the result', async () => {

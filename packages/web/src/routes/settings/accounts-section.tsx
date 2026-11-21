@@ -45,6 +45,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { controlButtonClass, fieldClass } from '@/components/form-field'
 import { StatusDot, type StatusDotTone } from '@/components/status-dot'
 import { RUNNER_ORDER, providerStatusFor } from '@/lib/provider-status'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -464,7 +465,7 @@ function AgentDefaults({ provider, profiles }: { provider: ProviderId; profiles:
               },
             })
           }
-          className="block w-full max-w-xs rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+          className={`${fieldClass} max-w-xs`}
         >
           {modelsForRunner(provider, catalog.data, [model]).map((m) => (
             <option key={m.id} value={m.id}>
@@ -749,11 +750,12 @@ function AccountDetails({
                 data-slot="account-rename-input"
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
-                className="w-48 rounded-md border border-input bg-card px-2 py-1 text-xs outline-none focus-visible:border-ring"
+                className={`${fieldClass} w-48`}
               />
               <Button
                 type="button"
                 size="sm"
+                className={controlButtonClass}
                 data-action="account-rename-save"
                 disabled={rename.isPending || draft.trim() === '' || draft.trim() === account.label}
                 onClick={() =>
@@ -772,6 +774,7 @@ function AccountDetails({
                 type="button"
                 variant="ghost"
                 size="sm"
+                className={controlButtonClass}
                 onClick={() => {
                   setDraft(account.label)
                   setRenaming(false)

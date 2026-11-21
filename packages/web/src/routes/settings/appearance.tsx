@@ -10,6 +10,7 @@ import type { SetWorkspaceConfigInput } from '@onni/api-client'
 import { useAppearance } from '@/components/appearance-provider'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
+import { controlButtonClass, fieldClass } from '@/components/form-field'
 import { cn } from '@/lib/utils'
 import type { Density, Width } from '@/lib/appearance'
 import type { Theme } from '@/lib/theme'
@@ -224,8 +225,8 @@ function BrandingFields() {
             if (value !== branding?.name) save.mutate({ branding: { name: value } })
             setLastName(value)
           }}
-          className="h-8 w-64 rounded-sm border border-border bg-background px-2.5 text-[12.5px]" />
-        <Button type="button" variant="outline" size="sm" disabled={!branding || branding.name === 'onni' || save.isPending}
+          className={`${fieldClass} w-64`} />
+        <Button type="button" variant="outline" size="sm" className={controlButtonClass} disabled={!branding || branding.name === 'onni' || save.isPending}
           onClick={() => save.mutate({ branding: { name: null } })}>{t('Reset name')}</Button>
       </div>
     </SettingsField>

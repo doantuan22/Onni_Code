@@ -1,6 +1,7 @@
 import { useId, useState, type ReactNode } from 'react'
 import { createWebhookSchema, updateWebhookSchema, type CreateWebhook, type UpdateWebhook, type WebhookReceiver, type WebhookTaskEventType } from '@onni/api-client'
 import { Button } from '@/components/ui/button'
+import { fieldClass } from '@/components/form-field'
 import { Input } from '@/components/ui/input'
 import { useI18n } from '@/lib/i18n'
 import { graceLabels, presetLabels, scopeLabels } from './webhook-presentation'
@@ -9,7 +10,7 @@ export const eventLabels: Record<WebhookTaskEventType | 'webhook.test', string> 
   'task.attention_required': 'Needs your input', 'task.review_ready': 'Ready for review', 'task.finished': 'Task finished', 'task.failed': 'Task failed', 'task.cancelled': 'Task cancelled', 'webhook.test': 'Test message',
 }
 // Same chrome as the other Settings selects (resources-section).
-const selectStyle = 'h-8 w-full rounded-sm border border-input bg-card px-2.5 py-1 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50'
+const selectStyle = fieldClass
 const hintStyle = 'text-[12.5px] text-muted-foreground'
 export type WebhookDraft = { format: CreateWebhook['format']; name: string; url: string; profile: CreateWebhook['profile']; preset: CreateWebhook['preset']; events: WebhookTaskEventType[]; scope: CreateWebhook['scope']; graceSeconds: CreateWebhook['graceSeconds']; local: boolean; scheduled: boolean }
 export function webhookDraft(receiver?: WebhookReceiver): WebhookDraft {

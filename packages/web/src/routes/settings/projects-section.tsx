@@ -19,6 +19,7 @@ import {
   type WorkspaceConfigResponse,
 } from '@onni/api-client'
 import { CenteredState } from '@/components/centered-state'
+import { controlButtonClass, fieldClass } from '@/components/form-field'
 import { IntegerStepper } from '@/components/integer-stepper'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
@@ -220,12 +221,13 @@ function WorkspaceRootField({
             // the field, so leaving it up would be a lie about the current value.
             if (save.isError) save.reset()
           }}
-          className="block w-full max-w-sm rounded-md border border-input bg-card px-3 py-1.5 font-mono text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-danger disabled:opacity-50"
+          className={`${fieldClass} max-w-sm font-mono aria-invalid:border-danger`}
         />
         <Button
           type="button"
           variant="outline"
           size="sm"
+          className={controlButtonClass}
           data-action={`projects-save-${slot}-root`}
           disabled={unchanged || trimmed === '' || save.isPending}
           onClick={() =>

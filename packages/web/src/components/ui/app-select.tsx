@@ -88,7 +88,7 @@ export interface AppSelectProps
 
 // The trigger is a flex row on purpose and `flex!` wins over a caller's `block`: with `block` the
 // arrow icon dropped under the text (the bug this fixes at the source, for every call site).
-const TRIGGER_LAYOUT = 'flex! items-center justify-between gap-2 max-w-full min-w-0'
+const TRIGGER_LAYOUT = 'flex! h-8 min-h-8 items-center justify-between gap-2 max-w-full min-w-0'
 
 function AppSelect({ value, defaultValue, onChange, name, searchable, disabled, className, children, ...rest }: AppSelectProps) {
   const [inner, setInner] = React.useState(defaultValue === undefined ? '' : String(defaultValue))

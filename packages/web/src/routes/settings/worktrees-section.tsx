@@ -7,6 +7,7 @@ import { queryKeys, useConfig } from '@/api/queries'
 import type { ConfigResponse, SetConfigInput } from '@onni/api-client'
 import { CenteredState } from '@/components/centered-state'
 import { Button } from '@/components/ui/button'
+import { controlButtonClass, fieldClass } from '@/components/form-field'
 import { toast } from '@/components/ui/toaster'
 import { useI18n } from '@/lib/i18n'
 import { SettingsField } from './settings-field'
@@ -109,13 +110,14 @@ function WorktreesForm({ config }: { config: ConfigResponse }) {
             value={retention}
             disabled={save.isPending}
             onChange={(event) => setRetention(event.target.value)}
-            className="block w-32 rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+            className={`${fieldClass} w-32`}
           />
           <span className="text-xs text-soft-foreground">{t('worktrees')}</span>
           <Button
             type="button"
             variant="outline"
             size="sm"
+            className={controlButtonClass}
             data-action="resources-save-retention"
             disabled={retentionSaved || retentionInvalid || save.isPending}
             onClick={saveRetention}

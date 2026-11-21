@@ -8,6 +8,7 @@ import { TRACKER_PROVIDERS, trackerProviders } from '@/lib/tracker-providers'
 import { clearTrackerAssociation, saveTrackerAssociation, saveTrackerConnection, removeTrackerConnection } from '@/api/client'
 import { queryKeys, useTrackerConnection, useTrackerAssociation, useTrackerCandidates, workspaceQueryKeys } from '@/api/queries'
 import { Button } from '@/components/ui/button'
+import { fieldClass } from '@/components/form-field'
 import { toast } from '@/components/ui/toaster'
 import { useI18n } from '@/lib/i18n'
 
@@ -183,10 +184,10 @@ export function TrackerSection() {
           <h2 className="font-medium">{t('{provider} credentials for this project', { provider: TRACKER_PROVIDERS[credentialKind].label })}</h2>
           <p className="mt-2 text-xs text-muted-foreground">{t("Saved in a private .env file for this project, without encryption. Use read-only access limited to this project's data. Saving replaces this project's connection and requires selecting its scope again.")}</p>
           {credentialKind === 'jira' ? <>
-            <label className="mt-3 block text-[12.5px]">{t('Jira site URL')}<input aria-label={t('Jira site URL')} type="url" required value={origin} onChange={event => setOrigin(event.target.value)} placeholder="https://your-site.atlassian.net" className="mt-1 block w-full rounded border bg-background p-2" /></label>
-            <label className="mt-3 block text-[12.5px]">{t('Account email')}<input aria-label={t('Account email')} type="email" required value={email} onChange={event => setEmail(event.target.value)} className="mt-1 block w-full rounded border bg-background p-2" /></label>
+            <label className="mt-3 block text-[12.5px]">{t('Jira site URL')}<input aria-label={t('Jira site URL')} type="url" required value={origin} onChange={event => setOrigin(event.target.value)} placeholder="https://your-site.atlassian.net" className={`mt-1 ${fieldClass}`} /></label>
+            <label className="mt-3 block text-[12.5px]">{t('Account email')}<input aria-label={t('Account email')} type="email" required value={email} onChange={event => setEmail(event.target.value)} className={`mt-1 ${fieldClass}`} /></label>
           </> : null}
-          <label className="mt-3 block text-[12.5px]">{t('API token')}<input aria-label={t('API token')} type="password" autoComplete="new-password" required maxLength={8192} value={secret} onChange={event => setSecret(event.target.value)} className="mt-1 block w-full rounded border bg-background p-2" /></label>
+          <label className="mt-3 block text-[12.5px]">{t('API token')}<input aria-label={t('API token')} type="password" autoComplete="new-password" required maxLength={8192} value={secret} onChange={event => setSecret(event.target.value)} className={`mt-1 ${fieldClass}`} /></label>
           <div className="mt-3 flex gap-2"><Button type="submit" disabled={credentialBusy}>{t('Save project credentials')}</Button><Button type="button" variant="outline" disabled={credentialBusy} onClick={resetSecrets}>{t('Cancel')}</Button></div>
         </form>
       ) : null}
@@ -196,7 +197,7 @@ export function TrackerSection() {
           <label className="text-xs font-medium" htmlFor="tracker-candidate-search">{t('Search {scopes}', { scopes: TRACKER_PROVIDERS[kind].scopeLabel })}</label>
           <input
             id="tracker-candidate-search"
-            className="mt-2 h-8 w-full rounded-sm border border-border bg-background px-2.5 text-[12.5px]"
+            className={`mt-2 ${fieldClass}`}
             value={search}
             onChange={(event) => { setSearch(event.target.value); setSelected(null) }}
             placeholder={t('Search by name…')}

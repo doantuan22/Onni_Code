@@ -21,6 +21,8 @@ import { resolveTaskRemotes, splitRemoteRef, type TaskRemotes } from './git-remo
 export const WORKTREES_DIR = '.ai/onni/worktrees';
 
 const DIFF_CAP = 400_000;
+/** Local git commands must not hold a run forever; network operations set their own deadline. */
+const LOCAL_GIT_TIMEOUT_MS = 120_000;
 
 interface GitResult {
   ok: boolean;
@@ -43,10 +45,11 @@ function git(
 ): Promise<GitResult> {
   return new Promise((resolve) => {
     try {
+      const { timeout = LOCAL_GIT_TIMEOUT_MS, ...execOpts } = opts;
       execFile(
         'git',
         args,
-        { cwd, maxBuffer: 32 * 1024 * 1024, encoding: 'utf8', ...opts, windowsHide: true },
+        { cwd, maxBuffer: 32 * 1024 * 1024, encoding: 'utf8', timeout, ...execOpts, windowsHide: true },
         (err, stdout, stderr) => resolve({ ok: !err, stdout: stdout ?? '', stderr: stderr ?? '' }),
       );
     } catch (error) {
@@ -57,6 +60,8 @@ function git(
 
 /** Upper bound on the pre-fork fetch; a slow or unreachable remote must not stall task start. */
 const FETCH_TIMEOUT_MS = 15_000;
+/** A network push can take longer than local repository maintenance. */
+const PUSH_TIMEOUT_MS = 300_000;
 
 /** The base (PR-target) and push remotes of `dir` (`git-remotes.ts`). */
 export function taskRemotes(dir: string): Promise<TaskRemotes> {
@@ -886,7 +891,9 @@ export async function pushBranch(dir: string, branch: string): Promise<{ ok: tru
   const { push: remote } = await taskRemotes(dir);
   if (!remote) return { ok: false, error: 'no git remote' };
   // The same-named ref on both sides, never a forced one: a push can only move this branch.
-  const push = await git(dir, ['-c', 'credential.interactive=false', 'push', '-u', remote, `refs/heads/${branch}:refs/heads/${branch}`]);
+  const push = await git(dir, ['-c', 'credential.interactive=false', 'push', '-u', remote, `refs/heads/${branch}:refs/heads/${branch}`], {
+    timeout: PUSH_TIMEOUT_MS,
+  });
   return push.ok ? { ok: true } : { ok: false, error: (push.stderr || push.stdout).trim().split('\n')[0] || 'git push failed' };
 }
 

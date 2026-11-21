@@ -1,54 +1,84 @@
-## 4. Tích hợp vào giao diện
+## 4. Tích hợp vào giao diện v2 — sửa chữa và nâng cấp
 
-### 4.1 Kiến trúc mount (một chỗ cho mọi route)
+> Căn cứ: [R1 §3](research/R1-upstream.md#3-sángtối-độ-đọc-chữ-và-lý-do-v1-dễ-bị-mờ), [R2 §6](research/R2-craft.md#6-khuyến-nghị-triển-khai-và-tiêu-chí-duyệt), [R3](research/R3-audit-scenes.md) và [R4 §3–7](research/R4-audit-theme-ui.md#3-chuỗi-làm-mờ--số-liệu-từ-mã). V2 sửa v1, không dựng lại shell hay đổi D1/D2/D3/D6/D7.
+
+### 4.1 Kiến trúc mount — **GIỮ, nhưng thay chính sách ghép**
 
 ```
-AppearanceProvider  (đã có)  →  SceneProvider  →  Router → AppShell
-AppShell (cột phải: relative isolate)
- ├─ <SceneBackdrop/>   canvas + scrim, absolute inset-0, -z-10, pointer-events-none, aria-hidden
- ├─ MobileTopBar / banner / <main> / composer dock   (nội dung, giữ nền trong suốt)
+AppearanceProvider → SceneProvider → Router → AppShell
+AppShell (app-content-column: relative isolate)
+ ├─ <SceneBackdrop/>  canvas, absolute inset-0, -z-10, pointer-events-none
+ ├─ wrapper/chrome trong suốt khi là khoảng trống
+ └─ các khối đọc có tint + viền cục bộ, không blur
 ```
 
-- Cột phải thêm `relative isolate`; canvas `-z-10` nằm trên nền `bg-background` của gốc nhưng dưới mọi nội dung (đúng mẫu `TwinkleBackdrop`).
-- Gốc `<html>` được gắn `data-scene="on|off"` (như `data-density`) để CSS đổi các bề mặt chrome mà không cần React.
-- `SceneBackdrop` đọc route bằng `matchPath` (cùng cách `routeOwnsScrollArrival`) → `surface ∈ {new, chat, other}` rồi chọn **hồ sơ hiển thị**.
-- Khi một route tự có backdrop riêng (`TwinkleBackdrop`, `GhostCodeBackdrop`) và cảnh đang bật cho `new`, hai backdrop cũ **ẩn đi** (`[data-scene=on] [data-slot=twinkle-backdrop],[data-slot=ghost-code-backdrop]{display:none}`): hai nền trang trí chồng nhau là rối mắt.
+| Quyết định | V1 | V2 cần làm |
+| --- | --- | --- |
+| Một canvas ở cột nội dung | Giữ D3; `app-shell.tsx` mount `SceneBackdrop` một lần. | **Giữ.** Không mở canvas ra sidebar; sidebar vẫn đặc. |
+| Route/surface | `scene-backdrop.tsx` phân `new` / `chat` / `other`. | **Giữ.** `new` là không gian trình diễn, `chat` ưu tiên transcript; `other` vẫn horizon. |
+| Backdrop cũ `/new` | CSS ẩn `twinkle-backdrop` và `ghost-code-backdrop` khi scene sẵn sàng. | **Giữ.** Không chồng nền trang trí. |
+| Bộ ghép | LUT toàn cảnh bị clamp rồi `scene-scrim` che cả cột dọc. | **THAY.** Tách cảnh vùng trống và nền đọc; bỏ cơ chế giảm cùng một ngân sách hai lần. |
 
-### 4.2 `/new` — nơi trình diễn
+### 4.2 Sáng/tối và sửa lỗi clamp LUT + scrim kép
 
-- Hồ sơ `new`: chế độ `Toàn khung`, độ hiện = giá trị người dùng đặt (mặc định 70%), scrim nhẹ chỉ ngay dưới cột form 760px (mask ngang mềm) để ô nhập và tiêu đề đọc rõ.
-- Form `/new` đã dùng thẻ/ô có nền; chỉ cần đảm bảo các bề mặt chính (composer, pill) giữ nền token (không đổi gì).
-- Một nút phụ nhỏ (ghost icon) ở góc dưới phải trang `/new`: tên cảnh + mũi tên đổi cảnh, mở cùng popover với sidebar. Không đặt gì trong vùng composer.
-- Hoạt ảnh được phép sống động nhất ở đây (đủ 12 fps, toàn bộ lớp động).
+**Lỗi v1 cần bỏ.** `components/scene-backdrop.tsx` hiện đặt
+`visibility: min(s, ceiling.maxVisibility)` cho renderer **và** đặt
+`--scene-scrim: ceiling.minScrim`; `styles/index.css` phủ scrim lên cùng cột.
+Theo R4, khi `s=0,7`, tâm cột còn khoảng 4,18–7,79% thay vì mức bảo vệ
+cần thiết. Tăng slider lên 1 còn làm tâm cột mờ hơn (`C²/s`).
 
-### 4.3 Chat — nơi phải ưu tiên đọc
+| Bước thực thi | Điểm chạm mã | Quy tắc v2 |
+| --- | --- | --- |
+| Chọn palette | `lib/scenery/engine/types.ts`, scene `palettes`, `engine/palette.ts`, `scene-backdrop.tsx` | Mỗi scene có palette light/dark riêng, fallback về palette v1 khi chưa vẽ lại. `resolvedTheme` từ `theme-provider.tsx` là đầu vào; không dùng một palette đêm rồi phủ trắng cho light. |
+| Resolve thời điểm | `scene-backdrop.tsx`, renderer/host/worker | `timeSource:'theme'` chọn `defaultTime` theo theme (light: day/dawn; dark: dusk/night do scene khai báo); `clock` dùng giờ máy; `fixed` dùng `time`. Cùng options được serialise qua `host-types.ts` tới main/worker. |
+| Render vùng trống | `scene-backdrop.tsx`, `renderer.ts`, `contrast.ts` | LUT dùng đúng visibility người dùng `s` ngoài khối đọc; **không** clamp toàn canvas để bảo vệ chữ không nằm ở đó. Slider phải làm độ lệch pixel khỏi `--background` tăng đơn điệu ở gutter. |
+| Bảo vệ chữ cục bộ | `contrast.ts`, `scene-backdrop.tsx`, `styles/index.css` | Đo foreground, muted và soft trên **composite panel thật**. Tint nền token + border 1px chỉ nằm dưới khối chữ; tăng độ đặc của khối đó/fallback đặc khi không đạt AA, không hạ saturation toàn cảnh. |
+| Ngân sách một lần | `contrast.ts` | Không đồng thời `min(s,C)` và `A=1-C/s` cho cùng pixel. Nếu giao diện chưa tách panel được, hotfix tối thiểu là chỉ giữ một trong hai để đạt C; đó không phải trạng thái v2 hoàn chỉnh. |
 
-Vấn đề thật: văn bản trợ lý nằm thẳng trên nền, transcript ảo hoá cuộn liên tục, dock composer đang đặc.
+- **[Thay D4 về phạm vi]** vẫn cấm `backdrop-filter`; “kính” là `color-mix`
+  tint và border 1px, không blur canvas hay transcript. R1 cho thấy bề mặt cục
+  bộ bảo vệ chữ tốt hơn veil toàn ảnh; R4 đặt alpha khởi điểm panel **light 96%,
+  dark 94%**, sau đó đo composite thực, không coi đó là chứng nhận AA.
+- **[Giữ quyết định cũ]** `--background` toàn app không đổi; không đổi token
+  để cứu cảnh. Parser `readContrastColors` phải đọc cả `--soft-foreground` và
+  phải được mở rộng nếu token rời hex 6 chữ số.
+- Sau khi panel cục bộ và kiểm tra AA đã có: default `visibility` mới là **0,9**
+  cho preference thiếu giá trị/record mới; giữ nguyên lựa chọn explicit 0,7 của
+  người dùng. Cảnh vẫn mặc định `on:false`.
 
-Giải pháp ghép ba lớp:
-1. **Chế độ `Đường chân trời`** (mặc định cho chat): canvas chỉ phủ ~45% đáy cột (`h-[45%] bottom-0`), phần trên mờ dần (`mask-image: linear-gradient(to top, black 45%, transparent)`); cảnh được tác giả bố cục để phần trời trên cùng có thể bị cắt.
-2. **Scrim theo cột đọc**: một lớp `background: color-mix(in oklab, var(--background) A%, transparent)` có mask ngang mềm quanh cột `--measure` (820px ở chế độ `narrow`). Alpha `A` ở giữa cột **không thấp hơn** ngưỡng tính từ trần tương phản (4.3.1); hai bên (gutter) để lộ cảnh nhiều hơn trên màn rộng.
-3. **Chrome bán trong suốt chỉ khi bật cảnh**: dock composer và header dính `background: color-mix(var(--background) 88%, transparent)` qua selector `[data-scene="on"] [data-slot=thread-dock]`; **không** blur. Thẻ tool/bong bóng đã `/40` nên giữ nguyên.
+### 4.3 `/new` — Toàn khung có khoảng thở thật
 
-Hiệu năng trong chat: cảnh chạy trong worker nên không tranh main thread với việc render stream; main thread chỉ có phần ghép lớp của trình duyệt. Hạ cấp tự động nếu cần (4.3.2). Cảnh KHÔNG cuộn theo transcript (cố định), tránh phải đo scroll ở main thread; hiệu ứng parallax theo cuộn để lại v2 và mặc định tắt.
+| Hạng mục | Thay đổi cụ thể |
+| --- | --- |
+| Hình học | Trong `routes/new-task-surface.tsx`, giữ `new-task-layout` tối đa 1040px và `new-task-main` 760px nhưng gom header, mô tả, composer, metadata, suggestion thành một **reading panel** đặt trên; feather 24–40px chỉ bao panel và kết thúc dưới suggestion. |
+| Cảnh | `SceneBackdrop` ở `full`; cảnh đi xuyên vùng trống dưới form, không có `scene-scrim` cột 760px kéo tới đáy như CSS v1. Duyệt desktop 1440×900 với 35–45% cột nội dung không bị panel khi form không mở rộng. |
+| Điểm nhấn | Dùng `SceneDef.focus` khi đặt chip/landmark; chip `ScenePopover` vẫn ở góc dưới, nhưng có panel nhỏ và không đè chủ thể. Chưa lệch form trái trong đợt đầu. |
+| Hẹp/mobile | **Thay** ép horizon v1 do `narrow`: `/new` dùng hero strip tĩnh 160–200px trước/sau form nền đặc; không tăng buffer để lấp màn hình, kiểm cả bàn phím. |
 
-#### 4.3.1 Trần độ hiện bảo đảm tương phản
+### 4.4 Chat — Horizon nhìn thấy được, transcript an toàn
 
-Với mỗi cảnh/palette/theme tính offline: `Lmax` = độ sáng lớn nhất của pixel trong palette. Màu nền hiệu dụng khi độ hiện `s` và scrim `A`: `eff = A·bg + (1−A)·(s·pixel + (1−s)·bg)`. Test đơn vị khẳng định với `s` = giá trị tối đa của thanh trượt, `foreground` và `muted-foreground` còn ≥ 4.5:1 (AA, đúng chuẩn mà `theme-contrast.test.ts` đang ghim) trên pixel xấu nhất. `A_min` cho cột đọc rút ra từ phép tính này. Nghĩa là thanh trượt không thể đưa người dùng tới trạng thái không đọc được.
+| Hạng mục | V1 | V2 |
+| --- | --- | --- |
+| Rect cảnh | Layer đáy 45%; 55% của layer bị fade và dock đè vùng đậm. | `app-shell.tsx`/thread layout tính rect theo viewport và dock bằng `ResizeObserver`: strip cao **32–40% transcript nhìn thấy**, kết thúc ngay trên dock; fade bầu trời chỉ **20–30%** strip. Không cập nhật theo scroll mỗi frame. |
+| Lane đọc | Scrim ngang 768/820px phủ toàn chiều cao. | Wrapper transcript/khối nội dung có tint 94/96% + border; gutter và khoảng trống sau message không có panel để thấy cảnh. Không tạo background đo theo từng token/dòng, giữ tương thích virtualizer. |
+| Dock | `task-composer.tsx` `bg-background`; CSS v1 cho header/dock 88% nền. | Textarea/composer vẫn nền đặc. Wrapper chrome có thể trong suốt ở khoảng trống; control và text nằm trong panel đủ contrast. Trên mobile/text dài trở về bar cục bộ đặc. |
+| Hẹp | `narrow` ép horizon nhưng vẫn dùng mask cột sai measure. | Không có gutter: lane đặc là ưu tiên, strip/empty-state nhỏ là nơi trình diễn; không tuyên bố cảnh nền chat dài phải nổi như `/new`. |
 
-#### 4.3.2 Phanh hiệu năng và an toàn
+### 4.5 Chrome, hiệu năng và nghiệm thu
 
-- Tạm dừng khi `document.hidden`; dừng hoạt ảnh (chỉ 1 khung tĩnh) khi `prefers-reduced-motion: reduce` hoặc người dùng tắt "Chuyển động".
-- Đo thời gian trung bình 30 khung: > 8 ms ⇒ hạ xuống 6 fps ⇒ vẫn quá ⇒ khung tĩnh và hiện một dòng nhỏ trong Settings ("đã tự giảm để tiết kiệm máy").
-- Màn hình hẹp (< `md`): chỉ chế độ `Đường chân trời`, buffer ≤ 240 px chiều rộng; mặc định chat trên mobile = tắt trừ khi người dùng bật.
-- Không gửi sự kiện nào ra ngoài; không mạng; worker terminate khi unmount/tắt; kiểm thử rò rỉ (rAF/timer/worker).
-- Worker không khả dụng ⇒ chạy cùng lõi trên main thread với cùng phanh.
-
-### 4.4 "Cảnh phản ứng theo agent" (v2, tuỳ chọn)
-
-Truyền một số `activity∈[0,1]` (có run đang chạy) vào `frame`: cảnh chỉ đổi **tốc độ/độ dày** hạt và mây (không chớp). Lấy từ truy vấn run đang hoạt động đã có (không thêm `refetchInterval`, không `new WebSocket`). Chốt v2 vì cần đo đạc, không chặn v1.
+- **Chrome trong suốt có điều kiện:** chỉ nền của wrapper header/dock được trong
+  suốt; không đặt `opacity` lên parent chứa chữ và không hạ bar đồng loạt 50%.
+  `styles/index.css` chỉ bật token scene khi `[data-ready]`; sidebar vẫn đặc.
+- **Giữ:** canvas `pointer-events-none`, fixed theo cột chứ không theo
+  transcript; worker/fallback, hidden/reduced-motion, phanh 12→6→0 FPS của
+  engine giữ nguyên. R2/R3 nhấn mạnh worker không làm compositing CSS miễn phí,
+  nên đo main/worker sau thay đổi.
+- **Ảnh nghiệm thu bắt buộc:** raw palette, sau LUT, UI cuối; 8 cảnh × light/dark
+  ở `/new`, chat tối thiểu Hạ Long/Sahara/Tromsø × light/dark và viewport hẹp.
+  Ghi scene/seed/time/timeSource/visibility/panel alpha. Kiểm pixel gutter ở
+  slider 0/.3/.7/.9/1 tăng đơn điệu; kiểm ≥4,5:1 cho foreground/muted/soft trên
+  panel cuối. Contact sheet/golden không thay ảnh app (R1, R4).
 
 ---
 
----
 [← Mục lục](README.md)

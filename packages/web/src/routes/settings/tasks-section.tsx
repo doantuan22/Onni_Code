@@ -10,6 +10,7 @@ import { TrunkBasedFields } from './trunk-based-fields'
 import { SettingsField } from './settings-field'
 import { useConfigSave } from './use-config-save'
 import { AppSelect } from '@/components/ui/app-select'
+import { fieldClass } from '@/components/form-field'
 
 /**
  * Settings → Tasks: how a task of THIS repo behaves — which branch it forks from, whether it
@@ -65,7 +66,7 @@ function TasksForm({ config }: { config: ConfigResponse }) {
             value={config.baseBranch ?? ''}
             disabled={save.isPending}
             onChange={(event) => save.mutate({ baseBranch: event.target.value || null })}
-            className="block w-full max-w-md rounded-md border border-input bg-card px-3 py-1.5 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+            className={`${fieldClass} max-w-md`}
           >
             <option value="">{t('follow checked-out branch (default)')}</option>
             {repo.data.branches.map((name) => (

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useCreateAgentProfile } from '@/api/queries'
 import type { FsBrowseDir, ProviderId } from '@onni/api-client'
 import { FolderBrowser } from '@/components/folder-browser'
+import { controlButtonClass, fieldClass } from '@/components/form-field'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -111,7 +112,7 @@ export function AddAccountDialog({
               data-slot="add-account-provider"
               value={provider}
               onChange={(event) => setProvider(event.target.value as ProviderId)}
-              className="rounded-md border border-input bg-card px-2 py-1 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className={fieldClass}
             >
               {providers.map((id) => (
                 <option key={id} value={id}>
@@ -129,7 +130,7 @@ export function AddAccountDialog({
               value={label}
               placeholder={t('Work')}
               onChange={(event) => setLabel(event.target.value)}
-              className="min-w-0 flex-1 rounded-md border border-input bg-card px-2 py-1 text-[12.5px] outline-none focus-visible:border-ring"
+              className={`min-w-0 flex-1 ${fieldClass}`}
             />
           </label>
         </div>
@@ -150,12 +151,13 @@ export function AddAccountDialog({
                 setSelected(null)
                 create.reset()
               }}
-              className="min-w-0 flex-1 rounded-md border border-input bg-card px-2 py-1 font-mono text-[12.5px] outline-none focus-visible:border-ring"
+              className={`min-w-0 flex-1 ${fieldClass} font-mono`}
             />
             <Button
               type="button"
               variant="ghost"
               size="sm"
+              className={controlButtonClass}
               data-action="add-account-browse"
               aria-expanded={browsing}
               onClick={() => setBrowsing((on) => !on)}

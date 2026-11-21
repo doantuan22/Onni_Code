@@ -118,7 +118,7 @@ export function RosterEditor({
                 onChange={(e) => setWorker(index, { maxConcurrent: Number(e.target.value) || 1 })}
                 className={fieldClass}
               />
-              <Button type="button" variant="ghost" size="icon" aria-label={t('Remove worker {n}', { n: index + 1 })} disabled={disabled || draft.workers.length <= 1} onClick={() => onChange({ ...draft, workers: draft.workers.filter((_, i) => i !== index) })}>
+              <Button type="button" variant="ghost" size="icon" className="rounded-sm" aria-label={t('Remove worker {n}', { n: index + 1 })} disabled={disabled || draft.workers.length <= 1} onClick={() => onChange({ ...draft, workers: draft.workers.filter((_, i) => i !== index) })}>
                 <Trash2Icon className="size-[14px]" aria-hidden="true" />
               </Button>
             </div>
@@ -150,7 +150,7 @@ export function RosterEditor({
                       aria-pressed={on}
                       disabled={disabled}
                       onClick={() => setWorker(index, { kinds: on ? worker.kinds.filter((k) => k !== kind) : WORKER_KINDS.filter((k) => k === kind || worker.kinds.includes(k)) })}
-                      className="rounded-md border border-border px-2 py-0.5 text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50 aria-pressed:bg-muted aria-pressed:text-foreground"
+                      className="inline-flex h-8 min-h-8 items-center rounded-sm border border-border bg-background px-2.5 text-[13px] text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50 aria-pressed:bg-muted aria-pressed:text-foreground"
                     >
                       {t(KIND_LABELS[kind])}
                     </button>

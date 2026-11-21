@@ -13,6 +13,8 @@ describe('RunLimitsFields', () => {
   it('shows the four ceilings only while capped, and a blank stays blank', () => {
     const onChange = vi.fn()
     const { rerender } = render(<RunLimitsFields draft={capped} onChange={onChange} allowDefault={false} />)
+    expect(screen.getByLabelText('Run limits').className).toContain('rounded-sm')
+    expect(screen.getByLabelText('Max cost (USD)').className).toContain('text-[13px]')
     fireEvent.change(screen.getByLabelText('Max cost (USD)'), { target: { value: '' } })
     expect(onChange).toHaveBeenCalledWith({ ...capped, cost: '' })
     rerender(<RunLimitsFields draft={{ ...capped, mode: 'none' }} onChange={onChange} allowDefault={false} />)

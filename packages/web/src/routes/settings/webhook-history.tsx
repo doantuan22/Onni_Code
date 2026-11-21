@@ -4,6 +4,7 @@ import type { WebhookReceiver, WebhookHistoricalReceiver, WebhookDelivery, Webho
 import { webhookApi } from '@/api/client'
 import { webhookKey } from '@/hooks/use-webhooks'
 import { Button } from '@/components/ui/button'
+import { controlButtonClass } from '@/components/form-field'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -41,7 +42,7 @@ export function ReceiverHistory({ projectId, receiver, operation, tab: selectedT
       {activity.data?.items.length === 0 && <p className="text-[12.5px] text-muted-foreground">{t('No activity in the retained history.')}</p>}{activity.data?.hasMore && <p className="text-[12.5px] text-muted-foreground">{t('Showing the latest 100 actions.')}</p>}
     </TabsContent><TabsContent value="deliveries" className="flex flex-col gap-3">
       <div className="flex flex-wrap items-end gap-2">
-        <form className="flex min-w-0 flex-1 items-end gap-2" onSubmit={event => { event.preventDefault(); setTaskId(search.trim()) }}><label className="flex min-w-0 flex-1 flex-col gap-1.5 text-[12.5px] font-medium">{t('Task ID')}<Input value={search} onChange={event => setSearch(event.target.value)} placeholder={t('Optional — show one task’s deliveries')} /></label><Button type="submit" variant="outline">{t('Find')}</Button></form>
+        <form className="flex min-w-0 flex-1 items-end gap-2" onSubmit={event => { event.preventDefault(); setTaskId(search.trim()) }}><label className="flex min-w-0 flex-1 flex-col gap-1.5 text-[12.5px] font-medium">{t('Task ID')}<Input value={search} onChange={event => setSearch(event.target.value)} placeholder={t('Optional — show one task’s deliveries')} /></label><Button type="submit" variant="outline" className={controlButtonClass}>{t('Find')}</Button></form>
         <div className="flex flex-col gap-1.5"><span id={resultLabelId} className="text-[12.5px] font-medium">{t('Result')}</span><Select value={filter} onValueChange={setFilter}>
           <SelectTrigger aria-labelledby={resultLabelId}><SelectValue /></SelectTrigger>
           <SelectContent><SelectItem value="all">{t('All results')}</SelectItem>{statuses.map(value => <SelectItem key={value} value={value}>{t(deliveryStatusLabels[value])}</SelectItem>)}</SelectContent>

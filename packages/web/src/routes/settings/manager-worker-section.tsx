@@ -7,7 +7,7 @@ import { useProviderStatus, useWorkspaceConfig, workspaceQueryKeys } from '@/api
 import { MANAGER_PRESETS_MAX, type ManagerPreset, type WorkspaceConfigResponse } from '@onni/api-client'
 import { CenteredState } from '@/components/centered-state'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { fieldClass } from '@/components/form-field'
+import { controlButtonClass, fieldClass } from '@/components/form-field'
 import { RosterEditor } from '@/components/roster-editor'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -113,8 +113,8 @@ function ManagerWorkerForm({ config }: { config: WorkspaceConfigResponse }) {
               <p className="text-[12px] text-warning">{t('These workers may run {workers} at once; the workspace runs {tasks} tasks in parallel.', { workers: totalConcurrency(parsed.roster), tasks: config.resources.maxParallel })}</p>
             ) : null}
             <div className="flex gap-2">
-              <Button type="button" size="sm" data-slot="mw-save" disabled={!parsed?.ok || !editing.name.trim() || save.isPending} onClick={commit}>{t('Save preset')}</Button>
-              <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(null)}>{t('Cancel')}</Button>
+              <Button type="button" size="sm" className={controlButtonClass} data-slot="mw-save" disabled={!parsed?.ok || !editing.name.trim() || save.isPending} onClick={commit}>{t('Save preset')}</Button>
+              <Button type="button" size="sm" variant="ghost" className={controlButtonClass} onClick={() => setEditing(null)}>{t('Cancel')}</Button>
             </div>
           </div>
         ) : (

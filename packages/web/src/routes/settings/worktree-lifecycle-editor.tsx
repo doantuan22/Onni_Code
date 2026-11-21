@@ -5,6 +5,7 @@ import { getConfig, previewLifecycleCommand, putConfig } from '@/api/client'
 import { queryKeys } from '@/api/queries'
 import { useWorktreeLifecycles } from '@/api/worktree-lifecycle'
 import { Button } from '@/components/ui/button'
+import { fieldClass } from '@/components/form-field'
 import { useI18n } from '@/lib/i18n'
 import { SettingsField } from './settings-field'
 import { AppSelect } from '@/components/ui/app-select'
@@ -18,7 +19,7 @@ const variables = [
   ['worktree_id', 'Stable onni-prefixed resource identity'],
   ['task_id', 'The original task ID'],
 ] as const
-const control = 'w-full rounded-md border border-input bg-card px-3 py-2 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50'
+const control = fieldClass
 
 /** Local drafts survive validation/conflict failures. Saving config never resumes a parked task. */
 export function WorktreeLifecycleEditor({ config }: { config: ConfigResponse }) {

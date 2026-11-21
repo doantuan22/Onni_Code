@@ -7,6 +7,7 @@ import { useWorkspaceConfig, workspaceQueryKeys } from '@/api/queries'
 import type { SetWorkspaceConfigInput, WorkspaceConfigResponse } from '@onni/api-client'
 import { CenteredState } from '@/components/centered-state'
 import { Button } from '@/components/ui/button'
+import { controlButtonClass } from '@/components/form-field'
 import { Input } from '@/components/ui/input'
 import { toast } from '@/components/ui/toaster'
 import { useI18n } from '@/lib/i18n'
@@ -86,6 +87,7 @@ function SkillsForm({ config }: { config: WorkspaceConfigResponse }) {
                   type="button"
                   variant="ghost"
                   size="sm"
+                  className={controlButtonClass}
                   aria-label={t('Remove {repo}', { repo: r.repo })}
                   disabled={save.isPending}
                   onClick={() => save.mutate({ orgSkillsRepos: repos.filter((x) => x.repo !== r.repo) })}
@@ -117,7 +119,7 @@ function SkillsForm({ config }: { config: WorkspaceConfigResponse }) {
             value={ref}
             onChange={(e) => setRef(e.target.value)}
           />
-          <Button type="submit" size="sm" disabled={save.isPending || !repo.trim()}>
+          <Button type="submit" size="sm" className={controlButtonClass} disabled={save.isPending || !repo.trim()}>
             {t('Add repository')}
           </Button>
         </form>

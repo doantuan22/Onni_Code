@@ -20,6 +20,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogDim, DialogPortal, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { controlButtonClass } from '@/components/form-field'
 import { useI18n } from '@/lib/i18n'
 import {
   presetDisplayName,
@@ -623,11 +624,11 @@ function PresetList({
                     }
                     if (event.key === 'Escape') setEditingId(null)
                   }}
-                  className="h-7 text-xs"
                 />
                 <Button
                   type="button"
                   size="sm"
+                  className={controlButtonClass}
                   variant="outline"
                   disabled={editName.trim() === ''}
                   onClick={() => {
@@ -680,11 +681,11 @@ function PresetList({
               if (event.key === 'Enter') save()
               if (event.key === 'Escape') setSaving(false)
             }}
-            className="h-7 text-xs"
           />
           <Button
             type="button"
             size="sm"
+            className={controlButtonClass}
             variant="outline"
             data-slot="save-task-preset"
             disabled={disabled || name.trim() === ''}

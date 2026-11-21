@@ -21,10 +21,8 @@ function fills(svg: string): string[] {
  * splash. The canonical public URL is `/icon.svg`; `/onni.svg` is an alias on the server serving
  * the same bytes.
  *
- * It is the OnniCode logo — navy + azure with a thin white outline — embedded as a PNG inside a
- * square SVG so the URL, the MIME type and every consumer (`rsvg`, `tauri icon`, the browser) keep
- * working unchanged. The earlier geometric C was a vector (2026-09-28); the mark is a transparent
- * raster with an outline so it reads on dark surfaces without an SVG `rect`.
+ * It is the canonical rect-only OnniCode mark: navy rim and azure chevron, rendered as crisp SVG
+ * geometry. The component supplies a white tile on dark surfaces so the navy rim stays visible.
  */
 describe('cockpit brand asset', () => {
   it('ships a valid, square SVG at packages/web/public/icon.svg', () => {
@@ -36,23 +34,13 @@ describe('cockpit brand asset', () => {
     expect(viewBox?.[1]).toBe(viewBox?.[2])
   })
 
-  it('embeds one PNG and keeps it hard-edged', () => {
+  it('uses crisp, rect-only vector geometry with the approved palette', () => {
     const svg = readBrandSvg()
-    const images = [...svg.matchAll(/<image\b[^>]*>/g)].map((match) => match[0])
-    expect(images).toHaveLength(1)
-    expect(images[0]).toMatch(/image-rendering:\s*pixelated/)
-    const data = /(?:xlink:)?href="data:image\/png;base64,([^"]+)"/.exec(images[0] ?? '')?.[1] ?? ''
-    // A real PNG: the 8-byte signature, then a square IHDR.
-    const bytes = Buffer.from(data, 'base64')
-    expect(bytes.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a')
-    expect(bytes.readUInt32BE(16)).toBe(bytes.readUInt32BE(20))
-  })
-
-  // The retired geometric C — a black tile with four white polygons — must not come back by accident.
-  it('no longer carries the retired geometric mark', () => {
-    const svg = readBrandSvg()
-    expect(svg).not.toMatch(/<polygon\b/)
-    expect(svg).not.toMatch(/<rect\b/)
+    expect(svg).toMatch(/shape-rendering="crispEdges"/)
+    expect(svg).not.toMatch(/<image\b|<polygon\b|<path\b|<circle\b|<use\b/i)
+    expect([...svg.matchAll(/<rect\b/g)]).not.toHaveLength(0)
+    expect(fills(svg)).toEqual(expect.arrayContaining(['#0a1a2f', '#0b6bff']))
+    expect(new Set(fills(svg))).toEqual(new Set(['#0a1a2f', '#0b6bff']))
   })
 
   // Self-hosted like every other face (the cockpit must work offline) and licensed beside it.

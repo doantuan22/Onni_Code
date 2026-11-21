@@ -109,7 +109,7 @@ Các tệp hiển thị tên/thương hiệu cezar, **chưa cần sửa ở Phas
 | `packages/desktop/src-tauri/Cargo.toml:2,4` | crate `cezar-desktop`, description cezar |
 | `packages/desktop/arch/PKGBUILD:10,15` | `pkgname=cezar-desktop-bin`, `url=github.com/open-mercato/cezar` |
 
-Asset: `packages/web/public/icon.svg` + favicon, `packages/desktop/src-tauri/icons/*`, mark trong `brand-mark.tsx` (polygon của logo upstream). Đổi logo/icon là việc thiết kế, ngoài phạm vi sửa link.
+Asset: `packages/web/public/icon.svg` + favicon, `packages/desktop/src-tauri/icons/*`, mark trong `brand-mark.tsx` (canonical rect-only navy/azure mark; dark surfaces use the component's white tile).
 
 ### 3.2 Tài liệu & lịch sử
 

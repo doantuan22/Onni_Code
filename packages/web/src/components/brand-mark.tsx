@@ -3,11 +3,9 @@ import { cn } from '@/lib/utils'
 /**
  * The onni mark and its lockup with the name.
  *
- * THE MARK is the OnniCode logo — navy + azure — served as `/icon.svg` (a vector wrapper around
- * the raster, so the favicon, the server's `/onni.svg` alias and the desktop splash keep one URL).
- * The glyph is transparent: navy reads on light surfaces, and on the dark theme it sits on a white
- * tile (see `BrandMark`) because the navy half would otherwise disappear. It is not tinted with
- * `currentColor`.
+ * THE MARK is the canonical rect-only OnniCode logo — navy + azure — served as `/icon.svg`, also
+ * used by the favicon, `/onni.svg` alias and desktop splash. Its transparent SVG geometry sits on a
+ * white tile in the dark theme (see `BrandMark`) so the navy rim stays visible. It is not tinted.
  *
  * THE LOCKUP keeps the arithmetic stated once in `BRAND_LOCKUP`: the name is lowercase, Chakra
  * Petch SemiBold (600); the mark is ~1.9 × the type size tall; the gap is 0.5 × the type size.

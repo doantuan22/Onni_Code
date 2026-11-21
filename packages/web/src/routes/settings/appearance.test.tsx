@@ -93,6 +93,27 @@ afterEach(() => {
 })
 
 describe('Settings → Appearance: project order', () => {
+  it('saves scene controls with the full appearance and preserves other preferences', async () => {
+    serve({ appearance: { density: 'compact', width: 'narrow', scene: { id: 'vn-halong', on: false } } })
+    renderSection(['onni'])
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Compact' }).getAttribute('aria-checked')).toBe('true'))
+    const card = within(document.querySelector('[data-slot="appearance-scenes"]') as HTMLElement)
+    const change = async (act: () => void, expected: Record<string, unknown>) => {
+      const count = requests.filter((r) => r.method === 'PUT').length
+      act()
+      await waitFor(() => expect(requests.filter((r) => r.method === 'PUT').length).toBe(count + 1))
+      await waitFor(() => {
+        const body = requests.filter((r) => r.method === 'PUT').at(-1)?.body
+        expect(body).toMatchObject({ appearance: { density: 'compact', width: 'narrow', scene: expected } })
+      })
+    }
+    await change(() => fireEvent.click(card.getByRole('switch', { name: 'Enable background scenes' })), { on: true, id: 'vn-halong' })
+    await change(() => fireEvent.click(card.getByRole('switch', { name: 'Other pages' })), { surfaces: { other: true } })
+    await change(() => fireEvent.click(within(card.getByRole('radiogroup', { name: 'Chat scene mode' })).getByRole('radio', { name: 'Full frame' })), { mode: { chat: 'full' } })
+    await change(() => fireEvent.change(card.getByRole('combobox', { name: 'Time of day' }), { target: { value: 'night' } }), { time: 'night' })
+    await change(() => fireEvent.change(card.getByRole('slider', { name: 'Scene speed' }), { target: { value: '1.5' } }), { speed: 1.5 })
+    await change(() => fireEvent.click(card.getByRole('switch', { name: 'Scene motion' })), { motion: false })
+  })
   it('uses arrow keys to move and focus the selected radio in a segmented group', async () => {
     renderSection(['onni'])
     await waitFor(() => expect(screen.getByText('Reading width')).not.toBeNull())

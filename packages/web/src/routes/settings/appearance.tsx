@@ -8,6 +8,9 @@ import type { WorkspaceConfigResponse } from '@onni/api-client'
 import { deleteWorkspaceBrandingLogo, putWorkspaceConfig, uploadWorkspaceBrandingLogo } from '@/api/client'
 import type { SetWorkspaceConfigInput } from '@onni/api-client'
 import { useAppearance } from '@/components/appearance-provider'
+import { useSceneControls, SceneLibrary, SceneVisibility } from '@/components/scene-popover'
+import { Switch } from '@/components/ui/switch'
+import type { SceneTime } from '@/lib/appearance'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
 import { controlButtonClass, fieldClass } from '@/components/form-field'
@@ -289,6 +292,47 @@ export function AppearanceSection() {
       </SettingsField>
 
       <ProjectOrderField />
+      <SceneSettingsCard />
     </div>
   )
+}
+
+function SceneSettingsCard() {
+  const { t } = useI18n()
+  const { scene, toggle, setSurfaces, setMode, setTime, setSpeed, setMotion } = useSceneControls()
+  return <section data-slot="appearance-scenes" className="space-y-5 rounded-md border border-border bg-card p-4">
+    <h3 className="text-sm font-semibold">{t('Background scenes')}</h3>
+    <SettingsField title={t('Enable background scenes')} hint="">
+      <Switch aria-label={t('Enable background scenes')} checked={scene.on} onCheckedChange={toggle} />
+    </SettingsField>
+    <SceneLibrary />
+    <SettingsField title={t('Show scenes on')} hint="">
+      <div className="flex flex-wrap gap-4">
+        {(['new', 'chat', 'other'] as const).map((surface) => <label key={surface} className="flex items-center gap-2 text-xs">
+          <Switch aria-label={t(surface === 'new' ? 'New task' : surface === 'chat' ? 'Chat' : 'Other pages')}
+            checked={scene.surfaces[surface]} onCheckedChange={(on) => setSurfaces({ ...scene.surfaces, [surface]: on })} />
+          {t(surface === 'new' ? 'New task' : surface === 'chat' ? 'Chat' : 'Other pages')}
+        </label>)}
+      </div>
+    </SettingsField>
+    {(['new', 'chat'] as const).map((surface) => <SettingsField key={surface} title={t(surface === 'new' ? 'New task scene mode' : 'Chat scene mode')} hint="">
+      <Segmented slot={`scene-mode-${surface}`} label={t(surface === 'new' ? 'New task scene mode' : 'Chat scene mode')} value={scene.mode[surface]}
+        options={[{ value: 'full', label: t('Full frame') }, { value: 'horizon', label: t('Horizon') }]}
+        onChange={(mode) => setMode({ ...scene.mode, [surface]: mode })} />
+    </SettingsField>)}
+    <SettingsField title={t('Time of day')} hint="">
+      <select aria-label={t('Time of day')} className={fieldClass} value={scene.time} onChange={(event) => setTime(event.currentTarget.value as SceneTime)}>
+        {([{ value: 'auto', label: 'Follow computer time' }, { value: 'dawn', label: 'Dawn' }, { value: 'day', label: 'Day' }, { value: 'dusk', label: 'Dusk' }, { value: 'night', label: 'Night' }] as const)
+          .map((option) => <option key={option.value} value={option.value}>{t(option.label)}</option>)}
+      </select>
+    </SettingsField>
+    <SceneVisibility />
+    <SettingsField title={t('Scene speed')} hint="">
+      <label className="flex items-center gap-3"><input type="range" aria-label={t('Scene speed')} min={0.25} max={2} step={0.05}
+        value={scene.speed} onChange={(event) => setSpeed(Number(event.currentTarget.value))} className="w-full accent-primary" /><span className="text-xs">{scene.speed}×</span></label>
+    </SettingsField>
+    <SettingsField title={t('Scene motion')} hint={t('Automatically reduced on slower devices or when your OS requests reduced motion.')}>
+      <Switch aria-label={t('Scene motion')} checked={scene.motion} onCheckedChange={setMotion} />
+    </SettingsField>
+  </section>
 }

@@ -33,6 +33,7 @@ import { useTranscriptSearch, type TranscriptSearchItem } from '@/api/workspace-
 import { StatusDot } from '@/components/status-dot'
 import { NEXT_THEME } from '@/components/theme-toggle'
 import { useTheme } from '@/components/theme-provider'
+import { useSceneControls } from '@/components/scene-popover'
 import {
   CommandDialog,
   CommandEmpty,
@@ -749,6 +750,7 @@ function PaletteContent({ close }: { close: () => void }) {
       : []
 
   const { theme, setTheme } = useTheme()
+  const sceneControls = useSceneControls()
   const { activeProjectId, registry, health, multiProject, projectNames, repoBases, tasks } = usePaletteTasks()
   // The Views row's GitHub gate follows the active project's forge, not the boot folder's (#1410).
   const activeForge = useActiveForge()
@@ -1022,6 +1024,12 @@ function PaletteContent({ close }: { close: () => void }) {
         ) : null}
 
         <CommandGroup heading={t('Actions')}>
+          {[
+            { id: 'toggle-scene', label: t('Toggle background scenes'), run: sceneControls.toggle },
+            { id: 'next-scene', label: t('Next background scene'), run: sceneControls.next },
+            { id: 'previous-scene', label: t('Previous background scene'), run: sceneControls.previous },
+          ].map((action) => <CommandItem key={action.id} value={`action ${action.id} ${action.label}`} data-slot="palette-action" data-action={action.id}
+            onSelect={() => { action.run(); close() }}><LayersIcon aria-hidden="true" />{action.label}</CommandItem>)}
           <CommandItem
             value="action toggle theme"
             data-slot="palette-action"

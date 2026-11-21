@@ -1,6 +1,6 @@
 # FEATURES.md — bản chụp hiện trạng tính năng (OnniCode)
 
-Ngày chụp: **2026-10-30** · nhánh `docs/architecture-snapshot` · chỉ đọc code, không sửa code.
+Ngày chụp: **2026-11-21** · nhánh `docs/architecture-snapshot` · chỉ đọc code, không sửa code.
 
 > Đây là hồ sơ khảo sát lịch sử, không phải danh sách trạng thái hiện tại. Các số test, đường dẫn
 > dòng và hạn chế Windows bên dưới chỉ phản ánh lần khảo sát đó. Hướng dẫn hiện hành nằm trong
@@ -98,7 +98,7 @@ Lệnh tái hiện: `npm test` (toàn bộ) hoặc hẹp hơn:
 
 | Chức năng | Mô tả ngắn | Nơi trong code | Cách dùng | Trạng thái | Căn cứ |
 | --- | --- | --- | --- | --- | --- |
-| 8 backend | claude, codex, opencode, cursor, pi, junie, copilot, antigravity | `packages/work/src/core/runner-factory.ts:19` | UI chọn backend | ĐÃ XÁC MINH | `core/runner-factory.test.ts` pass |
+| 9 backend | claude, codex, opencode, cursor, pi, junie, copilot, cline, antigravity | `packages/contract/src/health.ts:4` | UI chọn backend | ĐÃ XÁC MINH | `core/runner-factory.test.ts` pass |
 | Seam `AgentRunner`/`AgentSession` | contract cho runner mới | `packages/work/src/core/agent-runner.ts:211,230` · `AGENT_PROTOCOL.md` | code | ĐÃ XÁC MINH | `core/ui-parity.test.ts` pass |
 | Event v1 (11 kiểu) | protocol nội bộ runner | `core/agent-runner.ts:161` | tự động | ĐÃ XÁC MINH | golden fixture `workflows/run-graph` tests pass |
 | Event v2 `UiEvent` | protocol ra cockpit | `core/ui-events.ts:392` | WS/SSE | ĐÃ XÁC MINH | `core/ui-events.test.ts` pass |

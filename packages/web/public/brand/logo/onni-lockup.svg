@@ -1,31 +1,58 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 16" shape-rendering="crispEdges" role="img">
-  <title>OnniCode</title>
-  <rect x="4" y="1" width="5" height="2" fill="#0B6BFF"/>
-  <rect x="9" y="1" width="3" height="1" fill="#5CA8FF"/>
-  <rect x="3" y="2" width="1" height="3" fill="#0B6BFF"/>
-  <rect x="9" y="2" width="2" height="1" fill="#0B6BFF"/>
-  <rect x="11" y="2" width="2" height="1" fill="#5CA8FF"/>
-  <rect x="2" y="3" width="1" height="10" fill="#0B6BFF"/>
-  <rect x="4" y="3" width="1" height="1" fill="#0B6BFF"/>
-  <rect x="11" y="3" width="1" height="1" fill="#0B6BFF"/>
-  <rect x="12" y="3" width="2" height="1" fill="#5CA8FF"/>
-  <rect x="1" y="4" width="1" height="8" fill="#0B6BFF"/>
-  <rect x="12" y="4" width="3" height="1" fill="#0B6BFF"/>
-  <rect x="13" y="5" width="2" height="7" fill="#0B6BFF"/>
-  <rect x="7" y="6" width="2" height="1" fill="#0B6BFF"/>
-  <rect x="6" y="7" width="2" height="1" fill="#0B6BFF"/>
-  <rect x="5" y="8" width="2" height="1" fill="#0B6BFF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 67 16" shape-rendering="crispEdges" role="img">
+  <title>OnniCode pixel lockup (canonical: onni-lockup-rects.svg)</title>
+  <rect x="4" y="1" width="8" height="1" fill="#0A1A2F"/>
+  <rect x="3" y="2" width="1" height="1" fill="#0A1A2F"/>
+  <rect x="12" y="2" width="1" height="1" fill="#0A1A2F"/>
+  <rect x="2" y="3" width="1" height="1" fill="#0A1A2F"/>
+  <rect x="13" y="3" width="1" height="1" fill="#0A1A2F"/>
+  <rect x="1" y="4" width="1" height="8" fill="#0A1A2F"/>
+  <rect x="8" y="4" width="2" height="1" fill="#0B6BFF"/>
+  <rect x="14" y="4" width="1" height="8" fill="#0A1A2F"/>
+  <rect x="21" y="4" width="4" height="1" fill="#0B6BFF"/>
+  <rect x="39" y="4" width="1" height="1" fill="#0B6BFF"/>
+  <rect x="42" y="4" width="4" height="1" fill="#0A1A2F"/>
+  <rect x="58" y="4" width="1" height="7" fill="#0A1A2F"/>
+  <rect x="7" y="5" width="2" height="1" fill="#0B6BFF"/>
+  <rect x="20" y="5" width="2" height="1" fill="#0B6BFF"/>
+  <rect x="24" y="5" width="2" height="1" fill="#0B6BFF"/>
+  <rect x="41" y="5" width="2" height="1" fill="#0A1A2F"/>
+  <rect x="45" y="5" width="2" height="1" fill="#0A1A2F"/>
+  <rect x="6" y="6" width="2" height="1" fill="#0B6BFF"/>
+  <rect x="20" y="6" width="1" height="4" fill="#0B6BFF"/>
+  <rect x="25" y="6" width="1" height="4" fill="#0B6BFF"/>
+  <rect x="27" y="6" width="4" height="1" fill="#0B6BFF"/>
+  <rect x="33" y="6" width="4" height="1" fill="#0B6BFF"/>
+  <rect x="39" y="6" width="1" height="5" fill="#0B6BFF"/>
+  <rect x="41" y="6" width="1" height="4" fill="#0A1A2F"/>
+  <rect x="49" y="6" width="3" height="1" fill="#0A1A2F"/>
+  <rect x="55" y="6" width="3" height="1" fill="#0A1A2F"/>
+  <rect x="61" y="6" width="3" height="1" fill="#0A1A2F"/>
+  <rect x="5" y="7" width="2" height="2" fill="#0B6BFF"/>
+  <rect x="27" y="7" width="1" height="4" fill="#0B6BFF"/>
+  <rect x="31" y="7" width="1" height="4" fill="#0B6BFF"/>
+  <rect x="33" y="7" width="1" height="4" fill="#0B6BFF"/>
+  <rect x="37" y="7" width="1" height="4" fill="#0B6BFF"/>
+  <rect x="48" y="7" width="1" height="3" fill="#0A1A2F"/>
+  <rect x="52" y="7" width="1" height="3" fill="#0A1A2F"/>
+  <rect x="54" y="7" width="1" height="3" fill="#0A1A2F"/>
+  <rect x="60" y="7" width="1" height="3" fill="#0A1A2F"/>
+  <rect x="64" y="7" width="1" height="1" fill="#0A1A2F"/>
+  <rect x="61" y="8" width="3" height="1" fill="#0A1A2F"/>
   <rect x="6" y="9" width="2" height="1" fill="#0B6BFF"/>
+  <rect x="21" y="9" width="1" height="2" fill="#0B6BFF"/>
+  <rect x="24" y="9" width="1" height="2" fill="#0B6BFF"/>
+  <rect x="42" y="9" width="1" height="2" fill="#0A1A2F"/>
+  <rect x="45" y="9" width="2" height="1" fill="#0A1A2F"/>
   <rect x="7" y="10" width="2" height="1" fill="#0B6BFF"/>
-  <rect x="10" y="10" width="2" height="1" fill="#0B6BFF"/>
-  <rect x="3" y="11" width="1" height="3" fill="#0B6BFF"/>
-  <rect x="12" y="11" width="1" height="3" fill="#0B6BFF"/>
-  <rect x="4" y="12" width="1" height="3" fill="#0B6BFF"/>
-  <rect x="11" y="12" width="1" height="3" fill="#0B6BFF"/>
-  <rect x="13" y="12" width="1" height="1" fill="#0B6BFF"/>
-  <rect x="5" y="13" width="6" height="2" fill="#0B6BFF"/>
-  <g font-family="Chakra Petch, sans-serif" font-weight="600" font-size="12">
-    <text x="20" y="12" textLength="22" lengthAdjust="spacingAndGlyphs" fill="#0B6BFF">Onni</text>
-    <text x="42" y="12" textLength="28" lengthAdjust="spacingAndGlyphs" fill="#0A1A2F">Code</text>
-  </g>
+  <rect x="22" y="10" width="2" height="1" fill="#0B6BFF"/>
+  <rect x="43" y="10" width="3" height="1" fill="#0A1A2F"/>
+  <rect x="49" y="10" width="3" height="1" fill="#0A1A2F"/>
+  <rect x="55" y="10" width="3" height="1" fill="#0A1A2F"/>
+  <rect x="61" y="10" width="4" height="1" fill="#0A1A2F"/>
+  <rect x="8" y="11" width="2" height="1" fill="#0B6BFF"/>
+  <rect x="2" y="12" width="1" height="1" fill="#0A1A2F"/>
+  <rect x="13" y="12" width="1" height="1" fill="#0A1A2F"/>
+  <rect x="3" y="13" width="1" height="1" fill="#0A1A2F"/>
+  <rect x="12" y="13" width="1" height="1" fill="#0A1A2F"/>
+  <rect x="4" y="14" width="8" height="1" fill="#0A1A2F"/>
 </svg>

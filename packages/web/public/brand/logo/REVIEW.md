@@ -83,3 +83,49 @@ promise. The rect lockup should be retained as the deterministic version.
    `onni-lockup-rects.svg` wherever the brand promises pixel art; retain
    `onni-lockup.svg` only as an optional typographic lockup after verifying
    Chakra Petch availability and cross-platform rendering.
+
+## Resolution
+
+**Revised and self-checked:** 2026-11-21.
+
+1. The primary mark now has a navy `#0A1A2F` structural rim and an azure
+   `#0B6BFF` chevron. The sky bevel was removed entirely.
+2. Removed the detached two-cell cursor; the only inner shape is the chevron.
+3. Rebuilt the rim with paired left/right and top/bottom steps about the
+   16-cell canvas centre. The middle rim is consistently one cell thick.
+4. Enlarged the chevron to a five-cell-wide, eight-cell-high shape with
+   two-cell strokes and a clear open right side. The mark retains a transparent
+   one-cell outer margin. The favicon now uses the same grid as the primary.
+5. Both lockups use a 67 x 16 canvas with two empty columns after the final
+   wordmark cell. The PNG centres the complete padded lockup.
+6. The owner explicitly approved rectangular horizontal lockups; this exception
+   is recorded in the generator header. Every standalone mark remains square.
+7. `onni-lockup-rects.svg` is the canonical pixel lockup, used in the PNG sheet.
+   `onni-lockup.svg` now mirrors its rect-only geometry. The unverified text
+   variant was replaced: neither lockup needs an installed font or `textLength`
+   compression. Chakra Petch 600 exists in the repository, but no claim of
+   cross-platform typographic rendering is made.
+
+Added `onni-mark-dark.svg`, which replaces the navy rim with white while keeping
+the azure chevron. The dark half of the PNG uses this treatment; the light half
+uses the navy/azure primary. Each mark uses at most two colours.
+
+**Preview check:** Viewed the regenerated 768 x 576 PNG at its native sheet
+size. The 16 px samples show a left-pointing chevron with an open right counter,
+without a cursor blob; the 32 px samples clearly preserve its two-cell stroke
+and separation from the rim. Both navy and azure are visible in the light
+primary samples. The dark variant keeps the full rim visible against navy.
+The 64 px and 256 px samples show consistent, mirrored rim steps; the centred
+rect lockup keeps its final `e` clear of the canvas edge.
+
+**Verification:** `node packages/web/public/brand/logo/logo-gen.mjs` printed
+`wrote` for all six SVGs and `logo-preview.png`. XML inspection confirmed only
+`svg`, `title` and integer-coordinate `rect` elements, `crispEdges`, square mark
+viewBoxes, and 67 x 16 lockup viewBoxes. System test/typecheck/build/package
+suites were not run, per the user's asset-only verification constraint.
+
+**Remaining weakness:** The ring/chevron concept is still a familiar coding
+badge rather than a unique mascot silhouette. The one-pixel rim is necessarily
+delicate at native 16 px; use the supplied dark treatment on navy surfaces,
+where the primary navy rim would disappear. No existing app assets or usage
+sites were changed in this scoped revision.

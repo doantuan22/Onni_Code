@@ -25,3 +25,18 @@ Cập nhật: 2026-11-22. Việc kiểm tra bằng giao diện thật **đang t�
 1. `ONNI_DRY_RUN=1`, `.ai/scripts/test-env-up.sh`; chạy riêng kịch bản scenery; mở rộng cho 8 cảnh.
 2. Xem ảnh chụp 8 cảnh × 2 theme ở `/new` và chat; sửa lỗi nếu có.
 3. Chạy chuỗi kiểm tra đầy đủ trước khi PR.
+
+## 12. Nghiệm thu (2026-11-22)
+
+Kết luận: **đạt có điều kiện** — tính năng chạy đúng trên app thật; còn 3 việc tồn đọng bên dưới. Ảnh minh chứng: [`evidence/`](evidence/).
+
+### Đã chạy và đạt
+- `npm run build` (+ `check:pack`) đạt; typecheck `@onni/web` sạch.
+- Vitest: `lib/scenery/**`, `scene-provider`, `scene-backdrop`, `scene-popover` — 9 file, 58 test đạt.
+- `scene-snap`: 8 cảnh xuất contact sheet 3 cỡ × 4 thời điểm × 2 theme ([`evidence/contact-sheets/`](evidence/contact-sheets/)); hash khớp golden (test đạt).
+- App thật (build, `ONNI_DRY_RUN=1`, Chrome qua agent-browser): chọn và hiển thị đủ 8 cảnh ở `/new`, 2 theme ([`evidence/ui/new-*.png`](evidence/ui/)); trang chat ở chế độ Đường chân trời, 2 theme (`chat-*.png`); tắt cảnh ⇒ `data-scene=off`, 0 backdrop, 0 canvas (`off-chat-light.png`). Popover có tab Vietnam/World, mỗi vùng 4 cảnh.
+
+### Tồn đọng
+1. `scenery.e2e.ts` **chưa xanh**: lần đầu hết giờ chờ canvas (cảnh nguội, lần sau qua bước này), rồi hỏng ở `[data-slot="user-bubble"]` của trang chat. Spec đối chứng `task-thread.e2e.ts` cũng hỏng cùng kiểu trên máy này ⇒ lỗi nền của fixture thread, không riêng scenery. Kịch bản vẫn chỉ phủ Hạ Long.
+2. Độ hiện: ở mức mặc định 70% các cảnh khá mờ trên `/new` (nhất là theme sáng); chỉ nhận ra rõ khi nhìn kỹ. Cần chủ sản phẩm quyết định có nâng mặc định không.
+3. Thumbnail popover vẫn là icon giữ chỗ. `npm test` đầy đủ, `test:unit`, `test:package` chưa chạy; `test-env-up.sh` không chạy được ở máy này vì thiếu Python thật (shim Microsoft Store).

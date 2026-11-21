@@ -94,9 +94,9 @@ describe('evaluateLimits', () => {
     const all = [root, first, second, leaf, unrelated];
     const tree = indexLimitTree(all);
 
-    expect(subtreeUsageIndexed(tree, root.id)).toEqual(legacySubtreeUsage(all, root.id));
+    expect(subtreeUsageIndexed(tree, (root as RunRecord).id)).toEqual(legacySubtreeUsage(all, (root as RunRecord).id));
     expect(tree.subtreeUsage.size).toBe(4);
-    for (const member of all) {
+    for (const member of all as unknown as RunRecord[]) {
       expect(subtreeUsageIndexed(tree, member.id)).toEqual(legacySubtreeUsage(all, member.id));
       expect(evaluateLimits(member, all, 'now', tree)).toEqual(evaluateLimits(member, all, 'now'));
     }

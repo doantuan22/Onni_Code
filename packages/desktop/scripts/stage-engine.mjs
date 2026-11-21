@@ -4,7 +4,7 @@
 //   <stage>/engine/node_modules/@onni/work/dist/index.js     the engine, production dependencies only
 // The shell finds it next to its own executable (`bundled_engine_dir` in src-tauri/src/lib.rs) when
 // no `ONNI_DESKTOP_ENTRY` and no `onni link` version is present.
-import { copyFileSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +12,43 @@ import { stageRtkBinary } from './stage-rtk.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = path.resolve(packageRoot, '..', '..');
+
+/** Newest mtime (ms) of any non-test file under `dir`, skipping build output; 0 when absent. */
+export function newestSourceMtime(dir) {
+  let newest = 0;
+  const walk = (current) => {
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === 'web') continue;
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (!/\.test\.tsx?$/.test(entry.name)) newest = Math.max(newest, statSync(full).mtimeMs);
+    }
+  };
+  if (existsSync(dir)) walk(dir);
+  return newest;
+}
+
+/** Throws when the built engine/cockpit is older than its sources, so a stale `dist` is never
+ *  packaged into an installer (it once shipped a day-old UI under a fresh version number). */
+export function assertBuildIsFresh(repo = repoRoot) {
+  const checks = [
+    ['packages/work/dist/index.js', ['packages/work/src', 'packages/contract/src', 'packages/api-client/src']],
+    ['packages/work/web/dist/index.html', ['packages/web/src', 'packages/web/index.html', 'packages/contract/src', 'packages/api-client/src']],
+  ];
+  for (const [built, sources] of checks) {
+    const builtAt = statSync(path.join(repo, built)).mtimeMs;
+    const newest = Math.max(
+      ...sources.map((source) => {
+        const full = path.join(repo, source);
+        if (!existsSync(full)) return 0;
+        return statSync(full).isFile() ? statSync(full).mtimeMs : newestSourceMtime(full);
+      }),
+    );
+    if (newest > builtAt) {
+      throw new Error(`stage-engine: ${built} is older than its sources — run \`npm run build\` at the repository root first`);
+    }
+  }
+}
 
 /** Stages `<stageRoot>/engine` from the built `packages/work`; returns the engine folder. */
 export async function stageEngine(stageRoot) {
@@ -23,6 +60,8 @@ export async function stageEngine(stageRoot) {
       throw new Error(`stage-engine: ${required} is missing — run \`npm run build\` at the repository root first`);
     }
   }
+
+  assertBuildIsFresh();
 
   const packDir = path.join(stageRoot, 'pack');
   const engineDir = path.join(stageRoot, 'engine');

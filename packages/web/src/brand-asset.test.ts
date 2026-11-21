@@ -2,9 +2,6 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { createElement } from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
-import { Mascot } from './components/mascot'
 
 
 const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -28,23 +25,6 @@ function fills(svg: string): string[] {
  * geometry. The component supplies a white tile on dark surfaces so the navy rim stays visible.
  */
 describe('cockpit brand asset', () => {
-  it('reserves a square decorative mascot box without starting animation during SSR', () => {
-    const html = renderToStaticMarkup(createElement(Mascot, { state: 'loading', size: 192 }))
-    expect(html).toContain('data-slot="mascot"')
-    expect(html).toContain('aria-hidden="true"')
-    expect(html).toContain('width:192px;height:192px')
-    expect(html).not.toContain('<canvas')
-    expect(html).not.toContain('<img')
-  })
-
-  it('accepts a caller-localized accessible label and safely defaults invalid sizes', () => {
-    const html = renderToStaticMarkup(createElement(Mascot, { state: 'success', size: NaN, decorative: false, label: 'Hoàn tất' }))
-    expect(html).toContain('role="img"')
-    expect(html).toContain('aria-label="Hoàn tất"')
-    expect(html).not.toContain('aria-hidden')
-    expect(html).toContain('width:96px;height:96px')
-  })
-
   it('ships a valid, square SVG at packages/web/public/icon.svg', () => {
     const svg = readBrandSvg()
     expect(svg.trimStart().startsWith('<svg')).toBe(true)

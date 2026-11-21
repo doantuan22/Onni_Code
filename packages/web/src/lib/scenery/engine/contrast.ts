@@ -53,5 +53,7 @@ export function contrastCeiling(palette: Palette, background: number, foreground
     }
   }
   const s = clamp01(visibility)
-  return { possible, maxVisibility: lo, minScrim: s === 0 ? 0 : clamp01(1 - lo / s) }
+  // Shrink by a hair so rebuilding the amount from minScrim cannot cross a byte-rounding boundary.
+  const safeLo = lo > 0 && lo < 1 ? Math.max(0, lo - 1e-4) : lo
+  return { possible, maxVisibility: safeLo, minScrim: s === 0 ? 0 : clamp01(1 - safeLo / s) }
 }

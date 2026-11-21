@@ -22,6 +22,8 @@ import {
 import { highlightMatch } from '@/components/transcript-match-item'
 import { orderSkills } from '@/lib/skills'
 import { ThemeProvider } from '@/components/theme-provider'
+import { SceneProvider } from '@/components/scene-provider'
+import { DEFAULT_SCENE_PREFERENCES } from '@/lib/appearance'
 import { THEME_STORAGE_KEY, type Theme } from '@/lib/theme'
 
 const mockUseTranscriptSearch = vi.fn()
@@ -196,11 +198,13 @@ function renderPalette({
   render(
     <QueryClientProvider client={createQueryClient()}>
       <ThemeProvider>
+        <SceneProvider scene={DEFAULT_SCENE_PREFERENCES} onChange={() => {}}>
         <MemoryRouter initialEntries={[entry]}>
           <CommandPalette />
           <LocationProbe />
           <input data-testid="outside-input" aria-label="outside" />
         </MemoryRouter>
+        </SceneProvider>
       </ThemeProvider>
     </QueryClientProvider>,
   )

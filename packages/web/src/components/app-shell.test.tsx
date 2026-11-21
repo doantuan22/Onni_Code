@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppShell, routeOwnsScrollArrival, type AppShellProps } from './app-shell'
 import { NAV_ITEMS, visibleNavItems } from './nav-items'
 import { ThemeProvider } from './theme-provider'
+import { SceneProvider } from './scene-provider'
+import { DEFAULT_SCENE_PREFERENCES } from '@/lib/appearance'
 
 afterEach(() => {
   cleanup()
@@ -31,12 +33,14 @@ beforeEach(() => {
 function renderShell(entry = '/', props: Partial<AppShellProps> = {}, children: ReactNode = <p>route content</p>) {
   return render(
     <ThemeProvider>
+      <SceneProvider scene={DEFAULT_SCENE_PREFERENCES} onChange={() => {}}>
       <MemoryRouter initialEntries={[entry]}>
         <AppShell {...props}>
           {children}
           <LocationProbe />
         </AppShell>
       </MemoryRouter>
+      </SceneProvider>
     </ThemeProvider>
   )
 }

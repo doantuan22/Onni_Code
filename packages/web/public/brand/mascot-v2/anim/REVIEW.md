@@ -1,4 +1,4 @@
-# Motion asset review — 2026-11-21
+﻿# Motion asset review — 2026-11-21
 
 ## Verdict
 
@@ -136,3 +136,61 @@ The preview is a useful inspection tool, not a reusable player:
     and `:84–88` validate `hi >= lo`, positive finite weights, and an in-range
     chosen frame. Add an error status that identifies the malformed field
     instead of silently relying on generator-only invariants.
+
+## Resolution — 2026-11-21
+
+The asset-only repair is complete. Regeneration now produces **61 body frames** (was 47), nine PNG/SVG effect pairs, a v2 manifest, a self-contained preview and a **768 × 2200** light/dark contact sheet. Bodies remain sampled from the five generated PNG masters. No app test suite, typecheck, build or package verification was run, per the task restriction.
+
+| Fix | Resolution |
+| --- | --- |
+| 1 — wake | Expanded 4→8 frames. Frame 2 opens the sleeping sockets and lifts the head while preserving the curled body/tail orientation. Four registered head/body/tail intermediates precede standing frame 7; head-lift/rise steps each hold 160 ms. |
+| 2 — working bridges | Expanded each direction 4→8, with six seated/turning intermediates. Separate part registration and staggered expression/paw/tail handovers replace the squash-to-laptop cut. Frame 2 retains the idle-side silhouette; reverse playback retraces the identical path. Endpoints are checked against masters. |
+| 3 — blink rhythm | Idle normal sequence is `[0,1]`; a variation plays `[2,3,4,1]` (closing, closed, opening, recovery). Closed hold is 95 ms, between 55/65 ms half-lids. The post-blink ear/tail correction was removed. |
+| 4 — eyelids | `eyes()` compresses actual socket pixels into curved half/closed lids, retains outer socket corners and varies the right lid by one pixel. Closing/opening interpolation comes from the same source sockets. |
+| 5 — paws | Local flat-topped envelopes displace opposite paws by 2 px and alternate sides; neutral working frame 2 separates the keystrokes. Whole body and feet do not move. |
+| 6 — thinking | Frames 1–3 share the same raised-gaze body pixels. Removed broad ear/tail warps; question/dot tracks provide secondary motion. |
+| 7 — error | Neutral reduced 480→210 ms; shake poses increased 75→100 ms. Ping-pong order remains endpoint-deduplicated. |
+| 8 — landing | Celebrate expanded 5→6 with a 120 ms descending frame before the grounded compression/recovery. `staticFrame` updated to 5. |
+| 9 — effects | Typing/loading dots and Z glyphs now include white contrast pixels; both PNG and rect-only SVG regenerated. Added a native 1× preview size control. Light/dark contact sheet inspected. |
+| 10 — contract | Added `player-contract.mjs` and `player-contract.d.mts`, version 2 validation/types and shared playback/variation/transition helpers. Added suggested sizes, per-frame anchors, effect width/height/origin, fallback, and explicit once completion. Generator and preview consume this same contract. **Closed in the completion pass:** `src/components/mascot.tsx` now consumes the shared contract through `player-runtime.mjs`; see follow-up below. |
+| 11 — state policy | All 121 state pairs have a defined outcome: named edges bridge then hand off; unsupported changes snap to destination `staticFrame`, then start normal playback after its duration. Same-state continues; interruption/reduced motion use destination-static behavior. Unknown names fall back to idle. |
+| 12 — preview boundary | Validates before loading; precise malformed-field status; source-specific decode/missing-asset errors; failed images evicted for retry; generation guard prevents stale failures/repaints; full blink variation sequence; motion preference changes restart current playback; direct bridge inspection starts at frame 0. |
+
+### Verification and visual iteration
+
+Executed only `node packages/web/public/brand/mascot-v2/anim/anim-gen.mjs` as the asset verification command, with a 60-second process limit. The generator's own checks print:
+
+```text
+Validated v2 contract, 17 malformed-manifest cases, all 121 state pairs, and preview playback/variation/cancellation/reduced-motion/decode fixtures
+Adjacent changed pixels (pose diagnostics, not a motion-quality score): {"wake":[218,669,2395,2621,2628,2771,2320],"idle-to-working":[686,1121,1753,1848,904,1259,800],"working-to-idle":[800,1259,904,1848,1753,1121,686]}
+Generated 11 states, 61 frames, 9 effect PNG/SVG pairs
+Verified binary alpha, source palette, and canvas margin (minimum 2px) on all body frames
+Wrote animations.json, anim-preview.html, strips.png (768x2200; light and dark rows)
+```
+
+Viewed the baseline and four regenerated strip revisions. The first whole-row interpolation visibly sheared the eyes/tail; splitting head/body/tail and handing them over on separate beats removed that horizontal face wipe and distributed the pose change. Final rows read left-to-right as curled rest → open eyes/head lift → crouched rise → standing, and standing → lower torso/turn → seated laptop (and exact reverse). Idle has one consistent outline around its blink; thinking is stable; celebrate has a separate descent beat. White-edged dots/Z cues remain readable on the navy rows at native pixel scale.
+
+Remaining visual limits are explicit: registration reuses different master topologies, so the wake's middle head/body shape change and laptop entry remain more stylized than hand-painted anatomical in-betweens. Adjacent maximum pixel changes fall from the review's ~3815 to 2771 for wake and ~2834/~2896 to 1848 in either working direction; these counts support continuity inspection but do not prove motion quality. Original navy-on-navy body outlines are unchanged. The VM validates preview logic; native-runtime generator fixtures and the focused brand-asset test also verify the React consumer. Real-browser playback was not tested. This is an improved, consumer-specified asset library, not a claim that the original production-readiness verdict has been independently re-reviewed.
+
+
+### Completion pass — React consumer (2026-11-21)
+
+The instruction to continue to full completion closed the remaining item 10 integration gap. Added the single React consumer at `packages/web/src/components/mascot.tsx`, the location required by `../PLACEMENT.md`, plus its two focused checks in the already-authorized `packages/web/src/brand-asset.test.ts`. No app placements or settings were changed.
+
+The adapter lazily loads the local v2 manifest and shared browser runtime. `player-runtime.mjs` builds stepped native image-animation timelines from the actual contract helpers, preserving exact durations, static fallback, per-frame anchor offsets, effect dimensions/origins/layering, multi-cue frames, complete weighted blink sequences, bridge handoff, same-state continuation, once holds and reduced motion. Normal timelines pause during a variation and resume their saved cursor. Stale requests/errors cannot repaint; unmount cancels native animations and decode deadlines. Unsupported native animation falls back to static art. The component reserves a square box, is decorative by default, and requires a caller-localized label when meaningful. Added 384 px to suggested manifest sizes to cover the placement contract.
+
+The generator now additionally prints:
+
+```text
+Validated native React-consumer runtime: stepped timing, effect layers, variations, bridge handoff, reduced motion, once completion, fallback, stale decode suppression, unmount cleanup and static degradation
+```
+
+Only the permitted focused test file was run:
+
+```text
+npm test -- packages/web/src/brand-asset.test.ts
+Test Files  1 passed (1)
+Tests       6 passed (6)
+```
+
+All 12 fix-list items now have an implementation, including the real React consumer. The earlier partial report's missing-consumer limitation is closed. The documented source-art stylization/contrast limits remain design trade-offs, rather than an omitted fix. The final strips retain the previously inspected poses; this pass changes consumer code and manifest sizing rather than the body artwork. No full test suite, typecheck, build, test:unit or test:package ran.

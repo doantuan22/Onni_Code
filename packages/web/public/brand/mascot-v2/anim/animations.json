@@ -1,13 +1,28 @@
 {
-  "version": 1,
+  "version": 2,
   "canvas": {
     "width": 96,
     "height": 96
   },
+  "sizes": [
+    24,
+    48,
+    96,
+    192,
+    288,
+    384
+  ],
   "anchor": {
     "x": 48,
     "y": 91,
     "baseline": 91
+  },
+  "fallbackState": "idle",
+  "transitionPolicy": {
+    "unsupported": "snap-to-static",
+    "reducedMotion": "destination-static",
+    "interrupt": "destination-static",
+    "sameState": "continue"
   },
   "palette": {
     "navy": "#0a1a2f",
@@ -21,28 +36,57 @@
       "frames": [
         {
           "src": "frames/idle-0.png",
-          "durationMs": 900
+          "durationMs": 900,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/idle-1.png",
-          "durationMs": 900
+          "durationMs": 900,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/idle-2.png",
-          "durationMs": 135
+          "durationMs": 55,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/idle-3.png",
-          "durationMs": 420
+          "durationMs": 95,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
+        },
+        {
+          "src": "frames/idle-4.png",
+          "durationMs": 65,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         }
       ],
       "playback": "loop",
+      "onComplete": "hold-last",
       "staticFrame": 0,
       "effects": [],
       "sequence": [
         0,
-        1,
-        3
+        1
       ],
       "idleVariations": {
         "intervalMs": [
@@ -51,7 +95,12 @@
         ],
         "choices": [
           {
-            "frame": 2,
+            "frames": [
+              2,
+              3,
+              4,
+              1
+            ],
             "weight": 1
           }
         ]
@@ -61,27 +110,54 @@
       "frames": [
         {
           "src": "frames/working-0.png",
-          "durationMs": 120
+          "durationMs": 120,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/working-1.png",
-          "durationMs": 100
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/working-2.png",
-          "durationMs": 100
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/working-3.png",
-          "durationMs": 100
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         }
       ],
       "playback": "loop",
+      "onComplete": "hold-last",
       "staticFrame": 0,
       "effects": [
         {
           "name": "typing-dots",
           "src": "effects/typing-dots.png",
+          "width": 10,
+          "height": 3,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "cues": [
             {
               "frame": 1,
@@ -112,27 +188,54 @@
       "frames": [
         {
           "src": "frames/thinking-0.png",
-          "durationMs": 260
+          "durationMs": 260,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/thinking-1.png",
-          "durationMs": 340
+          "durationMs": 340,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/thinking-2.png",
-          "durationMs": 420
+          "durationMs": 420,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/thinking-3.png",
-          "durationMs": 520
+          "durationMs": 520,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         }
       ],
       "playback": "loop",
+      "onComplete": "hold-last",
       "staticFrame": 2,
       "effects": [
         {
           "name": "question",
           "src": "effects/question.png",
+          "width": 10,
+          "height": 14,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "cues": [
             {
               "frame": 1,
@@ -160,6 +263,12 @@
         {
           "name": "typing-dots",
           "src": "effects/typing-dots.png",
+          "width": 10,
+          "height": 3,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "cues": [
             {
               "frame": 0,
@@ -190,27 +299,54 @@
       "frames": [
         {
           "src": "frames/success-0.png",
-          "durationMs": 120
+          "durationMs": 120,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/success-1.png",
-          "durationMs": 135
+          "durationMs": 135,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/success-2.png",
-          "durationMs": 160
+          "durationMs": 160,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/success-3.png",
-          "durationMs": 420
+          "durationMs": 420,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         }
       ],
       "playback": "once",
+      "onComplete": "hold-last",
       "staticFrame": 3,
       "effects": [
         {
           "name": "sparkle",
           "src": "effects/sparkle.png",
+          "width": 10,
+          "height": 10,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "cues": [
             {
               "frame": 1,
@@ -231,6 +367,12 @@
         {
           "name": "heart",
           "src": "effects/heart.png",
+          "width": 18,
+          "height": 14,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "cues": [
             {
               "frame": 2,
@@ -254,27 +396,54 @@
       "frames": [
         {
           "src": "frames/error-0.png",
-          "durationMs": 480
+          "durationMs": 210,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/error-1.png",
-          "durationMs": 75
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/error-2.png",
-          "durationMs": 75
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/error-3.png",
-          "durationMs": 75
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         }
       ],
       "playback": "pingpong",
+      "onComplete": "hold-last",
       "staticFrame": 0,
       "effects": [
         {
           "name": "bang",
           "src": "effects/bang.png",
+          "width": 4,
+          "height": 12,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "cues": [
             {
               "frame": 1,
@@ -302,6 +471,12 @@
         {
           "name": "sweat",
           "src": "effects/sweat.png",
+          "width": 12,
+          "height": 12,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "cues": [
             {
               "frame": 2,
@@ -325,27 +500,54 @@
       "frames": [
         {
           "src": "frames/sleep-0.png",
-          "durationMs": 650
+          "durationMs": 650,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/sleep-1.png",
-          "durationMs": 650
+          "durationMs": 650,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/sleep-2.png",
-          "durationMs": 650
+          "durationMs": 650,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/sleep-3.png",
-          "durationMs": 650
+          "durationMs": 650,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         }
       ],
       "playback": "loop",
+      "onComplete": "hold-last",
       "staticFrame": 0,
       "effects": [
         {
           "name": "zzz",
           "src": "effects/zzz.png",
+          "width": 16,
+          "height": 8,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "cues": [
             {
               "frame": 0,
@@ -383,27 +585,90 @@
       "frames": [
         {
           "src": "frames/wake-0.png",
-          "durationMs": 220
+          "durationMs": 180,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/wake-1.png",
-          "durationMs": 175
+          "durationMs": 160,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/wake-2.png",
-          "durationMs": 125
+          "durationMs": 160,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/wake-3.png",
-          "durationMs": 420
+          "durationMs": 160,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
+        },
+        {
+          "src": "frames/wake-4.png",
+          "durationMs": 160,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
+        },
+        {
+          "src": "frames/wake-5.png",
+          "durationMs": 160,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
+        },
+        {
+          "src": "frames/wake-6.png",
+          "durationMs": 160,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
+        },
+        {
+          "src": "frames/wake-7.png",
+          "durationMs": 420,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         }
       ],
       "playback": "once",
-      "staticFrame": 3,
+      "onComplete": "hold-last",
+      "staticFrame": 7,
       "effects": [
         {
           "name": "zzz",
           "src": "effects/zzz.png",
+          "width": 16,
+          "height": 8,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "cues": [
             {
               "frame": 0,
@@ -427,35 +692,72 @@
       "frames": [
         {
           "src": "frames/loading-0.png",
-          "durationMs": 120
+          "durationMs": 120,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/loading-1.png",
-          "durationMs": 90
+          "durationMs": 90,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/loading-2.png",
-          "durationMs": 100
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/loading-3.png",
-          "durationMs": 90
+          "durationMs": 90,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/loading-4.png",
-          "durationMs": 80
+          "durationMs": 80,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/loading-5.png",
-          "durationMs": 140
+          "durationMs": 140,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         }
       ],
       "playback": "loop",
+      "onComplete": "hold-last",
       "staticFrame": 0,
       "effects": [
         {
           "name": "loading-dots",
           "src": "effects/loading-dots.png",
+          "width": 10,
+          "height": 3,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "cues": [
             {
               "frame": 0,
@@ -507,31 +809,72 @@
       "frames": [
         {
           "src": "frames/celebrate-0.png",
-          "durationMs": 110
+          "durationMs": 110,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/celebrate-1.png",
-          "durationMs": 170
+          "durationMs": 170,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/celebrate-2.png",
-          "durationMs": 160
+          "durationMs": 160,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/celebrate-3.png",
-          "durationMs": 100
+          "durationMs": 120,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/celebrate-4.png",
-          "durationMs": 460
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
+        },
+        {
+          "src": "frames/celebrate-5.png",
+          "durationMs": 460,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         }
       ],
       "playback": "once",
-      "staticFrame": 4,
+      "onComplete": "hold-last",
+      "staticFrame": 5,
       "effects": [
         {
           "name": "confetti",
           "src": "effects/confetti.png",
+          "width": 26,
+          "height": 14,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "behind": true,
           "cues": [
             {
@@ -581,6 +924,12 @@
         {
           "name": "sparkle",
           "src": "effects/sparkle.png",
+          "width": 10,
+          "height": 10,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "cues": [
             {
               "frame": 1,
@@ -608,6 +957,12 @@
         {
           "name": "heart",
           "src": "effects/heart.png",
+          "width": 18,
+          "height": 14,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "cues": [
             {
               "frame": 2,
@@ -638,46 +993,160 @@
       "frames": [
         {
           "src": "frames/idle-to-working-0.png",
-          "durationMs": 140
+          "durationMs": 140,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/idle-to-working-1.png",
-          "durationMs": 110
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/idle-to-working-2.png",
-          "durationMs": 150
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/idle-to-working-3.png",
-          "durationMs": 260
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
+        },
+        {
+          "src": "frames/idle-to-working-4.png",
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
+        },
+        {
+          "src": "frames/idle-to-working-5.png",
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
+        },
+        {
+          "src": "frames/idle-to-working-6.png",
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
+        },
+        {
+          "src": "frames/idle-to-working-7.png",
+          "durationMs": 260,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         }
       ],
       "playback": "once",
-      "staticFrame": 3,
+      "onComplete": "hold-last",
+      "staticFrame": 7,
       "effects": []
     },
     "working-to-idle": {
       "frames": [
         {
           "src": "frames/working-to-idle-0.png",
-          "durationMs": 140
+          "durationMs": 140,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/working-to-idle-1.png",
-          "durationMs": 110
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/working-to-idle-2.png",
-          "durationMs": 130
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         },
         {
           "src": "frames/working-to-idle-3.png",
-          "durationMs": 260
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
+        },
+        {
+          "src": "frames/working-to-idle-4.png",
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
+        },
+        {
+          "src": "frames/working-to-idle-5.png",
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
+        },
+        {
+          "src": "frames/working-to-idle-6.png",
+          "durationMs": 100,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
+        },
+        {
+          "src": "frames/working-to-idle-7.png",
+          "durationMs": 260,
+          "anchor": {
+            "x": 48,
+            "y": 91,
+            "baseline": 91
+          }
         }
       ],
       "playback": "once",
-      "staticFrame": 3,
+      "onComplete": "hold-last",
+      "staticFrame": 7,
       "effects": []
     }
   },

@@ -114,6 +114,10 @@ navy preview backgrounds.
 | Cross-pose consistency | 4/10 | Mismatched body scale, crop treatment, baseline, and effect handling. |
 | SVG delivery format | 8/10 | Correct rect-only, crisp-pixel representation; it needs corrected source pixels. |
 
+## Resolution
+
+Partial. The extractor now rejects magenta-dominant/near-magenta pixels, uses a nine-swatch brand palette, and samples at a 2 px grid. The generator completed and wrote 18 assets. The preview at native scale and 4x was inspected after regeneration: idle, success, and error are recognizable, but working and sleep appear as detached fragments, and the hero/head crops are malformed. The generated preview is therefore not clean and this extraction is not ready to ship. Source-sheet regions contain complete working and sleeping poses; the current crop/component selection is failing to retain them, so this is not evidence that the source itself cuts off a limb. Remaining fixes: robust per-region component selection, normalized standing scale/baseline, explicit effect handling, face-specific head masters, and canonical hero alignment. No full suite, build, or typecheck was run.
+
 ## Prioritized FIX LIST
 
 1. **Replace `keyed()` with a chroma-key plus alpha-matte rule.** Mark a source

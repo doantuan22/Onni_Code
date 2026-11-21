@@ -7,9 +7,10 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 const out = path.join(root, 'final');
 const poses = ['idle', 'working', 'success', 'error', 'sleep'];
-const GRID = 4;
+const GRID = 2;
 const SIZE = 96;
-const palette = [[8,18,45],[17,40,77],[29,68,122],[46,119,190],[27,181,224],[75,215,239],[255,255,255],[210,232,244],[255,174,54],[232,124,35],[255,211,105],[126,157,205],[240,137,130],[255,255,255],[5,10,30],[36,91,148],[83,189,226],[188,217,234],[255,193,77],[173,86,32],[255,229,152],[114,131,162],[7,45,82],[0,221,240]];
+// Deliberate brand swatches: navy outlines/shades, azure/sky, white/pale blue, amber.
+const palette = [[10,26,47],[5,16,31],[23,43,68],[11,107,255],[92,168,255],[255,255,255],[220,239,255],[255,176,32],[220,132,24]];
 
 function decode(file) {
   const b = fs.readFileSync(file);
@@ -27,11 +28,13 @@ function decode(file) {
 }
 function png(w,h,pix){const rows=Buffer.alloc(h*(1+w*4));for(let y=0;y<h;y++)pix.copy(rows, y*(1+w*4)+1,y*w*4,(y+1)*w*4);const crcTable=Array.from({length:256},(_,n)=>{let c=n;for(let k=0;k<8;k++)c=c&1?0xedb88320^(c>>>1):c>>>1;return c>>>0;});const crc=b=>{let c=0xffffffff;for(const x of b)c=crcTable[(c^x)&255]^(c>>>8);return(c^0xffffffff)>>>0;};const chunk=(t,d)=>{const tb=Buffer.from(t),o=Buffer.alloc(12+d.length);o.writeUInt32BE(d.length);tb.copy(o,4);d.copy(o,8);o.writeUInt32BE(crc(Buffer.concat([tb,d])),8+d.length);return o;};const ih=Buffer.alloc(13);ih.writeUInt32BE(w);ih.writeUInt32BE(h,4);ih[8]=8;ih[9]=6;return Buffer.concat([Buffer.from('89504e470d0a1a0a','hex'),chunk('IHDR',ih),chunk('IDAT',zlib.deflateSync(rows)),chunk('IEND',Buffer.alloc(0))]);}
 const rgba=(im,x,y)=>{const i=(y*im.w+x)*im.ch;return [im.pixels[i],im.pixels[i+1],im.pixels[i+2],im.ch===4?im.pixels[i+3]:255];};
-function keyed(im){const a=new Uint8Array(im.w*im.h);for(let y=0;y<im.h;y++)for(let x=0;x<im.w;x++){const [r,g,b]=rgba(im,x,y);const d=Math.max(Math.abs(r-255),g,Math.abs(b-255));a[y*im.w+x]=d<45?0:255;}return a;}
+function keyed(im){const a=new Uint8Array(im.w*im.h);for(let y=0;y<im.h;y++)for(let x=0;x<im.w;x++){const [r,g,b,alpha]=rgba(im,x,y);const magenta=Math.hypot(r-255,g,b-255);a[y*im.w+x]=alpha<96||((r>180&&b>100&&g<90)||magenta<100)?0:255;}return a;}
 function components(im,mask){const seen=new Uint8Array(mask.length), cs=[];for(let y=0;y<im.h;y++)for(let x=0;x<im.w;x++){let id=y*im.w+x;if(!mask[id]||seen[id])continue;let st=[id],c=[];seen[id]=1;while(st.length){const z=st.pop(),xx=z%im.w,yy=(z/im.w)|0;c.push(z);for(const [nx,ny] of [[xx-1,yy],[xx+1,yy],[xx,yy-1],[xx,yy+1]])if(nx>=0&&ny>=0&&nx<im.w&&ny<im.h){const ni=ny*im.w+nx;if(mask[ni]&&!seen[ni]){seen[ni]=1;st.push(ni);}}}if(c.length>25)cs.push(c);}return cs;}
 function nearest(c){let best=palette[0],bd=Infinity;for(const p of palette){const d=(c[0]-p[0])**2+(c[1]-p[1])**2+(c[2]-p[2])**2;if(d<bd){bd=d;best=p;}}return best;}
-function extract(im, bounds){const [x0,y0,x1,y1]=bounds, w=x1-x0+1,h=y1-y0+1, mask=keyed(im), gx=Math.max(1,Math.round(w/GRID)),gy=Math.max(1,Math.round(h/GRID));let cells=[];
- for(let cy=0;cy<gy;cy++)for(let cx=0;cx<gx;cx++){const tally=new Map();for(let y=y0+cy*GRID;y<Math.min(y1+1,y0+(cy+1)*GRID);y++)for(let x=x0+cx*GRID;x<Math.min(x1+1,x0+(cx+1)*GRID);x++){const i=y*im.w+x;if(!mask[i])continue;const col=rgba(im,x,y),key=nearest(col).join(',');tally.set(key,(tally.get(key)||0)+1);}const v=[...tally].sort((a,b)=>b[1]-a[1])[0];cells.push(v?v[0].split(',').map(Number):null);}
+function extract(im, bounds, options={}){const [bx0,by0,bx1,by1]=bounds, mask=keyed(im), region=[Math.max(0,bx0-8),Math.max(0,by0-8),Math.min(im.w-1,bx1+8),Math.min(im.h-1,by1+8)];const cs=components(im,mask).filter(c=>c.some(i=>{const x=i%im.w,y=(i/im.w)|0;return x>=region[0]&&x<=region[2]&&y>=region[1]&&y<=region[3];}));
+ const main=cs.sort((a,b)=>b.length-a.length)[0]||[];let kept=new Set(main);for(const c of cs.slice(1)){if(c.length>=36&&options.effects&&c.some(i=>{const x=i%im.w,y=(i/im.w)|0;return x>=region[0]&&x<=region[2]&&y>=region[1]&&y<=region[3];}))for(const i of c)kept.add(i);}
+ if(!kept.size)throw Error('No keyed foreground in source crop');let xlo=im.w,ylo=im.h,xhi=0,yhi=0;for(const i of kept){const x=i%im.w,y=(i/im.w)|0;xlo=Math.min(xlo,x);ylo=Math.min(ylo,y);xhi=Math.max(xhi,x);yhi=Math.max(yhi,y);}const pad=8,x0=Math.max(region[0],xlo-pad),y0=Math.max(region[1],ylo-pad),x1=Math.min(region[2],xhi+pad),y1=Math.min(region[3],yhi+pad),w=x1-x0+1,h=y1-y0+1,gx=Math.max(1,Math.round(w/GRID)),gy=Math.max(1,Math.round(h/GRID));let cells=[];
+ for(let cy=0;cy<gy;cy++)for(let cx=0;cx<gx;cx++){const tally=new Map();for(let y=y0+cy*GRID;y<Math.min(y1+1,y0+(cy+1)*GRID);y++)for(let x=x0+cx*GRID;x<Math.min(x1+1,x0+(cx+1)*GRID);x++){const i=y*im.w+x;if(!mask[i]||!kept.has(i))continue;const col=rgba(im,x,y),key=nearest(col).join(',');tally.set(key,(tally.get(key)||0)+1);}const v=[...tally].sort((a,b)=>b[1]-a[1])[0];cells.push(v?v[0].split(',').map(Number):null);}
  const scale=Math.min(1,(SIZE-8)/Math.max(gx,gy)), dw=Math.max(1,Math.round(gx*scale)),dh=Math.max(1,Math.round(gy*scale)),canvas=Buffer.alloc(SIZE*SIZE*4), ox=((SIZE-dw)/2)|0,oy=SIZE-dh-4;
  for(let y=0;y<dh;y++)for(let x=0;x<dw;x++){const col=cells[Math.min(gy-1,Math.floor(y*gy/dh))*gx+Math.min(gx-1,Math.floor(x*gx/dw))];if(col){const i=((oy+y)*SIZE+ox+x)*4;canvas.set([...col,255],i);}}
  // Remove isolated single-cell noise while preserving intentional detached effects.

@@ -57,6 +57,9 @@ file (invalid Win32 application). The npm CLI via Node and the adjacent
 
 - `spawnTaskProcess` now resolves task executable names against the child PATH
   and unwraps supported npm shims before calling the explicit Win32 launcher.
+- Codex adds the per-user npm global bin to its child PATH when the installed
+  `codex.cmd`/`codex.exe` is present there but a desktop/service PATH omitted it.
+  This covers the default npm install without requiring `ONNI_CODEX_BIN`.
 - Explicit extensionless paths select their `.exe` sibling when available;
   extensionless Node entrypoints use Node after checking the shebang.
 - Relative task shims resolve against the task cwd. Argument quoting remains in
@@ -74,6 +77,12 @@ empty stderr, through `spawnCodexAppServer` with ONNI_TASK_ID set. No thread or
 model turn was created. This validates the repaired launch path, not historical
 error attribution or all vendor operations. Existing installed Onni binaries
 still need to be rebuilt/restarted to use source changes.
+
+Follow-up regression coverage simulates a Codex npm shim under the per-user npm
+bin while PATH omits it; the bin is added and the shim is unwrapped. The real CLI
+also completed `initialize` through the task launcher with `ONNI_TASK_ID` after
+PATH was reduced to Windows and Node system directories, then exited 0. No thread
+or model turn was created.
 
 ### Initial runner findings
 

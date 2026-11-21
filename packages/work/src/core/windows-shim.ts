@@ -37,6 +37,39 @@ export interface ShimOptions {
   cwd?: string;
 }
 
+/**
+ * A desktop/service process can start with a trimmed PATH that omits npm's per-user global bin,
+ * even though the user's default Codex CLI is installed there. Add that bin only when it really
+ * contains the requested Codex shim; this keeps the zero-config Windows install discoverable.
+ */
+export function withWindowsCodexNpmBin(env: NodeJS.ProcessEnv, program: string, platform: NodeJS.Platform = process.platform): NodeJS.ProcessEnv {
+  if (platform !== 'win32' || program !== 'codex') return env;
+  const appData = readEnvCaseInsensitive(env, 'APPDATA');
+  const userProfile = readEnvCaseInsensitive(env, 'USERPROFILE');
+  const npmPrefix = readEnvCaseInsensitive(env, 'NPM_CONFIG_PREFIX');
+  const candidates = [
+    npmPrefix,
+    appData ? join(appData, 'npm') : undefined,
+    userProfile ? join(userProfile, 'AppData', 'Roaming', 'npm') : undefined,
+  ].filter((candidate): candidate is string => Boolean(candidate));
+  const npmBin = candidates.find((candidate) => existsSync(join(candidate, 'codex.cmd')) || existsSync(join(candidate, 'codex.exe')));
+  if (!npmBin) return env;
+
+  const pathKey = Object.keys(env).find((key) => key.toUpperCase() === 'PATH') ?? 'PATH';
+  const currentPath = env[pathKey] ?? '';
+  const normalizedBin = npmBin.replace(/[\\/]+$/, '').toLowerCase();
+  if (currentPath.split(';').some((entry) => entry.trim().replace(/^"|"$/g, '').replace(/[\\/]+$/, '').toLowerCase() === normalizedBin)) {
+    return env;
+  }
+  return { ...env, [pathKey]: currentPath ? `${currentPath};${npmBin}` : npmBin };
+}
+
+function readEnvCaseInsensitive(env: NodeJS.ProcessEnv, name: string): string | undefined {
+  const target = name.toUpperCase();
+  const entry = Object.entries(env).find(([key]) => key.toUpperCase() === target);
+  return entry?.[1];
+}
+
 /** What a shim launches: a node script, or a native binary it calls directly (opencode). */
 export interface ShimTarget {
   kind: 'node' | 'native';

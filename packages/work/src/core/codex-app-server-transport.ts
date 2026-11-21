@@ -3,6 +3,7 @@ import { hasTerminated, trackChildExit } from './agent-runner.ts';
 import { buildChildEnv } from './agent-env.ts';
 import { disclaimedCommand } from './disclaim-spawn.ts';
 import { spawnTaskProcess } from './task-process-spawn.ts';
+import { withWindowsCodexNpmBin } from './windows-shim.ts';
 import { EOF_KILL_GRACE_MS, EOF_TERM_GRACE_MS, KILL_GRACE_MS } from './claude-cli-runner.ts';
 
 export interface CodexAppServerMessage {
@@ -33,7 +34,7 @@ export function spawnCodexAppServer(
   extraEnv?: Record<string, string>,
 ): ChildProcessWithoutNullStreams {
   try {
-    const env = buildCodexAppServerEnv(extraEnv);
+    const env = withWindowsCodexNpmBin(buildCodexAppServerEnv(extraEnv), bin);
     const [file, argv] = disclaimedCommand(bin, ['app-server'], env);
     return spawnTaskProcess(file, argv, { cwd, env });
   } catch (error) {

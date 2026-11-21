@@ -71,6 +71,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Check env reference
+        run: node scripts/check-env-reference.mjs
+
       - name: Run unit tests
         run: npm run test:unit
 

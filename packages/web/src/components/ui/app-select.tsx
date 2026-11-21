@@ -112,7 +112,7 @@ function AppSelect({ value, defaultValue, onChange, name, searchable, disabled, 
 
   return (
     <Select value={toRadix(current)} disabled={disabled} {...(name ? { name } : {})} onValueChange={(next) => choose(fromRadix(next))}>
-      <SelectTrigger size="sm" data-slot="app-select" data-value={current} className={cn(TRIGGER_LAYOUT, className)} {...rest}>
+      <SelectTrigger size="default" data-slot="app-select" data-value={current} className={cn(TRIGGER_LAYOUT, className)} {...rest}>
         {/* `block!` beats the trigger's `flex` on the value slot, so a long label ends in an ellipsis
             instead of being cut mid-word. */}
         <SelectValue className="block! min-w-0 flex-1 truncate text-left" />
@@ -183,7 +183,7 @@ function SearchableSelect({
           data-value={current}
           disabled={disabled}
           className={cn(
-            'rounded-md border border-input bg-card px-3 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none hover:bg-muted focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 h-8 [&_svg]:pointer-events-none [&_svg]:shrink-0',
+            'rounded-sm border border-input bg-background px-2.5 py-1 text-[13px] whitespace-nowrap transition-[color,box-shadow] outline-none hover:bg-muted focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 h-8 [&_svg]:pointer-events-none [&_svg]:shrink-0',
             TRIGGER_LAYOUT,
             className,
           )}

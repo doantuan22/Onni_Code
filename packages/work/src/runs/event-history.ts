@@ -257,10 +257,26 @@ async function reverseEventsUntil(
   let position = fileSize;
   let suffix: Buffer<ArrayBufferLike> = Buffer.alloc(0);
   const reversed: RunHistoryEvent[] = [];
+  const pendingTurn: RunHistoryEvent[] = [];
+  const canonicalItems = new Map<string, CanonicalItem>();
+  let foldedTurns = 0;
   let reachedStart = false;
   let totalBytesRead = 0;
   let fileHighWater = 0;
   let canonical: CanonicalItem[] | undefined;
+  const mergeTurn = (events: RunHistoryEvent[]) => {
+    const turnItems = canonicalSessionItems(events);
+    for (const item of turnItems) {
+      // Tool/text fallback keys are turn-local; v2 and standalone keys remain global.
+      const key = item.key.startsWith('v1-') ? `${item.key}:reverse:${foldedTurns}` : item.key;
+      const existing = canonicalItems.get(key);
+      if (existing) {
+        existing.firstSeq = Math.min(existing.firstSeq, item.firstSeq);
+        existing.lastSeq = Math.max(existing.lastSeq, item.lastSeq);
+      } else canonicalItems.set(key, { ...item, key });
+    }
+    foldedTurns += 1;
+  };
   try {
     while (position > 0) {
       const length = Math.min(READ_CHUNK_BYTES, position);
@@ -271,21 +287,21 @@ async function reverseEventsUntil(
       const split = completeReverseLines(buffer.subarray(0, bytesRead), suffix);
       suffix = split.prefix;
       const { lines } = split;
+      let foundBoundary = false;
       for (let index = lines.length - 1; index >= 0; index -= 1) {
         const event = parseLine(lines[index]!);
         if (event) {
           fileHighWater = Math.max(fileHighWater, event.seq);
-          if (event.seq < beforeSeq) reversed.push(event);
+          if (event.seq >= beforeSeq) continue;
+          reversed.push(event);
+          if (event.type === 'user-message' || event.type === 'turn.started') {
+            mergeTurn([event, ...pendingTurn.reverse()]);
+            pendingTurn.length = 0;
+            foundBoundary = true;
+          } else pendingTurn.push(event);
         }
       }
-      const chronological = [...reversed].reverse();
-      canonical = canonicalSessionItems(chronological);
-      if (
-        canonical.length >= wantedItems + 1 &&
-        chronological.some((event) => event.type === 'user-message' || event.type === 'turn.started')
-      ) {
-        break;
-      }
+      if (foundBoundary && canonicalItems.size >= wantedItems + 1) break;
     }
     if (position === 0) {
       reachedStart = true;
@@ -294,10 +310,12 @@ async function reverseEventsUntil(
         fileHighWater = Math.max(fileHighWater, event.seq);
         if (event.seq < beforeSeq) {
           reversed.push(event);
-          canonical = undefined;
+          pendingTurn.push(event);
         }
       }
     }
+    mergeTurn(pendingTurn.reverse());
+    canonical = [...canonicalItems.values()].sort((a, b) => a.firstSeq - b.firstSeq);
   } finally {
     await handle.close();
   }
@@ -680,6 +698,7 @@ async function foldLinesFrom(
 }
 
 const CONTEXT_CACHE_ENTRIES = 32;
+const CONTEXT_CACHE_BYTES = 8 * 1024 * 1024;
 const CONTEXT_PROBE_BYTES = 64;
 
 interface ContextCacheEntry {
@@ -690,14 +709,43 @@ interface ContextCacheEntry {
   probe: Buffer;
   fold: ContextFold;
   result: RunHistoryContext;
+  cacheBytes: number;
 }
 
 const contextCache = new Map<string, ContextCacheEntry>();
 const contextReads = new Map<string, Promise<RunHistoryContext>>();
+let contextCacheBytes = 0;
+
+function removeContextCacheEntry(filePath: string): void {
+  const entry = contextCache.get(filePath);
+  if (!entry) return;
+  contextCache.delete(filePath);
+  contextCacheBytes -= entry.cacheBytes;
+}
+
+function estimateContextCacheBytes(
+  filePath: string,
+  probe: Buffer,
+  fold: ContextFold,
+  result: RunHistoryContext,
+): number {
+  const retainedEvents = new Set<RunHistoryEvent>([
+    ...fold.boundaries,
+    ...[...fold.roots.values()].flatMap(({ first, latest }) => [first, latest]),
+    ...[...fold.children.values()].flatMap(({ first, latest }) => [first, latest]),
+    ...result.contextEvents,
+  ]);
+  if (fold.latestPlan) retainedEvents.add(fold.latestPlan);
+  let eventBytes = 0;
+  for (const event of retainedEvents) eventBytes += Buffer.byteLength(JSON.stringify(event), 'utf8');
+  const collectionEntries = fold.roots.size + fold.children.size + fold.rootsByTurn.size + fold.boundaries.length;
+  return eventBytes + Buffer.byteLength(filePath, 'utf8') * 2 + probe.length + collectionEntries * 128 + 1_024;
+}
 
 /** Test seam: the fold cache is module-global, so a suite asserting hits or eviction starts clean. */
 export function __clearContextCacheForTests(): void {
   contextCache.clear();
+  contextCacheBytes = 0;
   contextReads.clear();
 }
 
@@ -722,7 +770,7 @@ async function deriveCachedContext(
   try {
     current = await stat(filePath);
   } catch {
-    contextCache.delete(filePath);
+    removeContextCacheEntry(filePath);
     onRead?.({ fileSize: 0, bytesRead: 0, retainedEvents: 0 });
     return { contextEvents: [], asOfSeq: 0 };
   }
@@ -750,7 +798,7 @@ async function deriveCachedContext(
     // A line appended between the stat and the fold puts `end` past `size`: the next call misses the
     // cheap hit and resumes through the probe, which is still correct.
     const tailProbe = await readProbe(filePath, end);
-    contextCache.set(filePath, {
+    const entry: ContextCacheEntry = {
       ino: current.ino,
       size: current.size,
       mtimeMs: current.mtimeMs,
@@ -758,11 +806,17 @@ async function deriveCachedContext(
       probe: tailProbe,
       fold,
       result,
-    });
-    while (contextCache.size > CONTEXT_CACHE_ENTRIES) {
+      cacheBytes: estimateContextCacheBytes(filePath, tailProbe, fold, result),
+    };
+    removeContextCacheEntry(filePath);
+    if (entry.cacheBytes <= CONTEXT_CACHE_BYTES) {
+      contextCache.set(filePath, entry);
+      contextCacheBytes += entry.cacheBytes;
+    }
+    while (contextCache.size > CONTEXT_CACHE_ENTRIES || contextCacheBytes > CONTEXT_CACHE_BYTES) {
       const oldest = contextCache.keys().next().value;
       if (oldest === undefined) break;
-      contextCache.delete(oldest);
+      removeContextCacheEntry(oldest);
     }
     onRead?.({
       fileSize: current.size,
@@ -771,7 +825,7 @@ async function deriveCachedContext(
     });
     return { ...result, contextEvents: [...result.contextEvents] };
   } catch {
-    contextCache.delete(filePath);
+    removeContextCacheEntry(filePath);
     return { contextEvents: [], asOfSeq: 0 };
   }
 }

@@ -197,6 +197,25 @@ describe('readRunHistoryPage', () => {
     expect(measured!.bytesRead).toBeLessThan(measured!.fileSize / 10);
     expect(measured!.retainedEvents).toBeLessThan(1_000);
   });
+
+  it('folds a single multi-chunk turn and returns the same newest page', async () => {
+    const events: Array<Partial<RunEvent> & Pick<RunEvent, 'seq' | 'type'>> = [
+      { seq: 1, type: 'turn.started', turnId: 'large-turn' },
+    ];
+    for (let index = 0; index < 600; index += 1) {
+      events.push({
+        seq: index + 2,
+        type: 'item.completed',
+        item: { kind: 'message', id: `m-${index}`, role: 'assistant', text: `message ${index}` },
+      });
+    }
+    const file = fixture(events);
+
+    const page = await readRunHistoryPage(file);
+
+    expect(page.itemCount).toBe(100);
+    expect(page.events.map(({ seq }) => seq)).toEqual([1, ...Array.from({ length: 100 }, (_, i) => i + 502)]);
+  });
 });
 
 describe('live cursor replay and compact context', () => {
@@ -516,6 +535,22 @@ describe('deriveRunContextEvents — per-file fold cache', () => {
 
     expect(reads[0]).toBeGreaterThan(0);
     expect(reads[1]).toBe(0);
+  });
+
+  it('evicts cached contexts when their combined retained bytes exceed the budget', async () => {
+    const files: string[] = [];
+    const largePlan = 'p'.repeat(2 * 1024 * 1024);
+    for (let index = 0; index < 4; index += 1) {
+      files.push(fixture([
+        { seq: 1, type: 'plan.updated', entries: [{ content: largePlan, status: 'in_progress' }] },
+      ]));
+    }
+    for (const file of files) await deriveRunContextEvents(file);
+
+    const reads: number[] = [];
+    await deriveRunContextEvents(files[0]!, ({ bytesRead }) => reads.push(bytesRead));
+
+    expect(reads[0]).toBeGreaterThan(0);
   });
 });
 

@@ -337,6 +337,12 @@ function RunHeaderView({
             )}
           </div>
 
+          {run.historyLiveOnly ? (
+            <p role="status" aria-label={t('History live-only')} className="py-1 text-xs text-amber-600 dark:text-amber-400">
+              {t('History live-only. New events are not being saved and may be missing after reload.')}
+            </p>
+          ) : null}
+
           {run.steps.length > 0 ? (
             <div className={cn('border-t border-border pt-1 pb-0 md:pt-2 md:pb-1', !detailsOpen && 'hidden md:block', collapsed && 'md:hidden')}>
               <WorkflowSteps runId={run.id} steps={run.steps} />

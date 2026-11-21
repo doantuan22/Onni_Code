@@ -169,6 +169,8 @@ export type ProcessUsage = z.infer<typeof processUsageSchema>;
  */
 export const runRecordSchema = z.object({
   id: z.string(),
+  /** Last event append was live-only; a recovered writer does not replay missing events. */
+  historyLiveOnly: z.boolean().optional(),
   title: z.string(),
   /** Display title (#389): auto-derived from the first agent turn, or the user's inline edit
    *  (`PATCH /runs/:id` sets it together with `title`). Show `titleSummary ?? title`. */

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render } from '@testing-library/react'
+import { cleanup, fireEvent, render, within } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -328,6 +328,33 @@ describe('transcript adapters and row building', () => {
 })
 
 describe('SessionTranscript', () => {
+  it('names the document transcript and its messages without announcing streaming text', () => {
+    const { getByRole } = render(
+      <QueryClientProvider client={createQueryClient()}>
+        <SessionTranscript
+          runId="conversation"
+          viewId="main"
+          mode="document"
+          renderMode="flat"
+          sections={[{
+            id: 'turn',
+            userMessage: { text: 'Explain the change' },
+            settled: false,
+            entries: [{ kind: 'message', id: 'answer', role: 'assistant', text: 'Partial reply', phase: 'final' }],
+          }]}
+        />
+      </QueryClientProvider>,
+    )
+
+    const transcript = getByRole('region', { name: 'Conversation' })
+    const messages = within(transcript)
+    expect(messages.getByRole('group', { name: 'User message' }).textContent).toContain('Explain the change')
+    const reply = messages.getByRole('group', { name: 'Assistant message' })
+    expect(reply.textContent).toContain('Partial reply')
+    expect(reply.getAttribute('data-streaming')).toBe('true')
+    expect(reply.closest('[aria-live], [role="log"], [role="status"], [role="alert"]')).toBeNull()
+  })
+
   it('keeps an explicitly reopened summary on revisit, without leaking it to another task', () => {
     const sections: TranscriptSection[] = [{ id: 'turn', settled: true, entries: [tool('a'), tool('b', { toolKind: 'execute' })] }]
     const show = (id: string) => <SessionTranscript runId={id} viewId="main" mode="document" renderMode="flat" sections={sections} />

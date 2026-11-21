@@ -302,7 +302,7 @@ export function SessionTranscript({
           ) : null}
         </div>
       ) : (
-        transcript
+        <section aria-label={t('Conversation')}>{transcript}</section>
       )}
     </ThreadCardCache>
   )

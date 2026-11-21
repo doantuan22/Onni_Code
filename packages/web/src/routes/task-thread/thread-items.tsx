@@ -195,6 +195,8 @@ export function UserBubble({
       <div
         data-slot="user-bubble"
         data-editing="true"
+        role="group"
+        aria-label={t('User message')}
         className="max-w-[85%] self-end rounded-2xl bg-muted/70 px-4 py-2.5 text-[14px] leading-[1.65] md:max-w-[80%]"
       >
         <textarea
@@ -241,6 +243,8 @@ export function UserBubble({
   return (
     <div
       data-slot="user-bubble"
+      role="group"
+      aria-label={t('User message')}
       className="group max-w-[85%] min-w-0 self-end rounded-2xl bg-muted/70 px-4 py-2.5 text-[14px] leading-[1.65] md:max-w-[80%]"
     >
       {onEdit || onRemove ? (
@@ -337,7 +341,13 @@ export function AssistantMessage({ text, streaming = false, copyable = true }: {
   const { t } = useI18n()
   const reducedMotion = usePrefersReducedMotion()
   return (
-    <div data-slot="assistant-message" data-streaming={streaming ? 'true' : undefined} className="group/answer w-full min-w-0 self-start text-[14px] leading-[1.75]">
+    <div
+      data-slot="assistant-message"
+      data-streaming={streaming ? 'true' : undefined}
+      role="group"
+      aria-label={t('Assistant message')}
+      className="group/answer w-full min-w-0 self-start text-[14px] leading-[1.75]"
+    >
       <Markdown streaming={streaming} animate={streaming && !reducedMotion}>{text}</Markdown>
       {!streaming && copyable ? <button
         type="button"

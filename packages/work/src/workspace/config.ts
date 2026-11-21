@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { chmodSync, closeSync, fsyncSync, mkdirSync, openSync, promises as fsp, rmSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
+import lockfile from 'proper-lockfile';
 import { z } from 'zod';
 import { readFileWithRetry, renameSyncWithRetry, renameWithRetry } from '../fs-rename.ts';
 // Contract VALUES, like `workspaceUiStateSchema` in workspace/migrations.ts: the tag bounds this
@@ -552,12 +553,10 @@ export function serializedByPath<T>(path: string, task: () => Promise<T>): Promi
 }
 
 /**
- * Read-modify-write merge: re-read the file, apply `mutator`, atomic-rename
- * write (`0600`, dir `0700`). Because every writer re-reads immediately before
- * writing, two processes registering different projects converge instead of
- * dropping each other's entries (last-writer-wins only within the tiny
- * read→rename window — acceptable for a registry that self-heals on next
- * boot). The mutator may mutate its argument in place or return a replacement.
+ * Read-modify-write merge: take a cross-process lock, re-read the file, apply
+ * `mutator`, then atomic-rename write (`0600`, dir `0700`). The lock's stale
+ * recovery allows a later writer to proceed after its owner exits unexpectedly.
+ * The mutator may mutate its argument in place or return a replacement.
  * Returns the config that was written. Throws on write failure (e.g. a
  * read-only home) and on a file that exists but cannot be read
  * (`WorkspaceConfigUnreadableError`) — degrading is the caller's policy.
@@ -576,21 +575,38 @@ export async function mergeWriteWorkspaceConfig(
 ): Promise<WorkspaceConfig> {
   const path = workspaceConfigPath();
   return serializedByPath(path, async () => {
-    const current = await readWorkspaceConfig(path, true);
-    const next = mutator(current) ?? current;
-    await atomicWriteJson(path, next);
-    // Refresh the snapshot after EVERY successful write, including an emptied
-    // registry (#731). Skipping the empty case left a stale non-empty backup:
-    // removing the last project, then losing config.json, resurrected the project
-    // the user had deliberately unregistered. An empty snapshot is not restored on
-    // load (see loadWorkspaceConfigBackup), so recovery now settles on the empty
-    // registry the user intended rather than the old projects.
+    let release: (() => Promise<void>) | undefined;
     try {
-      await atomicWriteJson(workspaceConfigBackupPath(path), next);
-    } catch {
-      // Best-effort: the registry itself is already safely on disk, and a
-      // failed snapshot must never turn a successful write into an error.
+      mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+      // Atomic rename alone cannot protect a read-modify-write across processes. The lock
+      // directory heartbeat also lets proper-lockfile reclaim a writer killed mid-merge.
+      release = await lockfile.lock(path, {
+        realpath: false,
+        stale: 30_000,
+        retries: { retries: 100, minTimeout: 20, maxTimeout: 100 },
+      });
+      const current = await readWorkspaceConfig(path, true);
+      const next = mutator(current) ?? current;
+      await atomicWriteJson(path, next);
+      // Refresh the snapshot after EVERY successful write, including an emptied
+      // registry (#731). Skipping the empty case left a stale non-empty backup:
+      // removing the last project, then losing config.json, resurrected the project
+      // the user had deliberately unregistered. An empty snapshot is not restored on
+      // load (see loadWorkspaceConfigBackup), so recovery now settles on the empty
+      // registry the user intended rather than the old projects.
+      try {
+        await atomicWriteJson(workspaceConfigBackupPath(path), next);
+      } catch {
+        // Best-effort: the registry itself is already safely on disk, and a
+        // failed snapshot must never turn a successful write into an error.
+      }
+      return next;
+    } finally {
+      try {
+        await release?.();
+      } catch {
+        // The config and backup are already durable; a lock cleanup failure is recoverable.
+      }
     }
-    return next;
   });
 }

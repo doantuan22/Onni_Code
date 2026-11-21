@@ -5,7 +5,7 @@ import { runEventsQuerySchema, runIdParamSchema } from '@onni/contract';
 import type { RunEvent } from '../../runs/store.ts';
 import { onUsage } from '../../core/process-usage.ts';
 import { isV2WireEventType } from '../../runs/ui-event-sink.ts';
-import { HistoryCursorError, readEventsAfterLiveCursor, streamRunEvents, validateLiveCursor } from '../../runs/event-history.ts';
+import { decodeLiveCursor, HistoryCursorError, readEventsAfterLiveCursor, streamRunEvents, validateLiveCursor } from '../../runs/event-history.ts';
 import { onTodosChanged, readTodos, type TodoItem } from '../../todos.ts';
 import { onRunFrames } from '../run-frames.ts';
 import { onRunDeleted, onRunEvent } from '../sse-subscriptions.ts';
@@ -13,6 +13,7 @@ import type { ProjectContext } from '../project-context.ts';
 import { paramZodValidator, queryZodValidator } from '../validators.ts';
 
 type ProjectApiEnv = { Variables: { project: ProjectContext } };
+const MAX_REPLAY_BUFFERED_EVENTS = 1_000;
 
 export function createSseRoutes(deps: {
   capabilities: () => { followups: boolean };
@@ -45,7 +46,8 @@ export function createSseRoutes(deps: {
       );
       return streamSSENoBuffer(c, async (stream) => {
         let replaying = true;
-        let maxSeq = requestedAfter;
+        let overflowed = false;
+        let maxSeq = Math.max(requestedAfter, query.cursor ? decodeLiveCursor(query.cursor).boundarySeq : 0);
         const buffered: RunEvent[] = [];
         // One endpoint, two SSE event names: v1 lines stay `run-event` (the name
         // the legacy UI listened to — its default branch JSON-dumped unknown
@@ -61,7 +63,10 @@ export function createSseRoutes(deps: {
             data: JSON.stringify(event),
           });
         const onEvent = (event: RunEvent) => {
-          if (replaying) buffered.push(event);
+          if (replaying) {
+            if (buffered.length >= MAX_REPLAY_BUFFERED_EVENTS) overflowed = true;
+            else if (!overflowed) buffered.push(event);
+          }
           else void writeEvent(event);
         };
         const offEvent = onRunEvent(store, id, onEvent);
@@ -74,15 +79,20 @@ export function createSseRoutes(deps: {
           offRun();
         });
 
-        const replay = query.cursor
-          ? await readEventsAfterLiveCursor(eventsPath, query.cursor)
-          : { events: streamRunEvents(eventsPath), boundarySeq: 0 };
-        maxSeq = Math.max(maxSeq, replay.boundarySeq);
-        for await (const event of replay.events) {
+        const events = query.cursor
+          ? readEventsAfterLiveCursor(eventsPath, query.cursor, c.req.raw.signal)
+          : streamRunEvents(eventsPath);
+        for await (const event of events) {
           if (stream.aborted) break;
           if (event.seq <= maxSeq) continue;
           await writeEvent(event);
           maxSeq = event.seq;
+        }
+        if (overflowed) {
+          offEvent();
+          offRun();
+          await stream.close();
+          return;
         }
         replaying = false;
         for (const event of buffered) {

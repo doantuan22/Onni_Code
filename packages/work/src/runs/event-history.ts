@@ -815,35 +815,37 @@ export async function* streamRunEvents(filePath: string): AsyncGenerator<RunHist
   }
 }
 
-export async function readEventsAfterLiveCursor(filePath: string, cursor: string): Promise<{
-  events: RunHistoryEvent[];
-  boundarySeq: number;
-}> {
+export async function* readEventsAfterLiveCursor(
+  filePath: string,
+  cursor: string,
+  signal?: AbortSignal,
+): AsyncGenerator<RunHistoryEvent> {
   const decoded = decodeLiveCursor(cursor);
   let fileSize = 0;
   try {
     fileSize = (await stat(filePath)).size;
   } catch {
-    if (decoded.offset === 0) return { events: [], boundarySeq: decoded.boundarySeq };
+    if (decoded.offset === 0) return;
     throw new HistoryCursorError(409, 'history cursor is no longer valid — reload the newest page');
   }
   if (decoded.offset > fileSize) {
     throw new HistoryCursorError(409, 'history cursor is no longer valid — reload the newest page');
   }
-  if (decoded.offset === fileSize) return { events: [], boundarySeq: decoded.boundarySeq };
-  const text = await new Promise<string>((resolve, reject) => {
-    let value = '';
-    const stream = createReadStream(filePath, { encoding: 'utf8', start: decoded.offset });
-    stream.on('data', (chunk: string | Buffer) => {
-      value += chunk.toString();
-    });
-    stream.on('end', () => resolve(value));
-    stream.on('error', reject);
-  });
-  return {
-    events: text.split('\n').map(parseLine).filter((event): event is RunHistoryEvent => event !== null),
-    boundarySeq: decoded.boundarySeq,
-  };
+  if (decoded.offset === fileSize || signal?.aborted) return;
+  const input = createReadStream(filePath, { encoding: 'utf8', start: decoded.offset });
+  const abort = () => input.destroy();
+  signal?.addEventListener('abort', abort, { once: true });
+  try {
+    const lines = createInterface({ input, crlfDelay: Infinity });
+    for await (const line of lines) {
+      if (signal?.aborted) return;
+      const event = parseLine(line);
+      if (event) yield event;
+    }
+  } finally {
+    signal?.removeEventListener('abort', abort);
+    input.destroy();
+  }
 }
 
 export async function validateLiveCursor(filePath: string, cursor: string): Promise<void> {

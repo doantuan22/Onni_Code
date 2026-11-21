@@ -30,12 +30,8 @@ function readRunIndex(dataDir: string): RunRecord[] | undefined {
   try {
     const raw = JSON.parse(readFileSync(indexPath, 'utf8'));
     const parsed = z.array(runRecordSchema).safeParse(raw);
-<<<<<<< HEAD
-    if (!parsed.success) return [];
-    const tombstones = readRunIndexTombstones(dataDir);
-=======
     if (!parsed.success) return undefined;
->>>>>>> onni/327246e3
+    const tombstones = readRunIndexTombstones(dataDir);
     // `reconcileLoadedRun` mutates, which is safe here in a way it is not in the store: these
     // records were just parsed into fresh objects that nothing else holds a reference to.
     // Never `keepLive` — this reader has no RunManager, so there is nothing to recover into.

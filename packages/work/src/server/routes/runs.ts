@@ -321,12 +321,19 @@ export function createRunsRoutes(deps: RunsRouteDeps) {
   return new Hono<ProjectApiEnv>()
     // `workflowDef` is ~1.3 MB per run; the list leaves it out (`?full=1` opts back in, GET /runs/:id is always complete).
     .get('/runs', queryZodValidator(runsListQuerySchema), (c) => {
-      const full = c.req.valid('query').full === '1';
+      const query = c.req.valid('query');
+      const full = query.full === '1';
+      const runs = c.get('project').store.listRuns();
+      const start = query.cursor === undefined ? 0 : runs.findIndex((run) => run.id === query.cursor) + 1;
+      const limit = query.limit === undefined ? undefined : Number(query.limit);
+      const page = query.cursor !== undefined && start === 0
+        ? []
+        : runs.slice(start, limit === undefined ? undefined : start + limit);
+      if (limit !== undefined && page.length > 0 && start + page.length < runs.length) {
+        c.header('X-Next-Cursor', page[page.length - 1]!.id);
+      }
       return c.json(
-        c
-          .get('project')
-          .store.listRuns()
-          .map((run) => withUsage(full || !run.workflowDef ? run : { ...run, workflowDef: undefined })),
+        page.map((run) => withUsage(full || !run.workflowDef ? run : { ...run, workflowDef: undefined })),
       );
     })
 

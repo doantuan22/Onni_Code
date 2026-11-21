@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { Hono } from 'hono';
 import { type Capabilities, type RunIndexEntry, type RunsIndexResponse } from '@onni/contract';
-import { byLastActivityDesc, compareIsoDesc, lastActivityAt, readRunIndexFromDisk } from '../../runs/run-index.ts';
+import { byLastActivityDesc, compareIsoDesc, createRunIndexReader, lastActivityAt } from '../../runs/run-index.ts';
 import type { currentUsage } from '../../core/process-usage.ts';
 import type { RunRecord } from '../../runs/store.ts';
 import { type ProjectListEntry, type ProjectListSelector } from '../../workspace/projects.ts';
@@ -29,6 +29,7 @@ export function runsIndexRoutes(deps: RunsIndexRouteDeps) {
    * has to pretend the list is complete.
    */
   const RUNS_INDEX_PER_PROJECT = 200;
+  const indexReader = createRunIndexReader();
 
   /** `RunRecord` → the wire row. Optional keys are spread CONDITIONALLY: writing
    *  `titleSummary: run.titleSummary` types a key as always-present that `JSON.stringify` then
@@ -142,6 +143,7 @@ export function runsIndexRoutes(deps: RunsIndexRouteDeps) {
         // active project's own run list, which it holds either way.
       }
       const bootId = await resolveBootProject(projects);
+      indexReader.retain(projects.filter((project) => project.status !== 'missing').map((project) => join(project.root, '.ai/onni')));
       const runs: RunIndexEntry[] = [];
       const truncated: string[] = [];
       // Statuses the server already holds, shipped WITH the rows that carry the references. The
@@ -162,7 +164,7 @@ export function runsIndexRoutes(deps: RunsIndexRouteDeps) {
         // is findable while you stand in its project and vanishes the moment you leave — the
         // exact asymmetry a cross-project finder exists to remove.
         const recent = (
-          owned ? owned.store.listRuns() : readRunIndexFromDisk(join(project.root, '.ai/onni'))
+          owned ? owned.store.listRuns() : indexReader.read(join(project.root, '.ai/onni'))
         ).sort(byLastActivityDesc);
         if (recent.length > RUNS_INDEX_PER_PROJECT) truncated.push(project.id);
         const mentioned: number[] = [];

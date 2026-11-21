@@ -27,6 +27,7 @@ import { isSettingsPathname } from '@/lib/settings-path'
 import { BrandLockup, BrandMark } from '@/components/brand-mark'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { SceneBackdrop } from '@/components/scene-backdrop'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -298,11 +299,13 @@ export const AppShell = React.memo(function AppShell({
         />
       )}
       <div
+        data-slot="app-content-column"
         className={cn(
-          'grid min-w-0 flex-1 grid-rows-[auto_auto_1fr_auto] overflow-hidden',
+          'relative isolate grid min-w-0 flex-1 grid-rows-[auto_auto_1fr_auto] overflow-hidden',
           desktop === 'macos' && 'pt-[28px]',
         )}
       >
+        <SceneBackdrop />
         {/* The Sheet root renders no DOM of its own. Keep only the mobile controls inside its
             context so a sidebar update cannot propagate through the routed view. */}
         {/* Row 1 stays EMPTY in chromeless mode — the explicit `row-start-*` placement is what

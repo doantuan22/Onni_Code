@@ -3,8 +3,10 @@ import type { ReactNode } from 'react'
 import { Link as RouterLink, MemoryRouter, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { DEFAULT_SCENE_PREFERENCES } from '@/lib/appearance'
 import { AppShell, routeOwnsScrollArrival, type AppShellProps } from './app-shell'
 import { NAV_ITEMS, visibleNavItems } from './nav-items'
+import { SceneProvider } from './scene-provider'
 import { ThemeProvider } from './theme-provider'
 
 afterEach(() => {
@@ -31,12 +33,14 @@ beforeEach(() => {
 function renderShell(entry = '/', props: Partial<AppShellProps> = {}, children: ReactNode = <p>route content</p>) {
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={[entry]}>
-        <AppShell {...props}>
-          {children}
-          <LocationProbe />
-        </AppShell>
-      </MemoryRouter>
+      <SceneProvider scene={DEFAULT_SCENE_PREFERENCES} onChange={() => {}}>
+        <MemoryRouter initialEntries={[entry]}>
+          <AppShell {...props}>
+            {children}
+            <LocationProbe />
+          </AppShell>
+        </MemoryRouter>
+      </SceneProvider>
     </ThemeProvider>
   )
 }

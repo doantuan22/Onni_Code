@@ -383,6 +383,60 @@
   --measure: none;
 }
 
+/* Scenery sits below the scroller so a transcript can move without scrolling the canvas. */
+[data-slot='scene-backdrop']:not([data-ready]) {
+  visibility: hidden;
+}
+
+[data-slot='scene-layer'],
+[data-slot='scene-scrim'] {
+  position: absolute;
+  inset: 0;
+}
+
+[data-slot='scene-backdrop'][data-mode='horizon'] > [data-slot='scene-layer'] {
+  top: auto;
+  height: 45%;
+  mask-image: linear-gradient(to top, black 45%, transparent);
+}
+
+[data-slot='scene-backdrop'] {
+  --scene-reading-width: var(--chat-measure);
+}
+
+:root[data-width='narrow'] [data-slot='scene-backdrop'] {
+  --scene-reading-width: var(--measure);
+}
+
+[data-slot='scene-backdrop'][data-surface='new'] {
+  --scene-reading-width: 760px;
+}
+
+[data-slot='scene-scrim'] {
+  background: color-mix(in oklab, var(--background) var(--scene-scrim), transparent);
+}
+
+[data-slot='scene-backdrop']:is([data-surface='new'], [data-surface='chat']) > [data-slot='scene-scrim'] {
+  --scene-reading-edge: min(50%, calc(var(--scene-reading-width) / 2));
+  mask-image: linear-gradient(
+    to right,
+    transparent max(0px, calc(50% - var(--scene-reading-edge) - 5rem)),
+    black calc(50% - var(--scene-reading-edge)),
+    black calc(50% + var(--scene-reading-edge)),
+    transparent min(100%, calc(50% + var(--scene-reading-edge) + 5rem))
+  );
+}
+
+[data-scene='on'] [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready])
+  :is([data-slot='thread-dock']:not([data-floating]), [data-slot='run-header']) {
+  background: color-mix(in oklab, var(--background) 88%, transparent);
+}
+
+[data-scene='on'] [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='new'][data-ready])
+  :is([data-slot='twinkle-backdrop'], [data-slot='ghost-code-backdrop']) {
+  display: none;
+}
+
 /* ---------- tokens: radius + shadow ----------
  * These two scales are declared in a plain `@theme` (not `@theme inline`) because their token names
  * ARE Tailwind's own namespace keys — one declaration both defines `var(--radius-lg)` for hand-written

@@ -12,7 +12,9 @@ import type {
   RunRecord,
 } from '@onni/api-client'
 import { AppShellContainer, repoChipOf, shellRepoChip } from '@/components/app-shell-container'
+import { SceneProvider } from '@/components/scene-provider'
 import { ThemeProvider } from '@/components/theme-provider'
+import { DEFAULT_SCENE_PREFERENCES } from '@/lib/appearance'
 
 const fetchMock = vi.fn<typeof fetch>()
 
@@ -98,11 +100,13 @@ function renderShell(entry = '/', client: QueryClient = createQueryClient()) {
     ...render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
-        <MemoryRouter initialEntries={[entry]}>
-          <AppShellContainer>
-            <p>route content</p>
-          </AppShellContainer>
-        </MemoryRouter>
+        <SceneProvider scene={DEFAULT_SCENE_PREFERENCES} onChange={() => {}}>
+          <MemoryRouter initialEntries={[entry]}>
+            <AppShellContainer>
+              <p>route content</p>
+            </AppShellContainer>
+          </MemoryRouter>
+        </SceneProvider>
       </ThemeProvider>
     </QueryClientProvider>,
     ),
@@ -119,13 +123,15 @@ function renderScopedShell(
     ...render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
-        <MemoryRouter initialEntries={[entry]}>
-          <AppShellContainer>
-            <ProjectScopeProvider projectId={projectId}>
-              <p>route content</p>
-            </ProjectScopeProvider>
-          </AppShellContainer>
-        </MemoryRouter>
+        <SceneProvider scene={DEFAULT_SCENE_PREFERENCES} onChange={() => {}}>
+          <MemoryRouter initialEntries={[entry]}>
+            <AppShellContainer>
+              <ProjectScopeProvider projectId={projectId}>
+                <p>route content</p>
+              </ProjectScopeProvider>
+            </AppShellContainer>
+          </MemoryRouter>
+        </SceneProvider>
       </ThemeProvider>
     </QueryClientProvider>,
     ),

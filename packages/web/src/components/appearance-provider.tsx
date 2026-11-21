@@ -11,14 +11,18 @@ import {
   writeStoredAppearance,
   type Appearance,
   type Density,
+  type ScenePreferences,
   type Width,
 } from '@/lib/appearance'
+import { SceneProvider } from './scene-provider'
 
 type AppearanceContextValue = {
   density: Density
   width: Width
+  scene: ScenePreferences
   setDensity: (density: Density) => void
   setWidth: (width: Width) => void
+  setScene: (scene: ScenePreferences) => void
 }
 
 const AppearanceContext = React.createContext<AppearanceContextValue | null>(null)
@@ -65,9 +69,10 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
 
   const save = React.useCallback(
     (next: Appearance) => {
-      setAppearanceState(next)
-      writeStoredAppearance(next)
-      putWorkspaceUiState({ appearance: next })
+      const normalized = normalizeAppearance(next)
+      setAppearanceState(normalized)
+      writeStoredAppearance(normalized)
+      putWorkspaceUiState({ appearance: normalized })
         .then((merged) => queryClient.setQueryData(workspaceQueryKeys.uiState, merged))
         .catch((error: unknown) => {
           toast(error instanceof Error ? error.message : String(error), { tone: 'danger' })
@@ -87,17 +92,30 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
     [save, appearance],
   )
 
+  const setScene = React.useCallback(
+    (scene: ScenePreferences) => save({ ...appearance, scene }),
+    [save, appearance],
+  )
+
   const value = React.useMemo<AppearanceContextValue>(
     () => ({
       density: appearance.density,
       width: appearance.width,
+      scene: appearance.scene,
       setDensity,
       setWidth,
+      setScene,
     }),
-    [appearance, setDensity, setWidth],
+    [appearance, setDensity, setWidth, setScene],
   )
 
-  return <AppearanceContext.Provider value={value}>{children}</AppearanceContext.Provider>
+  return (
+    <AppearanceContext.Provider value={value}>
+      <SceneProvider scene={appearance.scene} onChange={setScene}>
+        {children}
+      </SceneProvider>
+    </AppearanceContext.Provider>
+  )
 }
 
 export function useAppearance(): AppearanceContextValue {

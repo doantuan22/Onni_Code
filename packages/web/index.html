@@ -30,7 +30,7 @@
           document.documentElement.classList.add('light')
           document.documentElement.style.colorScheme = 'light'
         }
-        // Accent + density + reading width before first paint, from the localStorage MIRROR of ui-state.json
+        // Appearance before first paint, from the localStorage MIRROR of ui-state.json
         // (src/lib/appearance.ts owns the contract; keep the two in sync). Defaults are the
         // absence of the attribute, so only the known deviations are stamped. A pre-upgrade
         // `onni-width=narrow` mirror can flash once before the server migration settles.
@@ -42,8 +42,16 @@
             document.documentElement.dataset.density = density
           if (localStorage.getItem('onni-width') === 'narrow')
             document.documentElement.dataset.width = 'narrow'
+          var scene = JSON.parse(localStorage.getItem('onni-scene') || 'null')
+          var sceneIds = [
+            'vn-halong', 'vn-mu-cang-chai', 'vn-fansipan', 'vn-phu-quoc',
+            'world-tromso', 'world-santorini', 'world-matterhorn', 'world-sahara'
+          ]
+          document.documentElement.dataset.scene =
+            scene && scene.on === true && sceneIds.indexOf(scene.id) !== -1 ? 'on' : 'off'
         } catch (e) {
-          // Storage unavailable — lime/comfortable defaults already apply.
+          // Storage unavailable — appearance defaults already apply.
+          document.documentElement.dataset.scene = 'off'
         }
       })()
     </script>

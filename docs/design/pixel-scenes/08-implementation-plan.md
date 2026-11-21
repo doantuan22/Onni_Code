@@ -30,7 +30,7 @@ Căn cứ phân việc gồm [Tổng hợp V2-8](research/_SYNTHESIS.md), [R1 �
 | VN-A | `vn/halong.ts`, `vn/phu-quoc.ts` | Hạ Long là mẫu cảnh nước. Thuyền có tỷ lệ rõ, bóng nước đứt theo sóng. Phú Quốc giữ bố cục chính và sửa bờ, dừa, glint. |
 | VN-B | `vn/mu-cang-chai.ts`, `vn/fansipan.ts` | Ruộng có nhóm bậc, vật thể cho thấy tỷ lệ. Fansipan có silhouette nhận diện và mây có khối. |
 | World-A | `world/sahara.ts`, `world/matterhorn.ts`, `world/alps-desert.test.ts` | Sahara là mẫu cảnh đất với caravan động, cồn có hai mặt. Matterhorn giữ đỉnh chính, làm lại hồ, rừng và tuyết. |
-| World-B | `world/tromso.ts`, `world/santorini.ts` (gỡ), module cảnh thay theo mục 3 (R3 đề xuất `world/kyoto.ts`) | Rèm cực quang có motion riêng và phản quang ăn khớp. Cảnh thay có silhouette và phối cảnh riêng, do OnniCode tự vẽ. |
+| World-B | `world/tromso.ts`, `world/santorini.ts` (gỡ), `world/kyoto.ts` (Kyoto/Fushimi Inari, id `world-kyoto`, thay Santorini theo [03](03-scene-set.md)) | Rèm cực quang có motion riêng và phản quang ăn khớp. Cảnh thay có silhouette và phối cảnh riêng, do OnniCode tự vẽ. |
 
 Sprite/test mới của P2 đặt cạnh module, mang tiền tố tên cảnh để tránh giao nhau. P3a giữ một chủ cho registry, danh sách id và assert giữa registry/preference. Nếu nhóm cảnh cần primitive, báo P0 bổ sung. Nếu tên/id cảnh thay đổi, chủ P3a cập nhật mọi nơi nhận id và báo P4/P5.
 

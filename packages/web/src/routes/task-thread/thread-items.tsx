@@ -197,7 +197,7 @@ export function UserBubble({
         data-editing="true"
         role="group"
         aria-label={t('User message')}
-        className="max-w-[85%] self-end rounded-2xl bg-muted/70 px-4 py-2.5 text-[14px] leading-[1.65] md:max-w-[80%]"
+        className="max-w-[85%] self-end rounded-2xl bg-muted/40 px-4 py-2.5 text-[14px] leading-[1.65] md:max-w-[80%]"
       >
         <textarea
           autoFocus
@@ -245,7 +245,7 @@ export function UserBubble({
       data-slot="user-bubble"
       role="group"
       aria-label={t('User message')}
-      className="group max-w-[85%] min-w-0 self-end rounded-2xl bg-muted/70 px-4 py-2.5 text-[14px] leading-[1.65] md:max-w-[80%]"
+      className="group max-w-[85%] min-w-0 self-end rounded-2xl bg-muted/40 px-4 py-2.5 text-[14px] leading-[1.65] md:max-w-[80%]"
     >
       {onEdit || onRemove ? (
         <span

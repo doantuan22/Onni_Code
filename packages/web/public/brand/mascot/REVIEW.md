@@ -54,3 +54,40 @@ Read-only XML checks passed for all seven SVGs: allowed elements, integer geomet
 6. **P1 — redraw state gestures, not just accessories.** Give success both raised arms with ≥1px background gaps from the head and closed happy eyes; working should lean or direct its gaze toward a clearly stepped keyboard/tool; sleep should lower the head/body by 1–2px and use actual horizontal eyelids. Move sleep symbols ≥1px outside the head, with stepped diagonals if using Zs. Keep a common ground baseline and recognizable ears. Acceptance: all five states can be named from unlabelled 32px thumbnails, including a greyscale pass.
 7. **P1 — supply motion and playback intent.** Add at least two meaningful frames for working, success, error and sleep; replace hollow-socket blinking with full closed lids. Suggested starting timings: idle 1,800ms open + 100ms blink; working 200–300ms alternating action; success 120–180ms raised gesture then held settle; error a brief 1px shake then concerned hold; sleep 600–900ms breathing frames. Record explicit duration and loop/one-shot policy alongside each state, keep body anchors stable, and provide a reduced-motion static frame. Preview the actual sequence before declaring it animated.
 8. **P2 — finish the review sheet and regeneration check.** Show every pose and frame, plus the separate head, at actual 16px and 32px and integer-scaled 256px on both surfaces. Identify pose/frame order in accompanying metadata or labels outside the mascot assets. Preserve the six-colour palette, rect-only geometry, square viewBoxes and dependency-free generator. Regenerate once, confirm SVG/JSON/PNG agreement and a clean second generation, then repeat the unlabelled state and silhouette reviews.
+
+## Resolution
+
+Revised 2026-11-21. All eight fix-list items have corresponding changes in `mascot-gen.mjs` and regenerated outputs. The original review above remains the record of the superseded design, not a description of the revised assets.
+
+| Fix | Applied resolution |
+| --- | --- |
+| 1 — concerned error | Rebuilt the muzzle rather than painting over the grin. The full mouth area is cleared before a stepped dark frown is drawn on the pale muzzle. Raised inner brows, lowered hands and a one-pixel head shake differentiate error from idle without warning symbols or an amber tongue. |
+| 2 — real 16px head | `onni-mascot-16.svg` now has a `0 0 16 16` viewBox and its own sixteen 16-character rows. Two-pixel eye masses, a two-pixel mouth, pointed ears and tapered cheeks use whole pixels; there are no catchlights or forehead speckles. It fills x1–14/y1–14. |
+| 3 — dark silhouette | Sky edges now expose both ear tips, cheek corners, torso, hands and feet. Navy/ink are recessed face/nose/joint details. Transparent SVG backgrounds remain intact. The sheet includes both ink and navy surfaces, independently checking the small head as well. |
+| 4 — fox anatomy | Replaced capped antennae and the rectangular monitor with upward-tapering ears, stepped cheeks, a pale muzzle and dark nose. A bent side tail has a pale tip. The azure shell, chest indicator and articulated feet retain the robot identity. |
+| 5 — chevron | One 3×5 sky `<` staircase (`..S`, `.S.`, `S..`, `.S.`, `..S`) occupies a cleared navy forehead patch at x14–16/y7–11 in idle. The patch translates with the head in working/error/sleep. The dedicated 16px head intentionally omits this fine detail. |
+| 6 — distinct gestures | Idle is upright; working leans one pixel left/down toward a stepped keyboard with alternating hands; success raises both separated arms and uses happy closed eyes; error frowns with concerned brows and drooped hands; sleep lowers the head/body two pixels, uses full horizontal lids and a curled tail. Its stepped Z stays clear of the head. Feet keep the same y30 baseline. |
+| 7 — motion intent | Every state now has two frames: ten total. Idle open/blink is 1800/100ms, working alternates at 240ms, success raises/settles at 160/900ms, error uses a 100ms 0/1/0/1 shake then holds the last frame, and sleep breathes at 800ms. `playback` records order, per-frame durations, loop versus once/hold-last and a reduced-motion frame. Full lids replace hollow eye sockets. Ordered `sequence-STATE.png` strips expose the actual playback order. The generated offline `playback-preview.html` plays it with restart, pause and reduced-motion controls. |
+| 8 — complete preview/check | `mascot-sheet.png` is 2992×1520: eleven columns (idle 0/1, working 0/1, success 0/1, error 0/1, sleep 0/1, independent head), each with actual 16px, actual 32px and 256px views. Five bands show white, ink, navy, greyscale on white and a filled silhouette on ink. `sprite-frames.json.preview` gives exact column/band coordinates and size offsets. Seven rect-only SVGs, all grids and PNGs regenerate with no dependencies. |
+
+### Verification and visual iteration
+
+Ran `node packages/web/public/brand/mascot/mascot-gen.mjs` after the redraw and again after inspecting the sheet. The first generator pass caught an incorrectly sized small-head row before writing assets; that row was corrected. Visual iteration brought the sleeping torso closer to the head, added a connecting neck and simplified the independent head's mouth. Inspected the final full sheet at its actual 16/32px samples and 8× 32px enlargements, plus each state's enlarged ordered strip. The separate head's 256px preview is 16×; the offline viewer also supplies an 8× (128px) head detail.
+
+The unlabelled 32px read is upright/typing/celebrating/concerned/resting, including in greyscale. Filled silhouettes retain the pointed ears and tail; success's separated raised arms, working's keyboard and sleep's crouch distinguish their gestures. The dedicated 16px head preserves the same ear/muzzle identity on white, ink and navy. Full-body 16px thumbnails are secondary diagnostics; the dedicated head is the intended tiny identity asset.
+
+The generator reads the saved files back, validates square grids and allowed SVG elements/integer rect geometry/crispEdges, reconstructs each SVG into its source grid, compares the saved JSON and inflates the actual PNG scanlines for parity. Final output:
+
+```text
+Validated 5 states / 10 frames + 16px head; SVG/JSON/PNG parity; sheet 2992x1520; 5 playback sequences.
+Unchanged generated outputs: 15/15 (all means deterministic regeneration).
+```
+
+No application tests, typecheck, build, unit suite or package test were run. The existing brand test pins the production icon rather than these scoped assets, so it was not needed or modified. Production branding and runtime consumers remain outside this task.
+
+### Remaining weaknesses
+
+- These are deliberately economical two-frame cycles. More nuanced weight, anticipation and follow-through would need additional frames; the current keyboard action and breathing are subtle at 16px.
+- At 16px, the full-body chevron and frown lose detail. Use the independent head for tiny identity placements and the 32px masters for expressive status art. The tail and pale muzzle strengthen the fox reading, but a blue pointed-eared character can still suggest a cat when only the head is shown.
+- Motion was inspected as the ordered source-frame strips and explicit timing metadata. The offline animated preview is supplied, but live browser playback could not be observed because the computer-use native pipe was unavailable. No runtime animation integration or browser timing test is claimed.
+- The sky rim is intentional on light surfaces too; it keeps one transparent asset set readable against both dark brand backgrounds. White tail tips blend into white surfaces internally, while their sky border preserves the outline.

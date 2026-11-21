@@ -259,6 +259,57 @@ repo and live under `/p/<projectId>/settings`. On any project page, clicking
 another project in the tree opens the same place there: the same section, or
 its General page when General is open; the previous project folds.
 
+### Appearance
+
+Open **Settings → Appearance** (`/settings/global/appearance`) for theme, density,
+reading width and **Background scenes**. Scenes are optional procedural pixel landscapes,
+off by default, drawn behind the content column; the sidebar keeps its solid background.
+The eight scenes are Ha Long Bay, Mu Cang Chai, Fansipan, Phu Quoc, Tromsø aurora,
+Santorini, Matterhorn and Sahara, grouped into Vietnam and World.
+
+**Quick controls:** the mountain button beside the theme button in the sidebar footer
+opens a popover with **Enable background scenes**, the scene library, **Visibility** and
+a link to full settings. It is also available in the collapsed sidebar and mobile drawer.
+When enabled on `/new`, a scene chip at the bottom right opens the same popover and has
+previous/next buttons. The command palette (`⌘K` / `Ctrl+K`) offers **Toggle background
+scenes**, **Next background scene** and **Previous background scene**; these actions have
+no dedicated shortcut by default and can be assigned in Settings → Keyboard.
+
+Settings adds per-surface switches and modes, time of day, speed and motion. Preferences
+are global across projects on this machine, stored as optional fields under
+`appearance.scene` in `~/.onni/ui-state.json`. Old UI-state files need no migration.
+The browser keeps an `onni-scene` localStorage mirror of the on flag and scene ID for
+first paint; the server's saved preferences win after loading.
+
+| Field | Values | Default |
+| --- | --- | --- |
+| `on` | Enable background scenes | `false` |
+| `id` | Scene ID (string, up to 40 characters); see below | Unset; enabling chooses Ha Long Bay |
+| `visibility` | `0`–`1` (0–100%); effective visibility is capped to keep text readable | `0.7` (70%) |
+| `speed` | `0.25`–`2` (animation multiplier) | `1` |
+| `time` | `auto` (Follow computer time), `dawn`, `day`, `dusk`, `night` | `auto` |
+| `motion` | Animate the scene | `true` |
+| `surfaces.new` | Show on New task (`/new`) | `true` |
+| `surfaces.chat` | Show in task chat (`/tasks/:id`) | `true` |
+| `surfaces.other` | Show on other pages in the app shell | `false` |
+| `mode.new` | `full` (Full frame) or `horizon` (Horizon) | `full` |
+| `mode.chat` | `full` or `horizon` | `horizon` |
+
+IDs are `vn-halong`, `vn-mu-cang-chai`, `vn-fansipan`, `vn-phu-quoc`,
+`world-tromso`, `world-santorini`, `world-matterhorn` and `world-sahara`.
+An unknown ID leaves scenes off. **Full frame** fills the content column; **Horizon**
+concentrates the landscape in its bottom 45%, fading into the background above it.
+Narrow screens use Horizon with a smaller rendering buffer; other pages also use Horizon.
+
+Scenes pause while the tab is hidden. Turning off **Scene motion**, or requesting reduced
+motion in the OS, leaves a static frame. Rendering automatically slows on devices that
+cannot keep up. Scenes render locally without external requests; disabling them removes
+the canvas and stops its renderer. Scroll parallax and scenes reacting to agent activity
+are deferred to v2.
+
+Scenery technique inspired by Pixel Chat Themes (MIT); OnniCode's landscapes are original.
+See the [pixel-scenes design record](design/pixel-scenes/README.md).
+
 ### Grouping connected repositories: tags and the All tasks page
 
 Work rarely stops at a repo boundary. A storefront is an API, a web app and a

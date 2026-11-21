@@ -114,6 +114,12 @@ navy preview backgrounds.
 | Cross-pose consistency | 4/10 | Mismatched body scale, crop treatment, baseline, and effect handling. |
 | SVG delivery format | 8/10 | Correct rect-only, crisp-pixel representation; it needs corrected source pixels. |
 
+## Resolution
+
+Complete. The extractor rejects magenta-dominant and near-magenta pixels before palette lookup, uses a documented nine-swatch brand palette, and samples at 2 px. Each named source region selects the connected component with the greatest in-region overlap; only large explicitly enabled effect components may accompany it, with 8 source pixels of padding. Standing poses share the `y=91` foot anchor; sleep is treated as a horizontal pose with its own silhouette. Success sparkles and sleep marks remain only when connected to the selected pose component, avoiding detached key noise. The hero is generated from canonical idle, and 16/32 px heads use a face-only crop from that same image.
+
+The generator completed with `Wrote 18 assets; grid=2px, shared palette=9, preview=1340x1020`. The latest `final/preview.png` was inspected at native and 4x scale. All five poses are recognizable on white, charcoal, and navy backgrounds; working's screen/keyboard remains distinct from the tail, sleep is fully visible, and both head sizes show the face and ears without opaque canvas-edge pixels. No alpha pixels touch sprite edges, and the palette contains no magenta/salmon. The five-pose source sheet itself does not cut off a limb. No full suite, build, or typecheck was run, as requested.
+
 ## Prioritized FIX LIST
 
 1. **Replace `keyed()` with a chroma-key plus alpha-matte rule.** Mark a source

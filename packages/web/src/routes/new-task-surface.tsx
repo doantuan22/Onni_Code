@@ -1,3 +1,4 @@
+import { ScenePopover } from '@/components/scene-popover'
 import { ManagerWorkerPill } from '@/components/manager-worker-pill'
 import { requestFromDraft, type LimitsDraft } from '@/lib/run-limits'
 import { previewSettingsKey, StartTimePicker, type StartChoice } from '@/components/start-time-picker'
@@ -912,6 +913,7 @@ export function NewTaskSurface({
     >
       <TwinkleBackdrop />
       <GhostCodeBackdrop />
+      <ScenePopover chip />
 
       <div
         data-slot="new-task-layout"

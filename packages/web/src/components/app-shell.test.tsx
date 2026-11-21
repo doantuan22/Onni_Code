@@ -8,6 +8,8 @@ import { AppShell, routeOwnsScrollArrival, type AppShellProps } from './app-shel
 import { NAV_ITEMS, visibleNavItems } from './nav-items'
 import { SceneProvider } from './scene-provider'
 import { ThemeProvider } from './theme-provider'
+import { SceneProvider } from './scene-provider'
+import { DEFAULT_SCENE_PREFERENCES } from '@/lib/appearance'
 
 afterEach(() => {
   cleanup()

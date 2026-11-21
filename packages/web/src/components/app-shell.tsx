@@ -28,6 +28,7 @@ import { BrandLockup, BrandMark } from '@/components/brand-mark'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { SceneBackdrop } from '@/components/scene-backdrop'
+import { ScenePopover } from '@/components/scene-popover'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -609,6 +610,7 @@ function SidebarContent({
           {version ? <VersionChip version={version} /> : null}
           <GlobalSettingsLink onNavigate={onNavigate} className="ml-auto" />
           <ThemeToggle />
+          <ScenePopover />
         </div>
       </div>
     </div>
@@ -720,6 +722,7 @@ function RailSidebarContent({
       {settings ? (
         <nav aria-label={t('Sidebar settings')} className="mt-auto flex flex-col items-center">
           {railLink(settings)}
+          <ScenePopover />
         </nav>
       ) : null}
     </div>

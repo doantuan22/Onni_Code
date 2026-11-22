@@ -1,1 +1,246 @@
-/* section: nav � scoped under #nav; see site/README.md and ../../05-plan.md */
+/* ==========================================================================
+   Section 00: Sticky Navigation (#nav)
+   Scoped strictly under #nav. 8px grid, 1px hairline borders, opaque after
+   80px scroll, spine-violet progress hairline driven by --page-p.
+   ========================================================================== */
+
+#nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: var(--nav-h, 56px);
+  background-color: color-mix(in srgb, var(--background) 82%, transparent);
+  border-bottom: 1px solid var(--border);
+  transition:
+    background-color var(--duration-base) var(--ease-out),
+    border-color var(--duration-base) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out);
+}
+
+/* Fully opaque after 80px scroll (no backdrop blur per 02-concept.md) */
+#nav[data-scrolled='true'],
+#nav.is-scrolled {
+  background-color: var(--background);
+  border-bottom-color: color-mix(in srgb, var(--violet) 26%, var(--border));
+  box-shadow: var(--shadow-sm);
+}
+
+#nav .nav__inner {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+/* ---------- Brand Lockup (assets/brand/onni-lockup.svg) ---------- */
+
+#nav .nav__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px 6px 4px 4px;
+  border-radius: var(--radius);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+#nav .nav__brand:hover {
+  background-color: var(--card-2);
+}
+
+#nav .nav__lockup-plate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding-inline: 6px;
+  border-radius: var(--radius-sm);
+  background-color: var(--brand-tile, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  box-shadow: var(--shadow-xs);
+}
+
+#nav .nav__lockup-img {
+  width: 67px;
+  height: 16px;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+#nav .nav__wordmark {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+#nav .nav__local-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding-inline: 6px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border);
+  background-color: var(--card);
+  color: var(--muted-foreground);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.04em;
+}
+
+/* ---------- Anchor Links (Worktrees · Live · Orchestration · Local) ---------- */
+
+#nav .nav__links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+#nav .nav__link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--muted-foreground);
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+#nav .nav__link:hover {
+  color: var(--foreground);
+  background-color: var(--card);
+}
+
+#nav .nav__link[aria-current='true'],
+#nav .nav__link.is-active {
+  color: var(--foreground);
+}
+
+#nav .nav__link[aria-current='true']::after,
+#nav .nav__link.is-active::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 2px;
+  height: 1px;
+  background-color: var(--violet);
+  box-shadow: 0 0 6px var(--violet-glow);
+}
+
+#nav .nav__dot {
+  color: var(--soft-foreground);
+  font-size: var(--text-xs);
+  user-select: none;
+}
+
+/* ---------- Actions: Lamp Toggle & Try Offline CTA ---------- */
+
+#nav .nav__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+#nav .nav__lamp-btn {
+  height: 32px;
+  padding-inline: var(--space-3);
+  gap: 6px;
+  font-size: var(--text-xs);
+  border-color: var(--border);
+  background-color: var(--card);
+}
+
+#nav .nav__lamp-icon {
+  color: var(--pending);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+#nav .nav__lamp-btn:hover .nav__lamp-icon {
+  transform: translateY(-1px);
+}
+
+#nav .nav__lamp-led {
+  width: 6px;
+  height: 6px;
+}
+
+#nav .nav__lamp-label {
+  font-size: var(--text-xs);
+  min-width: 5.2ch;
+  text-align: left;
+}
+
+#nav .nav__cta {
+  height: 32px;
+  padding-inline: var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+/* ---------- Spine-Violet Bottom Progress Hairline ---------- */
+
+#nav .nav__progress {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 100%;
+  height: 1px;
+  background-color: var(--violet);
+  box-shadow: 0 0 10px var(--violet-glow);
+  transform-origin: 0 50%;
+  transform: scaleX(var(--page-p, 0));
+  pointer-events: none;
+}
+
+/* ---------- Mobile 390px Stacking & Compact Reachability ---------- */
+
+@media (max-width: 767px) {
+  #nav {
+    height: auto;
+    min-height: 56px;
+  }
+
+  #nav .nav__inner {
+    height: auto;
+    min-height: 56px;
+    flex-wrap: wrap;
+    padding-block: 8px;
+    row-gap: 6px;
+  }
+
+  #nav .nav__local-pill {
+    display: none;
+  }
+
+  #nav .nav__links {
+    display: flex;
+    order: 3;
+    width: 100%;
+    justify-content: space-between;
+    padding-top: 6px;
+    border-top: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+    overflow-x: auto;
+  }
+
+  #nav .nav__link {
+    height: 26px;
+    padding-inline: 6px;
+    font-size: var(--text-xs);
+  }
+
+  #nav .nav__lamp-btn {
+    padding-inline: 8px;
+  }
+
+  #nav .nav__cta {
+    padding-inline: 10px;
+  }
+}

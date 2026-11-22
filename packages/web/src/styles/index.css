@@ -413,49 +413,47 @@
  * variables scoped to it never reached them (the protection rendered transparent). */
 :root {
   /* Scenery panel protection (D4-compliant: tint + 1px border, never backdrop-filter). */
-  --scene-panel-alpha: 92%;
+  --scene-panel-alpha: 72%;
   --scene-panel-surface: color-mix(in srgb, var(--background) var(--scene-panel-alpha), transparent);
   --scene-panel-border: color-mix(in srgb, var(--border) 80%, var(--background));
   --scene-panel-radius: var(--radius-xl);
 }
 
 :root.light {
-  --scene-panel-alpha: 94%;
+  --scene-panel-alpha: 78%;
   --scene-panel-border: color-mix(in srgb, var(--border) 85%, var(--background));
 }
 
 /* Scenery stays full-strength in empty gutters. Text only sits on locally protected panels; this
  * replaces the former full-column scrim and its duplicate visibility reduction. */
-[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) .scene-reading-panel,
-[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='task-settings-panel'],
-[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='thread-dock'][data-floating] [data-slot='composer'] {
+[data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-ready]) .scene-reading-panel,
+[data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='task-settings-panel'],
+[data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='thread-dock'][data-floating] [data-slot='composer'] {
   background-color: var(--scene-panel-surface);
   border-color: var(--scene-panel-border);
 }
 
-[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='new-task-main'] {
+[data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='new-task-main'] {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
 }
 
 /* Inside the unified /new reading card, the composer sits directly on the card surface without compounding alpha. */
-[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='new-task-main'] [data-slot='composer'] {
+[data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='new-task-main'] [data-slot='composer'] {
   background-color: transparent;
   border-color: var(--scene-panel-border);
 }
 
 /* Chat transcript: one continuous protected reading lane on desktop, shielding all text,
  * timestamps, tool streaks, and reasoning uniformly while leaving side gutters clear for Horizon. */
-[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready]:not([data-narrow]))
+[data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready]:not([data-narrow]))
   [data-slot='thread-reading-lane'] {
   background-color: var(--scene-panel-surface);
-  border-inline: 1px solid var(--scene-panel-border);
   border-radius: var(--scene-panel-radius);
   padding: 1rem 1.5rem;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
 }
 
 /* Inside the protected lane, message items sit cleanly without nested duplicate card boxes. */
-[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready]:not([data-narrow]))
+[data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready]:not([data-narrow]))
   :is(
     [data-slot='assistant-message'],
     [data-slot='note-line'],
@@ -476,18 +474,33 @@
 }
 
 /* User message bubbles keep their distinct shape inside the lane without duplicate panel alpha. */
-[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready]:not([data-narrow]))
+[data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready]:not([data-narrow]))
   [data-slot='user-bubble'] {
-  background-color: color-mix(in srgb, var(--accent) 12%, var(--background));
+  background-color: color-mix(in srgb, var(--accent) 12%, var(--scene-panel-surface));
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
-[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='thread-dock']:not([data-floating]) {
-  background-color: var(--background);
-  border-top: 1px solid var(--scene-panel-border);
+[data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready]:not([data-narrow])) [data-slot='run-header'] {
+  background-color: color-mix(in srgb, var(--background) 55%, transparent);
+  border-color: var(--scene-panel-border);
 }
 
-[data-scene='on'] [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='new'][data-ready])
+[data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready]:not([data-narrow])) [data-slot='workspace-column-header'] {
+  background: transparent;
+  border-color: transparent;
+}
+
+[data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='sidebar'],
+[data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-ready]) aside {
+  background-color: color-mix(in srgb, var(--sidebar) 60%, transparent);
+}
+
+[data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='thread-dock']:not([data-floating]) {
+  background: transparent;
+  border-top-color: transparent;
+}
+
+[data-scene='on'] [data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-surface='new'][data-ready])
   :is([data-slot='twinkle-backdrop'], [data-slot='ghost-code-backdrop']) {
   display: none;
 }
@@ -501,7 +514,7 @@
     mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
   }
 
-  [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='new'][data-narrow][data-ready])
+  [data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-surface='new'][data-narrow][data-ready])
     [data-route='new'] {
     padding-top: clamp(104px, 18vh, 144px);
   }
@@ -510,13 +523,13 @@
     display: none;
   }
 
-  [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) .scene-reading-panel,
-  [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='task-settings-panel'],
-  [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='thread-dock'][data-floating] [data-slot='composer'] {
+  [data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-ready]) .scene-reading-panel,
+  [data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='task-settings-panel'],
+  [data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='thread-dock'][data-floating] [data-slot='composer'] {
     background-color: var(--background);
   }
 
-  [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready])
+  [data-slot='app-shell']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready])
     [data-slot='thread-reading-lane'] {
     background-color: var(--background);
     border-inline: none;

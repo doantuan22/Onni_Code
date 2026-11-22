@@ -68,7 +68,7 @@ export const DEFAULT_SCENE_PREFERENCES: ScenePreferences = {
   timeSource: 'theme',
   motion: true,
   surfaces: { new: true, chat: true, other: false },
-  mode: { new: 'full', chat: 'horizon' },
+  mode: { new: 'full', chat: 'full' },
 }
 
 export const DEFAULT_ACCENT: Accent = 'violet'
@@ -127,7 +127,7 @@ export function normalizeScenePreferences(raw: unknown): ScenePreferences {
     },
     mode: {
       new: mode.new === 'horizon' ? 'horizon' : 'full',
-      chat: mode.chat === 'full' ? 'full' : 'horizon',
+      chat: mode.chat === 'horizon' ? 'horizon' : 'full',
     },
   }
 }

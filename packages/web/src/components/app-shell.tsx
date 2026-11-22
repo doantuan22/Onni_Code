@@ -142,14 +142,16 @@ export function useSidebarNavigate(): (() => void) | undefined {
 function useSceneDockHeight(columnRef: React.RefObject<HTMLElement | null>) {
   React.useLayoutEffect(() => {
     const column = columnRef.current
-    if (!column) return
+    // The backdrop is a sibling of the column (it spans the whole shell), so the vars live on the shell.
+    const target = column?.parentElement
+    if (!column || !target) return
     let dock: HTMLElement | null = null
     let dockObserver: ResizeObserver | undefined
     const update = () => {
       const dockHeight = dock?.getBoundingClientRect().height ?? 0
-      column.style.setProperty('--scene-dock-height', `${dockHeight}px`)
+      target.style.setProperty('--scene-dock-height', `${dockHeight}px`)
       // Horizon is 36% of the usable transcript, not 36% of the entire shell behind its dock.
-      column.style.setProperty('--scene-horizon-height', `${Math.max(0, column.clientHeight - dockHeight) * 0.36}px`)
+      target.style.setProperty('--scene-horizon-height', `${Math.max(0, column.clientHeight - dockHeight) * 0.36}px`)
     }
     const observeDock = () => {
       const next = column.querySelector<HTMLElement>('[data-slot="thread-dock"]:not([data-floating])')
@@ -171,8 +173,8 @@ function useSceneDockHeight(columnRef: React.RefObject<HTMLElement | null>) {
       mutations.disconnect()
       dockObserver?.disconnect()
       columnObserver?.disconnect()
-      column.style.removeProperty('--scene-dock-height')
-      column.style.removeProperty('--scene-horizon-height')
+      target.style.removeProperty('--scene-dock-height')
+      target.style.removeProperty('--scene-horizon-height')
     }
   }, [columnRef])
 }
@@ -313,7 +315,7 @@ export const AppShell = React.memo(function AppShell({
       data-slot="app-shell"
       data-desktop={desktop ?? undefined}
       data-chromeless={chromeless ? '' : undefined}
-      className="flex h-dvh overflow-hidden bg-background text-foreground pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
+      className="relative isolate flex h-dvh overflow-hidden bg-background text-foreground pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
     >
       {/* Desktop shell (packages/desktop, macOS): the native title bar is a transparent overlay
           with no title, 28px tall (a title bar's native height), and the traffic lights sit at
@@ -329,6 +331,8 @@ export const AppShell = React.memo(function AppShell({
           className="fixed inset-x-0 top-0 z-[60] flex h-[28px] select-none items-center pl-[80px]"
         />
       ) : null}
+      {/* The scene spans the whole window (sidebar included), not just the content column. */}
+      <SceneBackdrop />
       {chromeless ? null : (
         <Sidebar
           {...nav}
@@ -347,7 +351,6 @@ export const AppShell = React.memo(function AppShell({
           desktop === 'macos' && 'pt-[28px]',
         )}
       >
-        <SceneBackdrop />
         {/* The Sheet root renders no DOM of its own. Keep only the mobile controls inside its
             context so a sidebar update cannot propagate through the routed view. */}
         {/* Row 1 stays EMPTY in chromeless mode — the explicit `row-start-*` placement is what

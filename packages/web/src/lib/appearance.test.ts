@@ -97,7 +97,7 @@ describe('normalize', () => {
       timeSource: 'fixed',
       motion: false,
       surfaces: { new: false, chat: true, other: false },
-      mode: { new: 'horizon', chat: 'horizon' },
+      mode: { new: 'horizon', chat: 'full' },
     })
     expect(normalizeScenePreferences({ on: true, id: 'future-scene' })).toEqual({
       ...DEFAULT_SCENE_PREFERENCES,

@@ -921,9 +921,9 @@ export function NewTaskSurface({
       >
         <div
           data-slot="new-task-main"
-          className="scene-reading-panel w-full min-w-0 max-w-[760px]"
+          className="scene-reading-panel mx-auto w-full min-w-0 max-w-[760px] rounded-2xl border border-transparent p-6 md:p-7"
         >
-          <header className="mb-6 text-center max-md:mb-4">
+          <header className="mb-5 text-center max-md:mb-4">
             <span className="mb-2 inline-flex items-center gap-1.5 font-mono text-[10px] font-medium tracking-[0.14em] text-soft-foreground uppercase">
               <span aria-hidden="true" className="text-violet">//</span>
               {t('New task')}
@@ -1757,14 +1757,14 @@ const SUGGESTIONS = [
 function SuggestedChips({ onPick }: { onPick: (text: string) => void }) {
   const { t } = useI18n()
   return (
-    <div className="mt-6 flex flex-wrap justify-center gap-1.5 max-md:justify-start">
+    <div className="mt-5 flex flex-wrap justify-center gap-1.5 max-md:justify-start">
       {SUGGESTIONS.map((suggestion) => (
         <button
           key={suggestion}
           type="button"
           data-slot="suggested-chip"
           onClick={() => onPick(suggestion)}
-          className="inline-flex h-7 items-center gap-1.5 rounded-sm border border-border px-2.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="inline-flex h-7 items-center gap-1.5 rounded-sm border border-border bg-transparent px-2.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
         >
           <SparklesIcon aria-hidden="true" className="size-3 shrink-0 text-soft-foreground" />
           {t(suggestion)}

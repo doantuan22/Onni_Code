@@ -539,6 +539,25 @@ describe('the hero surface', () => {
     expect(location()).toBe('/new')
   })
 
+  it('unifies header, composer, summary, and chips inside one reading card without duplicate chip fills', async () => {
+    serve()
+    renderNewTask()
+    await pillReady()
+    const card = document.querySelector('[data-slot="new-task-main"]') as HTMLElement
+    expect(card.className).toContain('scene-reading-panel')
+    expect(card.className).toContain('max-w-[760px]')
+    expect(card.className).toContain('rounded-2xl')
+    expect(card.className).toContain('p-6')
+    expect(card.className).toContain('md:p-7')
+    expect(card.className).toContain('mx-auto')
+    expect(card.contains(screen.getByRole('heading', { level: 1 }))).toBe(true)
+    expect(card.contains(document.querySelector('[data-slot="composer"]'))).toBe(true)
+    expect(card.contains(document.querySelector('[data-slot="task-summary"]'))).toBe(true)
+    const chip = document.querySelector('[data-slot="suggested-chip"]') as HTMLElement
+    expect(card.contains(chip)).toBe(true)
+    expect(chip.className).toContain('bg-transparent')
+  })
+
   it('starts an attachment-only task: empty task text, the attachment in images (telemetry 18c930de)', async () => {
     serve()
     renderNewTask()

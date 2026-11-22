@@ -6,51 +6,51 @@
     "night": "70dd44c5"
   },
   "vn-fansipan": {
-    "dawn": "0586a541",
-    "day": "e35b4adf",
-    "dusk": "c6f67b52",
-    "night": "b421ef65"
+    "dawn": "5ff8a50f",
+    "day": "30d67268",
+    "dusk": "cb1d8852",
+    "night": "0619eefe"
   },
   "vn-halong": {
-    "dawn": "36dd3b33",
-    "day": "31977f51",
-    "dusk": "951a5467",
-    "night": "04497376"
+    "dawn": "b298b920",
+    "day": "498474b1",
+    "dusk": "e2fc6733",
+    "night": "6c1882ed"
   },
   "vn-mu-cang-chai": {
-    "dawn": "8db041e1",
-    "day": "4ef64019",
-    "dusk": "1de4f9ac",
-    "night": "501b0d94"
+    "dawn": "30b0b5df",
+    "day": "f04178b3",
+    "dusk": "e28dfac7",
+    "night": "59657cc1"
   },
   "vn-phu-quoc": {
-    "dawn": "ba3299dd",
-    "day": "8d37dc73",
-    "dusk": "a4e248c0",
-    "night": "3bfa9cf8"
+    "dawn": "5b5e9990",
+    "day": "31a2b574",
+    "dusk": "8864b8ce",
+    "night": "88046705"
+  },
+  "world-kyoto": {
+    "dawn": "1945cc2a",
+    "day": "ad768777",
+    "dusk": "7d778c48",
+    "night": "efe60545"
   },
   "world-matterhorn": {
-    "dawn": "764bcce6",
-    "day": "4024f01f",
-    "dusk": "715953ea",
-    "night": "15965fe2"
+    "dawn": "ddc0c967",
+    "day": "0e73c318",
+    "dusk": "4d8d7784",
+    "night": "9aecb97f"
   },
   "world-sahara": {
-    "dawn": "f53a749b",
-    "day": "ae5d9d34",
-    "dusk": "5ac9bff6",
-    "night": "e9068f11"
-  },
-  "world-santorini": {
-    "dawn": "da4d1417",
-    "day": "845fadbd",
-    "dusk": "5aa7c498",
-    "night": "54e5be8f"
+    "dawn": "4792aa81",
+    "day": "804ae914",
+    "dusk": "69e2eddf",
+    "night": "3ea9e054"
   },
   "world-tromso": {
-    "dawn": "a25528ce",
-    "day": "a88da5f5",
-    "dusk": "3b7ff65d",
-    "night": "0fa659a3"
+    "dawn": "c4eeed66",
+    "day": "5f36c6c8",
+    "dusk": "3df65484",
+    "night": "3cd33749"
   }
 }

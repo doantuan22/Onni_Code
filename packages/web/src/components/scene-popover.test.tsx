@@ -61,4 +61,13 @@ describe('scene controls', () => {
     expect(adjacentSceneId(undefined, 1)).toBe(SCENE_IDS[0])
     expect(adjacentSceneId('unknown', -1)).toBe(SCENE_IDS.at(-1))
   })
+
+  it('shows the placeholder only after a thumbnail fails to load', () => {
+    const { container } = render(<Harness />)
+    const thumbnail = container.querySelector<HTMLImageElement>('[data-scene-id="vn-halong"] img')!
+    expect(container.querySelector('[data-scene-id="vn-halong"] svg')).toBeNull()
+    fireEvent.error(thumbnail)
+    expect(container.querySelector('[data-scene-id="vn-halong"] img')).toBeNull()
+    expect(container.querySelector('[data-scene-id="vn-halong"] svg')).not.toBeNull()
+  })
 })

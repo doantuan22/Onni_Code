@@ -402,19 +402,22 @@
 }
 
 [data-slot='scene-backdrop'] {
-  --scene-panel-alpha: 94%;
-  --scene-panel-border: color-mix(in srgb, var(--border) 88%, var(--background));
+  /* The scene can contain a near-white snow rim or aurora. Keep all reading text on an
+   * almost-solid local surface rather than dimming the whole scene behind it. */
+  --scene-panel-alpha: 97%;
+  --scene-panel-surface: color-mix(in srgb, var(--background) var(--scene-panel-alpha), transparent);
+  --scene-panel-border: color-mix(in srgb, var(--border) 92%, var(--background));
 }
 
 .light [data-slot='scene-backdrop'] {
-  --scene-panel-alpha: 96%;
+  --scene-panel-alpha: 98%;
 }
 
 /* Scenery stays full-strength in empty gutters. Text only sits on locally protected panels; this
  * replaces the former full-column scrim and its duplicate visibility reduction. */
 [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) .scene-reading-panel,
 [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) :is([data-slot='composer'], [data-slot='task-settings-panel']) {
-  background-color: color-mix(in srgb, var(--background) var(--scene-panel-alpha), transparent);
+  background-color: var(--scene-panel-surface);
   border-color: var(--scene-panel-border);
 }
 

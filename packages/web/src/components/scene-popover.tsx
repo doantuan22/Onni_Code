@@ -19,6 +19,26 @@ const SCENE_NAMES: Record<string, string> = {
   'world-matterhorn': 'Matterhorn', 'world-sahara': 'Sahara',
 }
 
+function sceneThumbnailUrl(id: string, theme: 'light' | 'dark') {
+  return `${import.meta.env.BASE_URL}scenery-thumbs/${id}-${theme}.png`
+}
+
+function SceneThumbnail({ id, theme }: { id: string; theme: 'light' | 'dark' }) {
+  const [failed, setFailed] = useState(false)
+  return (
+    <span aria-hidden="true" className="relative flex aspect-video items-center justify-center bg-muted text-muted-foreground">
+      {!failed ? (
+        <img
+          src={sceneThumbnailUrl(id, theme)}
+          alt=""
+          className="size-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      ) : <MountainSnowIcon className="size-8" />}
+    </span>
+  )
+}
+
 export function adjacentSceneId(id: string | undefined, direction: 1 | -1): string {
   const index = SCENE_IDS.findIndex((candidate) => candidate === id)
   return SCENE_IDS[index < 0 ? (direction === 1 ? 0 : SCENE_IDS.length - 1) : (index + direction + SCENE_IDS.length) % SCENE_IDS.length]!
@@ -46,10 +66,7 @@ export function SceneLibrary() {
       {SCENE_IDS.filter((id) => id.startsWith(`${region}-`)).map((id) => <button key={id} type="button" aria-pressed={scene.id === id}
         data-scene-id={id} onClick={() => setSceneId(id)}
         className={cn('overflow-hidden rounded-md border border-border bg-card text-left text-xs focus-visible:outline-2 focus-visible:outline-ring', scene.id === id && 'border-primary text-primary')}>
-        <span aria-hidden="true" className="relative flex aspect-video items-center justify-center bg-muted text-muted-foreground">
-          <img src={`/scenery-thumbs/${id}-${resolvedTheme}.png`} alt="" className="size-full object-cover" onError={(event) => { event.currentTarget.hidden = true }} />
-          <MountainSnowIcon className="absolute size-8" />
-        </span>
+        <SceneThumbnail id={id} theme={resolvedTheme} />
         <span className="block px-2 py-1.5">{t(SCENE_NAMES[id] ?? id)}</span>
       </button>)}
     </div>

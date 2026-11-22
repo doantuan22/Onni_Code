@@ -142,24 +142,182 @@
               </p>
               <h2 id="backends-title" class="section__title">Bring the agents you already use.</h2>
               <p class="section__subline">
-                Nine supported agent backends — Claude Code, Codex, OpenCode, Cursor Agent, pi,
-                Junie, GitHub Copilot, Cline, and Antigravity — paired with declarative YAML
-                workflows.
+                Pick any installed backend and a YAML workflow. Capabilities are discovered from
+                your machine.
               </p>
             </header>
 
-            <div class="hairline-card" data-reveal>
-              <div class="stage__steps" aria-label="Supported agent backends">
-                <span class="chip"><span class="led led--done" aria-hidden="true"></span>claude</span>
-                <span class="chip"><span class="led led--done" aria-hidden="true"></span>codex</span>
-                <span class="chip"><span class="led led--done" aria-hidden="true"></span>opencode</span>
-                <span class="chip"><span class="led led--done" aria-hidden="true"></span>cursor</span>
-                <span class="chip"><span class="led led--done" aria-hidden="true"></span>pi</span>
-                <span class="chip"><span class="led led--done" aria-hidden="true"></span>junie</span>
-                <span class="chip"><span class="led led--done" aria-hidden="true"></span>copilot</span>
-                <span class="chip"><span class="led led--done" aria-hidden="true"></span>cline</span>
-                <span class="chip"><span class="led led--done" aria-hidden="true"></span>antigravity</span>
+            <div class="backends__layout" data-reveal>
+              <div class="backends__left">
+                <div
+                  class="backends__grid"
+                  role="group"
+                  aria-label="Supported agent backends (hover or focus to preview in workflow)"
+                >
+                  <button
+                    type="button"
+                    class="hairline-card backend-tile"
+                    data-backend="claude"
+                    data-name="Claude Code"
+                    data-installed="true"
+                    aria-pressed="false"
+                  >
+                    <span class="backend-tile__top">
+                      <span class="led led--done" aria-hidden="true"></span>
+                      <span class="backend-tile__name">Claude Code</span>
+                    </span>
+                    <span class="backend-tile__id mono">claude</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="hairline-card backend-tile"
+                    data-backend="codex"
+                    data-name="Codex"
+                    data-installed="true"
+                    aria-pressed="false"
+                  >
+                    <span class="backend-tile__top">
+                      <span class="led led--done" aria-hidden="true"></span>
+                      <span class="backend-tile__name">Codex</span>
+                    </span>
+                    <span class="backend-tile__id mono">codex</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="hairline-card backend-tile"
+                    data-backend="opencode"
+                    data-name="OpenCode"
+                    data-installed="true"
+                    aria-pressed="false"
+                  >
+                    <span class="backend-tile__top">
+                      <span class="led led--done" aria-hidden="true"></span>
+                      <span class="backend-tile__name">OpenCode</span>
+                    </span>
+                    <span class="backend-tile__id mono">opencode</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="hairline-card backend-tile backend-tile--missing"
+                    data-backend="cursor"
+                    data-name="Cursor Agent"
+                    data-installed="false"
+                    aria-pressed="false"
+                  >
+                    <span class="backend-tile__top">
+                      <span class="led" aria-hidden="true"></span>
+                      <span class="backend-tile__name">Cursor Agent</span>
+                    </span>
+                    <span class="backend-tile__meta">
+                      <span class="backend-tile__id mono">cursor</span>
+                      <span class="backend-tile__status">not installed</span>
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="hairline-card backend-tile"
+                    data-backend="pi"
+                    data-name="pi"
+                    data-installed="true"
+                    aria-pressed="false"
+                  >
+                    <span class="backend-tile__top">
+                      <span class="led led--done" aria-hidden="true"></span>
+                      <span class="backend-tile__name">pi</span>
+                    </span>
+                    <span class="backend-tile__id mono">pi</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="hairline-card backend-tile"
+                    data-backend="junie"
+                    data-name="Junie"
+                    data-installed="true"
+                    aria-pressed="false"
+                  >
+                    <span class="backend-tile__top">
+                      <span class="led led--done" aria-hidden="true"></span>
+                      <span class="backend-tile__name">Junie</span>
+                    </span>
+                    <span class="backend-tile__id mono">junie</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="hairline-card backend-tile"
+                    data-backend="copilot"
+                    data-name="GitHub Copilot"
+                    data-installed="true"
+                    aria-pressed="false"
+                  >
+                    <span class="backend-tile__top">
+                      <span class="led led--done" aria-hidden="true"></span>
+                      <span class="backend-tile__name">GitHub Copilot</span>
+                    </span>
+                    <span class="backend-tile__id mono">copilot</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="hairline-card backend-tile"
+                    data-backend="cline"
+                    data-name="Cline"
+                    data-installed="true"
+                    aria-pressed="false"
+                  >
+                    <span class="backend-tile__top">
+                      <span class="led led--done" aria-hidden="true"></span>
+                      <span class="backend-tile__name">Cline</span>
+                    </span>
+                    <span class="backend-tile__id mono">cline</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="hairline-card backend-tile is-active"
+                    data-backend="agy"
+                    data-name="Antigravity"
+                    data-installed="true"
+                    aria-pressed="true"
+                  >
+                    <span class="backend-tile__top">
+                      <span class="led led--done" aria-hidden="true"></span>
+                      <span class="backend-tile__name">Antigravity</span>
+                    </span>
+                    <span class="backend-tile__id mono">agy</span>
+                  </button>
+                </div>
+
+                <div class="hairline-card hairline-card--surface-2 backends__cmd" aria-live="polite">
+                  <span class="backends__prompt mono" aria-hidden="true">$</span>
+                  <code class="backends__cmd-text mono">
+                    onni run "Split settings into tabs" --workflow review
+                  </code>
+                  <span class="backends__cmd-note mono" data-backends-note>
+                    # backend: agy
+                  </span>
+                </div>
               </div>
+
+              <aside class="hairline-card backends__yaml" aria-label="YAML workflow definition">
+                <div class="backends__yaml-head">
+                  <span class="mono">workflows/review.yaml</span>
+                  <span class="chip">YAML</span>
+                </div>
+                <pre class="backends__yaml-code mono"><code><span class="yaml-line"><span class="yaml-key">name:</span> <span class="yaml-val">review-and-test</span></span>
+<span class="yaml-line"><span class="yaml-key">steps:</span></span>
+<span class="yaml-line"><span class="yaml-key">  - id:</span> <span class="yaml-val">plan</span></span>
+<span class="yaml-line yaml-line--backend" data-yaml-step="primary"><span class="yaml-key">    backend:</span> <span class="yaml-val" data-yaml-primary>claude</span><span class="yaml-comment" data-yaml-comment></span></span>
+<span class="yaml-line"><span class="yaml-key">    prompt:</span> <span class="yaml-str">"Split settings into tabs"</span></span>
+<span class="yaml-line"><span class="yaml-key">  - id:</span> <span class="yaml-val">verify</span></span>
+<span class="yaml-line yaml-line--backend is-highlighted" data-yaml-step="verify"><span class="yaml-key">    backend:</span> <span class="yaml-val">agy</span></span>
+<span class="yaml-line"><span class="yaml-key">    command:</span> <span class="yaml-str">"npm test"</span></span></code></pre>
+              </aside>
             </div>
           </div>
         </section>
@@ -167,28 +325,150 @@
 
         <!-- 3. Worktrees -->
         <!-- section:worktrees -->
-        <section id="worktrees" class="section" aria-labelledby="worktrees-title">
-          <div class="container">
-            <header class="section__header" data-reveal>
-              <p class="eyebrow">
-                <span class="eyebrow__index" data-index="03">03</span>
-                <span>Git Worktree Isolation</span>
-              </p>
-              <h2 id="worktrees-title" class="section__title">Every task gets its own worktree.</h2>
-              <p class="section__subline">
-                Trunk <code class="mono">main</code> forks into parallel lanes at
-                <code class="mono">.ai/onni/worktrees/&lt;runId&gt;</code> on branch
-                <code class="mono">onni/&lt;id8&gt;</code>. Concurrent tasks never collide with your
-                working tree.
-              </p>
-            </header>
+        <section
+          id="worktrees"
+          class="section stage lamp-frame"
+          data-stage
+          style="--stage-h: 125vh"
+          aria-labelledby="worktrees-title"
+        >
+          <div class="stage__sticky">
+            <div class="container">
+              <header class="section__header" data-reveal>
+                <p class="eyebrow">
+                  <span class="eyebrow__index" data-index="03">03</span>
+                  <span>Git Worktree Isolation</span>
+                </p>
+                <h2 id="worktrees-title" class="section__title">
+                  Every task gets its own worktree.
+                </h2>
+                <p class="section__subline">
+                  Isolated directories and branches from one repository. Nothing touches
+                  <code class="mono">main</code>.
+                </p>
+              </header>
 
-            <div class="hairline-card" data-reveal>
-              <p class="mono">
-                main ──┬── onni/3f2a91c4 (.ai/onni/worktrees/3f2a91c4)
-                       ├── onni/7b8e10d2 (.ai/onni/worktrees/7b8e10d2)
-                       └── onni/c4190a8f (.ai/onni/worktrees/c4190a8f)
-              </p>
+              <figure class="worktrees__diagram" data-reveal>
+                <div class="worktrees__trunk-row">
+                  <div class="worktrees__tap" aria-hidden="true">
+                    <span class="worktrees__tap-dot"></span>
+                  </div>
+                  <div class="hairline-card worktrees__trunk">
+                    <svg
+                      class="worktrees__git-icon"
+                      viewBox="0 0 16 16"
+                      width="18"
+                      height="18"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <circle cx="4.5" cy="3.5" r="1.5" stroke="currentColor" stroke-width="1.3" />
+                      <circle cx="4.5" cy="12.5" r="1.5" stroke="currentColor" stroke-width="1.3" />
+                      <circle cx="11.5" cy="6.5" r="1.5" stroke="currentColor" stroke-width="1.3" />
+                      <path
+                        d="M4.5 5v6M4.5 9.5c0-1.5 2-2 5.5-2.5"
+                        stroke="currentColor"
+                        stroke-width="1.3"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                    <div class="worktrees__trunk-meta">
+                      <span class="worktrees__trunk-name mono">main</span>
+                      <span class="worktrees__trunk-sub mono">git trunk · clean</span>
+                    </div>
+                  </div>
+                </div>
+
+                <svg
+                  class="worktrees__fork-svg"
+                  viewBox="0 0 900 104"
+                  preserveAspectRatio="none"
+                  role="img"
+                  aria-label="Single stem from main into a three-way junction branching to three isolated worktrees"
+                >
+                  <path
+                    class="worktrees__stem"
+                    d="M 450 0 L 450 38"
+                    pathLength="100"
+                  />
+                  <path
+                    class="worktrees__lane worktrees__lane--left"
+                    d="M 450 38 L 154 38 Q 146 38 146 46 L 146 104"
+                    pathLength="100"
+                  />
+                  <path
+                    class="worktrees__lane worktrees__lane--center"
+                    d="M 450 38 L 450 104"
+                    pathLength="100"
+                  />
+                  <path
+                    class="worktrees__lane worktrees__lane--right"
+                    d="M 450 38 L 746 38 Q 754 38 754 46 L 754 104"
+                    pathLength="100"
+                  />
+                  <circle class="worktrees__junction" cx="450" cy="38" r="4.5" />
+                </svg>
+
+                <div class="worktrees__cards">
+                  <article class="hairline-card worktree-card" data-lane="0">
+                    <div class="worktree-card__head">
+                      <span class="led led--done" aria-hidden="true"></span>
+                      <h3 class="worktree-card__title">Split settings into tabs</h3>
+                    </div>
+                    <div class="worktree-card__meta">
+                      <span class="chip worktree-card__branch mono">onni/3f2a91c4</span>
+                      <p class="worktree-card__path mono">.ai/onni/worktrees/3f2a91c4</p>
+                    </div>
+                    <div class="worktree-card__foot">
+                      <span class="chip">claude</span>
+                      <span class="worktree-card__diff mono" aria-label="142 additions, 38 deletions">
+                        <span class="diff-add">+142</span>
+                        <span class="diff-del">-38</span>
+                      </span>
+                    </div>
+                  </article>
+
+                  <article class="hairline-card worktree-card worktree-card--active" data-lane="1">
+                    <div class="worktree-card__head">
+                      <span class="led worktree-card__led-violet" aria-hidden="true"></span>
+                      <h3 class="worktree-card__title">Add tab keyboard navigation</h3>
+                    </div>
+                    <div class="worktree-card__meta">
+                      <span class="chip chip--violet worktree-card__branch mono">onni/8b14c0e2</span>
+                      <p class="worktree-card__path mono">.ai/onni/worktrees/8b14c0e2</p>
+                    </div>
+                    <div class="worktree-card__foot">
+                      <span class="chip">codex</span>
+                      <span class="worktree-card__diff mono" aria-label="64 additions, 12 deletions">
+                        <span class="diff-add">+64</span>
+                        <span class="diff-del">-12</span>
+                      </span>
+                    </div>
+                  </article>
+
+                  <article class="hairline-card worktree-card" data-lane="2">
+                    <div class="worktree-card__head">
+                      <span class="led led--review" aria-hidden="true"></span>
+                      <h3 class="worktree-card__title">Write settings unit tests</h3>
+                    </div>
+                    <div class="worktree-card__meta">
+                      <span class="chip worktree-card__branch mono">onni/c7d04a19</span>
+                      <p class="worktree-card__path mono">.ai/onni/worktrees/c7d04a19</p>
+                    </div>
+                    <div class="worktree-card__foot">
+                      <span class="chip">agy</span>
+                      <span class="worktree-card__diff mono" aria-label="98 additions, 0 deletions">
+                        <span class="diff-add">+98</span>
+                        <span class="diff-del">-0</span>
+                      </span>
+                    </div>
+                  </article>
+                </div>
+
+                <figcaption class="worktrees__caption">
+                  illustration — no repository action
+                </figcaption>
+              </figure>
             </div>
           </div>
         </section>

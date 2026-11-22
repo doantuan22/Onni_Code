@@ -1,15 +1,15 @@
 /**
- * vn-mu-cang-chai: Mù Cang Chải Rice Terraces (Yên Bái, Vietnam).
+ * vn-mu-cang-chai: Mù Cang Chải rice terraces (Yên Bái, Vietnam).
  *
- * Phase 2 Rewrite (Iteration 3):
- * - Curvilinear S-curve terrace cascade with non-linear perspective (3px far to 14px near).
- * - Multi-tiered 3D soil retaining dikes with 2-3px vertical drop shadows.
- * - Leveled mountain terrace knoll anchoring the 36×26 authentic H'Mong gabled stilt house.
- * - Natural meandering mountain stream with broken water shimmer (no ladder canal).
- * - Distinct Light (Golden Harvest Day) & Dark (Mountain Twilight Dusk) palettes.
- * - 32 dedicated palette roles for atmospheric depth and time-of-day progression.
- * - Multi-frame animated sprites: swaying foreground rice (3 poses), soaring birds (4 poses),
- *   drifting two-tier valley mist (0.2 px/s), and localized stream glints.
+ * Phase 2 fix round (R8):
+ * - Terraces are flowing contour bands. Each band is a curved tread (lit top lip, paddy body)
+ *   over a shadowed riser; widths grow toward the viewer and taper where the hill ends.
+ * - Rice texture is short irregular horizontal tufts at roughly 12% coverage, never vertical stripes.
+ * - Some paddies are flooded and reflect the sky with broken glints.
+ * - The canal is a meandering ribbon that winds down the valley floor.
+ * - Smooth layered ridges replace the column-striped backdrop.
+ * - A hand-drawn H'Mong stilt house (36×26) stands on the right terrace.
+ * - Light and dark are separate designs; dark uses a twilight dusk and a night ramp.
  */
 import { darkness } from '../../engine/palette'
 import { createSpriteSheet, parseSprite } from '../../engine/sprite'
@@ -165,37 +165,37 @@ const dark: Palettes = {
 const themePalettes: ThemePalettes = { light, dark }
 
 /**
- * 36×26 Authentic H'Mong Gabled Stilt House (Nhà Sàn).
- * Features steep gabled thatch roof with deep overhanging eaves, exposed timber porch,
- * living floor beam, raised stilts with grounding contact shadow, and illuminated lantern window.
+ * Hand-drawn H'Mong stilt house (nhà sàn), 36×26 art px at (356, 143).
+ * Steep gable thatch (lit left slope, shaded right slope), a plank wall with a glowing window,
+ * a porch deck, stilts with floor joists, a ladder and a contact shadow on the terrace.
  */
 const houseSprite = parseSprite([
-  '.........RRRRRRRRRRRRRRRRRR.........',
-  '.......RRRRRRRRRRRRRRRRRRRRRR.......',
-  '......RRRRRRRRRRRRRRRRRRRRRRRR......',
-  '.....RRRRRRRRRRRRRRRRRRRRRRRRRR.....',
-  '....rrrrRRRRRRRRRRRRRRRRRRRRrrrr....',
-  '...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...',
-  '..RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR..',
-  '.RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.',
-  'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR',
+  '...............RRRrrr...............',
+  '..............RRRRrrrr..............',
+  '.............RRRRRrrrrr.............',
+  '............RrRRrRrrrrrr............',
+  '...........RRRRRRRrrrrrrr...........',
+  '..........RRRRRRRRrrrrrrrr..........',
+  '.........RrRRrRRrRrrrrrrrrr.........',
+  '........RRRRRRRRRRrrrrrrrrrr........',
+  '.......RRRRRRRRRRRrrrrrrrrrrr.......',
   '.rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr.',
-  '..rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr..',
-  '.....WWWWWWWWWWWWWWWWWWWWWWWWWW.....',
-  '.....Ww..wWWWWWWWWWWWWWWWWWWWWW.....',
-  '.....Ww..wWWggggWWWWWWDDDDWWWWW.....',
-  '.....Ww..wWWgGGgWWWWWWDDDDWWWWW.....',
-  '.....WwwwwWWgGGgWWWWWWDDDDWWWWW.....',
-  '.....Ww..wWWggggWWWWWWDDDDWWWWW.....',
-  '.....Ww..wWWWWWWWWWWWWDDDDWWWWW.....',
-  '....wwwwwwwwwwwwwwwwwwwwwwwwwwww....',
-  '.....WW....WW......WW....WW..ww.....',
-  '.....WW....WW......WW....WW...ww....',
-  '.....WW....WW..ww..WW....WW....ww...',
-  '.....WW....WW......WW....WW.....ww..',
-  '.....WW....WW......WW....WW......ww.',
-  '.....WW....WW......WW....WW.......ww',
-  '....SSSS..SSSS....SSSS..SSSS....SSSS',
+  '..WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW..',
+  '...WwwwWwwwWwwwWwwwWwwwWwwwWwwwWw...',
+  '...WwwwwwwwWwwwWwwwWwGGWGGGWwwwWw...',
+  '...WwwwWWWWWwwwWwwwWwGGWGGGWwwwWw...',
+  '...WwwwWWwWWwwwWwwwWwGGWGGGWwwwWw...',
+  '...WwwwWWWWWwwwWwwwWWWWWWWWWwwwWw...',
+  '...WwwwWWWWWwwwWwwwWwggggggWwwwWw...',
+  '.wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww.',
+  '.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.',
+  '...WW..w..w.WW........WW.......WW...',
+  '...WW..wwww.WW........WW.......WW...',
+  '...WW..w..w.WW........WW.......WW...',
+  '...WWWWwwwwWWWWWWWWWWWWWWWWWWWWWW...',
+  '...WW..w..w.WW........WW.......WW...',
+  '...WW..wwww.WW........WW.......WW...',
+  '...SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..',
 ], {
   R: Ink.ThatchLit,
   r: Ink.ThatchShadow,
@@ -203,7 +203,6 @@ const houseSprite = parseSprite([
   w: Ink.TimberLit,
   G: Ink.WindowGlow,
   g: Ink.WindowHalo,
-  D: Ink.TimberDark,
   S: Ink.HouseGround,
 })
 
@@ -330,190 +329,260 @@ function drawSky(ctx: BuildCtx): void {
   })
 }
 
-function drawRidges(ctx: BuildCtx): void {
-  const { width: w, height: h } = ctx
-  ctx.layer({ kind: 'far', z: 1 }, () => {
-    // Ridge 1: Far hazy mountain crest
-    for (let x = 0; x < w; x++) {
-      const ny = ctx.fbm2(x * 0.015, 23)
-      const top = Math.floor(h * (0.28 + (ny - 0.5) * 0.08 + Math.sin(x * 0.024 + 1.2) * 0.028))
-      const isLit = (x % 7 > 2) && (ny > 0.48)
-      ctx.rect(x, top, 1, h - top, isLit ? Ink.Ridge1Lit : Ink.Ridge1Shadow)
-    }
+type Pt = { x: number; y: number }
 
-    // Ridge 2: Mid-distance mountain silhouette
-    for (let x = 0; x < w; x++) {
-      const ny = ctx.fbm2(x * 0.022, 57)
-      const top = Math.floor(h * (0.35 + (ny - 0.5) * 0.09 + Math.cos(x * 0.028) * 0.024))
-      const isLit = (x % 5 > 1) && (ny > 0.46)
-      ctx.rect(x, top, 1, h - top, isLit ? Ink.Ridge2Lit : Ink.Ridge2Shadow)
+/** Share of interior paddy pixels that start a rice tuft (average tuft ~3px gives ~12% coverage). */
+const TUFT_START = 0.04
+/** Each terrace step is taller than the one above it: perspective from far to near. */
+const TREAD_GROWTH = 1.22
+/** Riser (shadowed soil face) height relative to its tread. */
+const RISER_RATIO = 0.22
+
+interface TierSpec {
+  readonly x0: number
+  readonly x1: number
+  /** Crest y before the bow and tilt are applied. */
+  readonly yTop: number
+  /** Approximate toe y; tread heights are scaled to fit between crest and toe. */
+  readonly yBot: number
+  readonly steps: number
+  /** px the contour bows down at the centre (positive = convex hill, negative = valley floor). */
+  readonly bow: number
+  /** px drop from left to right; a positive value cascades down toward the valley. */
+  readonly tilt: number
+  /** Band indexes that are flooded paddies. */
+  readonly water: readonly number[]
+  readonly seed: number
+}
+
+/** Left hill cascade, central valley terraces, right hill carrying the stilt house. */
+const TIERS: readonly TierSpec[] = [
+  { x0: 0, x1: 222, yTop: 104, yBot: 226, steps: 8, bow: 14, tilt: 16, water: [], seed: 1.3 },
+  { x0: 116, x1: 344, yTop: 124, yBot: 262, steps: 9, bow: -8, tilt: 6, water: [4, 7], seed: 4.1 },
+  { x0: 226, x1: 480, yTop: 116, yBot: 236, steps: 7, bow: 16, tilt: -10, water: [1], seed: 7.7 },
+]
+
+/** Canal centreline knots, from the top of the valley down to the bottom edge. */
+const STREAM_KNOTS: readonly Pt[] = [
+  { x: 256, y: 116 }, { x: 254, y: 124 }, { x: 268, y: 134 }, { x: 286, y: 150 },
+  { x: 272, y: 168 }, { x: 252, y: 186 }, { x: 262, y: 204 }, { x: 250, y: 222 },
+  { x: 236, y: 242 }, { x: 238, y: 262 }, { x: 246, y: 276 },
+]
+
+/** Footpath knots in the lower-right foreground. */
+const PATH_KNOTS: readonly Pt[] = [
+  { x: 392, y: 276 }, { x: 410, y: 246 }, { x: 436, y: 226 }, { x: 478, y: 214 },
+]
+
+/** Catmull-Rom samples through the knots, `perSegment` samples per knot pair. */
+function splineSamples(knots: readonly Pt[], perSegment: number): Pt[] {
+  const out: Pt[] = []
+  for (let i = 0; i < knots.length - 1; i++) {
+    const p0 = knots[Math.max(0, i - 1)]!
+    const p1 = knots[i]!
+    const p2 = knots[i + 1]!
+    const p3 = knots[Math.min(knots.length - 1, i + 2)]!
+    for (let s = 0; s < perSegment; s++) {
+      const t = s / perSegment
+      const t2 = t * t
+      const t3 = t2 * t
+      const at = (a: number, b: number, c: number, d: number): number =>
+        0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3)
+      out.push({ x: at(p0.x, p1.x, p2.x, p3.x), y: at(p0.y, p1.y, p2.y, p3.y) })
     }
+  }
+  out.push(knots[knots.length - 1]!)
+  return out
+}
+
+/** Fills a tapered ribbon along a centreline; halfWidth receives 0..1 along the line. */
+function drawRibbon(ctx: BuildCtx, centre: readonly Pt[], halfWidth: (t: number) => number, index: number): void {
+  const left: Pt[] = []
+  const right: Pt[] = []
+  for (let i = 0; i < centre.length; i++) {
+    const a = centre[Math.max(0, i - 1)]!
+    const b = centre[Math.min(centre.length - 1, i + 1)]!
+    const dx = b.x - a.x
+    const dy = b.y - a.y
+    const len = Math.hypot(dx, dy) || 1
+    const nx = -dy / len
+    const ny = dx / len
+    const hw = halfWidth(i / (centre.length - 1))
+    const c = centre[i]!
+    left.push({ x: Math.round(c.x + nx * hw), y: Math.round(c.y + ny * hw) })
+    right.push({ x: Math.round(c.x - nx * hw), y: Math.round(c.y - ny * hw) })
+  }
+  ctx.polygon([...left, ...right.reverse()], index)
+}
+
+/** Smooth ridge crest: two low-frequency sines plus baked noise, never per-column stripes. */
+function ridgeCrest(ctx: BuildCtx, base: number, amp: number, phase: number, seed: number): Pt[] {
+  const { width: w, height: h } = ctx
+  const crest: Pt[] = []
+  for (let x = 0; x <= w; x += 2) {
+    const wobble = ctx.fbm2(x * 0.011, seed) - 0.5
+    const y = h * base + amp * (Math.sin(x * 0.019 + phase) * 0.7 + Math.sin(x * 0.047 + phase * 1.7) * 0.3) + wobble * amp * 1.6
+    crest.push({ x, y: Math.round(y) })
+  }
+  return crest
+}
+
+/** A ridge is a flat body plus a 2px lit rim under its crest. */
+function fillRidge(ctx: BuildCtx, crest: readonly Pt[], body: number, rim: number): void {
+  const { width: w, height: h } = ctx
+  ctx.polygon([...crest, { x: w, y: h }, { x: 0, y: h }], body)
+  ctx.polygon([...crest, ...crest.slice().reverse().map((p) => ({ x: p.x, y: p.y + 2 }))], rim)
+}
+
+function drawRidges(ctx: BuildCtx): void {
+  ctx.layer({ kind: 'far', z: 1 }, () => {
+    // Far ridge: pale and low contrast, sits in the atmospheric haze.
+    fillRidge(ctx, ridgeCrest(ctx, 0.255, 7, 0.6, 3), Ink.Ridge1Shadow, Ink.Ridge1Lit)
+    // Mid ridge: darker, overlaps the far crest and anchors the valley.
+    fillRidge(ctx, ridgeCrest(ctx, 0.315, 6, 2.4, 57), Ink.Ridge2Shadow, Ink.Ridge2Lit)
+  })
+}
+
+function drawHillBase(ctx: BuildCtx): void {
+  const { width: w, height: h } = ctx
+  ctx.layer({ kind: 'mid', z: 3 }, () => {
+    ctx.polygon([
+      { x: 0, y: Math.floor(h * 0.40) },
+      { x: w, y: Math.floor(h * 0.42) },
+      { x: w, y: h },
+      { x: 0, y: h },
+    ], Ink.RiceShadow)
   })
 }
 
 /**
- * Builds a curvilinear terrace tier with 3D soil retaining dikes,
- * non-linear perspective step heights (3px far to 14px near), vertical drop shadows,
- * and delicate rice stalk stippling.
+ * One contour family: the top edge comes from a smile-shaped hill contour, the tread height grows
+ * with perspective, and both edges taper where the hill ends. Each band is integer-stepped from the
+ * one above it, so bands cannot cross.
  */
-function drawCurvilinearTerraceTier(
-  ctx: BuildCtx,
-  xLeft: number,
-  xRight: number,
-  yStart: number,
-  yEnd: number,
-  steps: number,
-  curveAmp: number,
-  seed: number,
-  hasWater = false,
-): void {
-  const { width: w, height: h } = ctx
-  const x0 = Math.floor(w * xLeft)
-  const x1 = Math.floor(w * xRight)
-  const spanX = Math.max(1, x1 - x0)
+function drawTerraceTier(ctx: BuildCtx, spec: TierSpec): void {
+  const span = spec.x1 - spec.x0
+  const weights = Array.from({ length: spec.steps }, (_, k) => TREAD_GROWTH ** k)
+  const total = weights.reduce((sum, wgt) => sum + wgt * (1 + RISER_RATIO), 0)
+  const scale = (spec.yBot - spec.yTop) / total
 
-  for (let s = 0; s < steps; s++) {
-    // Non-linear power curve for realistic perspective scale (narrower far, wider near)
-    const t0 = Math.pow(s / steps, 1.45)
-    const t1 = Math.pow((s + 1) / steps, 1.45)
-    const stepY0 = h * (yStart + (yEnd - yStart) * t0)
-    const stepY1 = h * (yStart + (yEnd - yStart) * t1)
+  let top: number[] = []
+  for (let x = spec.x0; x <= spec.x1; x++) {
+    const u = (x - spec.x0) / span
+    const smile = 1 - (2 * u - 1) ** 2
+    top.push(Math.round(spec.yTop + spec.bow * smile + spec.tilt * u))
+  }
 
-    // Contour curve across the basin
-    const curve: { x: number; y: number }[] = []
-    const prevCurve: { x: number; y: number }[] = []
-    const sampleCount = 28
-
-    for (let i = 0; i <= sampleCount; i++) {
-      const u = i / sampleCount
-      const x = Math.floor(x0 + spanX * u)
-      const bend = Math.sin(u * Math.PI) * (h * curveAmp) * (s % 2 === 0 ? 1 : 0.8)
-      const noise = (ctx.fbm2(u * 3.8, seed + s * 1.6) - 0.5) * (h * 0.015)
-
-      const yCur = Math.floor(stepY1 + bend + noise)
-      const yPrev = Math.floor(stepY0 + bend * 0.82 + noise * 0.8)
-      curve.push({ x, y: yCur })
-      prevCurve.push({ x, y: yPrev })
+  for (let k = 0; k < spec.steps; k++) {
+    const bottom: number[] = []
+    const next: number[] = []
+    const weight = weights[k]!
+    for (let i = 0; i < top.length; i++) {
+      const u = i / (top.length - 1)
+      const taper = Math.min(1, 0.35 + 1.3 * Math.sin(Math.PI * u))
+      const wobble = 0.72 + 0.56 * ctx.fbm2(u * 1.6 + spec.seed, k * 1.9)
+      const tread = Math.max(1, Math.round(scale * weight * taper * wobble))
+      const riser = Math.max(1, Math.round(scale * weight * RISER_RATIO * taper))
+      bottom.push(top[i]! + tread)
+      next.push(top[i]! + tread + riser)
     }
+    // Upper contours are shorter and lower ones wider, so each band ends where the hill curves away.
+    const f = spec.steps > 1 ? k / (spec.steps - 1) : 0
+    const insetL = Math.round(span * 0.14 * (1 - f) + (ctx.fbm2(spec.seed + k * 0.8, 9) - 0.5) * 8)
+    const insetR = Math.round(span * 0.10 * (1 - f) + (ctx.fbm2(spec.seed + k * 0.8, 21) - 0.5) * 8)
+    const lo = Math.max(0, insetL)
+    const hi = Math.min(top.length - 1, top.length - 1 - Math.max(0, insetR))
+    if (hi - lo >= 6) drawBand(ctx, spec, k, lo, hi, top, bottom, next)
+    top = next
+  }
+}
 
-    // Fill terrace flat
-    const polyPoints = [...prevCurve, ...curve.slice().reverse()]
-    const isWaterStep = hasWater && (s % 3 === 1)
-    const fillColor = isWaterStep ? Ink.TerraceWater : (s % 4 === 0 ? Ink.RiceMid : Ink.RiceRipeGold)
-    ctx.polygon(polyPoints, fillColor)
+function drawBand(ctx: BuildCtx, spec: TierSpec, k: number, lo: number, hi: number, topAll: readonly number[], bottomAll: readonly number[], nextAll: readonly number[]): void {
+  const top = topAll.slice(lo, hi + 1)
+  const bottom = bottomAll.slice(lo, hi + 1)
+  const next = nextAll.slice(lo, hi + 1)
+  const xs = top.map((_, i) => spec.x0 + lo + i)
+  const isWater = spec.water.includes(k)
+  const body = isWater ? Ink.TerraceWater : k % 4 === 1 ? Ink.RiceMid : Ink.RiceRipeGold
 
-    // Stipple rice texture (12-15% grain dots) on non-water flats
-    if (!isWaterStep) {
-      for (const pt of curve) {
-        const x = pt.x
-        const yTop = prevCurve.find((p) => p.x === x)?.y ?? (pt.y - 4)
-        for (let y = yTop + 1; y < pt.y - 1; y++) {
-          const stipple = ctx.fbm2(x * 0.18, y * 0.18)
-          if (stipple > 0.44) ctx.px(x, y, Ink.RiceSunlitTip)
-          else if (stipple < -0.42) ctx.px(x, y, Ink.RiceShadow)
+  ctx.polygon([
+    ...xs.map((x, i) => ({ x, y: top[i]! })),
+    ...xs.map((x, i) => ({ x, y: bottom[i]! })).reverse(),
+  ], body)
+  ctx.polygon([
+    ...xs.map((x, i) => ({ x, y: bottom[i]! })),
+    ...xs.map((x, i) => ({ x, y: next[i]! })).reverse(),
+  ], Ink.DikeShadow)
+
+  // Lit top lip: sunlight catches the crest of each step; flooded paddies show a sky reflection.
+  for (let i = 0; i < xs.length; i++) ctx.px(xs[i]!, top[i]!, isWater ? Ink.SkyMid : Ink.RiceSunlitTip)
+
+  if (isWater) {
+    // Broken highlights: short glints scattered over the water, never a continuous line.
+    for (let i = 0; i < xs.length; i++) {
+      for (let y = top[i]! + 2; y < bottom[i]!; y++) {
+        if (ctx.rng() >= 0.05) continue
+        const len = 2 + Math.floor(ctx.rng() * 4)
+        for (let d = 0; d < len && i + d < xs.length; d++) {
+          if (y >= bottom[i + d]! || y < top[i + d]! + 2) break
+          ctx.px(xs[i + d]!, y, Ink.StreamGlint)
         }
       }
     }
+    return
+  }
 
-    // 2-3px Retaining Dike & Drop Shadow along the front edge (scaled with perspective)
-    const shadowDepth = s >= 5 ? 2 : 1
-    for (let i = 0; i < curve.length - 1; i++) {
-      const p0 = curve[i]!
-      const p1 = curve[i + 1]!
-      ctx.line(p0.x, p0.y, p1.x, p1.y, Ink.DikeSoilLit)
-      for (let d = 1; d <= shadowDepth; d++) {
-        ctx.line(p0.x, p0.y + d, p1.x, p1.y + d, Ink.DikeShadow)
+  // Rice tufts: one-row horizontal strokes of 2–4px, about 12% of the paddy pixels.
+  for (let i = 0; i < xs.length; i++) {
+    for (let y = top[i]! + 1; y < bottom[i]!; y++) {
+      if (ctx.rng() >= TUFT_START) continue
+      const len = 2 + Math.floor(ctx.rng() * 3)
+      const tuft = ctx.rng() < 0.55 ? Ink.RiceShadow : Ink.RiceSunlitTip
+      for (let d = 0; d < len && i + d < xs.length; d++) {
+        if (y < top[i + d]! + 1 || y >= bottom[i + d]!) break
+        ctx.px(xs[i + d]!, y, tuft)
       }
     }
   }
 }
 
 function drawTerraceCascade(ctx: BuildCtx): void {
-  const { width: w, height: h } = ctx
   ctx.layer({ kind: 'mid', z: 3 }, () => {
-    // Fill valley backdrop
-    ctx.polygon([
-      { x: 0, y: Math.floor(h * 0.40) },
-      { x: w, y: Math.floor(h * 0.43) },
-      { x: w, y: h },
-      { x: 0, y: h },
-    ], Ink.RiceShadow)
-
-    // Basin 1: Upper-left mountain cascade flowing down towards center
-    drawCurvilinearTerraceTier(ctx, -0.04, 0.48, 0.40, 0.74, 7, -0.044, 13, false)
-
-    // Basin 2: Central cascading amphitheater sweeping diagonally to lower center
-    drawCurvilinearTerraceTier(ctx, 0.14, 0.74, 0.48, 0.95, 8, 0.052, 31, true)
-
-    // Basin 3: Right hillside terrace promontory (supporting the H'Mong Stilt House)
-    drawCurvilinearTerraceTier(ctx, 0.52, 1.05, 0.45, 0.88, 6, -0.038, 77, false)
-
-    // Level terrace plateau under the H'Mong Stilt House knoll
-    const hx = Math.floor(w * 0.78 - 18)
-    const hy = Math.floor(h * 0.58 - 13)
-    ctx.rect(hx - 4, hy + 24, 46, 3, Ink.RiceRipeGold)
-    ctx.line(hx - 4, hy + 27, hx + 42, hy + 27, Ink.DikeSoilLit)
-    ctx.line(hx - 4, hy + 28, hx + 42, hy + 28, Ink.DikeShadow)
+    for (const tier of TIERS) drawTerraceTier(ctx, tier)
   })
 }
 
+const STREAM = splineSamples(STREAM_KNOTS, 6)
+
 function drawMeanderingStream(ctx: BuildCtx): void {
-  const { width: w, height: h } = ctx
   ctx.layer({ kind: 'water', z: 4 }, () => {
-    // Natural continuous bezier stream winding through the valley
-    // Split into two 4-point cubic bezier segments for smooth curvature
-    const p0 = { x: Math.floor(w * 0.65), y: Math.floor(h * 0.49) }
-    const p1 = { x: Math.floor(w * 0.62), y: Math.floor(h * 0.58) }
-    const p2 = { x: Math.floor(w * 0.57), y: Math.floor(h * 0.68) }
-    const p3 = { x: Math.floor(w * 0.54), y: Math.floor(h * 0.76) }
-
-    const p4 = { x: Math.floor(w * 0.50), y: Math.floor(h * 0.84) }
-    const p5 = { x: Math.floor(w * 0.58), y: Math.floor(h * 0.92) }
-    const p6 = { x: Math.floor(w * 0.52), y: h }
-
-    const seg1 = [p0, p1, p2, p3]
-    const seg2 = [p3, p4, p5, p6]
-
-    // Draw moist earth bank line and water channel
-    ctx.curve(seg1.map((p) => ({ x: p.x + 1, y: p.y })), Ink.StreamBank)
-    ctx.curve(seg2.map((p) => ({ x: p.x + 1, y: p.y })), Ink.StreamBank)
-
-    ctx.curve(seg1, Ink.StreamDeep)
-    ctx.curve(seg2, Ink.StreamDeep)
-
-    // Lower segment widens as stream gathers mountain runoff
-    ctx.curve(seg2.map((p) => ({ x: p.x - 1, y: p.y })), Ink.StreamDeep)
-    ctx.curve(seg2.map((p) => ({ x: p.x - 2, y: p.y })), Ink.StreamDeep)
+    // Moist earth bank first, then the water ribbon narrowing toward the top of the valley.
+    drawRibbon(ctx, STREAM, (t) => 1.6 + 1.2 * t, Ink.StreamBank)
+    drawRibbon(ctx, STREAM, (t) => 0.7 + 1.1 * t, Ink.StreamDeep)
   })
+}
+
+function houseOriginX(w: number): number {
+  return Math.floor(w * 0.78 - 18)
+}
+
+function houseOriginY(h: number): number {
+  return Math.floor(h * 0.58 - 13)
 }
 
 function drawStiltHouse(ctx: BuildCtx): void {
   const { width: w, height: h } = ctx
   ctx.layer({ kind: 'mid', z: 4 }, () => {
-    // Positioned in visible right gutter at u=0.74..0.82, v=0.53..0.63
-    const hx = Math.floor(w * 0.78 - 18)
-    const hy = Math.floor(h * 0.58 - 13)
-    ctx.sprite(houseSprite, hx, hy)
+    ctx.sprite(houseSprite, houseOriginX(w), houseOriginY(h))
   })
 }
 
-function drawForeground(ctx: BuildCtx): void {
-  const { width: w, height: h } = ctx
-  ctx.layer({ kind: 'near', z: 5 }, () => {
-    // Lower-right foreground embankment & footpath
-    ctx.polygon([
-      { x: Math.floor(w * 0.78), y: h },
-      { x: w, y: h },
-      { x: w, y: Math.floor(h * 0.72) },
-      { x: Math.floor(w * 0.88), y: Math.floor(h * 0.78) },
-    ], Ink.RiceShadow)
+const PATH = splineSamples(PATH_KNOTS, 8)
 
-    // Curving earthen footpath (quadratic bezier: 3 points)
-    ctx.curve([
-      { x: Math.floor(w * 0.79), y: h },
-      { x: Math.floor(w * 0.88), y: Math.floor(h * 0.86) },
-      { x: Math.floor(w * 0.95), y: Math.floor(h * 0.76) },
-    ], Ink.NearPath)
+function drawForeground(ctx: BuildCtx): void {
+  ctx.layer({ kind: 'near', z: 5 }, () => {
+    // Curving earthen footpath: a tapered ribbon, not a slab.
+    drawRibbon(ctx, PATH, (t) => 4.2 - 2.2 * t, Ink.NearPath)
   })
 }
 
@@ -532,6 +601,7 @@ const scene: SceneDef = {
   build(ctx) {
     drawSky(ctx)
     drawRidges(ctx)
+    drawHillBase(ctx)
     drawTerraceCascade(ctx)
     drawMeanderingStream(ctx)
     drawStiltHouse(ctx)
@@ -549,52 +619,40 @@ const scene: SceneDef = {
       const startX = Math.floor(w * 0.36)
       const endX = Math.floor(w * 0.72)
 
-      // Upper mist ribbon
-      for (let x = startX; x < endX; x += 4) {
+      // Haze patches sit on the ridge base in a ridge tone, so they blend rather than read as dashes.
+      for (let x = startX; x < endX; x += 8) {
         const sampleX = (x + mistOffset1) * 0.05
-        const y = Math.floor(h * (0.46 + Math.sin(sampleX) * 0.015))
-        if (ctx.fbm2(sampleX, 42) > 0.32) {
-          ctx.rect(x, y, 7, 2, Ink.ValleyMist)
-        }
+        const y = Math.floor(h * (0.365 + Math.sin(sampleX) * 0.010))
+        const n = ctx.fbm2(sampleX, 42)
+        if (n > 0.5) ctx.rect(x, y, 10 + Math.floor((n - 0.5) * 60), 2, Ink.Ridge1Lit)
       }
 
-      // Lower valley mist ribbon
-      for (let x = startX + 16; x < endX - 8; x += 5) {
+      for (let x = startX + 12; x < endX - 8; x += 9) {
         const sampleX = (x + mistOffset2) * 0.04
-        const y = Math.floor(h * (0.55 + Math.cos(sampleX) * 0.018))
-        if (ctx.fbm2(sampleX, 79) > 0.34) {
-          ctx.rect(x, y, 8, 2, Ink.ValleyMist)
-        }
+        const y = Math.floor(h * (0.385 + Math.cos(sampleX) * 0.008))
+        const n = ctx.fbm2(sampleX, 79)
+        if (n > 0.52) ctx.rect(x, y, 10 + Math.floor((n - 0.52) * 60), 2, Ink.Ridge1Lit)
       }
     })
 
-    // 2. Localized stream glints (broken shimmer following bezier curve, 6 phases, no ladder)
+    // 2. Fx: canal glints drift downstream, stepping through 9 positions along the centreline.
     ctx.layer({ kind: 'fx', z: 5 }, () => {
-      const glintCycle = Math.floor(t * 4) % 6
-      const glintPoints = [
-        { u: 0.64, v: 0.52, phase: 0 },
-        { u: 0.61, v: 0.60, phase: 2 },
-        { u: 0.57, v: 0.69, phase: 4 },
-        { u: 0.54, v: 0.77, phase: 1 },
-        { u: 0.52, v: 0.85, phase: 3 },
-        { u: 0.56, v: 0.94, phase: 5 },
-      ] as const
-
-      for (const pt of glintPoints) {
-        if ((pt.phase + glintCycle) % 3 !== 1) {
-          const gx = Math.floor(w * pt.u)
-          const gy = Math.floor(h * pt.v)
-          ctx.line(gx, gy, gx + 2, gy, Ink.StreamGlint)
-        }
+      const phase = Math.floor(t * 6) % 9
+      for (let i = 0; i < STREAM.length; i++) {
+        if ((i + phase) % 9 !== 0) continue
+        const c = STREAM[i]!
+        const x = Math.round(c.x)
+        const y = Math.round(c.y)
+        ctx.line(x - 1, y, x + 1, y, Ink.StreamGlint)
       }
 
       // 3. Swaying foreground golden rice tufts (3 poses at 2fps, varied phase offsets)
       const riceClumps = 12
       for (let i = 0; i < riceClumps; i++) {
-        const phase = Math.floor(t * 2 + i * 0.6) % 3
-        const rx = Math.floor(w * (0.83 + (i % 4) * 0.042))
-        const ry = Math.floor(h * (0.78 + Math.floor(i / 4) * 0.072))
-        ctx.spriteFrame(riceSheet, phase, rx, ry, 1)
+        const pose = Math.floor(t * 2 + i * 0.6) % 3
+        const rx = Math.floor(w * (0.84 + (i % 4) * 0.035))
+        const ry = Math.floor(h * (0.80 + Math.floor(i / 4) * 0.065))
+        ctx.spriteFrame(riceSheet, pose, rx, ry, 1)
       }
 
       // 4. Soaring mountain birds across the sky (4 poses at 6fps, banking flight)
@@ -605,9 +663,8 @@ const scene: SceneDef = {
       ctx.spriteFrame(birdSheet, birdPose, birdSpeed, birdY1, 1)
       ctx.spriteFrame(birdSheet, (birdPose + 2) % 4, birdSpeed - 26, birdY2, 1)
 
-      // 5. Twilight / Night effects: warm lantern flicker & starry sky
+      // 5. Twilight / night: a few stars and a flickering lamp in the stilt-house window.
       if (night > 0.40) {
-        // Subtle stars in the upper sky
         const stars = [
           { u: 0.12, v: 0.08, phase: 0 },
           { u: 0.35, v: 0.12, phase: 1 },
@@ -622,15 +679,13 @@ const scene: SceneDef = {
           }
         }
 
-        // Stepped warm lantern pulse spill on stilt house porch
-        const hx = Math.floor(w * 0.78 - 18)
-        const hy = Math.floor(h * 0.58 - 13)
-        const pulse = Math.sin(t * 3.5) > 0.3
-        if (pulse) {
-          ctx.px(hx + 17, hy + 14, Ink.WindowGlow)
-          ctx.px(hx + 18, hy + 14, Ink.WindowGlow)
-          ctx.px(hx + 17, hy + 15, Ink.WindowGlow)
-          ctx.px(hx + 18, hy + 15, Ink.WindowGlow)
+        // The window glows amber; on the dim beat its interior drops to the halo ink.
+        const hx = houseOriginX(w)
+        const hy = houseOriginY(h)
+        if (Math.sin(t * 3.5) <= 0.3) {
+          for (let y = 12; y <= 14; y++) {
+            for (const x of [21, 22, 24, 25, 26]) ctx.px(hx + x, hy + y, Ink.WindowHalo)
+          }
         }
       }
     })

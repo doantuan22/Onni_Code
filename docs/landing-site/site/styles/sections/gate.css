@@ -1047,3 +1047,8 @@
     text-align: center;
   }
 }
+
+/* QA pass 2: the lamp glow (.lamp-frame::before) must not widen the section at 390px. */
+#gate {
+  overflow-x: clip;
+}

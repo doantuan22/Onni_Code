@@ -68,4 +68,19 @@ describe('world-tromso', () => {
       }
     }
   })
+
+  it('gates aurora curtain pixels between day and night', () => {
+    const day = new SceneRenderer(tromso, { width: 480, height: 270, seed: 42, theme: 'light', time: 'day' })
+    const night = new SceneRenderer(tromso, { width: 480, height: 270, seed: 42, theme: 'light', time: 'night' })
+    day.render(2)
+    night.render(2)
+    const countAurora = () => night.indexed.reduce((count, ink, index) => {
+      const x = index % 480
+      const y = Math.floor(index / 480)
+      const isAurora = ink >= 7 && ink <= 9
+      return count + (x >= 58 && x < 451 && y >= 24 && y < 171 && isAurora && ink !== day.indexed[index] ? 1 : 0)
+    }, 0)
+
+    expect(countAurora()).toBeGreaterThan(1_000)
+  })
 })

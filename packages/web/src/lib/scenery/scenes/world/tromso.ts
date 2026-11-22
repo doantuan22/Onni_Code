@@ -1,4 +1,5 @@
 import { createSpriteSheet, parseSprite } from '../../engine/sprite'
+import { darkness } from '../../engine/palette'
 import type { BuildCtx, FrameCtx, LayerSpec, Palettes, SceneDef, ThemePalettes } from '../../engine/types'
 
 /**
@@ -357,22 +358,13 @@ const tromso: SceneDef = {
       }
     }
 
-    // 2. Stars
-    for (const star of STARS) {
-      const sx = Math.floor(star.u * w)
-      const sy = Math.floor(star.v * h)
-      if (sy < horizonY - 4) {
-        ctx.px(sx, sy, star.bright ? 5 : 4)
-      }
-    }
-
-    // 3. Far Alpine Mountain Ridge
+    // 2. Far Alpine Mountain Ridge
     drawFarRidge(ctx)
 
-    // 4. Mid Mountain Ridge & Nordic Cabin
+    // 3. Mid Mountain Ridge & Nordic Cabin
     drawMidRidgeAndCabin(ctx)
 
-    // 5. Base Fjord Water
+    // 4. Base Fjord Water
     for (let y = horizonY; y < h; y++) {
       const depth = (y - horizonY) / Math.max(1, h - horizonY)
       for (let x = 0; x < w; x++) {
@@ -380,13 +372,31 @@ const tromso: SceneDef = {
       }
     }
 
-    // 6. Near Shoreline and Pier Posts
+    // 5. Near Shoreline and Pier Posts
     drawNearShore(ctx)
   },
 
   frame(ctx: FrameCtx, t: number): void {
     const { width: w, height: h } = ctx
     const horizonY = Math.floor(h * 0.65)
+    const night = darkness(ctx.time)
+    const auroraStrength = night > 0.65 ? 1 : night / 0.65
+    const showCirrus = ctx.time === 'day' || (typeof ctx.time === 'number' && night < 0.1)
+
+    // Daylight uses thin ice cirrus in the same sky space that the curtains occupy
+    // at dusk and night, so the winter sky never reads as a daytime aurora.
+    if (showCirrus) {
+      for (const [band, y] of [[0, 0.16], [1, 0.27]] as const) {
+        for (let x = Math.floor(w * 0.12); x < Math.floor(w * 0.90); x++) {
+          const wave = Math.sin(x * 0.075 + t * 0.12 + band * 2.4) * 2
+          const cy = Math.floor(y * h + wave)
+          if (cy > 1 && cy < horizonY - 5 && ctx.base[cy * w + x]! < 10 && (x + band * 3) % 5 !== 0) {
+            ctx.px(x, cy, band === 0 ? 7 : 8)
+            if ((x + band) % 9 === 0) ctx.px(x, cy + 1, 9)
+          }
+        }
+      }
+    }
 
     // Effect 1: three separately phased hanging curtains. Their sparse, dithered
     // vertical rays deliberately leave sky between them; the bright wavy hems make
@@ -401,6 +411,7 @@ const tromso: SceneDef = {
       outerInk: number,
       bodyInk: number,
     ): void => {
+      if (auroraStrength <= 0) return
       for (let x = Math.floor(w * left); x < Math.floor(w * right); x++) {
         const u = x / w
         const span = (u - left) / (right - left)
@@ -419,9 +430,10 @@ const tromso: SceneDef = {
         const shimmer = (Math.sin(u * 41 - t * 0.25 + phase) + 1) * 0.5
         const rayWidth = rayWave > 0.80 ? 2 : 1
         const hasRay = edge > 0.22 && rayWave > 0.54
+        const visible = auroraStrength >= 1 || ((x * 7 + Math.floor(t * 4)) & 15) < Math.ceil(auroraStrength * 16)
 
         // 1–2px rays rise from the hem in four increasingly sparse value steps.
-        if (hasRay) {
+        if (hasRay && visible) {
           for (let y = rayTop; y < hemY - 2; y++) {
             if (ctx.base[y * w + x]! >= 10 && ctx.base[y * w + x]! <= 15) continue
             const rise = (hemY - y) / Math.max(1, hemY - rayTop)
@@ -442,7 +454,7 @@ const tromso: SceneDef = {
         }
 
         // The 2–4px brightest hem is continuous enough to bind the vertical rays.
-        if (edge > 0.10) {
+        if (edge > 0.10 && visible) {
           const hemThickness = 2 + Math.floor(shimmer * 2)
           for (let y = hemY - hemThickness; y <= hemY; y++) {
             if (y >= 0 && y < horizonY - 3) ctx.px(x, y, bodyInk)
@@ -524,16 +536,16 @@ const tromso: SceneDef = {
       }
     }
 
-    // Effect 5: Twinkling Stars
+    // Effect 5: Stars and twinkles share the aurora's dusk/night gate.
     const twinkleIndices = [0, 3, 6, 9, 14, 20]
     const twinklePhase = Math.floor(t * 2)
-    for (const [idx, starIdx] of twinkleIndices.entries()) {
-      const star = STARS[starIdx]
-      if (!star) continue
+    for (const [starIdx, star] of STARS.entries()) {
       const sx = Math.floor(star.u * w)
       const sy = Math.floor(star.v * h)
-      if (sy < horizonY - 4) {
-        const pulse = (twinklePhase + idx) % 4 === 0
+      const visible = auroraStrength >= 1 || ((starIdx * 11 + twinklePhase) & 15) < Math.ceil(auroraStrength * 16)
+      if (visible && sy < horizonY - 4) {
+        const twinkleIndex = twinkleIndices.indexOf(starIdx)
+        const pulse = twinkleIndex >= 0 && (twinklePhase + twinkleIndex) % 4 === 0
         ctx.px(sx, sy, pulse ? 6 : (star.bright ? 5 : 4))
       }
     }

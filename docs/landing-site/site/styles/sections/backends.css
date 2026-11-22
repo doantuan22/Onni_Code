@@ -1,1 +1,292 @@
-/* section: backends — scoped under #backends; see site/README.md and ../../05-plan.md */
+/* section: backends â€” scoped under #backends; see site/README.md and ../../05-plan.md */
+
+#backends {
+  position: relative;
+}
+
+/* Even section (02): neutral violet-grey wash behind the focal grid & YAML card (G4) */
+#backends::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    680px circle at 38% 54%,
+    color-mix(in srgb, var(--violet) 5%, transparent) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+
+#backends .backends__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: stretch;
+}
+
+#backends .backends__left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+#backends .backends__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+#backends .backend-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  min-height: 76px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-micro) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out);
+}
+
+#backends .backend-tile:hover {
+  transform: translateY(-1px);
+}
+
+#backends .backend-tile.is-active {
+  border-color: color-mix(in srgb, var(--violet) 68%, var(--border));
+  background-color: color-mix(in srgb, var(--violet-wash) 95%, var(--card));
+}
+
+#backends .backend-tile--missing {
+  opacity: 0.62;
+}
+
+#backends .backend-tile--missing:hover,
+#backends .backend-tile--missing:focus-visible {
+  opacity: 0.85;
+}
+
+#backends .backend-tile__top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+#backends .backend-tile__name {
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--foreground);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#backends .backend-tile--missing .backend-tile__name {
+  color: var(--muted-foreground);
+}
+
+#backends .backend-tile__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+#backends .backend-tile__id {
+  font-size: var(--text-xs);
+  color: var(--soft-foreground);
+}
+
+#backends .backend-tile__status {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--soft-foreground);
+}
+
+/* Discovery sweep on reveal: LED amber 180ms -> green (or dimmed if not installed), 60ms cascade */
+html.js-ready #backends .backends__layout:not(.is-in) .backend-tile .led {
+  background-color: var(--soft-foreground);
+  box-shadow: none;
+}
+
+html.js-ready #backends .backends__layout.is-in .backend-tile[data-installed='true'] .led {
+  animation: backends-led-discover 420ms var(--ease-out) both;
+  animation-delay: calc(var(--tile-index, 0) * 60ms);
+}
+
+html.js-ready #backends .backends__layout.is-in .backend-tile[data-installed='false'] .led {
+  animation: backends-led-missing 420ms var(--ease-out) both;
+  animation-delay: calc(var(--tile-index, 0) * 60ms);
+}
+
+@keyframes backends-led-discover {
+  0% {
+    background-color: var(--soft-foreground);
+    box-shadow: none;
+  }
+  42% {
+    background-color: var(--pending);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--pending) 65%, transparent);
+  }
+  100% {
+    background-color: var(--done);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--done) 65%, transparent);
+  }
+}
+
+@keyframes backends-led-missing {
+  0% {
+    background-color: var(--soft-foreground);
+    box-shadow: none;
+  }
+  42% {
+    background-color: var(--pending);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--pending) 55%, transparent);
+  }
+  100% {
+    background-color: var(--soft-foreground);
+    box-shadow: none;
+  }
+}
+
+/* Mono command bar */
+#backends .backends__cmd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+}
+
+#backends .backends__prompt {
+  color: var(--violet);
+  user-select: none;
+}
+
+#backends .backends__cmd-text {
+  color: var(--foreground);
+  word-break: break-word;
+}
+
+#backends .backends__cmd-note {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--soft-foreground);
+}
+
+#backends .backends__cmd-note[data-missing='true'] {
+  color: var(--pending-strong);
+}
+
+/* YAML workflow card */
+#backends .backends__yaml {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#backends .backends__yaml-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  background-color: var(--card-2);
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+
+#backends .backends__yaml-code {
+  margin: 0;
+  padding: var(--space-5);
+  font-size: var(--text-sm);
+  line-height: 1.8;
+  overflow-x: auto;
+  flex: 1;
+}
+
+#backends .yaml-line {
+  display: block;
+  padding: 1px var(--space-2);
+  margin-inline: calc(var(--space-2) * -1);
+  border-left: 2px solid transparent;
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+#backends .yaml-line.is-highlighted {
+  background-color: var(--violet-wash);
+  border-left-color: var(--violet);
+}
+
+#backends .yaml-key {
+  color: var(--muted-foreground);
+}
+
+#backends .yaml-val {
+  color: var(--foreground);
+}
+
+#backends .yaml-str {
+  color: var(--success);
+}
+
+#backends .yaml-comment {
+  color: var(--soft-foreground);
+  margin-left: var(--space-2);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 960px) {
+  #backends .backends__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  #backends .backends__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+
+  #backends .backend-tile {
+    padding: var(--space-3);
+    min-height: 68px;
+  }
+
+  #backends .backends__cmd-note {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #backends .backend-tile:hover {
+    transform: none;
+  }
+
+  html.js-ready #backends .backends__layout .backend-tile[data-installed='true'] .led {
+    animation: none;
+    background-color: var(--done);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--done) 65%, transparent);
+  }
+
+  html.js-ready #backends .backends__layout .backend-tile[data-installed='false'] .led {
+    animation: none;
+    background-color: var(--soft-foreground);
+    box-shadow: none;
+  }
+}

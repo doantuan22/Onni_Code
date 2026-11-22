@@ -2,143 +2,166 @@ import { createSpriteSheet, parseSprite } from '../../engine/sprite'
 import type { Palettes, ThemePalettes } from '../../engine/types'
 
 /**
- * 32-Role Semantic Palette Map for vn-phu-quoc V2:
- * 0..3:   Sky gradient (Zenith -> Horizon)
- * 4..5:   Celestial body (Sun/Moon core, warm radial glow)
- * 6..8:   Sunset cirrus clouds (shadow underside, warm body, sunlit rim)
- * 9..11:  Offshore tropical islands (far haze, mid lush rainforest, sunlit canopy rim)
- * 12..13: Tropical ocean base (deep water, mid-depth turquoise)
- * 14..19: 6-phase wave cycle for sunset light corridor (Wave0..Wave5)
- * 20:     Water specular glint core (sparkling wave crests)
- * 21..23: Sandy shore (dry coral sand, mid beach tone, wet tide line)
- * 24:     Shoreline wave wash foam (frothy crest)
- * 25:     Coastal granite rocks / pebbles
- * 26..28: Palm trunk & sampan timber (deep bark shadow, timber body, sunlit warm rim)
- * 29..31: Coconut palm fronds (deep frond shadow, tropical green body, golden sunset rim)
+ * 32-index palette map for vn-phu-quoc (the engine caps a scene at 32 indices, so every
+ * slot is spent deliberately):
+ * 0..9:   Sky ramp, zenith -> horizon (10 bands; the warm last three carry the sunset glow)
+ * 10..11: Sun / moon core and its stepped halo
+ * 12..13: Cloud underside shadow and cloud body
+ * 14..16: Distant haze isle, mid rainforest isle, sunlit canopy rim
+ * 17..20: Sea depth ramp, horizon-bright -> foreground-deep (4 stepped bands)
+ * 21..23: Wavelet / glint cycle (Wave0..Wave2)
+ * 24..25: Dry sand and wet tide line
+ * 26..28: Palm trunk and sampan timber (bark shadow, body, warm rim)
+ * 29..31: Coconut frond shadow, body, golden sunset rim
+ * Aliases share a slot instead of spending one: cloud rim = halo colour, foam = cloud body,
+ * sea glint = sun core, beach rock = trunk shadow. Sprites reference the names, not the numbers.
  */
-
 export const enum Ink {
-  Sky0, Sky1, Sky2, Sky3,
+  Sky0, Sky1, Sky2, Sky3, Sky4, Sky5, Sky6, Sky7, Sky8, Sky9,
   SunCore, SunGlow,
-  CloudShadow, CloudBody, CloudRim,
+  CloudShadow, CloudBody,
   IslandFar, IslandMid, IslandRim,
-  SeaDeep, SeaMid,
-  Wave0, Wave1, Wave2, Wave3, Wave4, Wave5,
-  SeaGlint,
-  SandDry, SandMid, SandWet,
-  ShoreFoam, BeachRock,
+  SeaFar, SeaMid, SeaNear, SeaDeep,
+  Wave0, Wave1, Wave2,
+  SandDry, SandWet,
   TrunkDark, TrunkMid, TrunkRim,
   FrondShadow, FrondBody, FrondRim,
+  CloudRim = SunGlow,
+  ShoreFoam = CloudBody,
+  SeaGlint = SunCore,
+  BeachRock = TrunkDark,
+}
+
+/** Number of sky bands; the sky is a stepped ramp, not a dithered field (spec: 10-14 bands). */
+export const SKY_BANDS = 10
+
+interface PhuQuocPaletteSpec {
+  /** 4 stops, zenith -> horizon; expanded into SKY_BANDS interpolated bands. */
+  readonly sky: readonly [number, number, number, number]
+  readonly sun: readonly [number, number]
+  readonly cloud: readonly [number, number]
+  readonly island: readonly [number, number, number]
+  readonly sea: readonly [number, number, number, number]
+  readonly wave: readonly [number, number, number]
+  readonly sand: readonly [number, number]
+  readonly trunk: readonly [number, number, number]
+  readonly frond: readonly [number, number, number]
+}
+
+function mixRgb(a: number, b: number, t: number): number {
+  const channel = (shift: number): number =>
+    Math.round(((a >> shift) & 255) * (1 - t) + ((b >> shift) & 255) * t)
+  return (channel(16) << 16) | (channel(8) << 8) | channel(0)
+}
+
+function skyRamp(stops: readonly number[], bands: number): number[] {
+  return Array.from({ length: bands }, (_, i) => {
+    const u = (i / (bands - 1)) * (stops.length - 1)
+    const s = Math.min(stops.length - 2, Math.floor(u))
+    return mixRgb(stops[s]!, stops[s + 1]!, u - s)
+  })
+}
+
+function buildPalette(spec: PhuQuocPaletteSpec): number[] {
+  return [
+    ...skyRamp(spec.sky, SKY_BANDS),
+    ...spec.sun, ...spec.cloud, ...spec.island, ...spec.sea,
+    ...spec.wave, ...spec.sand, ...spec.trunk, ...spec.frond,
+  ]
 }
 
 export const PHU_QUOC_THEME_PALETTES: ThemePalettes = {
   light: {
-    dawn: [
-      0x8cb6c4, 0xa4cbd4, 0xc8ded2, 0xf2c8a4,
-      0xfff4d2, 0xf5d6a0,
-      0x829da4, 0xbcd4dc, 0xf8e4d2,
-      0x689098, 0x42746c, 0x8ea88a,
-      0x266270, 0x387c88,
-      0x458896, 0x5896a2, 0x76abb4, 0x9ec4c2, 0xc8dec2, 0xebd6ae,
-      0xfff2d0,
-      0xe2cca0, 0xc8b082, 0x8c765c,
-      0xfbf6ec, 0x4e484a,
-      0x42322a, 0x6c5444, 0xb48e6c,
-      0x224036, 0x3e6852, 0xa4b478,
-    ],
-    day: [
-      0x64acc4, 0x8cc5d6, 0xbce0d8, 0xedf2dc,
-      0xfff8d8, 0xfae8b4,
-      0x80a8b4, 0xc4e2ea, 0xffffff,
-      0x588e96, 0x366c62, 0x78a482,
-      0x1e5e6e, 0x2a7686,
-      0x388494, 0x4a94a2, 0x68abb4, 0x8ec2be, 0xb6dcc2, 0xe2e8b8,
-      0xffffff,
-      0xeadab0, 0xd0bc92, 0x94826c,
-      0xffffff, 0x4a4648,
-      0x44342a, 0x705846, 0xba9472,
-      0x24483a, 0x42765c, 0xaed078,
-    ],
-    dusk: [
-      0x4e4868, 0x7a5e78, 0xb87874, 0xf0a876,
-      0xffea98, 0xf4b676,
-      0x5c4c64, 0x9a6c76, 0xf2b894,
-      0x484e60, 0x2c4446, 0x84725e,
-      0x24364c, 0x34485e,
-      0x3e546c, 0x4e687e, 0x687e90, 0x949692, 0xc4a88c, 0xe8be88,
-      0xfff0b4,
-      0xd6b690, 0xb89674, 0x7a5c54,
-      0xf8ebd8, 0x3c343c,
-      0x3c2c2e, 0x624844, 0xb07c62,
-      0x1c3032, 0x2e4a46, 0xc8885c,
-    ],
-    night: [
-      0x121e36, 0x1c2e4c, 0x2c4468, 0x445e84,
-      0xeef4dc, 0x7c98b6,
-      0x1c283e, 0x364a66, 0x6c88a8,
-      0x162030, 0x182834, 0x3a505e,
-      0x122438, 0x1c3650,
-      0x22405c, 0x2a4c6a, 0x365a78, 0x486a88, 0x6488a0, 0x96b8c8,
-      0xe8f4fc,
-      0x727484, 0x585a6a, 0x3a3c4a,
-      0xd4e2ec, 0x202028,
-      0x24222a, 0x3c3844, 0x707282,
-      0x142024, 0x1e3034, 0x668288,
-    ],
+    dawn: buildPalette({
+      sky: [0x6aa4c6, 0x9fcadb, 0xf0e0c8, 0xffd29c],
+      sun: [0xfff6d8, 0xffe0a0],
+      cloud: [0xb8c9d6, 0xfbf6ee],
+      island: [0xa6c8c8, 0x5c8e8a, 0x92b88e],
+      sea: [0xa8e4d8, 0x5cc2c4, 0x35a2b0, 0x227f94],
+      wave: [0xd4f6ee, 0xf4fffa, 0xb0e6dc],
+      sand: [0xf0d8a4, 0xb89a72],
+      trunk: [0x42322a, 0x6c5444, 0xb48e6c],
+      frond: [0x224036, 0x3e6852, 0xa4b478],
+    }),
+    day: buildPalette({
+      sky: [0x4fa3d6, 0x8fcbe8, 0xc9ebec, 0xf4f4dc],
+      sun: [0xfffbe6, 0xfff0c0],
+      cloud: [0xb2d4e4, 0xffffff],
+      island: [0xb2d6d8, 0x4f8a80, 0x88c08e],
+      sea: [0xc0f2e6, 0x5ccfd0, 0x2aa6b6, 0x1c8498],
+      wave: [0xe2fcf4, 0xffffff, 0xbcf0ea],
+      sand: [0xf6e3b6, 0xc4a47c],
+      trunk: [0x44342a, 0x705846, 0xba9472],
+      frond: [0x24483a, 0x42765c, 0xaed078],
+    }),
+    dusk: buildPalette({
+      sky: [0x6f8cc2, 0xc69cba, 0xf6a882, 0xffd58a],
+      sun: [0xfff4c4, 0xffc87a],
+      cloud: [0xa98aa6, 0xfbd8c6],
+      island: [0xc49ca2, 0x6e5a74, 0xeaa48e],
+      sea: [0xeab28e, 0x7ca6a8, 0x3c8192, 0x2a5c76],
+      wave: [0xffe6a8, 0xfff4cc, 0xf6b48a],
+      sand: [0xe8c896, 0x9c7660],
+      trunk: [0x3c2c2e, 0x624844, 0xb07c62],
+      frond: [0x1c3032, 0x2e4a46, 0xc8885c],
+    }),
+    night: buildPalette({
+      sky: [0x1c2c4e, 0x2e4a72, 0x4c6e98, 0x7490b6],
+      sun: [0xeef4dc, 0x7c98b6],
+      cloud: [0x2b3d5c, 0x5b7698],
+      island: [0x3c5878, 0x1c3046, 0x4c6e88],
+      sea: [0x4f7aa0, 0x2f5a80, 0x233f63, 0x1a3050],
+      wave: [0x9ec0e0, 0xc8dcf0, 0x7da4c8],
+      sand: [0x7a7d90, 0x4a4c60],
+      trunk: [0x24222a, 0x3c3844, 0x707282],
+      frond: [0x142024, 0x1e3034, 0x668288],
+    }),
   },
   dark: {
-    dawn: [
-      0x38485c, 0x5c6c78, 0x948882, 0xd8a88c,
-      0xf8d8a8, 0xd8a07c,
-      0x444c58, 0x747880, 0xd0b09c,
-      0x2e444c, 0x223c38, 0x5e6c5c,
-      0x183c48, 0x26505c,
-      0x305c6a, 0x3c6e7a, 0x528690, 0x7aa09c, 0xacc0a2, 0xdcb892,
-      0xfcf0d0,
-      0xb89e7c, 0x9a8264, 0x645244,
-      0xf2eedc, 0x343034,
-      0x2c221e, 0x4c3c32, 0x886a54,
-      0x182c26, 0x2a4c3e, 0x7a8c58,
-    ],
-    day: [
-      0x2a4e66, 0x467288, 0x769ea4, 0xbcc8ae,
-      0xfae8b8, 0xdcb888,
-      0x3a5666, 0x628694, 0xc6d8c8,
-      0x244a52, 0x1c3e38, 0x547462,
-      0x14424e, 0x205c6c,
-      0x2a6878, 0x367c8a, 0x4a949e, 0x6cb2ac, 0x9ac8ae, 0xcce0a8,
-      0xf8fae8,
-      0xc4b48c, 0xa89670, 0x6e604e,
-      0xf2f6ee, 0x323034,
-      0x2e241e, 0x503e32, 0x8c7056,
-      0x1a362c, 0x2e5a48, 0x7ea45c,
-    ],
-    dusk: [
-      0x281b38, 0x6e2c44, 0xb84a3c, 0xf09b4e,
-      0xffea8a, 0xf08044,
-      0x422036, 0x7c303c, 0xe87a4c,
-      0x242236, 0x1a262a, 0x724238,
-      0x181c34, 0x222442,
-      0x2a2c4e, 0x3a3a5e, 0x564868, 0x7a566a, 0xb06a58, 0xe88046,
-      0xffe6a0,
-      0x8e6050, 0x6e4642, 0x463440,
-      0xf2d8c6, 0x261e24,
-      0x181e20, 0x362828, 0x7c4436,
-      0x141c1a, 0x22302a, 0xd46e3e,
-    ],
-    night: [
-      0x0a1222, 0x121e34, 0x1e2c46, 0x2e3e58,
-      0xe4ecdc, 0x485e78,
-      0x101826, 0x1e2a3c, 0x3e526c,
-      0x0c121a, 0x101a20, 0x22303c,
-      0x0c1828, 0x122438,
-      0x182e44, 0x203a52, 0x2a4862, 0x385872, 0x4e708a, 0x7698b0,
-      0xd8ecf8,
-      0x4a4454, 0x363242, 0x22202c,
-      0xb0c6d6, 0x14141c,
-      0x14121a, 0x26222c, 0x484858,
-      0x0e1618, 0x162224, 0x3e565c,
-    ],
+    dawn: buildPalette({
+      sky: [0x34465e, 0x5a6d80, 0x8f8a8c, 0xd7a48a],
+      sun: [0xfbe9c0, 0xd8a078],
+      cloud: [0x4a4f62, 0xb6a6a0],
+      island: [0x3a4c58, 0x22403e, 0x6d7a60],
+      sea: [0x5a9aa2, 0x2f7480, 0x225a68, 0x18414f],
+      wave: [0x9fd6d0, 0xc6ece4, 0x7fbcc0],
+      sand: [0xc0a886, 0x7a6450],
+      trunk: [0x2c221e, 0x4c3c32, 0x886a54],
+      frond: [0x182c26, 0x2a4c3e, 0x7a8c58],
+    }),
+    day: buildPalette({
+      sky: [0x2c5a80, 0x4f88aa, 0x84b4c4, 0xc4d2c0],
+      sun: [0xfff4d0, 0xf0d090],
+      cloud: [0x6f94a8, 0xc8d8e0],
+      island: [0x4c7480, 0x2a5a58, 0x5c8a6a],
+      sea: [0x6aaab4, 0x3c8c98, 0x2a7080, 0x1d5566],
+      wave: [0xb6e6e0, 0xe2f6f0, 0x8ed2d0],
+      sand: [0xc8b28e, 0x8a7456],
+      trunk: [0x2e241e, 0x503e32, 0x8c7056],
+      frond: [0x1a362c, 0x2e5a48, 0x7ea45c],
+    }),
+    dusk: buildPalette({
+      sky: [0x261c3a, 0x4a2a54, 0x9a3e4e, 0xf0963e],
+      sun: [0xffeaa0, 0xf08a4a],
+      cloud: [0x4a2c4a, 0xe8806a],
+      island: [0x3a2a4a, 0x1f2a3c, 0xe0704a],
+      sea: [0x8a4a5a, 0x3a3c5e, 0x242c4a, 0x161e36],
+      wave: [0xffa868, 0xffc890, 0xe0785a],
+      sand: [0x8e6050, 0x4c3440],
+      trunk: [0x181e20, 0x362828, 0x7c4436],
+      frond: [0x141c1a, 0x22302a, 0xd46e3e],
+    }),
+    night: buildPalette({
+      sky: [0x0b1426, 0x16243c, 0x22365a, 0x34496e],
+      sun: [0xe4ecdc, 0x485e78],
+      cloud: [0x101826, 0x2e3e58],
+      island: [0x141e30, 0x0c141e, 0x3e5a72],
+      sea: [0x2a4a6a, 0x1c3652, 0x142a42, 0x0e1e32],
+      wave: [0x7698b0, 0x9ab8d0, 0x5a7c98],
+      sand: [0x4a4454, 0x22202c],
+      trunk: [0x14121a, 0x26222c, 0x484858],
+      frond: [0x0e1618, 0x162224, 0x3e565c],
+    }),
   },
 }
 

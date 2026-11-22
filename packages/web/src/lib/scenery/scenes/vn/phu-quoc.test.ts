@@ -23,17 +23,26 @@ describe('vn-phu-quoc V2 scene', () => {
     expect(scene.focus).toEqual({ x: 0.72, y: 0.65 })
   })
 
-  it('declares 6-phase wave palette cycle', () => {
+  it('declares a 3-phase wave palette cycle', () => {
     expect(scene.cycles).toHaveLength(1)
-    expect(scene.cycles?.[0]?.indices).toEqual([
-      Ink.Wave0,
-      Ink.Wave1,
-      Ink.Wave2,
-      Ink.Wave3,
-      Ink.Wave4,
-      Ink.Wave5,
-    ])
+    expect(scene.cycles?.[0]?.indices).toEqual([Ink.Wave0, Ink.Wave1, Ink.Wave2])
     expect(scene.cycles?.[0]?.rate).toBe(6)
+  })
+
+  it('paints the sky as a stepped ramp of 10+ distinct bands, not a flag of 4-6 slabs', () => {
+    const renderer = new SceneRenderer(scene, {
+      width: 480,
+      height: 270,
+      seed: 42,
+      theme: 'light',
+      time: 'dawn',
+    })
+    const frame = renderer.render(0, 0)
+    // Column x=4 is clear of clouds and the sun; count distinct colours in the sky above the horizon
+    const line = Math.floor(270 * 0.57)
+    const column = new Set<number>()
+    for (let y = 0; y < line; y++) column.add(frame[y * 480 + 4]!)
+    expect(column.size).toBeGreaterThanOrEqual(10)
   })
 
   it('authors binding hero crown (52x40) and secondary crown (38x30) with 3 animated poses', () => {

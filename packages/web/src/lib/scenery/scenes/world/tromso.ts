@@ -48,7 +48,7 @@ export const tromsoThemePalettes: ThemePalettes = {
       0xe0ecf4, 0xffffff,
     ],
     dusk: [
-      0x25324d, 0x424667, 0x785a73, 0xba7875,
+      0x1d2b49, 0x314564, 0x5a5974, 0xb97a73,
       0xa8b4cc, 0xc8d4ec, 0xfcd2a2,
       0x56a28e, 0x7cb8a4, 0x8ea2be,
       0x223348, 0x445970, 0x98aab8,
@@ -98,7 +98,7 @@ export const tromsoThemePalettes: ThemePalettes = {
       0xb2ccde, 0xf0f6fc,
     ],
     dusk: [
-      0x162038, 0x2a2c4e, 0x4e3852, 0x84505c,
+      0x111d35, 0x243956, 0x4c536d, 0x9b676a,
       0x7a8ca8, 0xa8bcd8, 0xf0a880,
       0x429e84, 0x62be9e, 0x7c729c,
       0x162436, 0x273c52, 0x6a8498,
@@ -216,24 +216,24 @@ function drawFarRidge(ctx: BuildCtx): void {
 
   for (let x = 0; x < w; x++) {
     const u = x / w
-    const p1 = Math.max(0, 0.27 - Math.abs(u - 0.26) * 1.3)
-    const p2 = Math.max(0, 0.23 - Math.abs(u - 0.46) * 1.5)
-    const p3 = Math.max(0, 0.30 - Math.abs(u - 0.66) * 1.1)
-    const ridgeNoise = (ctx.fbm1(u * 30 + 12) - 0.5) * 0.04
+    const p1 = Math.max(0, 0.16 - Math.abs(u - 0.17) * 0.72)
+    const p2 = Math.max(0, 0.22 - Math.abs(u - 0.39) * 1.04)
+    const p3 = Math.max(0, 0.13 - Math.abs(u - 0.59) * 0.80)
+    const ridgeNoise = (ctx.fbm1(u * 42 + 12) - 0.5) * 0.022
     const profile = 0.65 - (p1 + p2 + p3) + ridgeNoise
     const top = Math.floor(profile * h)
 
     for (let y = top; y < waterLevel; y++) {
       const v = y / h
       const depth = (y - top) / Math.max(1, waterLevel - top)
-      const gully = ctx.fbm2(u * 38 + 7, v * 22 + 5)
-      const isLitSide = (u - 0.5) * 0.35 + (gully - 0.5) > 0.03
+      const gully = ctx.fbm2(u * 30 + 7, v * 18 + 5)
+      const isLitSide = Math.sin(u * 27) + (gully - 0.5) * 1.8 > 0.18
       let ink = 10 // Shadow rock
-      if (y === top || (depth < 0.25 && isLitSide)) {
+      if (y === top || (depth < 0.12 && isLitSide)) {
         ink = 12 // Snow crest
-      } else if (isLitSide || (depth < 0.15 && gully > 0.32)) {
+      } else if ((depth < 0.38 && isLitSide) || (depth < 0.20 && gully > 0.45)) {
         ink = 11 // Snow face
-      } else if (gully > 0.68 && depth < 0.52) {
+      } else if (gully > 0.72 && depth < 0.46) {
         ink = 11
       }
       ctx.px(x, y, ink)
@@ -245,24 +245,26 @@ function drawMidRidgeAndCabin(ctx: BuildCtx): void {
   const { width: w, height: h } = ctx
   const waterLevel = Math.floor(h * 0.67)
 
-  for (let x = Math.floor(w * 0.50); x < w; x++) {
+  for (let x = Math.floor(w * 0.56); x < w; x++) {
     const u = x / w
-    const ramp = (u - 0.50) / 0.50
-    const cragShape = (ctx.fbm1(u * 20 + 80) - 0.5) * 0.06
-    const profile = 0.67 - (ramp ** 1.35) * 0.33 + cragShape
+    const ramp = (u - 0.56) / 0.44
+    const cragShape = (ctx.fbm1(u * 28 + 80) - 0.5) * 0.035
+    const shoulder = Math.max(0, 0.065 - Math.abs(u - 0.76) * 0.55)
+    const profile = 0.67 - (ramp ** 1.18) * 0.25 - shoulder + cragShape
     const top = Math.floor(profile * h)
 
     for (let y = top; y < waterLevel; y++) {
       const v = y / h
       const depth = (y - top) / Math.max(1, waterLevel - top)
-      const rockTexture = ctx.fbm2(u * 40 + 120, v * 32 + 50)
+      const rockTexture = ctx.fbm2(u * 26 + 120, v * 24 + 50)
       const isRim = y <= top + 1
-      const isSnowLedge = (y % 10 < 3) && rockTexture > 0.40 && depth > 0.12
+      const diagonal = Math.floor((y - top) - (u - 0.56) * h * 0.34)
+      const isSnowLedge = diagonal % 18 < 3 && rockTexture > 0.46 && depth > 0.10
 
       let ink = 13 // Deep rock
       if (isRim) {
         ink = 15 // Sunlit rim
-      } else if (isSnowLedge || (rockTexture > 0.60 && depth < 0.55)) {
+      } else if (isSnowLedge || (rockTexture > 0.66 && depth < 0.42)) {
         ink = 14 // Snow terrace
       } else if (rockTexture > 0.45) {
         ink = 14
@@ -280,29 +282,27 @@ function drawMidRidgeAndCabin(ctx: BuildCtx): void {
 function drawNearShore(ctx: BuildCtx): void {
   const { width: w, height: h } = ctx
 
-  // Textured coastal granite boulders with snow drifts
-  for (let x = 0; x < Math.floor(w * 0.40); x++) {
+  // Three overlapping granite boulders: dark faces stay visible beneath small snow caps.
+  for (let x = 0; x < Math.floor(w * 0.34); x++) {
     const u = x / w
-    const hump1 = Math.max(0, 0.09 - Math.abs(u - 0.12) * 0.85)
-    const hump2 = Math.max(0, 0.08 - Math.abs(u - 0.24) * 0.95)
-    const hump3 = Math.max(0, 0.06 - Math.abs(u - 0.33) * 1.3)
-    const shoreCurve = 0.82 - (hump1 + hump2 + hump3) + (ctx.fbm1(u * 18 + 105) - 0.5) * 0.03
+    const hump1 = Math.max(0, 0.17 - Math.abs(u - 0.09) * 1.35)
+    const hump2 = Math.max(0, 0.12 - Math.abs(u - 0.21) * 1.62)
+    const hump3 = Math.max(0, 0.075 - Math.abs(u - 0.31) * 1.9)
+    const shoreCurve = 0.90 - (hump1 + hump2 + hump3) + (ctx.fbm1(u * 24 + 105) - 0.5) * 0.018
     const top = Math.floor(shoreCurve * h)
 
     for (let y = top; y < h; y++) {
       const v = y / h
-      const boulderDist = Math.min(Math.abs(u - 0.12), Math.abs(u - 0.24), Math.abs(u - 0.33))
+      const boulderDist = Math.min(Math.abs(u - 0.09), Math.abs(u - 0.21), Math.abs(u - 0.31))
       const rockNoise = ctx.fbm2(u * 38 + 220, v * 30 + 120)
-      const isSnowCap = (y - top) < Math.floor(h * 0.04) && (boulderDist < 0.06 || rockNoise > 0.48)
+      const isSnowCap = (y - top) < 3 + Math.floor((1 - boulderDist * 8) * 4) && rockNoise > 0.31
       const isRim = y <= top + 1
 
       let ink = 28 // Dark coastal granite
       if (isRim || isSnowCap) {
         ink = 29 // Snow cap on boulder
-      } else if (rockNoise > 0.62) {
-        ink = 29
-      } else if ((x + y) % 5 === 0 && rockNoise > 0.45) {
-        ink = 29 // Granite snow dither
+      } else if (rockNoise > 0.77 && (x + y) % 7 === 0) {
+        ink = 29 // Sparse snow caught in granite seams
       }
       ctx.px(x, y, ink)
     }
@@ -383,79 +383,75 @@ const tromso: SceneDef = {
     const { width: w, height: h } = ctx
     const horizonY = Math.floor(h * 0.65)
 
-    // Effect 1: Sweeping continuous Aurora Curtains across the arctic sky
+    // Effect 1: Two continuous aurora curtains. A stable haze joins the pleats,
+    // while the brighter lower hem makes the light read as a hanging curtain.
     const auroraIntensityByX = new Uint8Array(w)
+    const drawCurtain = (left: number, right: number, phase: number, violet: boolean): void => {
+      for (let x = Math.floor(w * left); x < Math.floor(w * right); x++) {
+        const u = x / w
+        const span = (u - left) / (right - left)
+        const envelope = Math.sin(Math.PI * span) ** 0.52
+        const drift = t * (violet ? 0.055 : 0.085)
+        const top = (violet ? 0.16 : 0.095)
+          + Math.sin(u * 8 + drift + phase) * 0.026
+          + Math.sin(u * 17 - drift * 0.6) * 0.012
+        const hem = (violet ? 0.31 : 0.39)
+          + envelope * (violet ? 0.075 : 0.10)
+          + Math.sin(u * 14 + drift * 1.35 + phase) * 0.025
+        const startY = Math.max(1, Math.floor(top * h))
+        const endY = Math.min(horizonY - 4, Math.floor(hem * h))
+        const pleat = (Math.sin(u * 58 + drift * 3 + phase) + 1) * 0.5
+        const fold = (Math.sin(u * 23 - drift * 2 + phase) + 1) * 0.5
 
-    // Sweeping ribbon 1 (dominant green ribbon) and ribbon 2 (violet secondary fold)
-    for (let x = Math.floor(w * 0.14); x < Math.floor(w * 0.92); x++) {
-      const u = x / w
-      const spanNorm = (u - 0.14) / 0.78
-      const edgeEnvelope = Math.sin(Math.PI * spanNorm) ** 0.8
+        for (let y = startY; y < endY; y++) {
+          if (ctx.base[y * w + x]! >= 10 && ctx.base[y * w + x]! <= 15) continue
+          const down = (y - startY) / Math.max(1, endY - startY)
+          const edge = Math.min(1, Math.min(span, 1 - span) * 10)
+          const brightness = down * (0.52 + pleat * 0.48) * edge
+          if (brightness < 0.16) continue
 
-      // Main undulating crest & bottom
-      const crestWave = Math.sin(u * 9 + t * 0.12) * 0.035 + Math.sin(u * 19 - t * 0.08) * 0.018
-      const crestY = (0.09 + crestWave) * h
-      const curtainH = (0.24 * edgeEnvelope + 0.04 * Math.sin(u * 12 + t * 0.14)) * h
-      const bottomY = crestY + curtainH
-
-      // Continuous harmonic vertical curtain rays (pleats)
-      const pleat = Math.sin(u * 56 + Math.sin(u * 8 + t * 0.12) * 2.8)
-      const ray = pleat * 0.55 + Math.sin(u * 28 - t * 0.16) * 0.35 + 0.1
-
-      if (ray < -0.30) continue
-
-      const startY = Math.max(1, Math.floor(crestY))
-      const endY = Math.min(horizonY - 5, Math.floor(bottomY))
-
-      for (let y = startY; y < endY; y++) {
-        if (ctx.base[y * w + x]! >= 10 && ctx.base[y * w + x]! <= 15) continue
-
-        const vSpan = (y - startY) / Math.max(1, endY - startY)
-        const verticalFade = Math.sin(vSpan * Math.PI)
-
-        if (verticalFade * (ray + 0.45) < 0.20) continue
-
-        let ink = 7 // Outer emerald/violet haze
-        if (ray > 0.30 && verticalFade > 0.38) {
-          ink = 9 // Aqua/violet brilliant core
-        } else if (ray > -0.05 && verticalFade > 0.18) {
-          ink = 8 // Emerald curtain body
-        }
-
-        ctx.px(x, y, ink)
-        if (ink > auroraIntensityByX[x]!) {
-          auroraIntensityByX[x] = ink
+          let ink = 7
+          if (brightness > 0.40 || (down > 0.70 && pleat > 0.58)) ink = 8
+          if (brightness > 0.77 && pleat > 0.88) ink = violet ? 9 : 9
+          ctx.px(x, y, ink)
+          auroraIntensityByX[x] = Math.max(auroraIntensityByX[x]!, ink)
         }
       }
     }
+    drawCurtain(0.15, 0.96, 0, false)
 
     // Effect 2: Natural Fjord Water Waves and Dynamic Aurora & Cabin Reflections
     for (let y = horizonY; y < h; y++) {
       const v = (y - horizonY) / Math.max(1, h - horizonY)
-      const wavePeriod = 0.26
-      const wavePhase = t * 2.4 + y * 0.75
+        const wavePhase = t * 2.1 + y * 0.56
 
       for (let x = 0; x < w; x++) {
         if (ctx.base[y * w + x]! >= 28) continue
 
         const u = x / w
-        const wave = Math.sin(x * wavePeriod + wavePhase)
-        const ripple = Math.sin(x * 0.14 - t * 1.5 + y * 0.3)
+        const wave = Math.sin(x * 0.19 + wavePhase)
+        const ripple = Math.sin(x * 0.11 - t * 1.2 + y * 0.24)
 
         // Cabin window reflection directly beneath cabin (u = 0.83)
         const distToCabin = Math.abs(u - 0.83)
-        const inCabinPath = distToCabin < (0.015 + v * 0.04) && (wave + ripple) > 0.25 && y < horizonY + h * 0.16
+        const inCabinPath = distToCabin < (0.012 + v * 0.032) && (wave + ripple) > 0.55 && y < horizonY + h * 0.20
 
         // Aurora reflection: samples aurora intensity directly above this x column!
-        const auroraSampleX = Math.max(0, Math.min(w - 1, Math.floor(x + Math.sin(y * 0.06 + t * 0.8) * 8 * v)))
+        const auroraSampleX = Math.max(0, Math.min(w - 1, Math.floor(x + Math.sin(y * 0.05 + t * 0.65) * (3 + 7 * v))))
         const auroraLight = auroraIntensityByX[auroraSampleX]!
-        const inAuroraPath = auroraLight >= 8 && (wave + ripple) > (0.45 + v * 0.2)
+        const brokenBand = Math.sin(x * 0.21 + y * 0.09 - t * 2.1) + ripple
+        const inAuroraPath = auroraLight >= 8
+          && brokenBand > 1.16 - v * 0.10
+          && (y - horizonY) % 3 === 0
 
-        if (inCabinPath && (x + y) % 2 === 0) {
+        if (inCabinPath) {
           ctx.px(x, y, 23) // Shimmering warm golden window glint
-        } else if (inAuroraPath && (x + y) % 2 === 0) {
+        } else if (inAuroraPath) {
           ctx.px(x, y, auroraLight === 9 ? 20 : 19) // Broken emerald aurora wave glint
-        } else if (wave > 0.80 && (x + y) % 4 === 0) {
+          if (x + 1 < w && ctx.base[y * w + x + 1]! < 28) {
+            ctx.px(x + 1, y, auroraLight === 9 ? 20 : 19)
+          }
+        } else if (wave > 0.90 && (x + y) % 5 === 0) {
           ctx.px(x, y, 18) // Normal wave crest
         }
       }

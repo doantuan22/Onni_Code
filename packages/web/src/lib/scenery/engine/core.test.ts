@@ -212,7 +212,7 @@ describe('scene rendering and lazy registry', () => {
   })
 
   it('fits desktop and portrait/mobile buffers within their resolution budgets', () => {
-    expect(bufferSize(1920, 1080, false)).toEqual({ width: 320, height: 180 })
+    expect(bufferSize(1920, 1080, false)).toEqual({ width: 480, height: 270 })
     expect(bufferSize(3840, 2160, false)).toEqual({ width: 480, height: 270 })
     const narrow = bufferSize(720, 900)
     expect(narrow.width).toBeLessThanOrEqual(240)

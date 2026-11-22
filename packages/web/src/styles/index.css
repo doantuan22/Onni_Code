@@ -426,6 +426,22 @@
   border-radius: var(--radius-lg);
 }
 
+/* Horizon is an actual strip, not a barely-visible image beneath a full-height
+ * transcript plate. Keep message-sized text surfaces protected and leave the
+ * lane's empty space clear so the 36% strip can read above the dock. */
+[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready]) [data-slot='thread-reading-lane'] {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready])
+  :is([data-slot='assistant-message'], [data-slot='note-line'], [data-slot='history-start'], [data-slot='history-boundary'], [data-slot='thread-empty'], [data-slot='working-indicator'], [data-slot='thread-footer']) {
+  background-color: var(--scene-panel-surface);
+  border: 1px solid var(--scene-panel-border);
+  border-radius: var(--radius);
+  padding-inline: 0.75rem;
+}
+
 [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='new-task-main'] {
   border: 1px solid var(--scene-panel-border);
   border-radius: var(--radius-lg);

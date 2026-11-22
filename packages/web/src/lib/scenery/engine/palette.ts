@@ -1,4 +1,4 @@
-import type { Palette, Palettes, TimeOfDay } from './types'
+import type { CycleSpec, Palette, Palettes, SceneTheme, ThemePalettes, TimeOfDay } from './types'
 
 export const clamp01 = (n: number): number => Math.max(0, Math.min(1, Number.isFinite(n) ? n : 0))
 export const TIME_ANCHORS: Readonly<Record<TimeOfDay, number>> = { dawn: 0.25, day: 0.5, dusk: 0.75, night: 0 }
@@ -28,6 +28,23 @@ export function interpolatePalette(palettes: Palettes, time: TimeOfDay | number)
   return a.map((color, i) => mixColor(color, b[i]!, pos % 1))
 }
 
+export function paletteForTheme(legacy: Palettes, themed: ThemePalettes | undefined, theme: SceneTheme | undefined): Palettes {
+  return theme && themed?.[theme] ? themed[theme] : legacy
+}
+
+/** Rotates only owned index groups; no scene geometry or unrelated palette slots are touched. */
+export function cyclePalette(palette: Palette, cycles: readonly CycleSpec[] | undefined, time: number, target = Array.from(palette)): number[] {
+  if (!cycles?.length) return target
+  for (let i = 0; i < palette.length; i++) target[i] = palette[i]!
+  for (const cycle of cycles) {
+    const indices = cycle.indices
+    if (!indices.length || indices.some((index) => !Number.isInteger(index) || index < 0 || index >= palette.length)) throw new RangeError('Cycle indices must belong to the palette')
+    const offset = Math.floor(time * cycle.rate + (cycle.phase ?? 0))
+    for (let i = 0; i < indices.length; i++) target[indices[i]!] = palette[indices[(i - offset % indices.length + indices.length) % indices.length]!]!
+  }
+  return target
+}
+
 const littleEndian = new Uint8Array(new Uint32Array([0x01020304]).buffer)[0] === 4
 export function packRgba(color: number): number {
   const r = (color >>> 16) & 255
@@ -50,7 +67,20 @@ export function expandPalette(palette: Palette): number[] {
 }
 
 export function createLut(palette: Palette, options: ToneMap = {}): Uint32Array {
-  return Uint32Array.from(expandPalette(palette), (color) => packRgba(options.background === undefined ? color : mixColor(options.background, color, options.visibility ?? 1)))
+  return writeLut(palette, options)
+}
+
+/** Writes a reusable 32-entry LUT; render loops must not allocate a LUT for cycling. */
+export function writeLut(palette: Palette, options: ToneMap = {}, target = new Uint32Array(32)): Uint32Array {
+  if (target.length !== 32) throw new RangeError('LUTs require exactly 32 entries')
+  validatePalette(palette)
+  for (let index = 0; index < 32; index++) {
+    const normal = palette[index % Math.min(16, palette.length)]!
+    const expanded = palette[index] ?? (index >= 16 ? mixColor(normal, 0x14243b, 0.35) : normal)
+    const color = options.background === undefined ? expanded : mixColor(options.background, expanded, options.visibility ?? 1)
+    target[index] = packRgba(color)
+  }
+  return target
 }
 
 export function indexedToRgba(indexed: Uint8Array, lut: Uint32Array, target: Uint32Array = new Uint32Array(indexed.length)): Uint32Array {

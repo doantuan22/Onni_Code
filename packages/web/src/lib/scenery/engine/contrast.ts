@@ -13,6 +13,17 @@ export function contrastRatio(a: number, b: number): number {
   return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)
 }
 
+/** sRGB composite used by the renderer/host integration before measuring local reading panels. */
+export function compositeColor(background: number, foreground: number, alpha: number): number {
+  const amount = clamp01(alpha)
+  return channels(background).reduce((result, channel, i) => result | (Math.round(channel * (1 - amount) + channels(foreground)[i]! * amount) << shifts[i]!), 0)
+}
+
+const shifts = [16, 8, 0] as const
+export function compositeContrast(text: number, scene: number, panel: number, panelAlpha: number): number {
+  return contrastRatio(text, compositeColor(scene, panel, panelAlpha))
+}
+
 /** §4.3.1: eff = bg + (1-A)*s*(pixel-bg), composited in sRGB channels.
  * Channel envelopes bound every palette color (and every interpolated palette) conservatively. */
 export function contrastCeiling(palette: Palette, background: number, foregrounds: readonly number[], visibility = 1): {

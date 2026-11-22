@@ -565,11 +565,43 @@
               </p>
             </header>
 
-            <div class="hairline-card" data-reveal>
-              <div class="stage__steps">
-                <span class="chip"><span class="led led--review" aria-hidden="true"></span>review gate</span>
-                <span class="chip">illustration — no repository action</span>
-              </div>
+            <div class="gate-demo" data-reveal data-gate-state="waiting">
+              <figure class="gate-lanes">
+                <svg class="gate-lanes__svg" viewBox="0 0 720 132" role="img" aria-label="Three task branches stop above the review gate, then converge when you choose Merge">
+                  <path class="gate-lanes__waiting" d="M112 0 V88 M360 0 V88 M608 0 V88" />
+                  <path class="gate-lanes__gap" d="M112 88 V112 M360 88 V112 M608 88 V112" />
+                  <path class="gate-lanes__merged" pathLength="100" d="M112 0 C112 48 360 48 360 112 M360 0 V112 M608 0 C608 48 360 48 360 112" />
+                  <circle class="gate-lanes__node" cx="360" cy="112" r="5" />
+                </svg>
+                <figcaption class="gate-lanes__labels mono">
+                  <span>onni/3f2a91c4</span><span>onni/8b14c0e2</span><span>onni/c7d04a19</span>
+                </figcaption>
+              </figure>
+              <article class="hairline-card gate-card" aria-label="Review gate illustration">
+                <div class="gate-card__top">
+                  <h3>Review gate</h3>
+                  <span class="gate-status" data-gate-status><span class="led led--review" aria-hidden="true"></span>review</span>
+                </div>
+                <ul class="gate-files mono" aria-label="Changed files">
+                  <li><span>settings-tabs.tsx</span><span><b>+142</b> <i>−38</i></span></li>
+                  <li><span>settings.test.ts</span><span><b>+98</b> <i>−0</i></span></li>
+                </ul>
+                <div class="gate-diff mono" aria-label="Illustrative tabs refactor diff">
+                  <div class="gate-diff__context"><span>1</span><code>export function SettingsPage() {'{'}</code></div>
+                  <div class="gate-diff__del"><span>2</span><code>−  return &lt;SettingsForm /&gt;;</code></div>
+                  <div class="gate-diff__add"><span>3</span><code>+  return &lt;SettingsTabs /&gt;;</code></div>
+                  <div class="gate-diff__context"><span>4</span><code>{'}'}</code></div>
+                </div>
+                <div class="gate-merge-bar" aria-hidden="true"><span></span></div>
+                <div class="gate-card__actions">
+                  <span class="gate-decision" data-gate-decision hidden>Your decision</span>
+                  <button class="btn btn-ghost" type="button" data-gate-pr>Open draft PR</button>
+                  <button class="btn btn-primary" type="button" data-gate-merge>Merge</button>
+                  <button class="btn btn-ghost gate-reset" type="button" data-gate-reset hidden>Reset</button>
+                </div>
+              </article>
+              <p class="gate-toast" role="status" aria-live="polite" data-gate-toast></p>
+              <p class="gate-caption">illustration — no repository action</p>
             </div>
           </div>
         </section>
@@ -593,11 +625,38 @@
               </p>
             </header>
 
-            <div class="hairline-card" data-reveal>
-              <div class="stage__steps">
-                <span class="chip">GitHub PR / issue poll</span>
-                <span class="chip">Jira / Linear event</span>
-                <span class="chip">Schedule: cron &amp; one-shot</span>
+            <div class="automation-demo" data-reveal>
+              <div class="automation-flow" data-automation-flow>
+                <div class="automation-triggers">
+                  <article class="hairline-card automation-trigger">
+                    <span class="automation-trigger__title">GitHub poll</span>
+                    <span class="mono">new PR · label · review</span>
+                  </article>
+                  <article class="hairline-card automation-trigger">
+                    <span class="automation-trigger__title">Jira / Linear</span>
+                    <span class="mono">issue event</span>
+                  </article>
+                  <article class="hairline-card automation-trigger">
+                    <span class="automation-trigger__title">Schedule</span>
+                    <span class="mono">weekdays 09:00 · every 6h</span>
+                  </article>
+                </div>
+                <svg class="automation-wires" viewBox="0 0 280 320" preserveAspectRatio="none" role="img" aria-label="Three event and schedule triggers converge into an ordinary Onni task">
+                  <path class="automation-wires__base" d="M0 52 H96 V160 H280 M0 160 H280 M0 268 H96 V160" />
+                  <path class="automation-wires__pulse" pathLength="100" d="M0 52 H96 V160 H280 M0 160 H280 M0 268 H96 V160" />
+                  <circle class="automation-wires__mint" cx="280" cy="160" r="4" />
+                </svg>
+                <article class="hairline-card automation-task">
+                  <header class="automation-task__head">
+                    <h3>onni task</h3>
+                    <span class="automation-badge">waits at review gate</span>
+                  </header>
+                  <dl class="automation-task__details mono">
+                    <div><dt>worktree</dt><dd>.ai/onni/worktrees/7e4d12a0</dd></div>
+                    <div><dt>branch</dt><dd>onni/7e4d12a0</dd></div>
+                  </dl>
+                  <span class="automation-task__mint" aria-hidden="true"></span>
+                </article>
               </div>
             </div>
           </div>

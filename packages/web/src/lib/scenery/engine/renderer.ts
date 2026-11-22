@@ -65,9 +65,14 @@ export class SceneRenderer {
 }
 
 export function bufferSize(width: number, height: number, narrow = width < 768): { width: number; height: number } {
-  const px = Math.max(3, Math.min(6, Math.round(height / 180)))
-  const w = Math.max(1, Math.ceil(width / px))
-  const h = Math.max(1, Math.ceil(height / px))
-  const scale = Math.min(1, (narrow ? 240 : 480) / w, (narrow ? 480 : 270) / h, Math.sqrt(480 * 270 / (w * h)))
-  return { width: Math.max(1, Math.floor(w * scale)), height: Math.max(1, Math.floor(h * scale)) }
+  const maxWidth = narrow ? 240 : 480
+  const maxHeight = narrow ? 480 : 270
+  // CSS enlarges this buffer with nearest-neighbour sampling. Pick an integer
+  // display scale from the art budget, rather than an arbitrary art-pixel size,
+  // so a 480×270 scene does not become a handful of oversized screen pixels.
+  const scale = Math.max(1, Math.ceil(Math.max(width / maxWidth, height / maxHeight)))
+  const w = Math.max(1, Math.ceil(width / scale))
+  const h = Math.max(1, Math.ceil(height / scale))
+  const fit = Math.min(1, maxWidth / w, maxHeight / h, Math.sqrt((480 * 270) / (w * h)))
+  return { width: Math.max(1, Math.floor(w * fit)), height: Math.max(1, Math.floor(h * fit)) }
 }

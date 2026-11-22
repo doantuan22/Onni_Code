@@ -1,8 +1,12 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
+import type { Hono } from 'hono';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { RunStore } from '../runs/store.ts';
+import type { RunManager } from '../workflows/run.ts';
+import { createApp } from './server.ts';
 import { AssetCache, compressible, wantsGzip } from './static-assets.ts';
 import { ASSET_CACHE_CONTROL } from './static-ui.ts';
 
@@ -84,5 +88,42 @@ describe('wantsGzip reads Accept-Encoding', () => {
     expect(wantsGzip('*')).toBe(true);
     expect(wantsGzip('gzip;q=0')).toBe(false);
     expect(wantsGzip('deflate, br')).toBe(false);
+  });
+});
+
+describe('the scenery thumbnail route', () => {
+  let repoRoot: string;
+  let store: RunStore;
+  let app: Hono;
+  const thumbsDir = join(process.cwd(), 'packages/work/web/dist/scenery-thumbs');
+  const thumb = 'scenery-route-test-light.png';
+  let createdThumbsDir = false;
+
+  beforeEach(() => {
+    repoRoot = mkdtempSync(join(tmpdir(), 'onni-scenery-thumbs-'));
+    mkdirSync(join(repoRoot, '.ai/onni'), { recursive: true });
+    createdThumbsDir = !existsSync(thumbsDir);
+    mkdirSync(thumbsDir, { recursive: true });
+    writeFileSync(join(thumbsDir, thumb), 'png bytes');
+    store = RunStore.open(join(repoRoot, '.ai/onni'));
+    app = createApp({ repoRoot, store, manager: {} as RunManager, version: '0.0.0-test' });
+  });
+
+  afterEach(() => {
+    store.flush();
+    rmSync(repoRoot, { recursive: true, force: true });
+    unlinkSync(join(thumbsDir, thumb));
+    if (createdThumbsDir) rmSync(thumbsDir, { recursive: true, force: true });
+  });
+
+  it('serves known PNG thumbnails and rejects traversal, unknown, and malformed names', async () => {
+    const valid = await app.request(`/scenery-thumbs/${thumb}`);
+    expect(valid.status).toBe(200);
+    expect(valid.headers.get('content-type')).toBe('image/png');
+    expect(await valid.text()).toBe('png bytes');
+
+    for (const file of ['..%2Fscenery-route-test-light.png', 'unknown-light.png', 'vn-halong-light.jpg', 'vn_halong-light.png']) {
+      expect((await app.request(`/scenery-thumbs/${file}`)).status).toBe(404);
+    }
   });
 });

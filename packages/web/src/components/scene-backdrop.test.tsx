@@ -106,7 +106,7 @@ describe('SceneBackdrop', () => {
     expect(backdrop()?.getAttribute('aria-hidden')).toBe('true')
     expect(backdrop()?.dataset).toMatchObject({ surface: 'new', mode: 'full' })
     expect(createHost).toHaveBeenCalledExactlyOnceWith(sceneCanvas(), expect.objectContaining({
-      sceneId: 'vn-halong', motion: false, time: 'auto', speed: 1,
+      sceneId: 'vn-halong', motion: false, theme: 'light', time: undefined, speed: 1,
     }))
     expect(createHost.mock.calls[0]![1].visibility).toBe(1)
     expect(backdrop()?.querySelector('[data-slot="scene-scrim"]')).toBeNull()

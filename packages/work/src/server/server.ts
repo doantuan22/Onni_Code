@@ -1341,6 +1341,16 @@ export function createApp(deps: ServerDeps) {
     return new Response(plan.body, { headers: plan.headers });
   });
 
+  // Static review thumbnails the scene popover loads (`scenery-thumbs/<id>-<theme>.png`).
+  // A strict filename pattern keeps dot-segments and separators out (404, never 500).
+  app.get('/scenery-thumbs/:file', (c) => {
+    const file = c.req.param('file');
+    if (!/^[a-z0-9-]+-(light|dark)\.png$/.test(file)) return c.json({ error: 'not found' }, 404);
+    const path = join(distDir, 'scenery-thumbs', file);
+    if (!existsSync(path)) return c.json({ error: 'not found' }, 404);
+    return new Response(readFileSync(path), { headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=3600' } });
+  });
+
   // The favicon packages/web/index.html points at (`/icon.svg`).
   app.get('/icon.svg', staticFile('icon.svg', 'image/svg+xml'));
   // Compatibility alias for the pre-rename public URL (BACKWARD_COMPATIBILITY.md §2).

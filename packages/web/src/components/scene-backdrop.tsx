@@ -103,7 +103,9 @@ function SceneCanvas({ loaded, scene, surface }: { loaded: LoadedScene; scene: S
     return () => observer.disconnect()
   }, [loaded, mode, narrow, failed])
 
-  const { time, visibility, speed, motion } = scene
+  const { visibility, speed, motion, timeSource } = scene
+  // 'theme' leaves time undefined so the renderer uses the scene's themeDefaultTime.
+  const time = timeSource === 'clock' ? 'auto' : timeSource === 'fixed' ? scene.time : undefined
   React.useLayoutEffect(() => {
     setBackground(readBackground())
   }, [resolvedTheme])
@@ -126,6 +128,7 @@ function SceneCanvas({ loaded, scene, surface }: { loaded: LoadedScene; scene: S
       ...size,
       sceneId: loaded.definition.id,
       background,
+      theme: resolvedTheme,
       // Visibility is mixed once by the renderer. Reading surfaces protect text locally.
       visibility,
       time,
@@ -147,7 +150,7 @@ function SceneCanvas({ loaded, scene, surface }: { loaded: LoadedScene; scene: S
     } catch {
       setFailed(true)
     }
-  }, [loaded, size, background, time, visibility, speed, motion, narrow, failed])
+  }, [loaded, size, background, resolvedTheme, time, visibility, speed, motion, narrow, failed])
 
   if (failed) return null
   return (

@@ -1,3 +1,4 @@
+/* iife */ (() => {
 /**
  * Section 04: Live Evidence & Cockpit Twin (#live)
  * Direction: "Parallel Light" · Zero-dep ES module
@@ -125,3 +126,4 @@ if (liveSection) {
     updateTelemetry(Number.isNaN(initialP) ? 0 : initialP, Number.isNaN(initialStep) ? 0 : initialStep);
   }
 }
+})();

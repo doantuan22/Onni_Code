@@ -1,3 +1,4 @@
+/* iife */ (() => {
 /**
  * Section 05: Manager / Worker Orchestration (#orchestration)
  * Direction: "Parallel Light" · Zero-dep ES module
@@ -289,3 +290,4 @@ if (orchSection) {
     }
   }
 }
+})();

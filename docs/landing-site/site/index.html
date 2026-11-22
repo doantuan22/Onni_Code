@@ -198,12 +198,15 @@
         <!-- section:live -->
         <section
           id="live"
-          class="stage lamp-frame"
+          class="stage"
           data-stage
           data-steps="4"
           style="--stage-h: 150vh"
           aria-labelledby="live-title"
         >
+          <!-- Horizontal spine tap from left rail (G1) -->
+          <div class="live-spine-tap" aria-hidden="true"></div>
+
           <div class="stage__sticky">
             <div class="container">
               <header class="section__header" data-reveal>
@@ -218,20 +221,309 @@
                 </p>
               </header>
 
-              <div class="hairline-card" data-reveal>
-                <div class="stage__steps" role="tablist" aria-label="Recorded run playhead steps">
-                  <button type="button" class="chip" data-step-target="0" aria-current="true">
-                    01 · Step stream
-                  </button>
-                  <button type="button" class="chip" data-step-target="1" aria-current="false">
-                    02 · Tool calls
-                  </button>
-                  <button type="button" class="chip" data-step-target="2" aria-current="false">
-                    03 · Tokens &amp; cost
-                  </button>
-                  <button type="button" class="chip" data-step-target="3" aria-current="false">
-                    04 · Live diff
-                  </button>
+              <!-- Cockpit Twin Console Card -->
+              <div class="hairline-card live-cockpit" data-reveal style="--reveal-delay: 120ms">
+                <!-- Cockpit Header: Run identity + Tabular telemetry counters -->
+                <div class="live-cockpit__header">
+                  <div class="live-cockpit__identity">
+                    <span class="live-cockpit__status-indicator">
+                      <span class="led led--done" aria-hidden="true"></span>
+                      <span class="live-cockpit__status-text">Streaming</span>
+                    </span>
+                    <span class="live-cockpit__id mono">Run 3f2a91c4</span>
+                    <span class="live-cockpit__sep">·</span>
+                    <span class="live-cockpit__branch mono">onni/3f2a91c4</span>
+                    <span class="live-cockpit__sep">·</span>
+                    <span class="chip chip--backend">
+                      <img src="assets/brand/icon.svg" alt="" width="12" height="12" class="pixelated" />
+                      claude
+                    </span>
+                  </div>
+
+                  <div class="live-cockpit__telemetry mono" aria-label="Run telemetry counters">
+                    <div class="live-telemetry__item" title="Tokens consumed">
+                      <span class="live-telemetry__label">tok</span>
+                      <span class="live-telemetry__val" data-counter="tokens">18,240</span>
+                    </div>
+                    <span class="live-cockpit__sep">·</span>
+                    <div class="live-telemetry__item" title="Estimated model cost">
+                      <span class="live-telemetry__label">cost</span>
+                      <span class="live-telemetry__val" data-counter="cost">$0.23</span>
+                    </div>
+                    <span class="live-cockpit__sep">·</span>
+                    <div class="live-telemetry__item" title="Elapsed task duration">
+                      <span class="live-telemetry__label">time</span>
+                      <span class="live-telemetry__val" data-counter="duration">00:54</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Cockpit Body: Split Panes -->
+                <div class="live-cockpit__body">
+                  <!-- Left Pane: Streamed Step Rows with Tool-Call Pills -->
+                  <div class="live-pane live-pane--steps" aria-label="Execution steps stream">
+                    <div class="live-pane__header">
+                      <span class="live-pane__title">Task execution stream</span>
+                      <span class="live-pane__badge mono">ws://live.bus</span>
+                    </div>
+
+                    <ol class="live-step-list">
+                      <!-- Step 0: Read -->
+                      <li class="live-step-row is-active" data-step-index="0">
+                        <div class="live-step-row__indicator">
+                          <span class="live-step-row__num">1</span>
+                          <span class="live-step-row__line" aria-hidden="true"></span>
+                        </div>
+                        <div class="live-step-row__content">
+                          <div class="live-step-row__top">
+                            <span class="live-step-row__name">Read</span>
+                            <span class="chip chip--tool">
+                              <span class="chip__tool-kind">tool</span>
+                              <code class="mono">read_file</code>
+                            </span>
+                            <span class="live-step-row__time mono">00:08</span>
+                          </div>
+                          <p class="live-step-row__detail mono">
+                            packages/web/src/routes/settings.tsx
+                          </p>
+                          <p class="live-step-row__desc">
+                            Inspecting monolithic settings route layout (312 lines, candidate tab boundaries).
+                          </p>
+                        </div>
+                      </li>
+
+                      <!-- Step 1: Edit -->
+                      <li class="live-step-row" data-step-index="1">
+                        <div class="live-step-row__indicator">
+                          <span class="live-step-row__num">2</span>
+                          <span class="live-step-row__line" aria-hidden="true"></span>
+                        </div>
+                        <div class="live-step-row__content">
+                          <div class="live-step-row__top">
+                            <span class="live-step-row__name">Edit</span>
+                            <span class="chip chip--tool">
+                              <span class="chip__tool-kind">tool</span>
+                              <code class="mono">edit_file</code>
+                            </span>
+                            <span class="live-step-row__time mono">00:24</span>
+                          </div>
+                          <p class="live-step-row__detail mono">
+                            settings-tabs.tsx · settings.tsx
+                          </p>
+                          <p class="live-step-row__desc">
+                            Extracted modular &lt;SettingsTabs /&gt; component; replaced inline panels.
+                          </p>
+                        </div>
+                      </li>
+
+                      <!-- Step 2: Test -->
+                      <li class="live-step-row" data-step-index="2">
+                        <div class="live-step-row__indicator">
+                          <span class="live-step-row__num">3</span>
+                          <span class="live-step-row__line" aria-hidden="true"></span>
+                        </div>
+                        <div class="live-step-row__content">
+                          <div class="live-step-row__top">
+                            <span class="live-step-row__name">Test</span>
+                            <span class="chip chip--tool">
+                              <span class="chip__tool-kind">tool</span>
+                              <code class="mono">run_command</code>
+                            </span>
+                            <span class="chip chip--success">
+                              <span class="led led--done" aria-hidden="true"></span>
+                              12 passed
+                            </span>
+                            <span class="live-step-row__time mono">00:42</span>
+                          </div>
+                          <p class="live-step-row__detail mono">
+                            npm test -- settings
+                          </p>
+                          <p class="live-step-row__desc">
+                            Ran suite across tabs keyboard navigation, ARIA attributes, and persistence.
+                          </p>
+                        </div>
+                      </li>
+
+                      <!-- Step 3: Settle -->
+                      <li class="live-step-row" data-step-index="3">
+                        <div class="live-step-row__indicator">
+                          <span class="live-step-row__num">4</span>
+                        </div>
+                        <div class="live-step-row__content">
+                          <div class="live-step-row__top">
+                            <span class="live-step-row__name">Settle</span>
+                            <span class="chip chip--review">
+                              <span class="led led--review" aria-hidden="true"></span>
+                              diff ready → review
+                            </span>
+                            <span class="live-step-row__time mono">00:54</span>
+                          </div>
+                          <p class="live-step-row__detail mono">
+                            +142 -38 lines · branch onni/3f2a91c4
+                          </p>
+                          <p class="live-step-row__desc">
+                            Run completed cleanly. Worktree diff parked at review gate; auto-landing withheld.
+                          </p>
+                        </div>
+                      </li>
+                    </ol>
+                  </div>
+
+                  <!-- Right Pane: Full-Height Diff Viewer matching the active step -->
+                  <div class="live-pane live-pane--diff" aria-label="Step-matched code diff inspection">
+                    <div class="live-diff__header">
+                      <div class="live-diff__file-info">
+                        <span class="live-diff__file-icon" aria-hidden="true">
+                          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M4 1.5A1.5 1.5 0 0 0 2.5 3v10A1.5 1.5 0 0 0 4 14.5h8a1.5 1.5 0 0 0 1.5-1.5V6.414a1.5 1.5 0 0 0-.44-1.06L9.647 1.94A1.5 1.5 0 0 0 8.586 1.5H4zM3.5 3A.5.5 0 0 1 4 2.5h4.586a.5.5 0 0 1 .354.146l3.414 3.415a.5.5 0 0 1 .146.353V13a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V3z"/>
+                          </svg>
+                        </span>
+                        <span class="live-diff__filename mono" data-diff-filename>packages/web/src/routes/settings.tsx</span>
+                      </div>
+                      <div class="live-diff__stats mono" data-diff-stats>
+                        <span class="live-diff__stat-add">312 lines</span>
+                        <span class="live-diff__stat-del">inspect</span>
+                      </div>
+                    </div>
+
+                    <!-- Diff Content Panels for Steps 0, 1, 2, 3 -->
+                    <div class="live-diff__viewport" role="region" aria-live="polite">
+                      <!-- Step 0 Read / Inspection -->
+                      <div class="live-diff-panel live-diff-panel--0 is-active" data-panel-step="0">
+                        <div class="live-diff-panel__banner">
+                          <span class="live-diff-panel__pill chip mono">read_file inspection</span>
+                          <span class="live-diff-panel__note">Locating monolithic section components</span>
+                        </div>
+                        <pre class="live-diff__code mono"><code><span class="diff-line diff-line--ctx"><span class="diff-num">14</span><span class="diff-marker"> </span>import { useState } from 'react';</span>
+<span class="diff-line diff-line--ctx"><span class="diff-num">15</span><span class="diff-marker"> </span>import { useWorkspaceConfig } from '../hooks/use-config';</span>
+<span class="diff-line diff-line--ctx"><span class="diff-num">16</span><span class="diff-marker"> </span></span>
+<span class="diff-line diff-line--hunk"><span class="diff-num">..</span><span class="diff-marker"> </span>@@ -17,20 +17,20 @@ export function SettingsRoute() {</span>
+<span class="diff-line diff-line--ctx diff-line--inspect"><span class="diff-num">17</span><span class="diff-marker"> </span>  const { config, updateConfig } = useWorkspaceConfig();</span>
+<span class="diff-line diff-line--ctx diff-line--inspect"><span class="diff-num">18</span><span class="diff-marker"> </span>  return (</span>
+<span class="diff-line diff-line--ctx diff-line--inspect"><span class="diff-num">19</span><span class="diff-marker"> </span>    &lt;div className="settings-page"&gt;</span>
+<span class="diff-line diff-line--ctx diff-line--inspect"><span class="diff-num">20</span><span class="diff-marker"> </span>      &lt;h1 className="h-title"&gt;Settings&lt;/h1&gt;</span>
+<span class="diff-line diff-line--ctx diff-line--inspect"><span class="diff-num">21</span><span class="diff-marker"> </span>      &lt;section id="general-pane" className="settings-pane"&gt;...&lt;/section&gt;</span>
+<span class="diff-line diff-line--ctx diff-line--inspect"><span class="diff-num">22</span><span class="diff-marker"> </span>      &lt;section id="resources-pane" className="settings-pane"&gt;...&lt;/section&gt;</span>
+<span class="diff-line diff-line--ctx diff-line--inspect"><span class="diff-num">23</span><span class="diff-marker"> </span>      &lt;section id="limits-pane" className="settings-pane"&gt;...&lt;/section&gt;</span>
+<span class="diff-line diff-line--ctx diff-line--inspect"><span class="diff-num">24</span><span class="diff-marker"> </span>    &lt;/div&gt;</span>
+<span class="diff-line diff-line--ctx"><span class="diff-num">25</span><span class="diff-marker"> </span>  );</span>
+<span class="diff-line diff-line--ctx"><span class="diff-num">26</span><span class="diff-marker"> </span>}</span></code></pre>
+                      </div>
+
+                      <!-- Step 1 Edit / Extraction -->
+                      <div class="live-diff-panel live-diff-panel--1" data-panel-step="1">
+                        <div class="live-diff-panel__banner">
+                          <span class="live-diff-panel__pill chip chip--violet mono">edit_file active</span>
+                          <span class="live-diff-panel__note">Replacing inline panels with tab navigation</span>
+                        </div>
+                        <pre class="live-diff__code mono"><code><span class="diff-line diff-line--ctx"><span class="diff-num">17</span><span class="diff-marker"> </span>  const { config, updateConfig } = useWorkspaceConfig();</span>
+<span class="diff-line diff-line--add"><span class="diff-num">18</span><span class="diff-marker">+</span>  const [activeTab, setActiveTab] = useState&lt;SettingsTabId&gt;('general');</span>
+<span class="diff-line diff-line--ctx"><span class="diff-num">19</span><span class="diff-marker"> </span>  return (</span>
+<span class="diff-line diff-line--del"><span class="diff-num">20</span><span class="diff-marker">-</span>    &lt;div className="settings-page"&gt;</span>
+<span class="diff-line diff-line--del"><span class="diff-num">21</span><span class="diff-marker">-</span>      &lt;h1 className="h-title"&gt;Settings&lt;/h1&gt;</span>
+<span class="diff-line diff-line--del"><span class="diff-num">22</span><span class="diff-marker">-</span>      &lt;section id="general-pane"&gt;...&lt;/section&gt;</span>
+<span class="diff-line diff-line--del"><span class="diff-num">23</span><span class="diff-marker">-</span>      &lt;section id="resources-pane"&gt;...&lt;/section&gt;</span>
+<span class="diff-line diff-line--del"><span class="diff-num">24</span><span class="diff-marker">-</span>      &lt;section id="limits-pane"&gt;...&lt;/section&gt;</span>
+<span class="diff-line diff-line--add"><span class="diff-num">20</span><span class="diff-marker">+</span>    &lt;div className="settings-page settings-page--tabs"&gt;</span>
+<span class="diff-line diff-line--add"><span class="diff-num">21</span><span class="diff-marker">+</span>      &lt;SettingsTabs active={activeTab} onSelect={setActiveTab} /&gt;</span>
+<span class="diff-line diff-line--add"><span class="diff-num">22</span><span class="diff-marker">+</span>      &lt;SettingsPanel id={activeTab} config={config} onChange={updateConfig} /&gt;</span>
+<span class="diff-line diff-line--ctx"><span class="diff-num">23</span><span class="diff-marker"> </span>    &lt;/div&gt;</span>
+<span class="diff-line diff-line--ctx"><span class="diff-num">24</span><span class="diff-marker"> </span>  );</span></code></pre>
+                      </div>
+
+                      <!-- Step 2 Test / Test Runner -->
+                      <div class="live-diff-panel live-diff-panel--2" data-panel-step="2">
+                        <div class="live-diff-panel__banner">
+                          <span class="live-diff-panel__pill chip chip--success mono">run_command test</span>
+                          <span class="live-diff-panel__note">12 passing tests in settings.test.tsx</span>
+                        </div>
+                        <pre class="live-diff__code mono"><code><span class="diff-line diff-line--ctx"><span class="diff-num">44</span><span class="diff-marker"> </span>describe('SettingsRoute tabs interaction', () =&gt; {</span>
+<span class="diff-line diff-line--add"><span class="diff-num">45</span><span class="diff-marker">+</span>  it('switches between tab panels using ArrowLeft and ArrowRight', async () =&gt; {</span>
+<span class="diff-line diff-line--add"><span class="diff-num">46</span><span class="diff-marker">+</span>    render(&lt;SettingsRoute /&gt;);</span>
+<span class="diff-line diff-line--add"><span class="diff-num">47</span><span class="diff-marker">+</span>    const tab = screen.getByRole('tab', { name: /resources/i });</span>
+<span class="diff-line diff-line--add"><span class="diff-num">48</span><span class="diff-marker">+</span>    await userEvent.click(tab);</span>
+<span class="diff-line diff-line--add"><span class="diff-num">49</span><span class="diff-marker">+</span>    expect(screen.getByRole('tabpanel')).toHaveAttribute('id', 'panel-resources');</span>
+<span class="diff-line diff-line--add"><span class="diff-num">50</span><span class="diff-marker">+</span>  });</span>
+<span class="diff-line diff-line--ctx"><span class="diff-num">51</span><span class="diff-marker"> </span>});</span>
+<span class="diff-line diff-line--cmd"><span class="diff-num">..</span><span class="diff-marker"> </span>$ vitest run packages/web/src/routes/settings.test.tsx</span>
+<span class="diff-line diff-line--cmd-pass"><span class="diff-num">..</span><span class="diff-marker"> </span>✓ SettingsRoute &gt; renders default general tab (18ms)</span>
+<span class="diff-line diff-line--cmd-pass"><span class="diff-num">..</span><span class="diff-marker"> </span>✓ SettingsRoute &gt; switches between tab panels (24ms)</span>
+<span class="diff-line diff-line--cmd-pass"><span class="diff-num">..</span><span class="diff-marker"> </span>Tests: 12 passed (12), Duration: 412ms</span></code></pre>
+                      </div>
+
+                      <!-- Step 3 Settle / Review Gate -->
+                      <div class="live-diff-panel live-diff-panel--3" data-panel-step="3">
+                        <div class="live-diff-panel__banner">
+                          <span class="live-diff-panel__pill chip chip--review mono">review gate</span>
+                          <span class="live-diff-panel__note">Clean worktree diff held for explicit human merge</span>
+                        </div>
+                        <pre class="live-diff__code mono"><code><span class="diff-line diff-line--hunk"><span class="diff-num">..</span><span class="diff-marker"> </span>diff --git a/packages/web/src/routes/settings-tabs.tsx b/packages/web/src/routes/settings-tabs.tsx</span>
+<span class="diff-line diff-line--hunk"><span class="diff-num">..</span><span class="diff-marker"> </span>new file mode 100644 (142 lines)</span>
+<span class="diff-line diff-line--add"><span class="diff-num">01</span><span class="diff-marker">+</span>export interface SettingsTabsProps {</span>
+<span class="diff-line diff-line--add"><span class="diff-num">02</span><span class="diff-marker">+</span>  active: SettingsTabId;</span>
+<span class="diff-line diff-line--add"><span class="diff-num">03</span><span class="diff-marker">+</span>  onSelect: (tab: SettingsTabId) =&gt; void;</span>
+<span class="diff-line diff-line--add"><span class="diff-num">04</span><span class="diff-marker">+</span>}</span>
+<span class="diff-line diff-line--add"><span class="diff-num">05</span><span class="diff-marker">+</span>export function SettingsTabs({ active, onSelect }: SettingsTabsProps) {</span>
+<span class="diff-line diff-line--add"><span class="diff-num">06</span><span class="diff-marker">+</span>  return (</span>
+<span class="diff-line diff-line--add"><span class="diff-num">07</span><span class="diff-marker">+</span>    &lt;nav role="tablist" aria-label="Settings categories" className="settings-nav"&gt;</span>
+<span class="diff-line diff-line--add"><span class="diff-num">08</span><span class="diff-marker">+</span>      {TABS.map((t) =&gt; (</span>
+<span class="diff-line diff-line--add"><span class="diff-num">09</span><span class="diff-marker">+</span>        &lt;button key={t.id} role="tab" aria-selected={active === t.id}&gt;{t.label}&lt;/button&gt;</span>
+<span class="diff-line diff-line--add"><span class="diff-num">10</span><span class="diff-marker">+</span>      ))}</span>
+<span class="diff-line diff-line--add"><span class="diff-num">11</span><span class="diff-marker">+</span>    &lt;/nav&gt;</span>
+<span class="diff-line diff-line--add"><span class="diff-num">12</span><span class="diff-marker">+</span>  );</span>
+<span class="diff-line diff-line--add"><span class="diff-num">13</span><span class="diff-marker">+</span>}</span></code></pre>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Cockpit Footer: Step pills buttons + scrubber progress bar + caption -->
+                <div class="live-cockpit__footer">
+                  <div class="live-cockpit__stepper" role="tablist" aria-label="Recorded run step selector">
+                    <span class="live-cockpit__stepper-label mono">Scrub step:</span>
+                    <button
+                      type="button"
+                      class="chip chip--step-btn"
+                      data-step-target="0"
+                      aria-current="true"
+                      aria-label="Jump to step 1: Read"
+                    >
+                      <span class="mono">1</span> Read
+                    </button>
+                    <button
+                      type="button"
+                      class="chip chip--step-btn"
+                      data-step-target="1"
+                      aria-current="false"
+                      aria-label="Jump to step 2: Edit"
+                    >
+                      <span class="mono">2</span> Edit
+                    </button>
+                    <button
+                      type="button"
+                      class="chip chip--step-btn"
+                      data-step-target="2"
+                      aria-current="false"
+                      aria-label="Jump to step 3: Test"
+                    >
+                      <span class="mono">3</span> Test
+                    </button>
+                    <button
+                      type="button"
+                      class="chip chip--step-btn"
+                      data-step-target="3"
+                      aria-current="false"
+                      aria-label="Jump to step 4: Settle"
+                    >
+                      <span class="mono">4</span> Settle
+                    </button>
+                  </div>
+
+                  <div class="live-cockpit__progress-track" aria-hidden="true">
+                    <div class="live-cockpit__progress-bar"></div>
+                  </div>
+
+                  <span class="live-cockpit__caption mono">illustration — recorded run</span>
                 </div>
               </div>
             </div>
@@ -241,7 +533,10 @@
 
         <!-- 5. Manager / workers -->
         <!-- section:orchestration -->
-        <section id="orchestration" class="section" aria-labelledby="orchestration-title">
+        <section id="orchestration" class="section lamp-frame" aria-labelledby="orchestration-title">
+          <!-- Horizontal spine tap from left rail (G1) -->
+          <div class="orch-spine-tap" aria-hidden="true"></div>
+
           <div class="container">
             <header class="section__header" data-reveal>
               <p class="eyebrow">
@@ -257,12 +552,215 @@
               </p>
             </header>
 
-            <div class="hairline-card" data-reveal>
-              <div class="stage__steps">
-                <span class="chip chip--violet">manager: claude</span>
-                <span class="chip"><span class="led led--done" aria-hidden="true"></span>worker: codex</span>
-                <span class="chip"><span class="led led--done" aria-hidden="true"></span>worker: antigravity</span>
-                <span class="chip"><span class="led led--pending" aria-hidden="true"></span>roster fence: 409 unlisted</span>
+            <!-- Main Orchestration Card -->
+            <div class="hairline-card orch-card" data-reveal style="--reveal-delay: 120ms">
+              <!-- Top Control Bar -->
+              <div class="orch-topbar">
+                <div class="orch-topbar__meta mono">
+                  <span class="chip chip--violet">
+                    <span class="led led--done" aria-hidden="true"></span>
+                    roster: 3 workers
+                  </span>
+                  <span>·</span>
+                  <span>depth cap: 1</span>
+                  <span>·</span>
+                  <span class="orch-topbar__status" data-manager-status>dispatching subtasks...</span>
+                </div>
+
+                <button
+                  type="button"
+                  class="btn btn-ghost orch-replay-btn"
+                  aria-label="Replay orchestration dispatch sequence"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M1.5 8a6.5 6.5 0 1 0 2-4.6L1.5 5.5" />
+                    <path d="M1.5 2v3.5h3.5" />
+                  </svg>
+                  <span>Replay</span>
+                </button>
+              </div>
+
+              <!-- Visual Tree Viewport -->
+              <div class="orch-tree-viewport">
+                <!-- Manager Node (Centered Top) -->
+                <div class="orch-node orch-node--manager" role="region" aria-label="Manager agent node">
+                  <div class="orch-node__header">
+                    <span class="orch-node__badge">
+                      <span class="led led--done" aria-hidden="true"></span>
+                      Manager
+                    </span>
+                    <span class="orch-node__branch mono">onni/9c00ba46</span>
+                  </div>
+                  <div class="orch-node__role">claude</div>
+                  <p class="orch-node__task mono">task: "Split settings into tabs"</p>
+                  <span class="orch-node__status" aria-live="polite">
+                    <span>plan: 3 scoped worker tasks</span>
+                  </span>
+                </div>
+
+                <!-- SVG Connection Filament Canvas & Animated Packets -->
+                <svg
+                  class="orch-svg-canvas"
+                  viewBox="0 0 920 120"
+                  role="img"
+                  aria-label="Orchestration dispatch paths connecting manager to three roster workers and reflecting an unlisted cursor agent"
+                >
+                  <defs>
+                    <filter id="glow-violet" x="-50%" y="-50%" width="200%" height="200%">
+                      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#8F86E8" flood-opacity="0.75" />
+                    </filter>
+                    <filter id="glow-emerald" x="-50%" y="-50%" width="200%" height="200%">
+                      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#10B981" flood-opacity="0.75" />
+                    </filter>
+                    <filter id="glow-amber" x="-50%" y="-50%" width="200%" height="200%">
+                      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#FBBF24" flood-opacity="0.85" />
+                    </filter>
+                  </defs>
+
+                  <!-- Static Filament Tracks -->
+                  <path id="track-claude" class="orch-track orch-track--active" d="M 380 10 C 380 55, 120 60, 120 115" />
+                  <path id="track-codex" class="orch-track orch-track--active" d="M 380 10 C 380 50, 350 65, 350 115" />
+                  <path id="track-agy" class="orch-track orch-track--active" d="M 380 10 C 380 55, 580 60, 580 115" />
+                  <!-- Track 4 aiming toward Cursor, terminating at fence boundary (x=705) -->
+                  <path id="track-cursor" class="orch-track orch-track--blocked" d="M 380 10 C 440 25, 620 45, 705 75" />
+                  <!-- Bounce deflection path -->
+                  <path id="track-bounce" d="M 705 75 Q 695 85, 675 95" fill="none" />
+
+                  <!-- Downward 6px Violet Capsule Packets (14x6, rx=3) -->
+                  <g id="packet-down-1" class="orch-packet orch-packet--down">
+                    <rect x="0" y="0" width="14" height="6" rx="3" />
+                  </g>
+                  <g id="packet-down-2" class="orch-packet orch-packet--down">
+                    <rect x="0" y="0" width="14" height="6" rx="3" />
+                  </g>
+                  <g id="packet-down-3" class="orch-packet orch-packet--down">
+                    <rect x="0" y="0" width="14" height="6" rx="3" />
+                  </g>
+                  <g id="packet-down-4" class="orch-packet orch-packet--down">
+                    <rect x="0" y="0" width="14" height="6" rx="3" />
+                  </g>
+
+                  <!-- Upward 6px Emerald Report Capsules (14x6, rx=3) -->
+                  <g id="packet-up-1" class="orch-packet orch-packet--up">
+                    <rect x="0" y="0" width="14" height="6" rx="3" />
+                  </g>
+                  <g id="packet-up-2" class="orch-packet orch-packet--up">
+                    <rect x="0" y="0" width="14" height="6" rx="3" />
+                  </g>
+                  <g id="packet-up-3" class="orch-packet orch-packet--up">
+                    <rect x="0" y="0" width="14" height="6" rx="3" />
+                  </g>
+
+                  <!-- Amber 409 Badge at Fence Boundary Impact -->
+                  <g class="orch-bounce-tag" transform="translate(635, 50)">
+                    <rect width="140" height="24" rx="4" fill="rgba(251, 191, 36, 0.16)" stroke="#FBBF24" stroke-width="1" />
+                    <circle cx="14" cy="12" r="3.5" fill="#FBBF24" />
+                    <text x="25" y="16" fill="#FBBF24" font-family="var(--mono)" font-size="11" font-weight="600">409 · not in roster</text>
+                  </g>
+                </svg>
+
+                <!-- Lower Arena: Roster Fence (3 Allowed Workers) + Ghost Worker Outside -->
+                <div class="orch-arena">
+                  <!-- Dashed Roster Fence -->
+                  <div class="orch-fence" role="region" aria-label="Roster fence enclosing authorized workers">
+                    <div class="orch-fence__legend">
+                      <span class="mono">roster fence</span>
+                    </div>
+
+                    <div class="orch-fence__workers">
+                      <!-- Worker 1: claude -->
+                      <div class="orch-worker-card is-settled">
+                        <div class="orch-worker-card__top">
+                          <span class="orch-worker-card__name">claude</span>
+                          <span class="chip chip--violet">worker</span>
+                        </div>
+                        <span class="orch-worker-card__branch mono">onni/3f2a91c4</span>
+                        <p class="orch-worker-card__scope mono">scope: settings-tabs.tsx</p>
+                        <span class="orch-worker-card__status mono">
+                          <span class="led led--done" aria-hidden="true"></span>
+                          <span data-worker-status>verified branch · reported</span>
+                        </span>
+                      </div>
+
+                      <!-- Worker 2: codex -->
+                      <div class="orch-worker-card is-settled">
+                        <div class="orch-worker-card__top">
+                          <span class="orch-worker-card__name">codex</span>
+                          <span class="chip chip--violet">worker</span>
+                        </div>
+                        <span class="orch-worker-card__branch mono">onni/8b14c0e2</span>
+                        <p class="orch-worker-card__scope mono">scope: settings.tsx</p>
+                        <span class="orch-worker-card__status mono">
+                          <span class="led led--done" aria-hidden="true"></span>
+                          <span data-worker-status>verified branch · reported</span>
+                        </span>
+                      </div>
+
+                      <!-- Worker 3: agy -->
+                      <div class="orch-worker-card is-settled">
+                        <div class="orch-worker-card__top">
+                          <span class="orch-worker-card__name">antigravity</span>
+                          <span class="chip chip--violet">worker</span>
+                        </div>
+                        <span class="orch-worker-card__branch mono">onni/c7d04a19</span>
+                        <p class="orch-worker-card__scope mono">scope: settings.test.ts</p>
+                        <span class="orch-worker-card__status mono">
+                          <span class="led led--done" aria-hidden="true"></span>
+                          <span data-worker-status>verified branch · reported</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Ghost Worker Outside Fence -->
+                  <div class="orch-ghost-box">
+                    <div class="orch-worker-card orch-worker-card--ghost" role="region" aria-label="Unlisted cursor worker rejected by roster fence">
+                      <div class="orch-worker-card__top">
+                        <span class="orch-worker-card__name">cursor</span>
+                        <span class="chip chip--unlisted">unlisted</span>
+                      </div>
+                      <span class="orch-worker-card__branch mono">not in roster</span>
+                      <p class="orch-worker-card__scope mono">scope: unassigned</p>
+                      <span class="orch-worker-card__status mono">
+                        <span class="led led--pending" aria-hidden="true"></span>
+                        <span>409 blocked by roster</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Safety Invariants Fact Strip -->
+              <div class="orch-fact-strip" role="list" aria-label="Orchestration safety invariants">
+                <div class="orch-fact-strip__item mono" role="listitem">
+                  <span class="led led--done" aria-hidden="true"></span>
+                  <span>limits</span>
+                </div>
+                <span class="orch-fact-strip__sep" aria-hidden="true">·</span>
+                <div class="orch-fact-strip__item mono" role="listitem">
+                  <span class="led led--done" aria-hidden="true"></span>
+                  <span>depth cap</span>
+                </div>
+                <span class="orch-fact-strip__sep" aria-hidden="true">·</span>
+                <div class="orch-fact-strip__item mono" role="listitem">
+                  <span class="led led--done" aria-hidden="true"></span>
+                  <span>pre-push fence</span>
+                </div>
+                <span class="orch-fact-strip__sep" aria-hidden="true">·</span>
+                <div class="orch-fact-strip__item mono" role="listitem">
+                  <span class="led led--done" aria-hidden="true"></span>
+                  <span>no auto-land</span>
+                </div>
               </div>
             </div>
           </div>

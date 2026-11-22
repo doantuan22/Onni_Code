@@ -10,6 +10,7 @@ import { AppearanceProvider } from '@/components/appearance-provider'
 import { OPEN_COMMAND_PALETTE_EVENT } from '@/components/command-palette'
 import { ListViewProvider } from '@/components/list-view'
 import { ThemeProvider } from '@/components/theme-provider'
+import { DEFAULT_SCENE_PREFERENCES } from '@/lib/appearance'
 import { recordSettingsReturn, resetSettingsReturn } from '@/lib/settings-return'
 import { AppRoutes } from '@/routes'
 import { SETTINGS_SECTIONS, settingsSectionsByScope, visibleSettingsSections } from './registry'
@@ -762,7 +763,7 @@ describe('the appearance section (global scope)', () => {
     // `{ density }` would silently drop the stored width.
     await waitFor(() => {
       expect(requests.find((r) => r.method === 'PUT' && r.url === '/api/v1/workspace/ui-state')?.body).toEqual({
-        appearance: { accent: 'violet', density: 'ultra', width: 'wide' },
+        appearance: { accent: 'violet', density: 'ultra', width: 'wide', scene: DEFAULT_SCENE_PREFERENCES },
       })
     })
     expect(localStorage.getItem('onni-accent')).toBe('violet')
@@ -779,7 +780,7 @@ describe('the appearance section (global scope)', () => {
     expect(document.documentElement.hasAttribute('data-density')).toBe(false)
     await waitFor(() => {
       expect(requests.find((r) => r.method === 'PUT' && r.url === '/api/v1/workspace/ui-state')?.body).toEqual({
-        appearance: { accent: 'violet', density: 'comfortable', width: 'wide' },
+        appearance: { accent: 'violet', density: 'comfortable', width: 'wide', scene: DEFAULT_SCENE_PREFERENCES },
       })
     })
   })
@@ -798,7 +799,7 @@ describe('the appearance section (global scope)', () => {
     expect(document.documentElement.dataset.width).toBe('narrow')
     await waitFor(() => {
       expect(requests.find((r) => r.method === 'PUT' && r.url === '/api/v1/workspace/ui-state')?.body).toEqual({
-        appearance: { accent: 'violet', density: 'ultra', width: 'narrow' },
+        appearance: { accent: 'violet', density: 'ultra', width: 'narrow', scene: DEFAULT_SCENE_PREFERENCES },
       })
     })
 
@@ -845,7 +846,7 @@ describe('the settings split writes the right store', () => {
 
     await waitFor(() => expect(putsTo('/api/v1/workspace/ui-state')).toHaveLength(1))
     expect(putsTo('/api/v1/workspace/ui-state')[0]?.body).toEqual({
-      appearance: { accent: 'violet', density: 'compact', width: 'wide' },
+      appearance: { accent: 'violet', density: 'compact', width: 'wide', scene: DEFAULT_SCENE_PREFERENCES },
     })
     expect(putsTo('/api/v1/ui-state')).toHaveLength(0)
   })

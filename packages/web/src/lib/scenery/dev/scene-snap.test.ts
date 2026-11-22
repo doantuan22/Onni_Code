@@ -6,7 +6,7 @@ import { sceneRegistry } from '../engine/registry'
 import { SceneRenderer } from '../engine/renderer'
 import expected from './golden-hashes.json'
 import { encodePng } from './png'
-import { contactSheet, goldenHashes } from './snapshots'
+import { contactSheet, goldenHashes, rawFrame, snapshotMetadata, staticFrame, thumbnailFrame } from './snapshots'
 
 describe('scenery goldens', () => {
   it('pins the engine fixture before production scenes are registered', () => {
@@ -24,21 +24,18 @@ describe('scenery goldens', () => {
   })
 })
 
-it('renders 24 contact sheet cells with the requested size, time and theme', () => {
-  const { width, height, rgba } = contactSheet(fixture)
-  expect({ width, height }).toEqual({ width: 1960, height: 1556 })
+it('renders a themed 12-cell contact sheet with the requested size and time', () => {
+  const { width, height, rgba } = contactSheet(fixture, 'dark')
+  expect({ width, height }).toEqual({ width: 1960, height: 782 })
   const rows = [
-    { top: 8, width: 320, height: 180, background: 0xfafafa },
-    { top: 196, width: 320, height: 180, background: 0x090909 },
-    { top: 384, width: 480, height: 270, background: 0xfafafa },
-    { top: 662, width: 480, height: 270, background: 0x090909 },
-    { top: 940, width: 240, height: 300, background: 0xfafafa },
-    { top: 1248, width: 240, height: 300, background: 0x090909 },
+    { top: 8, width: 320, height: 180 },
+    { top: 196, width: 480, height: 270 },
+    { top: 474, width: 240, height: 300 },
   ]
   for (const row of rows) {
     for (const [column, time] of (['dawn', 'day', 'dusk', 'night'] as const).entries()) {
-      const { width: w, height: h, top, background } = row
-      const renderer = new SceneRenderer(fixture, { width: w, height: h, time, background, visibility: 0.7, seed: 42 })
+      const { width: w, height: h, top } = row
+      const renderer = new SceneRenderer(fixture, { width: w, height: h, theme: 'dark', time, background: 0x090909, visibility: 0.9, seed: 42 })
       const frame = new Uint8Array(renderer.render(0, 0, 0).buffer)
       const left = 8 + column * 488 + (480 - w) / 2
       for (const y of [0, Math.floor(h / 2), h - 1]) {
@@ -48,6 +45,30 @@ it('renders 24 contact sheet cells with the requested size, time and theme', () 
         expect(rgba[offset + w * 4 + 3]).toBe(0)
       }
     }
+  }
+})
+
+it('exports raw and static frames with reproducibility metadata for both themes', () => {
+  for (const theme of ['light', 'dark'] as const) {
+    const raw = rawFrame(fixture, theme, 'dawn', 320, 180)
+    expect(raw).toMatchObject({ width: 320, height: 180 })
+    expect(raw.rgba).toHaveLength(320 * 180 * 4)
+
+    const frame = staticFrame(fixture, theme)
+    const thumbnail = thumbnailFrame(fixture, theme)
+    expect(frame).toMatchObject({ width: 480, height: 270 })
+    expect(thumbnail).toMatchObject({ width: 320, height: 180 })
+    expect(snapshotMetadata(fixture, theme)).toEqual({
+      scene: fixture.id,
+      seed: 42,
+      theme,
+      time: fixture.defaultTime,
+      width: 480,
+      height: 270,
+      visibility: 1,
+      backend: 'SceneRenderer',
+      frameSeconds: 0,
+    })
   }
 })
 

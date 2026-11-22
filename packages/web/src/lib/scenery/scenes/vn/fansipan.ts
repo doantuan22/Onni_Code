@@ -63,7 +63,7 @@ function cloudMass(ctx: BuildCtx, underside: readonly Point[], body: readonly Po
 const farCloudUnder: readonly Point[] = [[-.04, .68], [-.02, .60], [.06, .57], [.13, .59], [.19, .53], [.29, .55], [.37, .50], [.47, .55], [.55, .52], [.63, .57], [.70, .50], [.79, .54], [.87, .49], [.95, .55], [1.04, .53], [1.04, .72], [-.04, .72]]
 const farCloudBody: readonly Point[] = [[-.04, .65], [.03, .60], [.10, .60], [.16, .55], [.25, .58], [.34, .52], [.42, .56], [.50, .54], [.58, .57], [.66, .52], [.74, .56], [.82, .51], [.90, .56], [.98, .54], [1.04, .58], [1.04, .67], [.82, .66], [.68, .64], [.52, .67], [.35, .64], [.18, .67], [-.04, .67]]
 const farCloudRim: readonly Point[] = [[.03, .60], [.10, .60], [.16, .55], [.25, .58], [.34, .52], [.42, .56], [.50, .54], [.58, .57], [.66, .52], [.74, .56], [.82, .51], [.90, .56]]
-const nearCloudUnder: readonly Point[] = [[-.05, .96], [-.05, .76], [.04, .70], [.14, .73], [.22, .66], [.34, .72], [.43, .63], [.54, .68], [.65, .61], [.76, .69], [.85, .64], [.95, .71], [1.05, .67], [1.05, .96]]
+const nearCloudUnder: readonly Point[] = [[-.05, 1.04], [-.05, .76], [.04, .70], [.14, .73], [.22, .66], [.34, .72], [.43, .63], [.54, .68], [.65, .61], [.76, .69], [.85, .64], [.95, .71], [1.05, .67], [1.05, 1.04]]
 const nearCloudBody: readonly Point[] = [[-.05, .86], [.02, .76], [.10, .76], [.18, .70], [.28, .75], [.39, .67], [.48, .70], [.57, .65], [.68, .70], [.78, .66], [.88, .72], [.98, .70], [1.05, .73], [1.05, .87], [.84, .86], [.69, .83], [.50, .88], [.31, .84], [.12, .89], [-.05, .88]]
 const nearCloudRim: readonly Point[] = [[.02, .76], [.10, .76], [.18, .70], [.28, .75], [.39, .67], [.48, .70], [.57, .65], [.68, .70], [.78, .66], [.88, .72]]
 
@@ -105,7 +105,17 @@ const scene: SceneDef = {
   build(ctx) {
     const { width: w, height: h } = ctx
     // 1: broad atmospheric sky, with dawn source to the right.
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) ctx.px(x, y, ctx.dither(x, y, y / h * 1.4, 0, 3, 8))
+    for (let y = 0; y < h; y++) {
+      const boundaries = [h * .23, h * .46, h * .69]
+      const boundary = boundaries.findIndex((value) => Math.abs(y - value) <= 10)
+      if (boundary >= 0) {
+        const center = boundaries[boundary]!
+        const amount = Math.max(0, Math.min(1, (y - (center - 10)) / 20))
+        for (let x = 0; x < w; x++) ctx.px(x, y, ctx.dither(x, y, amount, boundary, boundary + 1))
+      } else {
+        ctx.rect(0, y, w, 1, y < boundaries[0]! ? 0 : y < boundaries[1]! ? 1 : y < boundaries[2]! ? 2 : 3)
+      }
+    }
     ctx.disc(w * 0.88, h * 0.34, Math.max(3, h * 0.027), 3)
     // 2: cool, low shoulders give the main ridge a distant basin to rise from.
     ctx.polygon(points(ctx, [[0, .60], [.10, .53], [.20, .57], [.31, .48], [.42, .55], [.50, .51], [.58, .59], [.68, .54], [.78, .60], [1, .52], [1, .70], [0, .70]]), 4)

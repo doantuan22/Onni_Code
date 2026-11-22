@@ -67,8 +67,15 @@ function sky(ctx: BuildCtx, line: number): void {
   const { width: w, height: h } = ctx
   ctx.layer({ kind: 'sky', z: 0 }, () => {
     for (let y = 0; y < line; y++) {
-      const step = Math.min(2.94, y / line * 3.1)
-      for (let x = 0; x < w; x++) ctx.px(x, y, ctx.dither(x, y, step % 1, Math.floor(step), Math.ceil(step)))
+      const boundaries = [line / 3, line * 2 / 3]
+      const boundary = boundaries.findIndex((value) => Math.abs(y - value) <= 10)
+      if (boundary >= 0) {
+        const center = boundaries[boundary]!
+        const amount = Math.max(0, Math.min(1, (y - (center - 10)) / 20))
+        for (let x = 0; x < w; x++) ctx.px(x, y, ctx.dither(x, y, amount, boundary, boundary + 1))
+      } else {
+        ctx.rect(0, y, w, 1, y < boundaries[0]! ? 0 : y < boundaries[1]! ? 1 : 2)
+      }
     }
     ctx.disc(w * 0.76, h * 0.37, Math.min(w, h) * 0.065, Ink.Sun)
     for (let x = w * 0.49; x < w * 0.93; x += 17) ctx.line(x, h * (0.25 + ((x / 17) & 1) * 0.02), x + 12, h * (0.25 + ((x / 17) & 1) * 0.02), Ink.Cloud)
@@ -128,6 +135,18 @@ function palm(ctx: BuildCtx, footX: number, footY: number, height: number, lean:
   }
 }
 
+function palmSway(ctx: BuildCtx, footX: number, footY: number, height: number, lean: number, radius: number, sway: number): void {
+  const crownX = footX + lean
+  const crownY = footY - height
+  for (const arm of [1, 4, 7] as const) {
+    const angle = -2.95 + arm * .59
+    const length = radius * (.74 + (arm % 4) * .10)
+    const endX = crownX + Math.cos(angle) * length + sway
+    const endY = crownY + Math.sin(angle) * length * .58
+    ctx.line(crownX, crownY, endX, endY, arm > 4 ? Ink.PalmRim : Ink.Palm)
+  }
+}
+
 const scene: SceneDef = {
   id: 'vn-phu-quoc', name: { vi: 'Phú Quốc hoàng hôn', en: 'Phú Quốc Sunset' }, region: 'vn', tone: 'both',
   defaultTime: 'dusk', themePalettes: { light, dark }, themeDefaultTime: { light: 'dawn', dark: 'dusk' }, palettes: light,
@@ -178,7 +197,8 @@ const scene: SceneDef = {
         if (i % 3 !== 1) ctx.line(x + shift, y, x + 4 + shift, y, Ink.Foam)
       }
       const sway = Math.round(Math.sin(t * Math.PI / 6) * 2)
-      for (const x of [w * .09, w * .25]) ctx.line(x, h * .39, x + sway * 4, h * .35, Ink.PalmRim)
+      palmSway(ctx, w * .09, h * 1.02, h * .64, w * .16, Math.min(w, h) * .17, sway)
+      palmSway(ctx, w * .25, h * 1.04, h * .49, w * .045, Math.min(w, h) * .13, -sway)
     })
   },
 }

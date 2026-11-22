@@ -33,9 +33,13 @@ export function reflectWater(base: Uint8Array, target: Uint8Array, width: number
   for (let y = start; y < height; y++) {
     const sourceY = Math.max(0, start - 1 - (y - start))
     const offset = Math.round(Math.sin(y * 0.45 + t) * amplitude)
+    let sourceX = offset % width
+    if (sourceX < 0) sourceX += width
+    const sourceRow = sourceY * width
+    const targetRow = y * width
     for (let x = 0; x < width; x++) {
-      const sourceX = ((x + offset) % width + width) % width
-      target[y * width + x] = (base[sourceY * width + sourceX]! & 15) + 16
+      target[targetRow + x] = (base[sourceRow + sourceX]! & 15) + 16
+      if (++sourceX === width) sourceX = 0
     }
   }
 }

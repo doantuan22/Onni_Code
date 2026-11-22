@@ -1,14 +1,16 @@
 import { createContext } from './context'
 import { createNoiseAtlas } from './noise'
-import { createLut, indexedToRgba, interpolatePalette, validatePalette } from './palette'
+import { cyclePalette, indexedToRgba, interpolatePalette, paletteForTheme, validatePalette, writeLut } from './palette'
 import type { ToneMap } from './palette'
-import type { FrameCtx, SceneDef, TimeOfDay } from './types'
+import type { FrameCtx, SceneDef, SceneTheme, TimeOfDay } from './types'
 
 export interface RenderOptions extends ToneMap {
   width: number
   height: number
   seed?: number
   time?: TimeOfDay | number
+  /** Resolved UI theme; omitted keeps legacy scenes byte-for-byte compatible. */
+  theme?: SceneTheme
 }
 
 /** Pure TS renderer: stable buffers, no browser globals, no per-frame allocations. */
@@ -18,6 +20,8 @@ export class SceneRenderer {
   readonly rgba: Uint32Array
   private readonly ctx: FrameCtx
   private lut: Uint32Array
+  private palette: number[]
+  private readonly cyclePaletteBuffer: number[]
   private tone: ToneMap
   private time: TimeOfDay | number
 
@@ -26,7 +30,7 @@ export class SceneRenderer {
     if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 480 || height > 480 || width * height > 480 * 270) {
       throw new RangeError('Scene buffer exceeds art resolution budget')
     }
-    const palettes = Object.values(scene.palettes)
+    const palettes = Object.values(scene.themePalettes?.[options.theme ?? 'light'] ?? scene.palettes)
     for (const palette of palettes) validatePalette(palette)
     if (palettes.some((p) => p.length !== palettes[0]!.length)) throw new RangeError('Palette keyframes must have equal lengths')
     this.base = new Uint8Array(width * height)
@@ -35,20 +39,27 @@ export class SceneRenderer {
     const noise = createNoiseAtlas(seed)
     scene.build(createContext(width, height, seed, this.base, this.base, noise))
     this.ctx = createContext(width, height, seed, this.base, this.indexed, noise)
-    this.time = options.time ?? scene.defaultTime
+    this.time = options.time ?? scene.themeDefaultTime?.[options.theme ?? 'light'] ?? scene.defaultTime
     this.tone = options
-    this.lut = createLut(interpolatePalette(scene.palettes, this.time), this.tone)
+    this.palette = interpolatePalette(paletteForTheme(scene.palettes, scene.themePalettes, options.theme), this.time)
+    this.cyclePaletteBuffer = new Array(this.palette.length)
+    this.lut = writeLut(this.palette, this.tone)
   }
 
   setPalette(time: TimeOfDay | number = this.time, tone: ToneMap = this.tone): void {
     this.time = time
     this.tone = tone
-    this.lut = createLut(interpolatePalette(this.scene.palettes, time), tone)
+    this.palette = interpolatePalette(paletteForTheme(this.scene.palettes, this.scene.themePalettes, this.options.theme), time)
+    this.lut = writeLut(this.palette, tone, this.lut)
   }
 
   render(t = 0, dt = 0, activity = 0): Uint32Array {
     this.indexed.set(this.base)
     this.scene.frame(this.ctx, t, dt, activity)
+    if (this.scene.cycles?.length) {
+      cyclePalette(this.palette, this.scene.cycles, t, this.cyclePaletteBuffer)
+      writeLut(this.cyclePaletteBuffer, this.tone, this.lut)
+    }
     return indexedToRgba(this.indexed, this.lut, this.rgba)
   }
 }

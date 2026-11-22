@@ -1,4 +1,4 @@
-import type { Sprite } from './types'
+import type { Sprite, SpriteFrame, SpriteSheet } from './types'
 
 export function parseSprite(rows: readonly string[] | string, legend: Readonly<Record<string, number>>): Sprite {
   const lines = typeof rows === 'string' ? rows.replace(/^\n|\n$/g, '').split('\n') : rows
@@ -15,4 +15,11 @@ export function parseSprite(rows: readonly string[] | string, legend: Readonly<R
     }
   }
   return { width, height: lines.length, pixels }
+}
+
+export function createSpriteSheet(sprite: Sprite, frames: readonly SpriteFrame[]): SpriteSheet {
+  if (!frames.length || frames.some((frame) => frame.x < 0 || frame.y < 0 || frame.width < 1 || frame.height < 1 || frame.x + frame.width > sprite.width || frame.y + frame.height > sprite.height)) {
+    throw new RangeError('Sprite-sheet frames must stay inside the source sprite')
+  }
+  return { sprite, frames }
 }

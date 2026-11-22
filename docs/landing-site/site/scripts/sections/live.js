@@ -1,10 +1,11 @@
 /* iife */ (() => {
 /**
  * Section 04: Live Evidence & Cockpit Twin (#live)
- * Direction: "Parallel Light" · Zero-dep ES module
+ * Direction: "Parallel Light" · Zero-dep classic deferred script (IIFE)
  * Binds to stage:progress event from choreographer.js,
  * interpolates telemetry counters (tok · $ · mm:ss) with --p,
- * syncs full-height code diff viewer to active step.
+ * syncs full-height code diff viewer to active step, and supports
+ * direct clicking of step pills on mobile & desktop.
  */
 
 const liveSection = document.getElementById('live');
@@ -107,6 +108,19 @@ if (liveSection) {
       const idx = Number.parseInt(btn.dataset.stepTarget || '-1', 10);
       btn.setAttribute('aria-current', idx === activeStep ? 'true' : 'false');
     }
+  }
+
+  // Allow direct step clicking (especially when stage is unpinned on mobile)
+  for (let i = 0; i < stepButtons.length; i++) {
+    const btn = stepButtons[i];
+    btn.addEventListener('click', () => {
+      const idx = Number.parseInt(btn.dataset.stepTarget || '-1', 10);
+      if (idx >= 0 && idx <= 3) {
+        liveSection.dataset.step = String(idx);
+        liveSection.style.setProperty('--step', String(idx));
+        updateTelemetry(idx / 3, idx);
+      }
+    });
   }
 
   // Listen to stage:progress fired by choreographer.js

@@ -1492,55 +1492,387 @@
         <!-- section:gate -->
         <section id="gate" class="section lamp-frame" aria-labelledby="gate-title">
           <div class="container">
-            <header class="section__header" data-reveal>
-              <p class="eyebrow">
-                <span class="eyebrow__index" data-index="06">06</span>
-                <span>Diff-First Review Gate</span>
-              </p>
-              <h2 id="gate-title" class="section__title">Nothing merges itself.</h2>
-              <p class="section__subline">
+            <header class="section__header gate__header" data-reveal>
+              <div class="gate__eyebrow-row">
+                <span class="gate__spine-tap" aria-hidden="true"></span>
+                <p class="eyebrow gate__eyebrow">
+                  <span class="eyebrow__index gate__index-box" data-index="06">06</span>
+                  <span>Diff-First Review Gate</span>
+                </p>
+              </div>
+              <h2 id="gate-title" class="section__title gate__title">Nothing merges itself.</h2>
+              <p class="section__subline gate__subline">
                 Finished lanes wait at a visible review gap. Inspect the worktree diff, open a draft
                 PR through <code class="mono">gh</code>, or click Merge when you are ready.
               </p>
             </header>
 
             <div class="gate-demo" data-reveal data-gate-state="waiting">
+              <!-- Ambient studio lamp behind the focal gate card; warms on merge -->
+              <div class="gate-lamp" aria-hidden="true"></div>
+
+              <!-- Incoming 3 curved worker lanes + branch chips beside lines + 24px dashed review gap -->
               <figure class="gate-lanes">
-                <svg class="gate-lanes__svg" viewBox="0 0 720 132" role="img" aria-label="Three task branches stop above the review gate, then converge when you choose Merge">
-                  <path class="gate-lanes__waiting" d="M112 0 V88 M360 0 V88 M608 0 V88" />
-                  <path class="gate-lanes__gap" d="M112 88 V112 M360 88 V112 M608 88 V112" />
-                  <path class="gate-lanes__merged" pathLength="100" d="M112 0 C112 48 360 48 360 112 M360 0 V112 M608 0 C608 48 360 48 360 112" />
-                  <circle class="gate-lanes__node" cx="360" cy="112" r="5" />
+                <div class="gate-lanes__tap" aria-hidden="true">
+                  <span class="gate-lanes__tap-dot"></span>
+                </div>
+
+                <svg
+                  class="gate-lanes__svg"
+                  viewBox="0 0 840 168"
+                  preserveAspectRatio="none"
+                  role="img"
+                  aria-label="Three isolated task branches enter with gentle curves, carry branch chips beside each lane, stop at a 24px dashed gap above the review gate, and converge into a single line through a junction node when you click Merge"
+                >
+                  <!-- Subtle background guide tracks across the 24px gap (y=120..144) -->
+                  <path
+                    class="gate-lanes__gap"
+                    d="M200 120 V144 M420 120 V144 M640 120 V144"
+                  />
+                  <line
+                    class="gate-lanes__gap-line"
+                    x1="136"
+                    y1="132"
+                    x2="704"
+                    y2="132"
+                  />
+
+                  <!-- Horizontal leader ticks connecting each lane to its side branch chip -->
+                  <path
+                    class="gate-lanes__leaders"
+                    d="M200 74 H186 M420 74 H434 M640 74 H654"
+                  />
+
+                  <!-- Waiting state lanes: gentle top entry curves stopping at y=116 above the 24px gap -->
+                  <path
+                    class="gate-lanes__waiting gate-lanes__waiting--left"
+                    d="M368 0 C368 30, 200 18, 200 54 L200 116"
+                  />
+                  <path
+                    class="gate-lanes__waiting gate-lanes__waiting--center"
+                    d="M420 0 L420 116"
+                  />
+                  <path
+                    class="gate-lanes__waiting gate-lanes__waiting--right"
+                    d="M472 0 C472 30, 640 18, 640 54 L640 116"
+                  />
+
+                  <!-- Merged state lanes: morph & converge across the gap into one junction node at (420, 156) -->
+                  <path
+                    class="gate-lanes__merged gate-lanes__merged--left"
+                    pathLength="100"
+                    d="M368 0 C368 30, 200 18, 200 54 L200 84 C200 130, 420 118, 420 156"
+                  />
+                  <path
+                    class="gate-lanes__merged gate-lanes__merged--center"
+                    pathLength="100"
+                    d="M420 0 L420 156"
+                  />
+                  <path
+                    class="gate-lanes__merged gate-lanes__merged--right"
+                    pathLength="100"
+                    d="M472 0 C472 30, 640 18, 640 54 L640 84 C640 130, 420 118, 420 156"
+                  />
+
+                  <!-- Terminal stop rings at the top of the 24px gap (waiting state) -->
+                  <circle class="gate-lanes__stop gate-lanes__stop--left" cx="200" cy="116" r="4" />
+                  <circle class="gate-lanes__stop gate-lanes__stop--center" cx="420" cy="116" r="4" />
+                  <circle class="gate-lanes__stop gate-lanes__stop--right" cx="640" cy="116" r="4" />
+
+                  <!-- Convergence junction node at the gate threshold (lights up on Merge) -->
+                  <circle class="gate-lanes__node-halo" cx="420" cy="156" r="11" />
+                  <circle class="gate-lanes__node" cx="420" cy="156" r="5.5" />
                 </svg>
-                <figcaption class="gate-lanes__labels mono">
-                  <span>onni/3f2a91c4</span><span>onni/8b14c0e2</span><span>onni/c7d04a19</span>
+
+                <!-- Branch chips positioned BESIDE (not on) the three lane lines -->
+                <figcaption class="gate-lanes__labels mono" aria-label="Incoming worker branches">
+                  <div class="gate-lane-chip gate-lane-chip--left">
+                    <span class="led led--done" aria-hidden="true"></span>
+                    <span class="gate-lane-chip__branch">onni/3f2a91c4</span>
+                    <span class="gate-lane-chip__agent">claude</span>
+                  </div>
+                  <div class="gate-lane-chip gate-lane-chip--center">
+                    <span class="led led--done" aria-hidden="true"></span>
+                    <span class="gate-lane-chip__branch">onni/8b14c0e2</span>
+                    <span class="gate-lane-chip__agent">codex</span>
+                  </div>
+                  <div class="gate-lane-chip gate-lane-chip--right">
+                    <span class="led led--done" aria-hidden="true"></span>
+                    <span class="gate-lane-chip__branch">onni/c7d04a19</span>
+                    <span class="gate-lane-chip__agent">agy</span>
+                  </div>
                 </figcaption>
+
+                <!-- Visible 24px dashed gap badge sitting directly in the gap above the card -->
+                <div class="gate-lanes__gap-pill mono" aria-hidden="true">
+                  <span class="gate-lanes__gap-dot"></span>
+                  <span class="gate-lanes__gap-text" data-gate-gap-label>waiting for you</span>
+                </div>
               </figure>
+
+              <!-- Focal Review Gate Console Card -->
               <article class="hairline-card gate-card" aria-label="Review gate illustration">
+                <!-- Card Header -->
                 <div class="gate-card__top">
-                  <h3>Review gate</h3>
-                  <span class="gate-status" data-gate-status><span class="led led--review" aria-hidden="true"></span>review</span>
+                  <div class="gate-card__title-group">
+                    <span class="gate-card__icon" aria-hidden="true">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <circle cx="4.5" cy="3.5" r="1.5" stroke="currentColor" stroke-width="1.3" />
+                        <circle cx="11.5" cy="3.5" r="1.5" stroke="currentColor" stroke-width="1.3" />
+                        <circle cx="8" cy="12.5" r="1.5" stroke="currentColor" stroke-width="1.3" />
+                        <path
+                          d="M4.5 5v2c0 2 3.5 2 3.5 4M11.5 5v2c0 2-3.5 2-3.5 4"
+                          stroke="currentColor"
+                          stroke-width="1.3"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    </span>
+                    <h3>Review gate</h3>
+                    <span class="gate-card__meta mono">3 worktrees · +240 −38</span>
+                  </div>
+
+                  <div class="gate-card__badges">
+                    <span class="gate-decision mono" data-gate-decision hidden>
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                        <path
+                          d="M2.5 6.2L4.8 8.5L9.5 3.5"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                      Your decision
+                    </span>
+                    <span class="gate-status mono" data-gate-status>
+                      <span class="led led--review" aria-hidden="true"></span>review
+                    </span>
+                  </div>
                 </div>
-                <ul class="gate-files mono" aria-label="Changed files">
-                  <li><span>settings-tabs.tsx</span><span><b>+142</b> <i>−38</i></span></li>
-                  <li><span>settings.test.ts</span><span><b>+98</b> <i>−0</i></span></li>
-                </ul>
-                <div class="gate-diff mono" aria-label="Illustrative tabs refactor diff">
-                  <div class="gate-diff__context"><span>1</span><code>export function SettingsPage() {'{'}</code></div>
-                  <div class="gate-diff__del"><span>2</span><code>−  return &lt;SettingsForm /&gt;;</code></div>
-                  <div class="gate-diff__add"><span>3</span><code>+  return &lt;SettingsTabs /&gt;;</code></div>
-                  <div class="gate-diff__context"><span>4</span><code>{'}'}</code></div>
+
+                <!-- Two File Tabs (interactive tablist + changed files stats) -->
+                <div class="gate-files-bar">
+                  <ul
+                    class="gate-files mono"
+                    role="tablist"
+                    aria-label="Changed files in worktree diff"
+                  >
+                    <li role="presentation">
+                      <button
+                        type="button"
+                        role="tab"
+                        class="gate-file-tab is-active"
+                        id="gate-tab-settings-tabs"
+                        aria-selected="true"
+                        aria-controls="gate-panel-settings-tabs"
+                        data-gate-tab="settings-tabs.tsx"
+                      >
+                        <span class="gate-file-tab__path">
+                          <span class="gate-file-tab__dir">packages/web/src/routes/</span>settings-tabs.tsx
+                        </span>
+                        <span class="gate-file-tab__stat"><b>+142</b> <i>−38</i></span>
+                      </button>
+                    </li>
+                    <li role="presentation">
+                      <button
+                        type="button"
+                        role="tab"
+                        class="gate-file-tab"
+                        id="gate-tab-settings-test"
+                        aria-selected="false"
+                        aria-controls="gate-panel-settings-test"
+                        data-gate-tab="settings.test.ts"
+                      >
+                        <span class="gate-file-tab__path">
+                          <span class="gate-file-tab__dir">packages/web/src/routes/</span>settings.test.ts
+                        </span>
+                        <span class="gate-file-tab__stat"><b>+98</b> <i>−0</i></span>
+                      </button>
+                    </li>
+                  </ul>
+                  <span class="gate-files-bar__checks mono">6 / 6 tests green</span>
                 </div>
-                <div class="gate-merge-bar" aria-hidden="true"><span></span></div>
+
+                <!-- Real, well-highlighted tabs refactor diff with two line-number gutters -->
+                <div
+                  class="gate-diff mono"
+                  id="gate-panel-settings-tabs"
+                  role="tabpanel"
+                  aria-labelledby="gate-tab-settings-tabs"
+                  data-gate-panel="settings-tabs.tsx"
+                >
+                  <div class="gate-diff__hunk">
+                    <span class="gate-diff__ln-old">@@</span>
+                    <span class="gate-diff__ln-new">@@</span>
+                    <span class="gate-diff__sign"> </span>
+                    <code>-42,6 +42,9 · packages/web/src/routes/settings-tabs.tsx</code>
+                  </div>
+                  <div class="gate-diff__context">
+                    <span class="gate-diff__ln-old">42</span>
+                    <span class="gate-diff__ln-new">42</span>
+                    <span class="gate-diff__sign"> </span>
+                    <code><span class="syn-key">export const</span> <span class="syn-var">SETTINGS_TABS</span> = [<span class="syn-str">'general'</span>, <span class="syn-str">'roster'</span>, <span class="syn-str">'limits'</span>, <span class="syn-str">'trackers'</span>] <span class="syn-key">as const</span>;</code>
+                  </div>
+                  <div class="gate-diff__context">
+                    <span class="gate-diff__ln-old">43</span>
+                    <span class="gate-diff__ln-new">43</span>
+                    <span class="gate-diff__sign"> </span>
+                    <code><span class="syn-key">export type</span> <span class="syn-fn">SettingsTabId</span> = (<span class="syn-key">typeof</span> <span class="syn-var">SETTINGS_TABS</span>)[<span class="syn-fn">number</span>];</code>
+                  </div>
+                  <div class="gate-diff__context">
+                    <span class="gate-diff__ln-old">44</span>
+                    <span class="gate-diff__ln-new">44</span>
+                    <span class="gate-diff__sign"> </span>
+                    <code><span class="syn-key">export function</span> <span class="syn-fn">SettingsPage</span>() {</code>
+                  </div>
+                  <div class="gate-diff__del">
+                    <span class="gate-diff__ln-old">45</span>
+                    <span class="gate-diff__ln-new"></span>
+                    <span class="gate-diff__sign">−</span>
+                    <code>  <span class="syn-key">return</span> &lt;<span class="syn-fn">SettingsForm</span> <span class="syn-var">sections</span>={<span class="syn-var">ALL_SECTIONS</span>} /&gt;;</code>
+                  </div>
+                  <div class="gate-diff__add">
+                    <span class="gate-diff__ln-old"></span>
+                    <span class="gate-diff__ln-new">45</span>
+                    <span class="gate-diff__sign">+</span>
+                    <code>  <span class="syn-key">const</span> [<span class="syn-var">activeTab</span>, <span class="syn-var">setActiveTab</span>] = <span class="syn-fn">useState</span>&lt;<span class="syn-fn">SettingsTabId</span>&gt;(<span class="syn-str">'general'</span>);</code>
+                  </div>
+                  <div class="gate-diff__add">
+                    <span class="gate-diff__ln-old"></span>
+                    <span class="gate-diff__ln-new">46</span>
+                    <span class="gate-diff__sign">+</span>
+                    <code>  <span class="syn-key">return</span> (</code>
+                  </div>
+                  <div class="gate-diff__add">
+                    <span class="gate-diff__ln-old"></span>
+                    <span class="gate-diff__ln-new">47</span>
+                    <span class="gate-diff__sign">+</span>
+                    <code>    &lt;<span class="syn-fn">SettingsTabs</span> <span class="syn-var">active</span>={<span class="syn-var">activeTab</span>} <span class="syn-var">tabs</span>={<span class="syn-var">SETTINGS_TABS</span>} <span class="syn-var">onChange</span>={<span class="syn-var">setActiveTab</span>} /&gt;</code>
+                  </div>
+                  <div class="gate-diff__add">
+                    <span class="gate-diff__ln-old"></span>
+                    <span class="gate-diff__ln-new">48</span>
+                    <span class="gate-diff__sign">+</span>
+                    <code>  );</code>
+                  </div>
+                  <div class="gate-diff__context">
+                    <span class="gate-diff__ln-old">46</span>
+                    <span class="gate-diff__ln-new">49</span>
+                    <span class="gate-diff__sign"> </span>
+                    <code>}</code>
+                  </div>
+                </div>
+
+                <!-- Second File Tab Panel: settings.test.ts -->
+                <div
+                  class="gate-diff mono"
+                  id="gate-panel-settings-test"
+                  role="tabpanel"
+                  aria-labelledby="gate-tab-settings-test"
+                  data-gate-panel="settings.test.ts"
+                  hidden
+                >
+                  <div class="gate-diff__hunk">
+                    <span class="gate-diff__ln-old">@@</span>
+                    <span class="gate-diff__ln-new">@@</span>
+                    <span class="gate-diff__sign"> </span>
+                    <code>-14,5 +14,8 · packages/web/src/routes/settings.test.ts</code>
+                  </div>
+                  <div class="gate-diff__context">
+                    <span class="gate-diff__ln-old">14</span>
+                    <span class="gate-diff__ln-new">14</span>
+                    <span class="gate-diff__sign"> </span>
+                    <code><span class="syn-fn">describe</span>(<span class="syn-str">'SettingsTabs'</span>, () =&gt; {</code>
+                  </div>
+                  <div class="gate-diff__context">
+                    <span class="gate-diff__ln-old">15</span>
+                    <span class="gate-diff__ln-new">15</span>
+                    <span class="gate-diff__sign"> </span>
+                    <code>  <span class="syn-fn">it</span>(<span class="syn-str">'switches active panel on tab click and arrow keys'</span>, () =&gt; {</code>
+                  </div>
+                  <div class="gate-diff__del">
+                    <span class="gate-diff__ln-old">16</span>
+                    <span class="gate-diff__ln-new"></span>
+                    <span class="gate-diff__sign">−</span>
+                    <code>    <span class="syn-fn">render</span>(&lt;<span class="syn-fn">SettingsPage</span> /&gt;);</code>
+                  </div>
+                  <div class="gate-diff__add">
+                    <span class="gate-diff__ln-old"></span>
+                    <span class="gate-diff__ln-new">16</span>
+                    <span class="gate-diff__sign">+</span>
+                    <code>    <span class="syn-key">const</span> { <span class="syn-var">getByRole</span> } = <span class="syn-fn">render</span>(&lt;<span class="syn-fn">SettingsPage</span> /&gt;);</code>
+                  </div>
+                  <div class="gate-diff__add">
+                    <span class="gate-diff__ln-old"></span>
+                    <span class="gate-diff__ln-new">17</span>
+                    <span class="gate-diff__sign">+</span>
+                    <code>    <span class="syn-var">fireEvent</span>.<span class="syn-fn">click</span>(<span class="syn-fn">getByRole</span>(<span class="syn-str">'tab'</span>, { <span class="syn-var">name</span>: <span class="syn-str">/roster/i</span> }));</code>
+                  </div>
+                  <div class="gate-diff__add">
+                    <span class="gate-diff__ln-old"></span>
+                    <span class="gate-diff__ln-new">18</span>
+                    <span class="gate-diff__sign">+</span>
+                    <code>    <span class="syn-fn">expect</span>(<span class="syn-fn">getByRole</span>(<span class="syn-str">'tabpanel'</span>)).<span class="syn-fn">toHaveAttribute</span>(<span class="syn-str">'data-tab'</span>, <span class="syn-str">'roster'</span>);</code>
+                  </div>
+                  <div class="gate-diff__context">
+                    <span class="gate-diff__ln-old">17</span>
+                    <span class="gate-diff__ln-new">19</span>
+                    <span class="gate-diff__sign"> </span>
+                    <code>  });</code>
+                  </div>
+                  <div class="gate-diff__context">
+                    <span class="gate-diff__ln-old">18</span>
+                    <span class="gate-diff__ln-new">20</span>
+                    <span class="gate-diff__sign"> </span>
+                    <code>});</code>
+                  </div>
+                </div>
+
+                <!-- Ignition Merge Bar Seam (flashes #B4F372 -> #EEFB63 -> #BC9AFF on Merge; zero dead space) -->
+                <div class="gate-merge-bar" aria-hidden="true">
+                  <span class="gate-merge-bar__fill"></span>
+                  <i class="gate-merge-bar__node"></i>
+                </div>
+
+                <!-- Card Footer Actions -->
                 <div class="gate-card__actions">
-                  <span class="gate-decision" data-gate-decision hidden>Your decision</span>
-                  <button class="btn btn-ghost" type="button" data-gate-pr>Open draft PR</button>
-                  <button class="btn btn-primary" type="button" data-gate-merge>Merge</button>
-                  <button class="btn btn-ghost gate-reset" type="button" data-gate-reset hidden>Reset</button>
+                  <div class="gate-card__summary mono">
+                    <span class="gate-card__branch-target">target: <strong>main</strong></span>
+                    <span class="gate-card__sep" aria-hidden="true">·</span>
+                    <span class="gate-card__policy" data-gate-policy>no auto-merge · awaiting click</span>
+                  </div>
+
+                  <div class="gate-card__btns">
+                    <p
+                      class="gate-toast mono"
+                      role="status"
+                      aria-live="polite"
+                      data-gate-toast
+                    ></p>
+                    <button class="btn btn-ghost" type="button" data-gate-pr>Open draft PR</button>
+                    <button class="btn btn-primary" type="button" data-gate-merge>Merge</button>
+                    <button class="btn btn-ghost gate-reset" type="button" data-gate-reset hidden>
+                      Reset
+                    </button>
+                  </div>
                 </div>
               </article>
-              <p class="gate-toast" role="status" aria-live="polite" data-gate-toast></p>
-              <p class="gate-caption">illustration — no repository action</p>
+
+              <!-- Downward single converged line continuing toward the next section after Merge -->
+              <div class="gate-outflow" aria-hidden="true">
+                <svg class="gate-outflow__svg" viewBox="0 0 840 64" preserveAspectRatio="none">
+                  <path class="gate-outflow__track" d="M420 0 V56" />
+                  <path class="gate-outflow__line" pathLength="100" d="M420 0 V56" />
+                  <path
+                    class="gate-outflow__arrow"
+                    d="M414 50 L420 58 L426 50"
+                  />
+                </svg>
+                <span class="gate-outflow__label mono">main · converged into 1 line</span>
+              </div>
+
+              <p class="gate-caption mono">illustration — no repository action</p>
             </div>
           </div>
         </section>

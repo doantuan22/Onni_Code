@@ -50,23 +50,27 @@ function ridge(ctx: Parameters<SceneDef['build']>[0], y: number, color: number, 
   }
 }
 
-function terraces(ctx: Parameters<SceneDef['build']>[0], x0: number, x1: number, top: number, base: number, bend: number): void {
+function terraces(ctx: Parameters<SceneDef['build']>[0], corners: readonly { x: number; y: number }[], bend: number, steps: number): void {
   const { width: w, height: h } = ctx
-  const start = Math.floor(x0 * w)
-  const end = Math.floor(x1 * w)
-  for (let x = start; x < end; x++) {
-    const u = (x - start) / Math.max(1, end - start)
-    const slope = top + (base - top) * (0.26 + u * 0.62) + Math.sin(u * Math.PI) * bend
-    for (let y = Math.floor(slope * h); y < h; y++) {
-      const d = (y / h - slope) / Math.max(0.08, base - top)
-      const step = Math.max(0, Math.floor(d * 7 + u * 1.7))
-      const lip = (d * 7 + u * 1.7) - step
-      let ink = step % 3 === 0 ? 9 : step % 3 === 1 ? 10 : 8
-      if (lip < 0.105) ink = 11
-      if (lip > 0.77) ink = 12
-      if (ctx.fbm2(x * 0.09, y * 0.09) > 0.77 && lip > 0.25) ink = 20
-      ctx.px(x, y, ink)
+  const [topLeft, topRight, bottomRight, bottomLeft] = corners
+  if (!topLeft || !topRight || !bottomRight || !bottomLeft) return
+  const point = (a: { x: number; y: number }, b: { x: number; y: number }, t: number) => ({
+    x: w * (a.x + (b.x - a.x) * t),
+    y: h * (a.y + (b.y - a.y) * t),
+  })
+  for (let step = 0; step < steps; step++) {
+    const start = step / steps
+    const end = (step + .78) / steps
+    const leftStart = point(topLeft, bottomLeft, start)
+    const rightStart = point(topRight, bottomRight, start)
+    const leftEnd = point(topLeft, bottomLeft, end)
+    const rightEnd = point(topRight, bottomRight, end)
+    const middle = {
+      x: (leftStart.x + rightStart.x) / 2,
+      y: (leftStart.y + rightStart.y) / 2 + h * bend * (step % 2 ? 1 : .65),
     }
+    ctx.polygon([leftStart, middle, rightStart, rightEnd, leftEnd], step % 3 === 0 ? 10 : step % 3 === 1 ? 9 : 8)
+    ctx.curve([leftStart, middle, rightStart], 12)
   }
 }
 
@@ -89,10 +93,12 @@ const scene: SceneDef = {
     // 2-3: two distant ridge planes, deliberately separate silhouettes.
     ridge(ctx, 0.39, 4, 17)
     ridge(ctx, 0.47, 5, 43)
-    // 4: three independent, curving terrace basins.
-    terraces(ctx, 0.06, 0.43, 0.47, 0.93, -0.055)
-    terraces(ctx, 0.34, 0.73, 0.42, 0.95, 0.035)
-    terraces(ctx, 0.64, 1.02, 0.49, 0.94, -0.045)
+    // 4: three separate, skewed basins converge toward the misty valley.
+    // Their local lips end inside each field instead of striping the whole frame.
+    ctx.polygon([{ x: 0, y: h * .50 }, { x: w, y: h * .48 }, { x: w, y: h }, { x: 0, y: h }], 8)
+    terraces(ctx, [{ x: .02, y: .53 }, { x: .39, y: .62 }, { x: .43, y: .96 }, { x: -.08, y: .92 }], -.035, 6)
+    terraces(ctx, [{ x: .34, y: .47 }, { x: .68, y: .55 }, { x: .74, y: .94 }, { x: .25, y: .99 }], .045, 7)
+    terraces(ctx, [{ x: .66, y: .58 }, { x: 1.03, y: .51 }, { x: 1.06, y: .91 }, { x: .61, y: .97 }], -.028, 5)
     // 5: watercourse is a leading line rather than another contour stripe.
     ctx.curve([{ x: w * 0.54, y: h }, { x: w * 0.51, y: h * 0.79 }, { x: w * 0.66, y: h * 0.60 }, { x: w * 0.63, y: h * 0.52 }], 14)
     ctx.curve([{ x: w * 0.56, y: h }, { x: w * 0.54, y: h * 0.80 }, { x: w * 0.68, y: h * 0.62 }, { x: w * 0.65, y: h * 0.54 }], 15)

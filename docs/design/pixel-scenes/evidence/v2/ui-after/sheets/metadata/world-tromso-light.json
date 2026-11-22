@@ -1,0 +1,11 @@
+{
+  "scene": "world-tromso",
+  "seed": 42,
+  "theme": "light",
+  "time": "day",
+  "width": 480,
+  "height": 270,
+  "visibility": 1,
+  "backend": "SceneRenderer",
+  "frameSeconds": 0
+}

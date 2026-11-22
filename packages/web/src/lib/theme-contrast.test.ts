@@ -30,6 +30,15 @@ function ratio(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05)
 }
 
+function composite(ink: string, backdrop: string, alpha: number): string {
+  const channels = [1, 3, 5].map((index) => {
+    const front = parseInt(ink.slice(index, index + 2), 16)
+    const behind = parseInt(backdrop.slice(index, index + 2), 16)
+    return Math.round(front * alpha + behind * (1 - alpha)).toString(16).padStart(2, '0')
+  })
+  return `#${channels.join('')}`
+}
+
 const dark = block(':root')
 const light = { ...dark, ...block('.light') }
 
@@ -74,5 +83,15 @@ describe('theme contrast (WCAG AA, 4.5:1)', () => {
     expect(tokens['--ring']).toBe('var(--violet)')
     expect(tokens['--link']).toBe('var(--violet)')
     expect(tokens['--active-tab']).toBe('var(--violet)')
+  })
+
+  it.each([
+    ['dark', dark, '#ffffff', 0.94],
+    ['light', light, '#000000', 0.96],
+  ] as const)('protects small text on the worst-case %s scene pixel', (_name, tokens, scenePixel, alpha) => {
+    const panel = composite(tokens['--background']!, scenePixel, alpha)
+    for (const ink of ['--foreground', '--muted-foreground', '--soft-foreground']) {
+      expect(ratio(tokens[ink]!, panel), `${ink} on protected panel`).toBeGreaterThanOrEqual(4.5)
+    }
   })
 })

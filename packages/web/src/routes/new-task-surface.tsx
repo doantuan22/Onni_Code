@@ -919,7 +919,10 @@ export function NewTaskSurface({
         data-slot="new-task-layout"
         className="flex w-full max-w-[1040px] flex-col items-center gap-5"
       >
-        <div data-slot="new-task-main" className="w-full min-w-0 max-w-[760px]">
+        <div
+          data-slot="new-task-main"
+          className="scene-reading-panel w-full min-w-0 max-w-[760px]"
+        >
           <header className="mb-6 text-center max-md:mb-4">
             <span className="mb-2 inline-flex items-center gap-1.5 font-mono text-[10px] font-medium tracking-[0.14em] text-soft-foreground uppercase">
               <span aria-hidden="true" className="text-violet">//</span>

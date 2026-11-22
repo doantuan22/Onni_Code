@@ -139,6 +139,44 @@ export function useSidebarNavigate(): (() => void) | undefined {
   return React.useContext(SidebarNavigateContext)
 }
 
+function useSceneDockHeight(columnRef: React.RefObject<HTMLElement | null>) {
+  React.useLayoutEffect(() => {
+    const column = columnRef.current
+    if (!column) return
+    let dock: HTMLElement | null = null
+    let dockObserver: ResizeObserver | undefined
+    const update = () => {
+      const dockHeight = dock?.getBoundingClientRect().height ?? 0
+      column.style.setProperty('--scene-dock-height', `${dockHeight}px`)
+      // Horizon is 36% of the usable transcript, not 36% of the entire shell behind its dock.
+      column.style.setProperty('--scene-horizon-height', `${Math.max(0, column.clientHeight - dockHeight) * 0.36}px`)
+    }
+    const observeDock = () => {
+      const next = column.querySelector<HTMLElement>('[data-slot="thread-dock"]:not([data-floating])')
+      if (next === dock) return
+      dockObserver?.disconnect()
+      dock = next
+      if (dock && typeof ResizeObserver !== 'undefined') {
+        dockObserver = new ResizeObserver(update)
+        dockObserver.observe(dock)
+      }
+      update()
+    }
+    observeDock()
+    const columnObserver = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(update)
+    columnObserver?.observe(column)
+    const mutations = new MutationObserver(observeDock)
+    mutations.observe(column, { childList: true, subtree: true })
+    return () => {
+      mutations.disconnect()
+      dockObserver?.disconnect()
+      columnObserver?.disconnect()
+      column.style.removeProperty('--scene-dock-height')
+      column.style.removeProperty('--scene-horizon-height')
+    }
+  }, [columnRef])
+}
+
 /** The main transcript owns cached/tail arrival; every other routed surface uses shell-top. */
 export function routeOwnsScrollArrival(pathname: string): boolean {
   return matchPath({ path: '/tasks/:id', end: true }, stripProjectPrefix(pathname)) !== null
@@ -204,6 +242,8 @@ export const AppShell = React.memo(function AppShell({
   const [menuOpen, setMenuOpen] = React.useState(false)
   const closeMenu = React.useCallback(() => setMenuOpen(false), [])
   const mainRef = React.useRef<HTMLElement>(null)
+  const contentColumnRef = React.useRef<HTMLDivElement>(null)
+  useSceneDockHeight(contentColumnRef)
   const routeOwnsArrival = routeOwnsScrollArrival(pathname)
   // The desktop column's width (#788) — one preference shared with the settings sidebar.
   const [sidebarWidth, changeSidebarWidth] = useSidebarWidth()
@@ -300,6 +340,7 @@ export const AppShell = React.memo(function AppShell({
         />
       )}
       <div
+        ref={contentColumnRef}
         data-slot="app-content-column"
         className={cn(
           'relative isolate grid min-w-0 flex-1 grid-rows-[auto_auto_1fr_auto] overflow-hidden',

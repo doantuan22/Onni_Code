@@ -388,53 +388,69 @@
   visibility: hidden;
 }
 
-[data-slot='scene-layer'],
-[data-slot='scene-scrim'] {
+[data-slot='scene-layer'] {
   position: absolute;
   inset: 0;
 }
 
 [data-slot='scene-backdrop'][data-mode='horizon'] > [data-slot='scene-layer'] {
   top: auto;
-  height: 45%;
-  mask-image: linear-gradient(to top, black 45%, transparent);
+  bottom: var(--scene-dock-height, 0px);
+  height: var(--scene-horizon-height, 36%);
+  /* A 25% sky fade leaves 75% of the Horizon strip visible above the dock. */
+  mask-image: linear-gradient(to top, black 75%, transparent);
 }
 
 [data-slot='scene-backdrop'] {
-  --scene-reading-width: var(--chat-measure);
+  --scene-panel-alpha: 94%;
+  --scene-panel-border: color-mix(in srgb, var(--border) 88%, var(--background));
 }
 
-:root[data-width='narrow'] [data-slot='scene-backdrop'] {
-  --scene-reading-width: var(--measure);
+.light [data-slot='scene-backdrop'] {
+  --scene-panel-alpha: 96%;
 }
 
-[data-slot='scene-backdrop'][data-surface='new'] {
-  --scene-reading-width: 760px;
+/* Scenery stays full-strength in empty gutters. Text only sits on locally protected panels; this
+ * replaces the former full-column scrim and its duplicate visibility reduction. */
+[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) .scene-reading-panel,
+[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) :is([data-slot='composer'], [data-slot='task-settings-panel']) {
+  background-color: color-mix(in srgb, var(--background) var(--scene-panel-alpha), transparent);
+  border-color: var(--scene-panel-border);
 }
 
-[data-slot='scene-scrim'] {
-  background: color-mix(in oklab, var(--background) var(--scene-scrim), transparent);
+[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='thread-reading-lane'] {
+  border-inline: 1px solid var(--scene-panel-border);
+  border-radius: var(--radius-lg);
 }
 
-[data-slot='scene-backdrop']:is([data-surface='new'], [data-surface='chat']) > [data-slot='scene-scrim'] {
-  --scene-reading-edge: min(50%, calc(var(--scene-reading-width) / 2));
-  mask-image: linear-gradient(
-    to right,
-    transparent max(0px, calc(50% - var(--scene-reading-edge) - 5rem)),
-    black calc(50% - var(--scene-reading-edge)),
-    black calc(50% + var(--scene-reading-edge)),
-    transparent min(100%, calc(50% + var(--scene-reading-edge) + 5rem))
-  );
+[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='new-task-main'] {
+  border: 1px solid var(--scene-panel-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
 }
 
-[data-scene='on'] [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready])
-  :is([data-slot='thread-dock']:not([data-floating]), [data-slot='run-header']) {
-  background: color-mix(in oklab, var(--background) 88%, transparent);
+[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='thread-dock']:not([data-floating]) {
+  border-top: 1px solid var(--scene-panel-border);
 }
 
 [data-scene='on'] [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='new'][data-ready])
   :is([data-slot='twinkle-backdrop'], [data-slot='ghost-code-backdrop']) {
   display: none;
+}
+
+@media (max-width: 767px) {
+  /* A phone has no safe gutter for a translucent lane: freeze a small `/new` hero and make
+   * reading surfaces solid rather than forcing the desktop Horizon geometry onto the form. */
+  [data-slot='scene-backdrop'][data-surface='new'][data-narrow] > [data-slot='scene-layer'] {
+    inset: 0 0 auto;
+    height: clamp(160px, 30vh, 200px);
+    mask-image: linear-gradient(to bottom, black 72%, transparent);
+  }
+
+  [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) .scene-reading-panel,
+  [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) :is([data-slot='composer'], [data-slot='task-settings-panel']) {
+    background-color: var(--background);
+  }
 }
 
 /* ---------- tokens: radius + shadow ----------

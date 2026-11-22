@@ -100,7 +100,7 @@ describe('SceneBackdrop', () => {
     expect(evaluateHost).not.toHaveBeenCalled()
   })
 
-  it('mounts the host with capped visibility and disposes when turned off and when unmounted', async () => {
+  it('mounts the host with the requested visibility and disposes when turned off and when unmounted', async () => {
     const rendered = render(sceneTree('/p/onni/new', { ...enabled, motion: false, visibility: 1 }))
     await waitFor(expectReady)
     expect(backdrop()?.getAttribute('aria-hidden')).toBe('true')
@@ -108,8 +108,8 @@ describe('SceneBackdrop', () => {
     expect(createHost).toHaveBeenCalledExactlyOnceWith(sceneCanvas(), expect.objectContaining({
       sceneId: 'vn-halong', motion: false, time: 'auto', speed: 1,
     }))
-    expect(createHost.mock.calls[0]![1].visibility).toBeLessThan(1)
-    expect(Number.parseFloat(backdrop()!.style.getPropertyValue('--scene-scrim'))).toBeGreaterThan(0)
+    expect(createHost.mock.calls[0]![1].visibility).toBe(1)
+    expect(backdrop()?.querySelector('[data-slot="scene-scrim"]')).toBeNull()
 
     rendered.rerender(sceneTree('/p/onni/new', DEFAULT_SCENE_PREFERENCES))
     expect(sceneCanvas()).toBeUndefined()
@@ -133,7 +133,7 @@ describe('SceneBackdrop', () => {
     expect(dispose).toHaveBeenCalledTimes(1)
   })
 
-  it('switches to a horizon with a buffer at most 240 pixels wide below md', async () => {
+  it('keeps the full /new scene static with a buffer at most 240 pixels wide below md', async () => {
     render(sceneTree('/new', enabled))
     await waitFor(expectReady)
     expect(createHost.mock.calls[0]![1].width).toBeGreaterThan(240)
@@ -141,9 +141,10 @@ describe('SceneBackdrop', () => {
       isDesktop = false
       changeViewport()
     })
-    expect(backdrop()?.dataset.mode).toBe('horizon')
+    expect(backdrop()?.dataset.mode).toBe('full')
     expect(update).toHaveBeenCalled()
     expect(update.mock.lastCall![0].width).toBeLessThanOrEqual(240)
+    expect(update.mock.lastCall![0].motion).toBe(false)
     expect(createHost).toHaveBeenCalledTimes(1)
   })
 

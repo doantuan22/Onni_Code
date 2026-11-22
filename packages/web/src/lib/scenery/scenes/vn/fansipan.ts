@@ -42,34 +42,53 @@ const birdFrames = [
   parseSprite(['........', '..b..b..', '.b....b.', '........', '........'], { b: 25 }),
 ] as const
 
-function ridge(ctx: Parameters<SceneDef['build']>[0], baseline: number, amplitude: number, ink: number, seed: number): void {
-  const { width: w, height: h } = ctx
-  for (let x = 0; x < w; x++) {
-    const top = Math.floor(h * (baseline - amplitude * (0.3 + ctx.fbm2(x * 0.017, seed) * 0.7) + Math.sin(x * 0.035 + seed) * 0.018))
-    ctx.rect(x, top, 1, h - top, ink)
+type Point = readonly [number, number]
+
+function points(ctx: BuildCtx, shape: readonly Point[], drift = 0): { x: number; y: number }[] {
+  return shape.map(([u, v]) => ({ x: ctx.width * u + drift, y: ctx.height * v }))
+}
+
+function cloudMass(ctx: BuildCtx, underside: readonly Point[], body: readonly Point[], rim: readonly Point[], drift: number, undersideInk: number, bodyInk: number, rimInk: number): void {
+  ctx.polygon(points(ctx, underside, drift), undersideInk)
+  ctx.polygon(points(ctx, body, drift), bodyInk)
+  for (let i = 1; i < rim.length; i++) {
+    const [ax, ay] = rim[i - 1]!
+    const [bx, by] = rim[i]!
+    ctx.line(ctx.width * ax + drift, ctx.height * ay, ctx.width * bx + drift, ctx.height * by, rimInk)
   }
 }
 
-function cloudPuff(ctx: BuildCtx, x: number, y: number, width: number, height: number, underside: number, body: number, rim: number): void {
-  const lobe = (points: readonly [number, number][]) => points.map(([u, v]) => ({ x: x + u * width, y: y + v * height }))
-  // Hand-shaped lobes deliberately avoid circular highlights: the upper contour
-  // faces the dawn while a compressed, cool underside gives the cloud its weight.
-  ctx.polygon(lobe([[-.58, .22], [-.52, -.08], [-.38, -.34], [-.18, -.28], [-.10, -.58], [.12, -.62], [.27, -.38], [.48, -.30], [.62, -.02], [.55, .28], [.35, .42], [.08, .36], [-.18, .48], [-.44, .40]]), underside)
-  ctx.polygon(lobe([[-.50, .12], [-.42, -.18], [-.25, -.34], [-.08, -.22], [.02, -.50], [.20, -.46], [.31, -.22], [.51, -.14], [.55, .08], [.37, .22], [.10, .16], [-.12, .30], [-.37, .24]]), body)
-  ctx.line(x - width * .34, y - height * .20, x - width * .08, y - height * .38, rim)
-  ctx.line(x - width * .08, y - height * .38, x + width * .15, y - height * .31, rim)
-  ctx.line(x + width * .15, y - height * .31, x + width * .34, y - height * .12, rim)
+// These overlapping contours are deliberately hand-drawn as banks rather than
+// stamped puffs: their different heights leave occasional windows to the ridge.
+const farCloudUnder: readonly Point[] = [[-.04, .68], [-.02, .60], [.06, .57], [.13, .59], [.19, .53], [.29, .55], [.37, .50], [.47, .55], [.55, .52], [.63, .57], [.70, .50], [.79, .54], [.87, .49], [.95, .55], [1.04, .53], [1.04, .72], [-.04, .72]]
+const farCloudBody: readonly Point[] = [[-.04, .65], [.03, .60], [.10, .60], [.16, .55], [.25, .58], [.34, .52], [.42, .56], [.50, .54], [.58, .57], [.66, .52], [.74, .56], [.82, .51], [.90, .56], [.98, .54], [1.04, .58], [1.04, .67], [.82, .66], [.68, .64], [.52, .67], [.35, .64], [.18, .67], [-.04, .67]]
+const farCloudRim: readonly Point[] = [[.03, .60], [.10, .60], [.16, .55], [.25, .58], [.34, .52], [.42, .56], [.50, .54], [.58, .57], [.66, .52], [.74, .56], [.82, .51], [.90, .56]]
+const nearCloudUnder: readonly Point[] = [[-.05, .96], [-.05, .76], [.04, .70], [.14, .73], [.22, .66], [.34, .72], [.43, .63], [.54, .68], [.65, .61], [.76, .69], [.85, .64], [.95, .71], [1.05, .67], [1.05, .96]]
+const nearCloudBody: readonly Point[] = [[-.05, .86], [.02, .76], [.10, .76], [.18, .70], [.28, .75], [.39, .67], [.48, .70], [.57, .65], [.68, .70], [.78, .66], [.88, .72], [.98, .70], [1.05, .73], [1.05, .87], [.84, .86], [.69, .83], [.50, .88], [.31, .84], [.12, .89], [-.05, .88]]
+const nearCloudRim: readonly Point[] = [[.02, .76], [.10, .76], [.18, .70], [.28, .75], [.39, .67], [.48, .70], [.57, .65], [.68, .70], [.78, .66], [.88, .72]]
+
+function cloudLobes(ctx: BuildCtx, lobes: readonly (readonly [number, number, number])[], underside: number, body: number, rim: number): void {
+  for (const [u, v, radius] of lobes) {
+    const x = ctx.width * u
+    const y = ctx.height * v
+    ctx.polygon([{ x: x - radius, y }, { x: x + radius, y }, { x: x + radius * .72, y: y + radius * .72 }, { x: x - radius * .72, y: y + radius * .72 }], underside)
+    ctx.disc(x, y, radius, body)
+    ctx.line(x + radius * .08, y - radius * .84, x + radius * .62, y - radius * .42, rim)
+  }
 }
 
-function cloudBank(ctx: BuildCtx, offset: number, y: number, scale: number, underside: number, body: number, rim: number, near = false): void {
-  const { width: w, height: h } = ctx
-  const spacing = near ? 86 : 68
-  const start = -spacing + offset
-  for (let i = 0, x = start; x < w + spacing; i++, x += spacing) {
-    const width = (near ? 52 : 38) * scale * (1 + (i % 3) * .08)
-    const height = (near ? 25 : 17) * scale * (i % 2 ? 1.08 : .92)
-    cloudPuff(ctx, x, h * y + (i % 3 - 1) * (near ? 5 : 3), width, height, underside, body, rim)
-  }
+function driftingCloud(ctx: BuildCtx, u: number, v: number, size: number, drift: number, underside: number, body: number, rim: number, variant: 0 | 1 | 2): void {
+  const profiles: readonly (readonly Point[])[] = [
+    [[-.18, .08], [-.15, -.08], [-.08, -.16], [.00, -.10], [.05, -.25], [.15, -.22], [.22, -.08], [.19, .10], [.08, .14], [-.06, .17]],
+    [[-.23, .09], [-.18, -.04], [-.10, -.13], [-.01, -.08], [.07, -.22], [.17, -.16], [.26, -.02], [.21, .11], [.08, .13], [-.08, .18]],
+    [[-.20, .10], [-.16, -.10], [-.05, -.17], [.04, -.11], [.10, -.26], [.21, -.18], [.29, .01], [.19, .14], [.02, .12], [-.10, .18]],
+  ]
+  const contour = profiles[variant]!
+  const scale = (shape: readonly Point[], yOffset: number) => shape.map(([x, y]) => ({ x: ctx.width * u + x * size + drift, y: ctx.height * v + y * size + yOffset }))
+  ctx.polygon(scale(contour, size * .14), underside)
+  ctx.polygon(scale(contour.map(([x, y]) => [x * .84, y * .74 - .035] as const), 0), body)
+  const rimLine = scale(contour.slice(1, 6), -size * .035)
+  for (let i = 1; i < rimLine.length; i++) ctx.line(rimLine[i - 1]!.x, rimLine[i - 1]!.y, rimLine[i]!.x, rimLine[i]!.y, rim)
 }
 
 const scene: SceneDef = {
@@ -88,22 +107,34 @@ const scene: SceneDef = {
     // 1: broad atmospheric sky, with dawn source to the right.
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) ctx.px(x, y, ctx.dither(x, y, y / h * 1.4, 0, 3, 8))
     ctx.disc(w * 0.88, h * 0.34, Math.max(3, h * 0.027), 3)
-    // 2: far haze and low blue foothills.
-    ridge(ctx, 0.54, 0.08, 4, 29)
-    ridge(ctx, 0.61, 0.10, 5, 51)
-    // 3: Fansipan is a broken ridge, not a symmetric pyramid: three planes,
-    // a left shoulder, and a right spur retain their silhouette above the cloud sea.
-    ctx.polygon([{ x: w * .46, y: h * .66 }, { x: w * .53, y: h * .48 }, { x: w * .59, y: h * .40 }, { x: w * .67, y: h * .23 }, { x: w * .73, y: h * .34 }, { x: w * .77, y: h * .30 }, { x: w * .83, y: h * .50 }, { x: w * .91, y: h * .64 }], 8)
-    ctx.polygon([{ x: w * .53, y: h * .48 }, { x: w * .67, y: h * .23 }, { x: w * .70, y: h * .52 }, { x: w * .60, y: h * .63 }], 10)
-    ctx.polygon([{ x: w * .70, y: h * .52 }, { x: w * .67, y: h * .23 }, { x: w * .77, y: h * .30 }, { x: w * .83, y: h * .50 }, { x: w * .91, y: h * .64 }], 9)
-    ctx.polygon([{ x: w * .46, y: h * .66 }, { x: w * .53, y: h * .48 }, { x: w * .60, y: h * .63 }, { x: w * .56, y: h * .68 }], 7)
-    ctx.line(w * .69, h * .25, w * .70, h * .52, 11)
-    ctx.line(w * .77, h * .31, w * .78, h * .47, 11)
-    ctx.line(w * .59, h * .42, w * .63, h * .57, 9)
-    // 4-5: separated far and near banks leave visible gaps and occlude the peak
-    // at different heights, creating a proper sea rather than two horizontal strips.
-    cloudBank(ctx, 12, .58, 1, 12, 14, 15)
-    cloudBank(ctx, 0, .77, 1.34, 13, 14, 15, true)
+    // 2: cool, low shoulders give the main ridge a distant basin to rise from.
+    ctx.polygon(points(ctx, [[0, .60], [.10, .53], [.20, .57], [.31, .48], [.42, .55], [.50, .51], [.58, .59], [.68, .54], [.78, .60], [1, .52], [1, .70], [0, .70]]), 4)
+    ctx.polygon(points(ctx, [[0, .65], [.12, .59], [.25, .63], [.38, .56], [.49, .64], [.60, .58], [.73, .65], [.86, .57], [1, .62], [1, .73], [0, .73]]), 5)
+    // 3: Fansipan's silhouette has a broken left shoulder, a sharp high point,
+    // and an uneven right spur. Faces meet on a crooked ridge, never a box edge.
+    ctx.polygon(points(ctx, [[.43, .68], [.48, .57], [.53, .50], [.58, .42], [.63, .45], [.68, .28], [.70, .23], [.73, .31], [.77, .29], [.80, .37], [.85, .43], [.89, .56], [.95, .66]]), 8)
+    ctx.polygon(points(ctx, [[.43, .68], [.48, .57], [.53, .50], [.58, .42], [.63, .45], [.68, .28], [.70, .23], [.69, .39], [.72, .46], [.68, .57], [.61, .63], [.54, .68]]), 10)
+    ctx.polygon(points(ctx, [[.70, .23], [.73, .31], [.77, .29], [.80, .37], [.85, .43], [.89, .56], [.95, .66], [.78, .65], [.72, .57], [.68, .57], [.72, .46], [.69, .39]]), 9)
+    ctx.polygon(points(ctx, [[.48, .57], [.53, .50], [.58, .42], [.63, .45], [.61, .55], [.54, .63], [.47, .67]]), 7)
+    // Crooked couloirs and short strata follow each face instead of forming a
+    // single hard shadow wedge.
+    ctx.line(w * .70, h * .24, w * .69, h * .39, 11)
+    ctx.line(w * .69, h * .39, w * .72, h * .46, 11)
+    ctx.line(w * .72, h * .46, w * .68, h * .57, 11)
+    ctx.line(w * .67, h * .32, w * .61, h * .46, 9)
+    ctx.line(w * .62, h * .47, w * .57, h * .57, 9)
+    ctx.line(w * .75, h * .34, w * .80, h * .43, 11)
+    ctx.line(w * .80, h * .43, w * .84, h * .54, 11)
+    ctx.line(w * .54, h * .53, w * .64, h * .51, 11)
+    ctx.line(w * .57, h * .58, w * .67, h * .55, 9)
+    ctx.line(w * .74, h * .49, w * .84, h * .52, 10)
+    ctx.line(w * .77, h * .57, w * .89, h * .61, 10)
+    // 4-5: broad, overlapping banks form one sea. Their unequal crests bury
+    // the mountain base at changing heights while preserving a few deep gaps.
+    cloudMass(ctx, farCloudUnder, farCloudBody, farCloudRim, 0, 12, 14, 15)
+    cloudMass(ctx, nearCloudUnder, nearCloudBody, nearCloudRim, 0, 13, 14, 15)
+    cloudLobes(ctx, [[.07, .59, h * .025], [.16, .56, h * .034], [.28, .58, h * .027], [.37, .53, h * .040], [.50, .55, h * .031], [.65, .53, h * .038], [.82, .53, h * .034], [.93, .56, h * .025]], 12, 14, 15)
+    cloudLobes(ctx, [[.03, .76, h * .055], [.17, .71, h * .072], [.32, .74, h * .051], [.42, .68, h * .076], [.58, .67, h * .062], [.70, .69, h * .087], [.86, .68, h * .068], [.97, .72, h * .054]], 13, 14, 15)
     // 6: a near spur cuts the lower left, with trail and shrubs for scale.
     ctx.polygon([{ x: 0, y: h }, { x: 0, y: h * 0.69 }, { x: w * 0.14, y: h * 0.76 }, { x: w * 0.32, y: h },], 16)
     ctx.curve([{ x: 0, y: h * 0.89 }, { x: w * 0.10, y: h * 0.83 }, { x: w * 0.18, y: h * 0.90 }], 18)
@@ -111,11 +142,12 @@ const scene: SceneDef = {
   },
   frame(ctx, t) {
     const { width: w, height: h } = ctx
-    // Separate overscanned banks move at visibly different speeds.
-    const farOffset = (t * 0.15) % 68
-    cloudBank(ctx, farOffset, .575, .42, 12, 14, 15)
-    const nearOffset = (t * 0.4) % 86
-    cloudBank(ctx, nearOffset, .79 + Math.sin(t * .8) * .006, .56, 13, 14, 15, true)
+    // A few differently sized curls slide over the static banks; their distinct
+    // speeds make depth readable without restamping an identical tile row.
+    driftingCloud(ctx, .12, .61, h * .64, (t * .15) % (w + 80) - 40, 12, 14, 15, 0)
+    driftingCloud(ctx, .50, .64, h * .82, (t * .15) % (w + 100) - 50, 12, 14, 15, 1)
+    driftingCloud(ctx, .24, .78, h * 1.12, (t * .4) % (w + 150) - 75, 13, 14, 15, 2)
+    driftingCloud(ctx, .73, .81, h * 1.38, (t * .4) % (w + 180) - 90, 13, 14, 15, 1)
     // A sparse flag animates at the ridge rather than moving the mountain itself.
     ctx.sprite(flagFrames[Math.floor(t * 3) % flagFrames.length]!, w * 0.84, h * 0.58)
     if (Math.floor(t / 5) % 2 === 0) {

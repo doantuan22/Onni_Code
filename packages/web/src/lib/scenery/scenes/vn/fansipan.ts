@@ -1,146 +1,110 @@
-// Reference (§3): looking across the Hoàng Liên Sơn range from a rocky spur.
-// Apricot light rises to the left of a slate summit over a lavender sea of clouds.
-import { BAYER_4 } from '../../engine/dither'
-import type { BuildCtx, Palettes, SceneDef } from '../../engine/types'
+/**
+ * Original scene study: Fansipan's broken Hoàng Liên ridge rises from a sea
+ * of hand-built cloud puffs. The small ridge flag supplies human scale.
+ */
+import { parseSprite } from '../../engine/sprite'
+import type { BuildCtx, Palettes, SceneDef, ThemePalettes } from '../../engine/types'
 
-const enum Ink {
-  Zenith, Sky, Haze, Halo, Sun,
-  FarRidge, MiddleRidge, BaseRidge, PeakShadow, PeakLight,
-  FarCloud, FarCloudLight, NearCloud, NearCloudLight,
-  RockShadow, RockLight,
-}
-
-const palettes = {
-  dawn: [0x555988, 0xa383a5, 0xe3a49e, 0xf4c4a2, 0xffe3ab, 0xb38da6, 0x867a9c, 0x645f83, 0x3b3c62, 0x896c88, 0xa18daa, 0xc7a7bd, 0xb49bb8, 0xe4c5d2, 0x2a2c48, 0x494665],
-  day: [0x5484a9, 0x87b4cb, 0xc3d7d6, 0xdbe2ce, 0xffedbc, 0x9bb8c7, 0x748fa8, 0x566f8a, 0x354e69, 0x788999, 0x9eb8ca, 0xc5d7dd, 0xb2c9d6, 0xe6e9e2, 0x293d53, 0x4b6476],
-  dusk: [0x3c406e, 0x855b81, 0xc97680, 0xe7a08a, 0xffc58d, 0xa06b85, 0x795778, 0x574762, 0x332d51, 0x7e546b, 0x8b718f, 0xbc879f, 0xa3819c, 0xd4a0b2, 0x24233d, 0x41334f],
-  night: [0x19243e, 0x2a3755, 0x40496a, 0x526283, 0xb8c5d8, 0x414e70, 0x343e5e, 0x2b3250, 0x1d2641, 0x46516f, 0x404966, 0x576485, 0x485474, 0x717d9d, 0x171e33, 0x2e3a53],
-} satisfies Palettes
-
-const summit = 0.64
-const lightX = 0.30
-const horizon = 0.52
-
-// Hand-shaped shoulders keep the summit readable through the seeded rock texture.
-const peak = [0.78, 0.68, 0.60, 0.60, 0.48, 0.44, 0.35, 0.33, 0.27, 0.31, 0.45, 0.49, 0.61, 0.71] as const
-
-function drawRidge(ctx: BuildCtx, height: number, frequency: number, offset: number, ink: Ink) {
-  const { width, height: h } = ctx
-  for (let x = 0; x < width; x++) {
-    const noiseX = x / width * frequency + offset
-    const relief = (ctx.fbm2(noiseX, offset) - 0.5) * 0.27
-      + (ctx.fbm2(noiseX * 2.4, offset + 58) - 0.5) * 0.09
-    ctx.rect(x, (height + relief) * h, 1, h, ink)
-  }
-}
-
-function drawPeak(ctx: BuildCtx) {
-  const { width: w, height: h } = ctx
-  for (let x = 0; x < w; x++) {
-    const u = x / w
-    const position = Math.min(peak.length - 1.001, u / summit * 8)
-    const section = Math.floor(position)
-    const slope = peak[section + 1]! - peak[section]!
-    const relief = ctx.fbm2(u * 185, 83) - 0.5
-    const top = Math.floor(h * (peak[section]! + slope * (position - section) + relief * 0.048))
-    const crest = 2 + Math.floor((relief + 0.5) * h * 0.022)
-    ctx.rect(x, top, 1, h, Ink.PeakShadow)
-    if (slope < 0) ctx.rect(x, top, 1, crest, Ink.PeakLight)
-    for (let y = top + crest; y < h * 0.65; y++) {
-      const v = y / h
-      const stratum = ctx.fbm2((u + v * 0.62) * 435, v * 67 + 90)
-      const face = Math.max(0, Math.min(1, (summit - u + (0.27 - v) * 0.31 + relief * 0.034) * 30))
-      ctx.px(x, y, ctx.dither(x, y, face * Math.max(0, (stratum - 0.34) * 1.4), Ink.PeakShadow, Ink.PeakLight))
-    }
-  }
-}
-
-type CloudBank = readonly [crest: number, bottom: number, speed: number, offset: number, shadow: Ink, light: Ink]
-const cloudBanks: readonly CloudBank[] = [
-  [0.49, 0.81, 1.6, 43, Ink.FarCloud, Ink.FarCloudLight],
-  [0.68, 1, -2.7, 147, Ink.NearCloud, Ink.NearCloudLight],
+const palette = (sky: number, horizon: number, far: number, rock: number, rockLight: number, cloud: number, cloudLight: number, near: number): readonly number[] => [
+  sky, sky, horizon, 0xf0c9ad, far, 0x33495e, 0x71899a, 0x9cb3bf,
+  rock, 0x4f6576, rockLight, 0xc4b6a5, cloud, 0x596c86, cloudLight, 0xf6dcc2,
+  near, 0x314b48, 0x6e8273, 0x8c5754, 0xa36863, 0x7894a3, 0x41546b, 0x8193a5,
+  0x27384b, 0x1b2c40, 0x94a6bc, 0xead1b4, 0x161f34, 0xd5a57c, 0x30415b, 0xffffff,
 ]
 
-function drawClouds(ctx: BuildCtx, t: number, bank: CloudBank) {
-  const { width: w, height: h, base, buffer } = ctx
-  const [crest, foot, speed, offset, shadow, light] = bank
-  const stride = Math.max(1, Math.floor(h / 65))
-  const bottom = Math.ceil(foot * h)
-  for (let x = 0; x < w; x += stride) {
-    const right = Math.min(x + stride, w)
-    const noiseX = x / w * 174 + t * speed
-    const billow = (ctx.fbm2(noiseX, offset) - 0.5) * 0.23
-      + (ctx.fbm2(noiseX * 2, offset + 41) - 0.5) * 0.12
-    const top = Math.floor(Math.min(0.81, crest - billow + 0.026 * Math.sin(x / w * 8 + offset)) * h)
-    for (let y = top; y < bottom; y += stride) {
-      const end = Math.min(y + stride, bottom)
-      const v = y / h
-      const height = (y - top) / h
-      const folds = ctx.fbm2(noiseX + v * 35, offset + v * 835)
-      const lit = (folds - 0.34) * 2.45 + Math.max(0, 0.32 - height * 8)
-      const threshold = lit * 16 - 0.5
-      for (let py = y; py < end; py++) {
-        const row = py * w
-        // Integer coordinates can index the shared Bayer matrix directly.
-        const ditherRow = (py & 3) * 4
-        for (let px = x; px < right; px++) {
-          const i = row + px
-          if (base[i]! < Ink.RockShadow) buffer[i] = threshold >= BAYER_4[ditherRow + (px & 3)]! ? light : shadow
-        }
-      }
-    }
+const light: Palettes = {
+  dawn: palette(0xa9bed7, 0xf0c9ad, 0x647e91, 0x3f5365, 0xc4b6a5, 0x899db2, 0xf6dcc2, 0x2f4948),
+  day: palette(0x92bdd3, 0xd6dfd4, 0x718da0, 0x4a6172, 0xc4d0ca, 0xa1b6c3, 0xe8ece1, 0x38554f),
+  dusk: palette(0x4a496c, 0xcf8d82, 0x526474, 0x334758, 0xae8f88, 0x687b96, 0xe2b9a5, 0x263e42),
+  night: palette(0x24334e, 0x536681, 0x3c526b, 0x26394f, 0x8193a5, 0x485b75, 0x94a6bc, 0x20363a),
+}
+
+const dark: Palettes = {
+  dawn: palette(0x536b89, 0xbf9685, 0x4b657d, 0x30475a, 0xa8a19a, 0x697f99, 0xdfc4ad, 0x243d40),
+  day: palette(0x587e95, 0xa9b8b4, 0x496779, 0x324d61, 0xa9b8b2, 0x748da2, 0xd0d9d0, 0x294741),
+  dusk: palette(0x2b3452, 0x8f6870, 0x3b4f69, 0x253a4e, 0x718499, 0x41546e, 0x91a4bb, 0x1e363a),
+  night: palette(0x14233d, 0x344a65, 0x30455f, 0x1b2c40, 0x8193a5, 0x30415b, 0x94a6bc, 0x172d34),
+}
+
+const themePalettes: ThemePalettes = { light, dark }
+
+const flagFrames = [
+  parseSprite(['..p.....', '.pppp...', '..ppp...', '...p....', '...p....', '...p....'], { p: 19 }),
+  parseSprite(['..p.....', '.ppppp..', '..pp....', '...p....', '...p....', '...p....'], { p: 19 }),
+  parseSprite(['..p.....', '.ppp....', '...pp...', '...p....', '...p....', '...p....'], { p: 19 }),
+  parseSprite(['..p.....', '.pppp...', '...pp...', '...p....', '...p....', '...p....'], { p: 19 }),
+] as const
+
+const birdFrames = [
+  parseSprite(['..b...b.', '.b.b.b..', 'b...b...', '........', '........'], { b: 25 }),
+  parseSprite(['........', '.b....b.', '..b..b..', '...bb...', '........'], { b: 25 }),
+  parseSprite(['...b.b..', '..b...b.', '.b.....b', '........', '........'], { b: 25 }),
+  parseSprite(['........', '..b..b..', '.b....b.', '........', '........'], { b: 25 }),
+] as const
+
+function ridge(ctx: Parameters<SceneDef['build']>[0], baseline: number, amplitude: number, ink: number, seed: number): void {
+  const { width: w, height: h } = ctx
+  for (let x = 0; x < w; x++) {
+    const top = Math.floor(h * (baseline - amplitude * (0.3 + ctx.fbm2(x * 0.017, seed) * 0.7) + Math.sin(x * 0.035 + seed) * 0.018))
+    ctx.rect(x, top, 1, h - top, ink)
   }
 }
 
-const fansipan: SceneDef = {
+function puff(ctx: BuildCtx, x: number, y: number, radius: number, shadow: number, light: number): void {
+  ctx.disc(x, y + 2, radius, shadow)
+  ctx.disc(x + radius * 0.55, y, radius * 0.76, shadow)
+  ctx.disc(x - radius * 0.48, y + 1, radius * 0.68, shadow)
+  ctx.disc(x + radius * 0.32, y - radius * 0.30, radius * 0.50, light)
+}
+
+const scene: SceneDef = {
   id: 'vn-fansipan',
   name: { vi: 'Fansipan biển mây', en: 'Fansipan Cloud Sea' },
   region: 'vn',
   tone: 'both',
+  palettes: light,
+  themePalettes,
   defaultTime: 'dawn',
-  horizon,
-  focus: { x: summit, y: 0.29 },
-  palettes,
+  themeDefaultTime: { light: 'dawn', dark: 'night' },
+  horizon: 0.56,
+  focus: { x: 0.70, y: 0.40 },
   build(ctx) {
     const { width: w, height: h } = ctx
-    for (let y = 0; y < h * 0.64; y++) {
-      for (let x = 0; x < w; x++) {
-        const u = x / w
-        const v = y / h
-        const glow = Math.max(0, 1 - Math.hypot((u - lightX) * 2, (v - 0.32) * 4))
-        const step = Math.min(3, v * 4.3 + glow * 1.40)
-        const low = Math.floor(step)
-        ctx.px(x, y, ctx.dither(x, y, step - low, low, Math.min(Ink.Halo, low + 1), 8))
-      }
+    // 1: broad atmospheric sky, with dawn source to the right.
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) ctx.px(x, y, ctx.dither(x, y, y / h * 1.4, 0, 3, 8))
+    ctx.disc(w * 0.88, h * 0.34, Math.max(3, h * 0.027), 3)
+    // 2: far haze and low blue foothills.
+    ridge(ctx, 0.54, 0.08, 4, 29)
+    ridge(ctx, 0.61, 0.10, 5, 51)
+    // 3: the asymmetrical, three-faced Fansipan summit.
+    ctx.polygon([{ x: w * 0.48, y: h * 0.65 }, { x: w * 0.61, y: h * 0.36 }, { x: w * 0.70, y: h * 0.23 }, { x: w * 0.78, y: h * 0.42 }, { x: w * 0.88, y: h * 0.66 }], 8)
+    ctx.polygon([{ x: w * 0.61, y: h * 0.36 }, { x: w * 0.70, y: h * 0.23 }, { x: w * 0.72, y: h * 0.54 }, { x: w * 0.62, y: h * 0.59 }], 10)
+    ctx.polygon([{ x: w * 0.72, y: h * 0.54 }, { x: w * 0.70, y: h * 0.23 }, { x: w * 0.78, y: h * 0.42 }, { x: w * 0.88, y: h * 0.66 }], 9)
+    for (let i = 0; i < 5; i++) ctx.line(w * (0.58 + i * 0.055), h * (0.45 + i * 0.035), w * (0.63 + i * 0.05), h * 0.63, i % 2 ? 9 : 8)
+    // 4-5: cloud banks are static enough to read without motion, but do not seal the peak.
+    for (const [x, y, r] of [[0.42, 0.61, 19], [0.53, 0.59, 23], [0.82, 0.60, 20], [0.32, 0.78, 30], [0.58, 0.76, 34], [0.84, 0.79, 31]] as const) {
+      puff(ctx, w * x, h * y, Math.max(5, h * r / 270), y < 0.7 ? 12 : 13, y < 0.7 ? 14 : 15)
     }
-    drawRidge(ctx, 0.38, 140, 12, Ink.FarRidge)
-    drawRidge(ctx, 0.43, 160, 83, Ink.MiddleRidge)
-    drawRidge(ctx, 0.49, 185, 146, Ink.BaseRidge)
-    drawPeak(ctx)
-    for (let x = 0; x < w; x++) {
-      const u = x / w
-      const spur = 1.025 - 0.23 * Math.max(0, 1 - u * 2.7) - 0.12 * Math.max(0, 1 - (1 - u) * 5.2)
-      const noise = ctx.fbm2(u * 320 + 56, 191)
-      const top = Math.floor(h * (spur + (noise - 0.5) * 0.15))
-      ctx.rect(x, top, 1, h, Ink.RockShadow)
-      if (noise > 0.44) ctx.rect(x, top, 1, h * (noise - 0.38) * 0.10, Ink.RockLight)
-    }
+    // 6: a near spur cuts the lower left, with trail and shrubs for scale.
+    ctx.polygon([{ x: 0, y: h }, { x: 0, y: h * 0.69 }, { x: w * 0.14, y: h * 0.76 }, { x: w * 0.32, y: h },], 16)
+    ctx.curve([{ x: 0, y: h * 0.89 }, { x: w * 0.10, y: h * 0.83 }, { x: w * 0.18, y: h * 0.90 }], 18)
+    for (let x = 0; x < w * 0.23; x += 6) ctx.disc(x, h * (0.72 + ctx.fbm1(x) * 0.12), 3, 17)
   },
   frame(ctx, t) {
-    const { width: w, height: h, base, buffer } = ctx
-    const sunX = w * lightX
-    const radius = Math.min(w, h) * 0.055
-    const rise = h * 0.024 * (1 - Math.exp(-t / 18))
-    const sunY = h * 0.29 - rise
-    for (let y = Math.ceil(sunY - radius); y <= Math.floor(sunY + radius); y++) {
-      const half = Math.sqrt(radius ** 2 - (y - sunY) ** 2)
-      for (let x = Math.ceil(sunX - half); x <= Math.floor(sunX + half); x++) {
-        const i = y * w + x
-        if (base[i]! <= Ink.Halo) buffer[i] = Ink.Sun
-      }
+    const { width: w, height: h } = ctx
+    // Separate far and near puffs drift at visibly different rates.
+    const farOffset = (t * 0.15) % 18
+    for (let i = 0; i < 5; i++) puff(ctx, w * (0.24 + i * 0.16) - farOffset, h * (0.57 + (i % 2) * 0.025), 7, 12, 14)
+    const nearOffset = (t * 0.4) % 28
+    for (let i = 0; i < 5; i++) puff(ctx, w * (0.16 + i * 0.21) - nearOffset, h * (0.80 + Math.sin(t * 1.2 + i) * 0.012), 14, 13, 15)
+    // A sparse flag animates at the ridge rather than moving the mountain itself.
+    ctx.sprite(flagFrames[Math.floor(t * 3) % flagFrames.length]!, w * 0.84, h * 0.58)
+    if (Math.floor(t / 5) % 2 === 0) {
+      const flight = (Math.floor(t * 12) % (w + 30)) - 15
+      const pose = Math.floor(t * 6) % birdFrames.length
+      ctx.sprite(birdFrames[pose]!, flight, h * 0.18 + Math.sin(t) * 2)
     }
-    for (const bank of cloudBanks) drawClouds(ctx, t, bank)
   },
 }
 
-export default fansipan
+export default scene

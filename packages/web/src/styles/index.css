@@ -401,7 +401,9 @@
   mask-image: linear-gradient(to top, black 75%, transparent);
 }
 
-[data-slot='scene-backdrop'] {
+/* Defined on the root, not on the backdrop: the panels are siblings of the backdrop, so
+ * variables scoped to it never reached them (the protection rendered transparent). */
+:root {
   /* The scene can contain a near-white snow rim or aurora. Keep all reading text on an
    * almost-solid local surface rather than dimming the whole scene behind it. */
   --scene-panel-alpha: 97%;
@@ -409,7 +411,7 @@
   --scene-panel-border: color-mix(in srgb, var(--border) 92%, var(--background));
 }
 
-.light [data-slot='scene-backdrop'] {
+:root.light {
   --scene-panel-alpha: 98%;
 }
 

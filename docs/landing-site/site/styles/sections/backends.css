@@ -2,6 +2,7 @@
 
 #backends {
   position: relative;
+  padding-block: clamp(3rem, 5.5vw, 5rem);
 }
 
 /* Even section (02): neutral violet-grey wash behind the focal grid & YAML card (G4) */
@@ -35,6 +36,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-3);
+  flex: 1;
 }
 
 #backends .backend-tile {
@@ -211,13 +213,15 @@ html.js-ready #backends .backends__layout.is-in .backend-tile[data-installed='fa
   margin: 0;
   padding: var(--space-5);
   font-size: var(--text-sm);
-  line-height: 1.8;
+  line-height: 1.7;
+  white-space: normal;
   overflow-x: auto;
   flex: 1;
 }
 
 #backends .yaml-line {
   display: block;
+  white-space: pre;
   padding: 1px var(--space-2);
   margin-inline: calc(var(--space-2) * -1);
   border-left: 2px solid transparent;

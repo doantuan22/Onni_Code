@@ -1,7 +1,7 @@
 /* iife */ (() => {
 /**
  * Section 05: Manager / Worker Orchestration (#orchestration)
- * Direction: "Parallel Light" · Zero-dep ES module
+ * Direction: "Parallel Light" · Zero-dep classic deferred script (IIFE)
  * Coordinates 6px capsule packets traveling down along SVG filaments,
  * 4th packet bouncing off the dashed roster fence with amber '409 · not in roster',
  * green report capsules traveling back up to the manager node,
@@ -12,7 +12,7 @@ const orchSection = document.getElementById('orchestration');
 
 if (orchSection) {
   const replayBtn = orchSection.querySelector('.orch-replay-btn');
-  const bounceTag = orchSection.querySelector('.orch-bounce-tag');
+  const bounceTag = orchSection.querySelector('#orch-bounce-tag, .orch-bounce-tag');
   const managerStatusEl = orchSection.querySelector('[data-manager-status]');
   const workerCards = Array.from(orchSection.querySelectorAll('.orch-worker-card:not(.orch-worker-card--ghost)'));
   const svgCanvas = orchSection.querySelector('.orch-svg-canvas');

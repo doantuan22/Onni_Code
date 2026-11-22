@@ -1113,29 +1113,220 @@
 
         <!-- 8. Local-first, zero config -->
         <!-- section:local -->
-        <section id="local" class="section" aria-labelledby="local-title">
-          <div class="container">
-            <header class="section__header" data-reveal>
-              <p class="eyebrow">
-                <span class="eyebrow__index" data-index="08">08</span>
-                <span>Local-First &amp; Zero Config</span>
-              </p>
-              <h2 id="local-title" class="section__title">
-                No account. No cloud. Just files on your machine.
-              </h2>
-              <p class="section__subline">
-                Capabilities are discovered automatically from your repository, environment,
-                <code class="mono">gh</code>, and installed agent CLIs. State is plain JSON, NDJSON,
-                and Markdown under <code class="mono">.ai/onni/</code> and
-                <code class="mono">~/.onni/</code>.
-              </p>
-            </header>
+        <section
+          id="local"
+          class="stage section"
+          data-stage
+          style="--stage-h: 130vh"
+          aria-labelledby="local-title"
+        >
+          <div class="stage__sticky">
+            <div class="container local__container">
+              <header class="section__header" data-reveal>
+                <p class="eyebrow">
+                  <span class="eyebrow__index" data-index="08">08</span>
+                  <span>Local-First &amp; Zero Config</span>
+                </p>
+                <h2 id="local-title" class="section__title">
+                  No account. No cloud. Just files on your machine.
+                </h2>
+                <p class="section__subline">
+                  OnniCode runs entirely on localhost. State is plain JSON, NDJSON, and Markdown under
+                  <code class="mono">.ai/onni/</code> and <code class="mono">~/.onni/</code>.
+                  Zero telemetry, zero external database, and zero configuration.
+                </p>
+              </header>
 
-            <div class="hairline-card" data-reveal>
-              <div class="stage__steps">
-                <span class="chip">Cockpit UI (React 19 + Tailwind v4)</span>
-                <span class="chip">/api/v1 (Hono + Zod contract)</span>
-                <span class="chip">.ai/onni/ &amp; ~/.onni/ (JSON · NDJSON · MD)</span>
+              <div class="local__grid" data-reveal style="--reveal-delay: 120ms">
+                <!-- Left column: Checklist & Principles -->
+                <div class="local__checklist-col">
+                  <ul class="local__checklist" role="list">
+                    <li class="local__checklist-item hairline-card hairline-card--surface-2">
+                      <div class="local__check-icon" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" role="img" aria-label="Checkmark">
+                          <circle cx="8" cy="8" r="7" stroke="var(--border)" stroke-width="1.2" />
+                          <path d="M5 8.2L7 10.2L11.2 5.8" stroke="var(--done)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                      </div>
+                      <div class="local__checklist-content">
+                        <strong class="local__checklist-title">No account, no cloud</strong>
+                        <p class="local__checklist-desc">
+                          Runs as your local user on localhost. No login, no organization, no API gateway between you and your machine.
+                        </p>
+                      </div>
+                    </li>
+
+                    <li class="local__checklist-item hairline-card hairline-card--surface-2">
+                      <div class="local__check-icon" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" role="img" aria-label="Checkmark">
+                          <circle cx="8" cy="8" r="7" stroke="var(--border)" stroke-width="1.2" />
+                          <path d="M5 8.2L7 10.2L11.2 5.8" stroke="var(--done)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                      </div>
+                      <div class="local__checklist-content">
+                        <strong class="local__checklist-title">No database</strong>
+                        <p class="local__checklist-desc">
+                          Atomic JSON, NDJSON and Markdown files. Delete <code class="mono">.ai/onni/</code> anytime and OnniCode rebuilds what it needs.
+                        </p>
+                      </div>
+                    </li>
+
+                    <li class="local__checklist-item hairline-card hairline-card--surface-2">
+                      <div class="local__check-icon" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" role="img" aria-label="Checkmark">
+                          <circle cx="8" cy="8" r="7" stroke="var(--border)" stroke-width="1.2" />
+                          <path d="M5 8.2L7 10.2L11.2 5.8" stroke="var(--done)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                      </div>
+                      <div class="local__checklist-content">
+                        <strong class="local__checklist-title">No telemetry</strong>
+                        <p class="local__checklist-desc">
+                          The send path is deleted, not disabled: no analytics, no phone-home, no star counts. Nothing leaves your laptop.
+                        </p>
+                      </div>
+                    </li>
+
+                    <li class="local__checklist-item hairline-card hairline-card--surface-2">
+                      <div class="local__check-icon" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" role="img" aria-label="Checkmark">
+                          <circle cx="8" cy="8" r="7" stroke="var(--border)" stroke-width="1.2" />
+                          <path d="M5 8.2L7 10.2L11.2 5.8" stroke="var(--done)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                      </div>
+                      <div class="local__checklist-content">
+                        <strong class="local__checklist-title">Zero config &amp; graceful degradation</strong>
+                        <p class="local__checklist-desc">
+                          Capabilities are discovered from repo, environment, <code class="mono">gh</code> and installed agent CLIs. Missing dependencies degrade quietly to a smaller cockpit.
+                        </p>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+
+                <!-- Right column: Dashed boundary "your machine" with 3 isometric planes -->
+                <div class="local__diagram-col">
+                  <div class="local__machine-boundary" aria-label="Isometric architecture running on your machine">
+                    <!-- Machine boundary badge -->
+                    <div class="local__machine-badge mono">
+                      <span class="local__machine-icon" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" role="img">
+                          <rect x="2" y="3" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2" />
+                          <path d="M1 13H15" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+                        </svg>
+                      </span>
+                      <span>your machine</span>
+                      <span class="local__machine-dot" aria-hidden="true"></span>
+                      <span class="local__machine-status">isolated</span>
+                    </div>
+
+                    <!-- Isometric 3D Stage -->
+                    <div class="local__iso-wrapper">
+                      <div class="local__iso-stage" id="local-iso-stage">
+                        <!-- Plane 1: Cockpit UI -->
+                        <div class="local__plane local__plane--ui hairline-card" id="local-plane-ui" aria-label="Cockpit UI plane">
+                          <div class="local__plane-header">
+                            <div class="local__plane-badge-group">
+                              <span class="chip chip--violet">Cockpit UI</span>
+                              <span class="local__plane-sub mono">React 19 · Vite · localhost:4321</span>
+                            </div>
+                            <div class="local__plane-window-dots" aria-hidden="true">
+                              <span></span><span></span><span></span>
+                            </div>
+                          </div>
+                          <div class="local__plane-body">
+                            <div class="local__ui-mockup">
+                              <div class="local__ui-topbar mono">
+                                <span class="local__ui-run-id"><span class="led led--done" aria-hidden="true"></span> onni/3f2a91c4</span>
+                                <span class="local__ui-task-title">Split settings into tabs</span>
+                                <span class="chip local__ui-chip">+142 -38</span>
+                              </div>
+                              <div class="local__ui-tabs mono" role="tablist" aria-label="Cockpit preview tabs">
+                                <button type="button" class="local__ui-tab is-active">Overview</button>
+                                <button type="button" class="local__ui-tab">Worktree Diff</button>
+                                <button type="button" class="local__ui-tab">Live Telemetry</button>
+                                <button type="button" class="local__ui-tab">Roster</button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Plane 2: /api/v1 contract -->
+                        <div class="local__plane local__plane--api hairline-card hairline-card--surface-2" id="local-plane-api" aria-label="API contract plane">
+                          <div class="local__plane-header">
+                            <div class="local__plane-badge-group">
+                              <span class="chip">/api/v1 contract</span>
+                              <span class="local__plane-sub mono">Hono · Zod · WebSocket bus</span>
+                            </div>
+                            <span class="chip local__plane-tag mono">Node-free contract</span>
+                          </div>
+                          <div class="local__plane-body">
+                            <div class="local__api-routes mono">
+                              <div class="local__api-route">
+                                <span class="local__method local__method--get">GET</span>
+                                <span class="local__path">/api/v1/runs</span>
+                                <span class="local__contract-type">→ RunRecord[]</span>
+                              </div>
+                              <div class="local__api-route">
+                                <span class="local__method local__method--ws">WS</span>
+                                <span class="local__path">/api/v1/ws</span>
+                                <span class="local__contract-type">→ UiEvent bus (steps, diffs, tok)</span>
+                              </div>
+                              <div class="local__api-route">
+                                <span class="local__method local__method--post">POST</span>
+                                <span class="local__path">/api/v1/runs/:id/merge</span>
+                                <span class="local__contract-type">→ Local git merge</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Plane 3: Plain files -->
+                        <div class="local__plane local__plane--files hairline-card" id="local-plane-files" aria-label="Plain files plane">
+                          <div class="local__plane-header">
+                            <div class="local__plane-badge-group">
+                              <span class="chip">Plain files</span>
+                              <span class="local__plane-sub mono">.ai/onni/ · ~/.onni/ · JSON · NDJSON · MD</span>
+                            </div>
+                            <span class="chip local__plane-tag mono">atomic 0600 tmp+rename</span>
+                          </div>
+                          <div class="local__plane-body">
+                            <ul class="local__file-list mono">
+                              <li class="local__file-item">
+                                <span class="local__file-icon" aria-hidden="true">📄</span>
+                                <span class="local__file-name">.ai/onni/runs/&lt;id&gt;.json</span>
+                                <span class="local__file-desc">task snapshot &amp; limits</span>
+                              </li>
+                              <li class="local__file-item">
+                                <span class="local__file-icon" aria-hidden="true">📑</span>
+                                <span class="local__file-name">.ai/onni/runs/&lt;id&gt;.ndjson</span>
+                                <span class="local__file-desc">streamed steps &amp; tool events</span>
+                              </li>
+                              <li class="local__file-item">
+                                <span class="local__file-icon" aria-hidden="true">📁</span>
+                                <span class="local__file-name">.ai/onni/worktrees/</span>
+                                <span class="local__file-desc">isolated git branches</span>
+                              </li>
+                              <li class="local__file-item">
+                                <span class="local__file-icon" aria-hidden="true">⚙️</span>
+                                <span class="local__file-name">~/.onni/config.json</span>
+                                <span class="local__file-desc">workspace registry &amp; backup</span>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Machine footer caption -->
+                    <div class="local__machine-footer mono">
+                      <span>localhost:4321</span>
+                      <span>·</span>
+                      <span>100% on-device state</span>
+                      <span>·</span>
+                      <span>zero cloud sync</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1158,11 +1349,177 @@
               </p>
             </header>
 
-            <div class="hairline-card" data-reveal>
-              <p class="mono">ONNI_DRY_RUN=1 npm run dev</p>
-              <p class="mono" style="margin-top: var(--space-2); color: var(--muted-foreground)">
-                onni run
-              </p>
+            <!-- Two cards: Desktop app & CLI -->
+            <div class="launch__cards-grid" data-reveal style="--reveal-delay: 120ms">
+              <!-- Card 1: Desktop app -->
+              <div class="hairline-card launch__card launch__card--desktop">
+                <div class="launch__card-header">
+                  <div class="launch__card-title-group">
+                    <span class="launch__card-icon" aria-hidden="true">
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" role="img">
+                        <rect x="2" y="3" width="16" height="11" rx="2" stroke="var(--violet)" stroke-width="1.5" />
+                        <path d="M7 17H13M10 14V17" stroke="var(--violet)" stroke-width="1.5" stroke-linecap="round" />
+                      </svg>
+                    </span>
+                    <h3 class="launch__card-title">Desktop app</h3>
+                  </div>
+                  <span class="chip chip--violet mono">Tauri 2 shell</span>
+                </div>
+
+                <p class="launch__card-tagline">
+                  Tauri 2 shell · Windows installer bundles engine + Node
+                </p>
+
+                <p class="launch__card-desc">
+                  Self-contained desktop application with native tray controls, process-tree supervision,
+                  and zero configuration. Pre-bundled with the Node 20 runtime and Onni engine.
+                </p>
+
+                <div class="launch__card-features mono">
+                  <div class="launch__feature-row">
+                    <span class="launch__feature-key">Target</span>
+                    <span class="launch__feature-val">Windows 11 / 10 (x64)</span>
+                  </div>
+                  <div class="launch__feature-row">
+                    <span class="launch__feature-key">Format</span>
+                    <span class="launch__feature-val">NSIS Installer (.exe)</span>
+                  </div>
+                  <div class="launch__feature-row">
+                    <span class="launch__feature-key">Shell</span>
+                    <span class="launch__feature-val">Tauri 2 · Native Webview</span>
+                  </div>
+                </div>
+
+                <div class="launch__card-action">
+                  <a href="#launch-cmd" class="btn btn-primary launch__cta-btn">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M8 2V10M8 10L5 7M8 10L11 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M2.5 12.5H13.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                    </svg>
+                    <span>Download for Windows</span>
+                  </a>
+                  <span class="launch__card-note mono">bundles engine + Node</span>
+                </div>
+              </div>
+
+              <!-- Card 2: CLI -->
+              <div class="hairline-card launch__card launch__card--cli">
+                <div class="launch__card-header">
+                  <div class="launch__card-title-group">
+                    <span class="launch__card-icon" aria-hidden="true">
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" role="img">
+                        <rect x="2" y="3" width="16" height="14" rx="2" stroke="var(--foreground)" stroke-width="1.5" />
+                        <path d="M5 7L8 10L5 13M10 13H14" stroke="var(--foreground)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                    <h3 class="launch__card-title">CLI</h3>
+                  </div>
+                  <span class="chip mono">onni · onni run</span>
+                </div>
+
+                <p class="launch__card-tagline">
+                  onni · onni run &quot;&lt;task&gt;&quot;
+                </p>
+
+                <p class="launch__card-desc">
+                  Run workflows headless without booting a server, or spin up the local Hono API
+                  and cockpit SPA from your terminal. Full parity with the desktop shell.
+                </p>
+
+                <div class="launch__cli-terminal mono">
+                  <div class="launch__cli-line">
+                    <span class="launch__cli-prompt">$</span>
+                    <span class="launch__cli-cmd">onni</span>
+                    <span class="launch__cli-comment"># API :4321 + dev server</span>
+                  </div>
+                  <div class="launch__cli-line">
+                    <span class="launch__cli-prompt">$</span>
+                    <span class="launch__cli-cmd">onni run &quot;Split settings into tabs&quot; --workflow quick-task</span>
+                  </div>
+                </div>
+
+                <div class="launch__card-action">
+                  <a href="#launch-cmd" class="btn btn-ghost launch__cta-btn">
+                    <span>Explore CLI commands</span>
+                    <span aria-hidden="true">→</span>
+                  </a>
+                  <span class="launch__card-note mono">strict TypeScript · ESM</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Command block with copy button and 2-line boot log -->
+            <div class="launch__terminal-box hairline-card hairline-card--surface-2" data-reveal style="--reveal-delay: 240ms">
+              <div class="launch__terminal-header">
+                <div class="launch__terminal-meta mono">
+                  <span class="launch__terminal-dot" aria-hidden="true"></span>
+                  <span>Try offline · Mocked agents mode</span>
+                </div>
+                <span class="chip mono">Zero network required</span>
+              </div>
+
+              <div class="launch__command-row">
+                <span class="launch__command-prefix mono" aria-hidden="true">$</span>
+                <code class="launch__command-code mono" id="launch-cmd">ONNI_DRY_RUN=1 npm run dev</code>
+                <button
+                  type="button"
+                  class="btn btn-ghost launch__copy-button"
+                  id="launch-copy-btn"
+                  aria-label="Copy dry-run command to clipboard"
+                >
+                  <span class="launch__copy-icon" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" role="img">
+                      <rect x="5" y="5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3" />
+                      <path d="M3.5 10.5H3C2.44772 10.5 2 10.0523 2 9.5V3C2 2.44772 2.44772 2 3 2H9.5C10.0523 2 10.5 2.44772 10.5 3V3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+                    </svg>
+                  </span>
+                  <span class="launch__check-icon" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" role="img">
+                      <path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="var(--done)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                  <span class="launch__copy-text mono" data-copy-label>copy</span>
+                </button>
+              </div>
+
+              <!-- 2-line boot log -->
+              <div class="launch__boot-log mono" id="launch-boot-log" aria-live="polite">
+                <div class="launch__log-line">
+                  <span class="launch__log-arrow" aria-hidden="true">›</span>
+                  <span class="launch__log-text">cockpit on :4321 · dry-run: mocked agents</span>
+                </div>
+                <div class="launch__log-line">
+                  <span class="launch__log-arrow" aria-hidden="true">›</span>
+                  <span class="launch__log-text">WebSocket bus listening on ws://localhost:4321/api/v1/ws · zero config ready</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pixel-art horizon using img[data-scene] world-matterhorn-dark.png (scaled x4, pixelated, dawn brighten) -->
+            <div class="launch__horizon-container" data-reveal style="--reveal-delay: 360ms" id="launch-horizon">
+              <div class="launch__horizon-frame">
+                <img
+                  src="assets/scenery/world-matterhorn-dark.png"
+                  data-scene="world-matterhorn"
+                  alt="Pixel-art Matterhorn horizon at dawn over the OnniCode cockpit"
+                  width="320"
+                  height="180"
+                  class="launch__horizon-img pixelated"
+                />
+                <div class="launch__horizon-dawn-wash" aria-hidden="true"></div>
+                <div class="launch__horizon-vignette" aria-hidden="true"></div>
+              </div>
+              <div class="launch__horizon-footer mono">
+                <div class="launch__horizon-location">
+                  <span class="launch__horizon-coord">45.9765° N, 7.6585° E</span>
+                  <span>·</span>
+                  <span>Matterhorn Dawn</span>
+                </div>
+                <div class="launch__horizon-status">
+                  <span class="led led--done" aria-hidden="true"></span>
+                  <span>cockpit standing by</span>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -1171,25 +1528,35 @@
 
       <!-- Footer -->
       <!-- section:footer -->
-      <footer class="site-footer">
+      <footer class="site-footer" id="footer">
         <div class="container site-footer__inner">
-          <div class="site-header__brand">
-            <img
-              src="assets/brand/icon.svg"
-              alt=""
-              width="18"
-              height="18"
-              class="site-header__mark pixelated"
-            />
-            <span class="wordmark">onni</span>
-            <span>— One repository. Many lanes of light. Nothing lands without you.</span>
+          <div class="site-footer__brand-block">
+            <a href="#hero" class="site-header__brand" aria-label="OnniCode home">
+              <img
+                src="assets/brand/icon.svg"
+                alt=""
+                width="20"
+                height="20"
+                class="site-header__mark pixelated"
+              />
+              <span class="wordmark">onni</span>
+            </a>
+            <p class="site-footer__tagline">
+              One repository. Room for many agents. Nothing lands without you.
+            </p>
           </div>
+
           <div class="site-footer__meta mono">
             <span>MIT License</span>
-            <span>·</span>
-            <span>fork of cezar</span>
-            <span>·</span>
+            <span class="site-footer__sep" aria-hidden="true">·</span>
+            <span>hard fork of the cezar engine</span>
+            <span class="site-footer__sep" aria-hidden="true">·</span>
             <span>no telemetry</span>
+            <span class="site-footer__sep" aria-hidden="true">·</span>
+            <a href="#hero" class="site-footer__back-to-top" id="footer-back-to-top">
+              <span>Back to top</span>
+              <span class="site-footer__arrow" aria-hidden="true">↑</span>
+            </a>
           </div>
         </div>
       </footer>

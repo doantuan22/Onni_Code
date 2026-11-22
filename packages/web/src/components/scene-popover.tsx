@@ -7,6 +7,7 @@ import { Button } from './ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
 import { Switch } from './ui/switch'
 import { SCENE_IDS } from '@/lib/appearance'
+import { useTheme } from '@/components/theme-provider'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
@@ -36,6 +37,7 @@ export function useSceneControls() {
 export function SceneLibrary() {
   const { scene, setSceneId } = useScene()
   const { t } = useI18n()
+  const { resolvedTheme } = useTheme()
   const [region, setRegion] = useState<'vn' | 'world'>(scene.id?.startsWith('world-') ? 'world' : 'vn')
   return <div className="space-y-2">
     <Segmented slot="scene-region" label={t('Scene region')} value={region} onChange={setRegion}
@@ -44,11 +46,13 @@ export function SceneLibrary() {
       {SCENE_IDS.filter((id) => id.startsWith(`${region}-`)).map((id) => <button key={id} type="button" aria-pressed={scene.id === id}
         data-scene-id={id} onClick={() => setSceneId(id)}
         className={cn('overflow-hidden rounded-md border border-border bg-card text-left text-xs focus-visible:outline-2 focus-visible:outline-ring', scene.id === id && 'border-primary text-primary')}>
-        <span aria-hidden="true" className="flex aspect-video items-end justify-center bg-muted p-2 text-muted-foreground"><MountainSnowIcon className="size-8" /></span>
+        <span aria-hidden="true" className="relative flex aspect-video items-center justify-center bg-muted text-muted-foreground">
+          <img src={`/scenery-thumbs/${id}-${resolvedTheme}.png`} alt="" className="size-full object-cover" onError={(event) => { event.currentTarget.hidden = true }} />
+          <MountainSnowIcon className="absolute size-8" />
+        </span>
         <span className="block px-2 py-1.5">{t(SCENE_NAMES[id] ?? id)}</span>
       </button>)}
     </div>
-    <p className="text-xs text-muted-foreground">{t('Scene previews are placeholders.')}</p>
   </div>
 }
 

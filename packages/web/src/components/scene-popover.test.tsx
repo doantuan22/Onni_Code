@@ -5,15 +5,16 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { SceneProvider } from './scene-provider'
 import { adjacentSceneId, SceneLibrary, ScenePopover, SceneVisibility, useSceneControls } from './scene-popover'
 import { DEFAULT_SCENE_PREFERENCES, SCENE_IDS } from '@/lib/appearance'
+import { ThemeProvider } from './theme-provider'
 
 afterEach(cleanup)
 
 function Harness() {
   const [scene, setScene] = useState(DEFAULT_SCENE_PREFERENCES)
-  return <MemoryRouter><SceneProvider scene={scene} onChange={setScene}>
+  return <MemoryRouter><ThemeProvider><SceneProvider scene={scene} onChange={setScene}>
     <Controls /><SceneLibrary /><SceneVisibility /><ScenePopover chip />
     <output data-testid="preferences">{JSON.stringify(scene)}</output>
-  </SceneProvider></MemoryRouter>
+  </SceneProvider></ThemeProvider></MemoryRouter>
 }
 function Controls() {
   const { toggle } = useSceneControls()
@@ -23,7 +24,7 @@ const preferences = () => JSON.parse(screen.getByTestId('preferences').textConte
 
 describe('scene controls', () => {
   it('opens the sidebar popover while off and links directly to global appearance settings', async () => {
-    render(<MemoryRouter><SceneProvider scene={DEFAULT_SCENE_PREFERENCES} onChange={() => {}}><ScenePopover /></SceneProvider></MemoryRouter>)
+    render(<MemoryRouter><ThemeProvider><SceneProvider scene={DEFAULT_SCENE_PREFERENCES} onChange={() => {}}><ScenePopover /></SceneProvider></ThemeProvider></MemoryRouter>)
     fireEvent.click(screen.getByRole('button', { name: 'Background scenes' }))
     expect(await screen.findByRole('switch', { name: 'Enable background scenes' })).not.toBeNull()
     expect(screen.getByRole('link', { name: 'Background scene settings…' }).getAttribute('href')).toBe('/settings/global/appearance')
@@ -46,6 +47,8 @@ describe('scene controls', () => {
   it('browses all eight IDs while off without enabling the app background', () => {
     const { container } = render(<Harness />)
     expect(container.querySelectorAll('[data-scene-id]').length).toBe(4)
+    expect(container.querySelector<HTMLImageElement>('[data-scene-id="vn-halong"] img')?.getAttribute('src'))
+      .toBe('/scenery-thumbs/vn-halong-light.png')
     fireEvent.click(screen.getByRole('button', { name: 'World' }))
     expect(container.querySelectorAll('[data-scene-id]').length).toBe(4)
     fireEvent.click(screen.getByText('Sahara'))

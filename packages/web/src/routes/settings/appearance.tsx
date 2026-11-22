@@ -10,7 +10,7 @@ import type { SetWorkspaceConfigInput } from '@onni/api-client'
 import { useAppearance } from '@/components/appearance-provider'
 import { useSceneControls, SceneLibrary, SceneVisibility } from '@/components/scene-popover'
 import { Switch } from '@/components/ui/switch'
-import type { SceneTime } from '@/lib/appearance'
+import type { SceneTime, SceneTimeSource } from '@/lib/appearance'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
 import { controlButtonClass, fieldClass } from '@/components/form-field'
@@ -299,7 +299,7 @@ export function AppearanceSection() {
 
 function SceneSettingsCard() {
   const { t } = useI18n()
-  const { scene, toggle, setSurfaces, setMode, setTime, setSpeed, setMotion } = useSceneControls()
+  const { scene, toggle, setSurfaces, setMode, setTime, setTimeSource, setSpeed, setMotion } = useSceneControls()
   return <section data-slot="appearance-scenes" className="space-y-5 rounded-md border border-border bg-card p-4">
     <h3 className="text-sm font-semibold">{t('Background scenes')}</h3>
     <SettingsField title={t('Enable background scenes')} hint="">
@@ -320,12 +320,18 @@ function SceneSettingsCard() {
         options={[{ value: 'full', label: t('Full frame') }, { value: 'horizon', label: t('Horizon') }]}
         onChange={(mode) => setMode({ ...scene.mode, [surface]: mode })} />
     </SettingsField>)}
-    <SettingsField title={t('Time of day')} hint="">
-      <select aria-label={t('Time of day')} className={fieldClass} value={scene.time} onChange={(event) => setTime(event.currentTarget.value as SceneTime)}>
-        {([{ value: 'auto', label: 'Follow computer time' }, { value: 'dawn', label: 'Dawn' }, { value: 'day', label: 'Day' }, { value: 'dusk', label: 'Dusk' }, { value: 'night', label: 'Night' }] as const)
+    <SettingsField title={t('Time source')} hint="">
+      <select aria-label={t('Time source')} className={fieldClass} value={scene.timeSource} onChange={(event) => setTimeSource(event.currentTarget.value as SceneTimeSource)}>
+        {([{ value: 'theme', label: 'Follow theme' }, { value: 'clock', label: 'Follow computer time' }, { value: 'fixed', label: 'Fixed' }] as const)
           .map((option) => <option key={option.value} value={option.value}>{t(option.label)}</option>)}
       </select>
     </SettingsField>
+    {scene.timeSource === 'fixed' ? <SettingsField title={t('Fixed time')} hint="">
+      <select aria-label={t('Fixed time')} className={fieldClass} value={scene.time} onChange={(event) => setTime(event.currentTarget.value as SceneTime)}>
+        {([{ value: 'dawn', label: 'Dawn' }, { value: 'day', label: 'Day' }, { value: 'dusk', label: 'Dusk' }, { value: 'night', label: 'Night' }] as const)
+          .map((option) => <option key={option.value} value={option.value}>{t(option.label)}</option>)}
+      </select>
+    </SettingsField> : null}
     <SceneVisibility />
     <SettingsField title={t('Scene speed')} hint="">
       <label className="flex items-center gap-3"><input type="range" aria-label={t('Scene speed')} min={0.25} max={2} step={0.05}

@@ -1,1 +1,59 @@
-/* section: gate — scoped under #gate; see site/README.md and ../../05-plan.md */
+#gate .gate-demo { max-width: 760px; margin: 0 auto; position: relative; }
+#gate .gate-lanes { height: 144px; position: relative; margin: 0 24px 24px; }
+#gate .gate-lanes__svg { width: 100%; height: 112px; overflow: visible; }
+#gate .gate-lanes__waiting, #gate .gate-lanes__merged { fill: none; stroke: var(--violet); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+#gate .gate-lanes__gap { fill: none; stroke: var(--violet); stroke-width: 1.5; stroke-dasharray: 2 4; vector-effect: non-scaling-stroke; }
+#gate .gate-lanes__waiting { opacity: .9; }
+#gate .gate-lanes__merged { stroke-dasharray: 100; stroke-dashoffset: 100; opacity: 0; transition: stroke-dashoffset 600ms var(--ease-in-out), opacity 180ms ease; }
+#gate .gate-lanes__node { fill: var(--background); stroke: var(--violet); stroke-width: 1.5; }
+#gate .gate-lanes__labels { position: absolute; inset: 72px 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; font-size: 11px; color: var(--muted-foreground); }
+#gate .gate-demo[data-gate-state="merged"] .gate-lanes__waiting { opacity: 0; }
+#gate .gate-demo[data-gate-state="merged"] .gate-lanes__merged { opacity: 1; stroke-dashoffset: 0; }
+#gate .gate-demo[data-gate-state="merged"] .gate-lanes__node { fill: #eefb63; }
+#gate .gate-card { padding: 0; overflow: hidden; background: var(--card); }
+#gate .gate-card__top, #gate .gate-card__actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; }
+#gate .gate-card__top { border-bottom: 1px solid var(--border); }
+#gate .gate-card__top h3 { font-size: 16px; font-weight: 600; }
+#gate .gate-status { display: inline-flex; align-items: center; gap: 8px; color: var(--review); font: 12px var(--mono); }
+#gate .gate-status .led { background: #93c5fd; }
+#gate .gate-demo[data-gate-state="merged"] .gate-status { color: var(--done); }
+#gate .gate-demo[data-gate-state="merged"] .gate-status .led { background: var(--done); }
+#gate .gate-files { padding: 8px 20px; font-size: 12px; }
+#gate .gate-files li { display: flex; justify-content: space-between; gap: 16px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+#gate .gate-files b { color: var(--done); font-weight: 500; }
+#gate .gate-files i { color: var(--failed); font-style: normal; }
+#gate .gate-diff { margin: 8px 0 0; padding: 8px 0; border-block: 1px solid var(--border); font-size: 12px; overflow-x: auto; }
+#gate .gate-diff > div { display: flex; min-width: max-content; gap: 16px; padding: 3px 20px; }
+#gate .gate-diff span { width: 16px; color: var(--soft-foreground); text-align: right; }
+#gate .gate-diff code { color: var(--muted-foreground); }
+#gate .gate-diff__del { background: var(--diff-del-bg); }
+#gate .gate-diff__del code { color: var(--failed); }
+#gate .gate-diff__add { background: var(--diff-add-bg); }
+#gate .gate-diff__add code { color: var(--done); }
+#gate .gate-merge-bar { position: relative; width: 160px; height: 8px; margin: 20px auto 4px; border-radius: 8px; background: var(--border); opacity: 0; transform: scaleX(.2); transition: transform 250ms var(--ease-out), opacity 180ms ease; }
+#gate .gate-merge-bar span { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(90deg, #b4f372, #eefb63, #bc9aff); opacity: 0; }
+#gate .gate-demo[data-gate-state="merged"] .gate-merge-bar { background: transparent; opacity: 1; transform: scaleX(1); }
+#gate .gate-demo[data-gate-state="merged"] .gate-merge-bar span { animation: gate-ignition 600ms ease-out 100ms both; }
+@keyframes gate-ignition { 0% { opacity: 0; transform: scaleX(.12); } 45% { opacity: 1; transform: scaleX(1); } 100% { opacity: .82; transform: scaleX(1); } }
+#gate .gate-card__actions { justify-content: flex-end; padding-top: 12px; }
+#gate .gate-decision { margin-right: auto; color: var(--muted-foreground); font-size: 13px; }
+#gate .gate-reset[hidden], #gate .gate-decision[hidden] { display: none; }
+#gate .gate-toast { min-height: 24px; margin-top: 8px; text-align: center; color: var(--muted-foreground); font-size: 12px; }
+#gate .gate-caption { position: absolute; right: 4px; bottom: -20px; color: var(--soft-foreground); font-size: 12px; }
+#gate button { min-height: 36px; }
+#gate button:focus-visible { outline: 2px solid var(--violet); outline-offset: 3px; }
+@media (max-width: 600px) {
+  #gate .gate-demo { margin-inline: 0; }
+  #gate .gate-lanes { margin-inline: 0; }
+  #gate .gate-lanes__labels { font-size: 9px; }
+  #gate .gate-card__top, #gate .gate-card__actions { padding-inline: 12px; }
+  #gate .gate-files { padding-inline: 12px; }
+  #gate .gate-diff > div { padding-inline: 12px; }
+  #gate .gate-card__actions { flex-wrap: wrap; }
+  #gate .gate-decision { flex-basis: 100%; }
+  #gate .gate-caption { right: 0; bottom: -24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #gate .gate-lanes__merged, #gate .gate-lanes__waiting, #gate .gate-merge-bar { transition: none; }
+  #gate .gate-demo[data-gate-state="merged"] .gate-merge-bar span { animation: none; opacity: 1; }
+}

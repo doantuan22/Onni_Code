@@ -1,1 +1,39 @@
-/* section: automations — scoped under #automations; see site/README.md and ../../05-plan.md */
+#automations .automation-demo { max-width: 960px; margin-inline: auto; }
+#automations .automation-flow { position: relative; display: grid; grid-template-columns: minmax(260px, 360px) minmax(360px, 1fr); align-items: center; gap: 72px; min-height: 336px; }
+#automations .automation-triggers { display: grid; gap: 16px; }
+#automations .automation-trigger { display: grid; gap: 4px; padding: 16px 20px; min-height: 88px; }
+#automations .automation-trigger__title { font-size: 18px; font-weight: 600; letter-spacing: -.02em; }
+#automations .automation-trigger .mono { color: var(--muted-foreground); font-size: 12px; }
+#automations .automation-wires { position: absolute; z-index: 0; left: 34%; top: 8px; width: 23%; height: calc(100% - 16px); overflow: visible; pointer-events: none; }
+#automations .automation-triggers, #automations .automation-task { position: relative; z-index: 1; }
+#automations .automation-wires__base, #automations .automation-wires__pulse { fill: none; stroke: var(--violet); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+#automations .automation-wires__base { opacity: .55; }
+#automations .automation-wires__pulse { stroke: #c4b5fd; stroke-width: 2; stroke-dasharray: 8 100; stroke-dashoffset: 100; opacity: 0; }
+#automations .automation-flow.is-pulsing .automation-wires__pulse { opacity: 1; animation: automation-travel 1050ms ease-in-out both; }
+@keyframes automation-travel { to { stroke-dashoffset: 0; } }
+#automations .automation-wires__mint { fill: var(--violet); opacity: .9; }
+#automations .automation-task { position: relative; padding: 0; overflow: hidden; border-top: 2px solid var(--violet); }
+#automations .automation-task__head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 20px; border-bottom: 1px solid var(--border); }
+#automations .automation-task__head h3 { font: 500 22px var(--mono); }
+#automations .automation-badge { border: 1px solid color-mix(in srgb, var(--review) 45%, var(--border)); border-radius: 999px; padding: 6px 10px; background: color-mix(in srgb, var(--review) 12%, transparent); color: var(--review); font-size: 12px; }
+#automations .automation-task__details { padding: 8px 20px 16px; font-size: 13px; }
+#automations .automation-task__details div { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+#automations .automation-task__details div:last-child { border-bottom: 0; }
+#automations .automation-task__details dt { color: var(--muted-foreground); }
+#automations .automation-task__details dd { overflow-wrap: anywhere; }
+#automations .automation-task__mint { position: absolute; left: 50%; bottom: -32px; height: 32px; border-left: 1px solid var(--violet); transform-origin: top; }
+#automations .automation-task__mint::after { content: ''; position: absolute; bottom: -4px; left: -3px; width: 5px; height: 5px; border-radius: 50%; background: var(--violet); }
+#automations .automation-flow.is-pulsing .automation-task__mint { animation: automation-mint 700ms var(--ease-out) both; }
+@keyframes automation-mint { from { transform: scaleY(.15); opacity: .35; } to { transform: scaleY(1); opacity: 1; } }
+@media (max-width: 700px) {
+  #automations .automation-flow { grid-template-columns: 1fr; gap: 32px; }
+  #automations .automation-wires { display: none; }
+  #automations .automation-triggers { gap: 12px; }
+  #automations .automation-task { margin-top: 8px; }
+  #automations .automation-task__details div { grid-template-columns: 72px minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #automations .automation-flow.is-pulsing .automation-wires__pulse,
+  #automations .automation-flow.is-pulsing .automation-task__mint { animation: none; }
+  #automations .automation-wires__pulse { opacity: .45; stroke-dashoffset: 0; }
+}

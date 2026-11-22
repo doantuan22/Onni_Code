@@ -78,7 +78,7 @@ describe('normalize', () => {
     })
   })
 
-  it('clamps scene preferences and disables unknown scene ids', () => {
+  it('migrates v1 times, preserves explicit visibility, and disables unknown scene ids', () => {
     expect(normalizeScenePreferences({
       on: true,
       id: SCENE_IDS[0],
@@ -94,6 +94,7 @@ describe('normalize', () => {
       visibility: 1,
       speed: 0.25,
       time: 'day',
+      timeSource: 'fixed',
       motion: false,
       surfaces: { new: false, chat: true, other: false },
       mode: { new: 'horizon', chat: 'horizon' },
@@ -103,7 +104,25 @@ describe('normalize', () => {
       on: false,
       id: 'future-scene',
     })
-    expect(normalizeScenePreferences({ visibility: Number.NaN, speed: Infinity }).visibility).toBe(0.7)
+    expect(normalizeScenePreferences({ time: 'auto', visibility: 0.7 })).toMatchObject({
+      time: 'auto',
+      timeSource: 'clock',
+      visibility: 0.7,
+    })
+    expect(normalizeScenePreferences({ time: 'night' })).toMatchObject({
+      time: 'night',
+      timeSource: 'fixed',
+    })
+    expect(normalizeScenePreferences({})).toMatchObject({
+      time: 'auto',
+      timeSource: 'theme',
+      visibility: 0.9,
+    })
+    expect(normalizeScenePreferences({ timeSource: 'fixed' })).toMatchObject({
+      time: 'auto',
+      timeSource: 'theme',
+    })
+    expect(normalizeScenePreferences({ visibility: Number.NaN, speed: Infinity }).visibility).toBe(0.9)
   })
 })
 

@@ -191,6 +191,7 @@ const appearanceSchema = z.object({
     visibility: z.number().min(0).max(1).optional(),
     speed: z.number().min(0.25).max(2).optional(),
     time: z.enum(['auto', 'dawn', 'day', 'dusk', 'night']).optional(),
+    timeSource: z.enum(['theme', 'clock', 'fixed']).optional(),
     motion: z.boolean().optional(),
     surfaces: z.object({
       new: z.boolean().optional(),

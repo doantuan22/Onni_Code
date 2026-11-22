@@ -45,6 +45,7 @@ export type Width = 'narrow' | 'wide'
 
 export type SceneId = string
 export type SceneTime = 'auto' | 'dawn' | 'day' | 'dusk' | 'night'
+export type SceneTimeSource = 'theme' | 'clock' | 'fixed'
 export type SceneMode = 'full' | 'horizon'
 
 export interface ScenePreferences {
@@ -53,6 +54,7 @@ export interface ScenePreferences {
   visibility: number
   speed: number
   time: SceneTime
+  timeSource: SceneTimeSource
   motion: boolean
   surfaces: { new: boolean; chat: boolean; other: boolean }
   mode: { new: SceneMode; chat: SceneMode }
@@ -60,9 +62,10 @@ export interface ScenePreferences {
 
 export const DEFAULT_SCENE_PREFERENCES: ScenePreferences = {
   on: false,
-  visibility: 0.7,
+  visibility: 0.9,
   speed: 1,
   time: 'auto',
+  timeSource: 'theme',
   motion: true,
   surfaces: { new: true, chat: true, other: false },
   mode: { new: 'full', chat: 'horizon' },
@@ -96,16 +99,26 @@ export function normalizeScenePreferences(raw: unknown): ScenePreferences {
   const surfaces = obj.surfaces && typeof obj.surfaces === 'object' ? (obj.surfaces as Record<string, unknown>) : {}
   const mode = obj.mode && typeof obj.mode === 'object' ? (obj.mode as Record<string, unknown>) : {}
   const id = typeof obj.id === 'string' && obj.id.length <= 40 ? obj.id : undefined
+  const fixedTime = obj.time === 'dawn' || obj.time === 'day' || obj.time === 'dusk' || obj.time === 'night'
+    ? obj.time
+    : undefined
+  const timeSource: SceneTimeSource =
+    obj.timeSource === 'theme' || obj.timeSource === 'clock' || obj.timeSource === 'fixed'
+      ? obj.timeSource
+      : obj.time === 'auto'
+        ? 'clock'
+        : fixedTime
+          ? 'fixed'
+          : 'theme'
+  const normalizedTimeSource = timeSource === 'fixed' && !fixedTime ? 'theme' : timeSource
 
   return {
     on: isSceneId(id) && normalizeBoolean(obj.on, DEFAULT_SCENE_PREFERENCES.on),
     ...(id === undefined ? {} : { id }),
     visibility: boundedNumber(obj.visibility, 0, 1, DEFAULT_SCENE_PREFERENCES.visibility),
     speed: boundedNumber(obj.speed, 0.25, 2, DEFAULT_SCENE_PREFERENCES.speed),
-    time:
-      obj.time === 'dawn' || obj.time === 'day' || obj.time === 'dusk' || obj.time === 'night'
-        ? obj.time
-        : 'auto',
+    time: normalizedTimeSource === 'fixed' ? fixedTime! : 'auto',
+    timeSource: normalizedTimeSource,
     motion: normalizeBoolean(obj.motion, DEFAULT_SCENE_PREFERENCES.motion),
     surfaces: {
       new: normalizeBoolean(surfaces.new, DEFAULT_SCENE_PREFERENCES.surfaces.new),

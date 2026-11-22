@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import type { SceneId, SceneMode, ScenePreferences, SceneTime } from '@/lib/appearance'
+import type { SceneId, SceneMode, ScenePreferences, SceneTime, SceneTimeSource } from '@/lib/appearance'
 
 type SceneContextValue = {
   scene: ScenePreferences
@@ -10,6 +10,7 @@ type SceneContextValue = {
   setVisibility: (visibility: number) => void
   setSpeed: (speed: number) => void
   setTime: (time: SceneTime) => void
+  setTimeSource: (timeSource: SceneTimeSource) => void
   setMotion: (motion: boolean) => void
   setSurfaces: (surfaces: ScenePreferences['surfaces']) => void
   setMode: (mode: ScenePreferences['mode']) => void
@@ -35,7 +36,8 @@ export function SceneProvider({
       setSceneId: (id) => onChange({ ...scene, id }),
       setVisibility: (visibility) => onChange({ ...scene, visibility }),
       setSpeed: (speed) => onChange({ ...scene, speed }),
-      setTime: (time) => onChange({ ...scene, time }),
+      setTime: (time) => onChange({ ...scene, time, timeSource: time === 'auto' ? 'clock' : 'fixed' }),
+      setTimeSource: (timeSource) => onChange({ ...scene, timeSource, time: timeSource === 'fixed' && scene.time === 'auto' ? 'day' : timeSource === 'fixed' ? scene.time : 'auto' }),
       setMotion: (motion) => onChange({ ...scene, motion }),
       setSurfaces: (surfaces) => onChange({ ...scene, surfaces }),
       setMode: (mode) => onChange({ ...scene, mode }),

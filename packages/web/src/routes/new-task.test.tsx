@@ -16,7 +16,9 @@ import type {
   WorkspaceConfigResponse,
   WorkflowsResponse,
 } from '@onni/api-client'
+import { SceneProvider } from '@/components/scene-provider'
 import { resetToasts, Toaster } from '@/components/ui/toaster'
+import { DEFAULT_SCENE_PREFERENCES } from '@/lib/appearance'
 import { readWorkspaceState, resetWorkspaceStateStores } from '@/lib/workspace-state'
 import { WorkspaceHost } from '@/components/workspace/workspace-host'
 
@@ -333,15 +335,17 @@ function renderNewTask(entry = '/new') {
   const client = createQueryClient()
   const rendered = render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[entry]}>
-        <Routes>
-          <Route path="/new" element={<NewTaskRoute />} />
-          <Route path="/p/:projectId/new" element={<NewTaskRoute />} />
-          <Route path="*" element={<div data-testid="elsewhere" />} />
-        </Routes>
-        <LocationProbe />
-        <Toaster />
-      </MemoryRouter>
+      <SceneProvider scene={DEFAULT_SCENE_PREFERENCES} onChange={() => {}}>
+        <MemoryRouter initialEntries={[entry]}>
+          <Routes>
+            <Route path="/new" element={<NewTaskRoute />} />
+            <Route path="/p/:projectId/new" element={<NewTaskRoute />} />
+            <Route path="*" element={<div data-testid="elsewhere" />} />
+          </Routes>
+          <LocationProbe />
+          <Toaster />
+        </MemoryRouter>
+      </SceneProvider>
     </QueryClientProvider>,
   )
   return { ...rendered, client }
@@ -357,22 +361,24 @@ function renderNewTaskSurface({
   const client = createQueryClient()
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/new']}>
-        <Routes>
-          <Route
-            path="/new"
-            element={(
-              <NewTaskSurface
-                projectId="surface-test"
-                draftId="surface-test"
-                onStarted={onStarted}
-                onScheduled={onScheduled}
-              />
-            )}
-          />
-        </Routes>
-        <Toaster />
-      </MemoryRouter>
+      <SceneProvider scene={DEFAULT_SCENE_PREFERENCES} onChange={() => {}}>
+        <MemoryRouter initialEntries={['/new']}>
+          <Routes>
+            <Route
+              path="/new"
+              element={(
+                <NewTaskSurface
+                  projectId="surface-test"
+                  draftId="surface-test"
+                  onStarted={onStarted}
+                  onScheduled={onScheduled}
+                />
+              )}
+            />
+          </Routes>
+          <Toaster />
+        </MemoryRouter>
+      </SceneProvider>
     </QueryClientProvider>,
   )
   return { onStarted, onScheduled }
@@ -382,24 +388,26 @@ function renderWorkspaceNewTask() {
   const client = createQueryClient()
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/p/shop/new']}>
-        <ProjectScopeProvider projectId="shop">
-          <Routes>
-            <Route
-              path="/p/:projectId/new"
-              element={(
-                <WorkspaceHost
-                  projectId="shop"
-                  target={{ kind: 'draft' }}
-                  renderRun={() => <div>Run pane</div>}
-                />
-              )}
-            />
-          </Routes>
-          <LocationProbe />
-          <Toaster />
-        </ProjectScopeProvider>
-      </MemoryRouter>
+      <SceneProvider scene={DEFAULT_SCENE_PREFERENCES} onChange={() => {}}>
+        <MemoryRouter initialEntries={['/p/shop/new']}>
+          <ProjectScopeProvider projectId="shop">
+            <Routes>
+              <Route
+                path="/p/:projectId/new"
+                element={(
+                  <WorkspaceHost
+                    projectId="shop"
+                    target={{ kind: 'draft' }}
+                    renderRun={() => <div>Run pane</div>}
+                  />
+                )}
+              />
+            </Routes>
+            <LocationProbe />
+            <Toaster />
+          </ProjectScopeProvider>
+        </MemoryRouter>
+      </SceneProvider>
     </QueryClientProvider>,
   )
 }

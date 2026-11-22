@@ -8,7 +8,9 @@ import { ProjectScopeProvider } from '@/api/project-scope-context'
 import { createQueryClient } from '@/api/query-client'
 import type { HealthResponse, RunRecord } from '@onni/api-client'
 import { CommandPalette } from '@/components/command-palette'
+import { SceneProvider } from '@/components/scene-provider'
 import { ThemeProvider } from '@/components/theme-provider'
+import { DEFAULT_SCENE_PREFERENCES } from '@/lib/appearance'
 import { recordTaskVisit, resetRecentTasks } from '@/lib/recent-tasks'
 import { publishTaskWorkspace, resetTaskWorkspaceBridge, type TaskWorkspaceBridge } from '@/lib/task-workspace-bridge'
 
@@ -151,9 +153,11 @@ function renderPalettes(entry: string, options: { multiProject?: boolean; unmoun
   render(
     <QueryClientProvider client={createQueryClient()}>
       <ThemeProvider>
-        <MemoryRouter initialEntries={[entry]}>
-          {options.unmounted ? view : <UrlScope>{view}</UrlScope>}
-        </MemoryRouter>
+        <SceneProvider scene={DEFAULT_SCENE_PREFERENCES} onChange={() => {}}>
+          <MemoryRouter initialEntries={[entry]}>
+            {options.unmounted ? view : <UrlScope>{view}</UrlScope>}
+          </MemoryRouter>
+        </SceneProvider>
       </ThemeProvider>
     </QueryClientProvider>,
   )

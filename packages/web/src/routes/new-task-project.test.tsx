@@ -12,7 +12,9 @@ import type {
   Skill,
   WorkflowsResponse,
 } from '@onni/api-client'
+import { SceneProvider } from '@/components/scene-provider'
 import { resetToasts, Toaster } from '@/components/ui/toaster'
+import { DEFAULT_SCENE_PREFERENCES } from '@/lib/appearance'
 import { AppRoutes } from '@/routes'
 
 import { resetDraft, writeAttachments } from './new-task-draft'
@@ -212,11 +214,13 @@ function LocationProbe() {
 function renderAt(entry: string) {
   return render(
     <QueryClientProvider client={createQueryClient()}>
-      <MemoryRouter initialEntries={[entry]}>
-        <AppRoutes />
-        <LocationProbe />
-        <Toaster />
-      </MemoryRouter>
+      <SceneProvider scene={DEFAULT_SCENE_PREFERENCES} onChange={() => {}}>
+        <MemoryRouter initialEntries={[entry]}>
+          <AppRoutes />
+          <LocationProbe />
+          <Toaster />
+        </MemoryRouter>
+      </SceneProvider>
     </QueryClientProvider>,
   )
 }

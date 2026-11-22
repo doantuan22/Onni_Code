@@ -1,105 +1,508 @@
-import type { BuildCtx, SceneDef } from '../../engine/types'
+import { createSpriteSheet, parseSprite } from '../../engine/sprite'
+import type { BuildCtx, FrameCtx, LayerSpec, Palettes, SceneDef, ThemePalettes } from '../../engine/types'
 
 /**
- * Reference: a clear winter night above Tromsø: a compact ribbon of green aurora
- * hangs over indigo fjord peaks, pinprick stars fill the cold sky, and the fjord
- * repeats the aurora as a broken jade path. The brightest light sits just left
- * of center; the mountain rim keeps the lower half quiet and legible.
+ * Reference (§3.7): winter night over Tromsø: morphing ribbons of emerald and
+ * violet aurora hang above snow-dusted fjord peaks; below, a warm red rorbu
+ * cabin on stilts perches at the water's edge, puffing chimney smoke into the still air.
+ * The fjord mirrors the aurora and window light as broken jade and gold paths.
+ * In the daytime polar theme, soft ice cirrus clouds drift through the crisp sky.
+ *
+ * 32 Palette Roles:
+ * 0..3:   Sky (zenith to horizon gradient)
+ * 4..6:   Stars, moon / winter sun
+ * 7..9:   Aurora ribbons (outer glow, body emerald, core aqua) / daytime cirrus clouds
+ * 10..12: Far mountain ridge (shadow, body, snow crest)
+ * 13..15: Mid mountain headland (deep crag, snow slope, sunlit/rim snow)
+ * 16..21: Fjord water (deep abyss, body water, wave surface, aurora sheen, bright reflection, glint/foam)
+ * 22..24: Rorbu cabin (red timber wall, warm window light, snow-covered roof)
+ * 25..27: Chimney smoke (soft puff, mid smoke, light smoke)
+ * 28..29: Near shoreline & dock posts (dark rocky shore/posts, foreground snow rim)
+ * 30..31: Snow particles (distant small flake, near bright flake)
  */
-const palettes = {
-  dawn: [0x43536f, 0x766b83, 0xa9868b, 0xd7a486, 0x53677c, 0x34465e, 0x26394f, 0x8bb49c, 0x6e9c9e, 0x5d7e8e, 0x6e8495, 0x35495e, 0xa5b5ae, 0x26384d],
-  day: [0x7293ac, 0xa9bdc6, 0xd2d3c3, 0xe5c8a5, 0x8099a7, 0x627b8d, 0x4c667c, 0x84b99e, 0x73a9a8, 0x6595a1, 0x829fac, 0x4c6d80, 0xc0cec5, 0x40596d],
-  dusk: [0x3b456a, 0x695779, 0xa16878, 0xd68e7e, 0x515d7b, 0x363f62, 0x28344f, 0x83b39a, 0x71999d, 0x5c748b, 0x718796, 0x374a65, 0xb2a9ae, 0x29374f],
-  night: [0x101b36, 0x182746, 0x273552, 0x39465d, 0x25364f, 0x1a2b43, 0x12243b, 0x62bf94, 0x4ea887, 0x438a87, 0x536f83, 0x283c54, 0x94a89f, 0x192b43],
-} as const
 
-function paintAurora(ctx: BuildCtx, time: number): void {
+export const tromsoThemePalettes: ThemePalettes = {
+  light: {
+    dawn: [
+      0x3c4e68, 0x596d85, 0x8a7c93, 0xdfc5b2,
+      0xb0c0d0, 0xd0e0ee, 0xffe4c8,
+      0xc8d8e6, 0xb0c8dc, 0xa0bad2,
+      0x324860, 0x5c7590, 0xc8dae5,
+      0x273a50, 0x48627c, 0xdce8ef,
+      0x28425b, 0x3b5874, 0x537590, 0x6e92ab, 0x8eb2c8, 0xb8d4e4,
+      0x7c3830, 0xe8a860, 0xe2ecf2,
+      0xb0c2d0, 0x98adc0, 0x8096aa,
+      0x1e2e3f, 0xcce0ec,
+      0xd0e2ee, 0xffffff,
+    ],
+    day: [
+      0xafc8d7, 0xbfd5e2, 0xcedee8, 0xdde1dc,
+      0xdde8f0, 0xe8f0f6, 0xfff0db,
+      0xc8dce8, 0xb8d0e0, 0xa8c4d8,
+      0x40586e, 0x627e95, 0xd5e2e6,
+      0x334a5e, 0x4e677d, 0xe5edf2,
+      0x395c73, 0x4c6f87, 0x557d96, 0x749cb3, 0x98bece, 0xb4ccd2,
+      0x8c362a, 0xf0ba72, 0xeef4f7,
+      0xc4d6e2, 0xacc2d0, 0x92aabe,
+      0x253646, 0xdae7ed,
+      0xe0ecf4, 0xffffff,
+    ],
+    dusk: [
+      0x25324d, 0x424667, 0x785a73, 0xba7875,
+      0xa8b4cc, 0xc8d4ec, 0xfcd2a2,
+      0x56a28e, 0x7cb8a4, 0x8ea2be,
+      0x223348, 0x445970, 0x98aab8,
+      0x1a283a, 0x364b60, 0xb2c2ce,
+      0x1e324a, 0x2f4862, 0x44617c, 0x5f7f9b, 0x82a2bc, 0xafc6d8,
+      0x722c26, 0xe69d50, 0xb8cad6,
+      0x8a94a6, 0x727e92, 0x5c687c,
+      0x14202e, 0xa8bac8,
+      0xc0d2e4, 0xffffff,
+    ],
+    night: [
+      0x111d36, 0x182846, 0x203454, 0x294460,
+      0x7a94b8, 0xbcd4f4, 0xe8f2ff,
+      0x48a882, 0x6ebe9c, 0x8e82ae,
+      0x142234, 0x23394f, 0x668296,
+      0x0f1b2b, 0x1a2c40, 0x829cad,
+      0x122438, 0x1c344c, 0x2b4b6a, 0x3c6b75, 0x4c8b87, 0x7eb8aa,
+      0x5e201c, 0xe3b576, 0x8aa2b4,
+      0x485c70, 0x36485a, 0x273748,
+      0x0c1522, 0x728c9e,
+      0x94b2cc, 0xe4f0fc,
+    ],
+  },
+  dark: {
+    dawn: [
+      0x202c46, 0x3b3a58, 0x6d546b, 0xaa7872,
+      0x8296b4, 0xb4cce8, 0xf0be92,
+      0x429a80, 0x5eb296, 0x7a7ca2,
+      0x1a293c, 0x2e445b, 0x7d96a8,
+      0x122030, 0x22354a, 0x9db4c4,
+      0x16283d, 0x223c56, 0x325270, 0x46707c, 0x58928d, 0x84b8aa,
+      0x5c2420, 0xe2a85e, 0x96adc0,
+      0x44566a, 0x344456, 0x243444,
+      0x0e1824, 0x829cb0,
+      0x9eb6ce, 0xe2f0fc,
+    ],
+    day: [
+      0x385268, 0x4c6b84, 0x6688a2, 0x88a8be,
+      0xa6c4dc, 0xd0e4f4, 0xfff2dc,
+      0x7698b0, 0x6688a0, 0x567890,
+      0x273d52, 0x3e5a73, 0x8caabb,
+      0x1c3042, 0x30485e, 0xa8c4d4,
+      0x223b50, 0x304f6a, 0x426884, 0x5a859e, 0x7aa4ba, 0x9ec2d4,
+      0x6c2a24, 0xe8b26c, 0xa8c4d4,
+      0x5a7084, 0x465c6e, 0x34485a,
+      0x142230, 0x90acbe,
+      0xb2ccde, 0xf0f6fc,
+    ],
+    dusk: [
+      0x162038, 0x2a2c4e, 0x4e3852, 0x84505c,
+      0x7a8ca8, 0xa8bcd8, 0xf0a880,
+      0x429e84, 0x62be9e, 0x7c729c,
+      0x162436, 0x273c52, 0x6a8498,
+      0x101b2a, 0x1d2f42, 0x849eb2,
+      0x132438, 0x1e3650, 0x2d4c68, 0x416b75, 0x528a86, 0x7cb4a4,
+      0x541e1a, 0xe2a056, 0x849eb2,
+      0x405062, 0x303e4e, 0x222e3c,
+      0x0a121c, 0x6c869a,
+      0x8ea6be, 0xd8e8f8,
+    ],
+    night: [
+      0x0d172e, 0x111d36, 0x1b2e4c, 0x294460,
+      0x62789e, 0x9eb8dc, 0xd4e8ff,
+      0x48a682, 0x6ebe9c, 0x8e82ae,
+      0x101c2c, 0x23394f, 0x5c778c,
+      0x0a1320, 0x18273a, 0x829cad,
+      0x0e1c2e, 0x1c344c, 0x264664, 0x386872, 0x4c8b87, 0x76b4a4,
+      0x4c1816, 0xe3b576, 0x768e9e,
+      0x384656, 0x283644, 0x1a2430,
+      0x080e18, 0x60788a,
+      0x849eb6, 0xd0e4f4,
+    ],
+  },
+}
+
+export const tromsoPalettes: Palettes = tromsoThemePalettes.dark
+
+const layers: readonly LayerSpec[] = [
+  { kind: 'sky', z: 0 },
+  { kind: 'fx', z: 1 },
+  { kind: 'far', z: 2 },
+  { kind: 'mid', z: 3 },
+  { kind: 'water', z: 4 },
+  { kind: 'near', z: 5 },
+  { kind: 'fx', z: 6 },
+]
+
+// Animated chimney smoke: 4 distinct 12×12 poses puffing upward at 2 fps.
+const smokeSheetRaw = parseSprite([
+  '....cc......' + '....cc......' + '...ccc......' + '...ccc......',
+  '...cccc.....' + '..cccccc....' + '..ccccc.....' + '..cccccc....',
+  '..cccccc....' + '..cccccca...' + '..cccccc....' + '.cccccccc...',
+  '..cccccc....' + '.cccccccc...' + '.ccccccc....' + '.cccccccca..',
+  '..baaccc....' + '.caaccccc...' + '.caaacccc...' + 'ccaacccccc..',
+  '...bbbaa....' + '..baaaccc...' + '..bbaaccc...' + '.ccbaacccc..',
+  '....bbb.....' + '...bbbaaa...' + '...bbbaaa...' + '..cbbaacca..',
+  '.....b......' + '....bbbb....' + '....bbbb....' + '...cbbbba...',
+  '............' + '.....b......' + '.....bb.....' + '....bbbb....',
+  '............' + '............' + '............' + '.....bb.....',
+  '............' + '............' + '............' + '............',
+  '............' + '............' + '............' + '............',
+], { a: 25, b: 26, c: 27 })
+
+const smokeSheet = createSpriteSheet(smokeSheetRaw, [
+  { x: 0, y: 0, width: 12, height: 12, pivot: { x: 5, y: 11 }, duration: 0.5 },
+  { x: 12, y: 0, width: 12, height: 12, pivot: { x: 5, y: 11 }, duration: 0.5 },
+  { x: 24, y: 0, width: 12, height: 12, pivot: { x: 5, y: 11 }, duration: 0.5 },
+  { x: 36, y: 0, width: 12, height: 12, pivot: { x: 5, y: 11 }, duration: 0.5 },
+])
+
+// Cabin static art (24×18 pixels) with pitched snowy roof, red timber walls, warm lit window, and foundation stilts
+const cabinSprite = parseSprite([
+  '..........ssss..........',
+  '........ssssssss........',
+  '......ssssssssssss......',
+  '....ssssssssssssssss....',
+  '..ssssssssssssssssssss..',
+  'ssssssssssssssssssssssss',
+  '..wwwwwwwwwwwwwwwwwwww..',
+  '..wwwwwwwwwwwwwwwwwwww..',
+  '..wwwwwwyyywwwwwwwwwww..',
+  '..wwwwwwyyywwwwwwwwwww..',
+  '..wwwwwwyyywwwwwwwwwww..',
+  '..wwwwwwwwwwwwwwwwwwww..',
+  '..wwwwwwwwwwwwwwwwwwww..',
+  '..wwwwwwwwwwwwwwwwwwww..',
+  '..wwwwwwwwwwwwwwwwwwww..',
+  '..b..b....b....b....b...',
+  '..b..b....b....b....b...',
+  '..b..b....b....b....b...',
+], { w: 22, y: 23, s: 24, b: 28 })
+
+const STARS = [
+  { u: 0.05, v: 0.07, bright: true },
+  { u: 0.12, v: 0.15, bright: false },
+  { u: 0.18, v: 0.05, bright: false },
+  { u: 0.22, v: 0.18, bright: true },
+  { u: 0.28, v: 0.08, bright: false },
+  { u: 0.35, v: 0.12, bright: false },
+  { u: 0.39, v: 0.04, bright: true },
+  { u: 0.46, v: 0.16, bright: false },
+  { u: 0.52, v: 0.06, bright: false },
+  { u: 0.58, v: 0.14, bright: true },
+  { u: 0.65, v: 0.05, bright: false },
+  { u: 0.71, v: 0.11, bright: true },
+  { u: 0.77, v: 0.07, bright: false },
+  { u: 0.83, v: 0.15, bright: false },
+  { u: 0.89, v: 0.09, bright: true },
+  { u: 0.94, v: 0.17, bright: false },
+  { u: 0.08, v: 0.24, bright: false },
+  { u: 0.15, v: 0.28, bright: true },
+  { u: 0.25, v: 0.26, bright: false },
+  { u: 0.33, v: 0.22, bright: false },
+  { u: 0.42, v: 0.25, bright: true },
+  { u: 0.50, v: 0.21, bright: false },
+  { u: 0.62, v: 0.24, bright: false },
+  { u: 0.75, v: 0.23, bright: false },
+  { u: 0.86, v: 0.26, bright: true },
+  { u: 0.92, v: 0.28, bright: false },
+] as const
+
+function drawFarRidge(ctx: BuildCtx): void {
   const { width: w, height: h } = ctx
-  const bands = [
-    { center: 0.34, span: 0.32, phase: 0.4, color: 7 },
-    { center: 0.4, span: 0.28, phase: 2.1, color: 8 },
-    { center: 0.31, span: 0.18, phase: 4.3, color: 9 },
-  ]
-  for (let x = Math.floor(w * 0.12); x < w * 0.9; x++) {
+  const waterLevel = Math.floor(h * 0.65)
+
+  for (let x = 0; x < w; x++) {
     const u = x / w
-    for (const [bandIndex, band] of bands.entries()) {
-      const left = 0.15 + bandIndex * 0.035
-      const right = 0.88 - bandIndex * 0.04
-      const edge = Math.sin(Math.PI * Math.max(0, Math.min(1, (u - left) / (right - left))))
-      if (edge <= 0) continue
-      const envelope = Math.sqrt(edge)
-      const fold = Math.sin(u * 11 + band.phase + time * 0.11) * 0.035 + Math.sin(u * 23 + band.phase * 2 - time * 0.07) * 0.016
-      const crest = h * (band.center - band.span * 0.55 + fold * envelope)
-      const depth = h * (band.span + 0.035 * Math.sin(u * 8 + band.phase + time * 0.08)) * envelope
-      const pleat = Math.sin(u * 58 + Math.sin(u * 9 + band.phase) * 2 + band.phase)
-      const columnStrength = pleat * 0.65 + Math.sin(u * 27 - band.phase) * 0.25
-      if (columnStrength < -0.42 + bandIndex * 0.1) continue
-      for (let y = Math.max(1, Math.floor(crest)); y < Math.min(h * 0.58, crest + depth); y++) {
-        const fade = (y - crest) / depth
-        const strand = Math.sin(u * 46 + fade * 4 + band.phase) > -0.72 + fade * 0.3
-        if (strand || columnStrength > 0.28) {
-          const color = fade < 0.45 ? band.color : (band.color === 7 ? 8 : band.color)
-          ctx.px(x, y, color)
-        }
+    const p1 = Math.max(0, 0.27 - Math.abs(u - 0.26) * 1.3)
+    const p2 = Math.max(0, 0.23 - Math.abs(u - 0.46) * 1.5)
+    const p3 = Math.max(0, 0.30 - Math.abs(u - 0.66) * 1.1)
+    const ridgeNoise = (ctx.fbm1(u * 30 + 12) - 0.5) * 0.04
+    const profile = 0.65 - (p1 + p2 + p3) + ridgeNoise
+    const top = Math.floor(profile * h)
+
+    for (let y = top; y < waterLevel; y++) {
+      const v = y / h
+      const depth = (y - top) / Math.max(1, waterLevel - top)
+      const gully = ctx.fbm2(u * 38 + 7, v * 22 + 5)
+      const isLitSide = (u - 0.5) * 0.35 + (gully - 0.5) > 0.03
+      let ink = 10 // Shadow rock
+      if (y === top || (depth < 0.25 && isLitSide)) {
+        ink = 12 // Snow crest
+      } else if (isLitSide || (depth < 0.15 && gully > 0.32)) {
+        ink = 11 // Snow face
+      } else if (gully > 0.68 && depth < 0.52) {
+        ink = 11
       }
+      ctx.px(x, y, ink)
     }
   }
 }
 
-const scene: SceneDef = {
+function drawMidRidgeAndCabin(ctx: BuildCtx): void {
+  const { width: w, height: h } = ctx
+  const waterLevel = Math.floor(h * 0.67)
+
+  for (let x = Math.floor(w * 0.50); x < w; x++) {
+    const u = x / w
+    const ramp = (u - 0.50) / 0.50
+    const cragShape = (ctx.fbm1(u * 20 + 80) - 0.5) * 0.06
+    const profile = 0.67 - (ramp ** 1.35) * 0.33 + cragShape
+    const top = Math.floor(profile * h)
+
+    for (let y = top; y < waterLevel; y++) {
+      const v = y / h
+      const depth = (y - top) / Math.max(1, waterLevel - top)
+      const rockTexture = ctx.fbm2(u * 40 + 120, v * 32 + 50)
+      const isRim = y <= top + 1
+      const isSnowLedge = (y % 10 < 3) && rockTexture > 0.40 && depth > 0.12
+
+      let ink = 13 // Deep rock
+      if (isRim) {
+        ink = 15 // Sunlit rim
+      } else if (isSnowLedge || (rockTexture > 0.60 && depth < 0.55)) {
+        ink = 14 // Snow terrace
+      } else if (rockTexture > 0.45) {
+        ink = 14
+      }
+      ctx.px(x, y, ink)
+    }
+  }
+
+  const scale = Math.max(1, Math.min(2, Math.floor(h / 150)))
+  const cabinX = Math.floor(w * 0.83 - (cabinSprite.width * scale) / 2)
+  const cabinY = Math.floor(h * 0.67 - cabinSprite.height * scale)
+  ctx.sprite(cabinSprite, cabinX, cabinY, scale)
+}
+
+function drawNearShore(ctx: BuildCtx): void {
+  const { width: w, height: h } = ctx
+
+  // Textured coastal granite boulders with snow drifts
+  for (let x = 0; x < Math.floor(w * 0.40); x++) {
+    const u = x / w
+    const hump1 = Math.max(0, 0.09 - Math.abs(u - 0.12) * 0.85)
+    const hump2 = Math.max(0, 0.08 - Math.abs(u - 0.24) * 0.95)
+    const hump3 = Math.max(0, 0.06 - Math.abs(u - 0.33) * 1.3)
+    const shoreCurve = 0.82 - (hump1 + hump2 + hump3) + (ctx.fbm1(u * 18 + 105) - 0.5) * 0.03
+    const top = Math.floor(shoreCurve * h)
+
+    for (let y = top; y < h; y++) {
+      const v = y / h
+      const boulderDist = Math.min(Math.abs(u - 0.12), Math.abs(u - 0.24), Math.abs(u - 0.33))
+      const rockNoise = ctx.fbm2(u * 38 + 220, v * 30 + 120)
+      const isSnowCap = (y - top) < Math.floor(h * 0.04) && (boulderDist < 0.06 || rockNoise > 0.48)
+      const isRim = y <= top + 1
+
+      let ink = 28 // Dark coastal granite
+      if (isRim || isSnowCap) {
+        ink = 29 // Snow cap on boulder
+      } else if (rockNoise > 0.62) {
+        ink = 29
+      } else if ((x + y) % 5 === 0 && rockNoise > 0.45) {
+        ink = 29 // Granite snow dither
+      }
+      ctx.px(x, y, ink)
+    }
+  }
+
+  // Wooden wharf pilings (cọc gỗ)
+  const posts = [
+    { u: 0.11, v: 0.75, height: 0.060 },
+    { u: 0.20, v: 0.78, height: 0.065 },
+    { u: 0.29, v: 0.81, height: 0.050 },
+  ]
+  for (const post of posts) {
+    const px = Math.floor(w * post.u)
+    const basePy = Math.floor(h * post.v)
+    const topPy = Math.floor(h * (post.v - post.height))
+    for (let y = topPy; y < basePy; y++) {
+      ctx.px(px, y, 28)
+      ctx.px(px + 1, y, 28)
+    }
+    ctx.px(px, topPy - 1, 29)
+    ctx.px(px + 1, topPy - 1, 29)
+  }
+}
+
+const tromso: SceneDef = {
   id: 'world-tromso',
   name: { en: 'Tromsø Aurora', vi: 'Cực quang Tromsø' },
-  region: 'world', tone: 'dark', defaultTime: 'night', horizon: 0.61, focus: { x: 0.43, y: 0.39 },
-  palettes,
-  build(ctx) {
+  region: 'world',
+  tone: 'both',
+  defaultTime: 'night',
+  themeDefaultTime: { light: 'day', dark: 'night' },
+  horizon: 0.65,
+  focus: { x: 0.70, y: 0.34 },
+  palettes: tromsoPalettes,
+  themePalettes: tromsoThemePalettes,
+  layers,
+
+  build(ctx: BuildCtx): void {
     const { width: w, height: h } = ctx
-    for (let y = 0; y < h; y++) {
-      const v = y / h
-      for (let x = 0; x < w; x++) ctx.px(x, y, ctx.dither(x, y, v * 0.9, 0, 2, 8))
-    }
-    // A soft, distant ridge leaves a notch of sky beneath the aurora.
-    const far = ctx.ridge({ height: 0.56, amplitude: 0.09, frequency: 2.5, octaves: 4 })
-    for (let x = 0; x < w; x++) {
-      const top = Math.floor((far[x]! - 0.12 * (1 - Math.abs(x / w - 0.48))) * h)
-      ctx.rect(x, top, 1, h - top, 4)
-    }
-    const near = ctx.ridge({ height: 0.65, amplitude: 0.11, frequency: 1.6, octaves: 4 })
-    for (let x = 0; x < w; x++) {
-      const u = x / w
-      const shoulder = Math.max(0, 0.16 - Math.abs(u - 0.1) * 0.6) + Math.max(0, 0.17 - Math.abs(u - 0.92) * 0.62)
-      const top = Math.floor((near[x]! - shoulder) * h)
-      ctx.rect(x, top, 1, h - top, 5)
-      if (x % 13 === 0) ctx.px(x, top, 12)
-    }
-    for (let i = 0; i < Math.max(28, Math.floor(w * h / 370)); i++) {
-      const x = Math.floor(ctx.rng() * w)
-      const y = Math.floor(ctx.rng() * h * 0.43)
-      if (ctx.base[y * w + x]! < 4) ctx.px(x, y, i % 7 === 0 ? 3 : 12)
-    }
-    paintAurora(ctx, 0)
-    const waterline = Math.floor(h * 0.68)
-    for (let y = waterline; y < h; y++) {
-      const v = (y - waterline) / (h - waterline)
-      for (let x = 0; x < w; x++) ctx.px(x, y, ctx.dither(x, y, v * 0.58, 10, 11))
-    }
-    // Distant shore lights provide scale without competing with the sky.
-    for (let i = 0; i < 9; i++) ctx.px(Math.floor(w * (0.08 + i * 0.105)), Math.floor(h * (0.66 + (i % 3) * 0.008)), i % 3 === 0 ? 3 : 12)
-  },
-  frame(ctx, t) {
-    const waterline = Math.floor(ctx.height * 0.68)
-    const { width: w, height: h } = ctx
-    for (let y = waterline; y < h; y++) {
-      const v = (y - waterline) / (h - waterline)
+    const horizonY = Math.floor(h * 0.65)
+
+    // 1. Sky gradient (Zenith to Horizon)
+    for (let y = 0; y < horizonY; y++) {
+      const v = y / horizonY
       for (let x = 0; x < w; x++) {
+        ctx.px(x, y, ctx.dither(x, y, v * 0.92, 0, 3, 8))
+      }
+    }
+
+    // 2. Stars
+    for (const star of STARS) {
+      const sx = Math.floor(star.u * w)
+      const sy = Math.floor(star.v * h)
+      if (sy < horizonY - 4) {
+        ctx.px(sx, sy, star.bright ? 5 : 4)
+      }
+    }
+
+    // 3. Far Alpine Mountain Ridge
+    drawFarRidge(ctx)
+
+    // 4. Mid Mountain Ridge & Nordic Cabin
+    drawMidRidgeAndCabin(ctx)
+
+    // 5. Base Fjord Water
+    for (let y = horizonY; y < h; y++) {
+      const depth = (y - horizonY) / Math.max(1, h - horizonY)
+      for (let x = 0; x < w; x++) {
+        ctx.px(x, y, ctx.dither(x, y, depth * 0.7, 16, 17, 4))
+      }
+    }
+
+    // 6. Near Shoreline and Pier Posts
+    drawNearShore(ctx)
+  },
+
+  frame(ctx: FrameCtx, t: number): void {
+    const { width: w, height: h } = ctx
+    const horizonY = Math.floor(h * 0.65)
+
+    // Effect 1: Sweeping continuous Aurora Curtains across the arctic sky
+    const auroraIntensityByX = new Uint8Array(w)
+
+    // Sweeping ribbon 1 (dominant green ribbon) and ribbon 2 (violet secondary fold)
+    for (let x = Math.floor(w * 0.14); x < Math.floor(w * 0.92); x++) {
+      const u = x / w
+      const spanNorm = (u - 0.14) / 0.78
+      const edgeEnvelope = Math.sin(Math.PI * spanNorm) ** 0.8
+
+      // Main undulating crest & bottom
+      const crestWave = Math.sin(u * 9 + t * 0.12) * 0.035 + Math.sin(u * 19 - t * 0.08) * 0.018
+      const crestY = (0.09 + crestWave) * h
+      const curtainH = (0.24 * edgeEnvelope + 0.04 * Math.sin(u * 12 + t * 0.14)) * h
+      const bottomY = crestY + curtainH
+
+      // Continuous harmonic vertical curtain rays (pleats)
+      const pleat = Math.sin(u * 56 + Math.sin(u * 8 + t * 0.12) * 2.8)
+      const ray = pleat * 0.55 + Math.sin(u * 28 - t * 0.16) * 0.35 + 0.1
+
+      if (ray < -0.30) continue
+
+      const startY = Math.max(1, Math.floor(crestY))
+      const endY = Math.min(horizonY - 5, Math.floor(bottomY))
+
+      for (let y = startY; y < endY; y++) {
+        if (ctx.base[y * w + x]! >= 10 && ctx.base[y * w + x]! <= 15) continue
+
+        const vSpan = (y - startY) / Math.max(1, endY - startY)
+        const verticalFade = Math.sin(vSpan * Math.PI)
+
+        if (verticalFade * (ray + 0.45) < 0.20) continue
+
+        let ink = 7 // Outer emerald/violet haze
+        if (ray > 0.30 && verticalFade > 0.38) {
+          ink = 9 // Aqua/violet brilliant core
+        } else if (ray > -0.05 && verticalFade > 0.18) {
+          ink = 8 // Emerald curtain body
+        }
+
+        ctx.px(x, y, ink)
+        if (ink > auroraIntensityByX[x]!) {
+          auroraIntensityByX[x] = ink
+        }
+      }
+    }
+
+    // Effect 2: Natural Fjord Water Waves and Dynamic Aurora & Cabin Reflections
+    for (let y = horizonY; y < h; y++) {
+      const v = (y - horizonY) / Math.max(1, h - horizonY)
+      const wavePeriod = 0.26
+      const wavePhase = t * 2.4 + y * 0.75
+
+      for (let x = 0; x < w; x++) {
+        if (ctx.base[y * w + x]! >= 28) continue
+
         const u = x / w
-        const distance = Math.abs(u - (0.43 + Math.sin(y * 0.08 + t * 0.08) * 0.012))
-        const reflection = distance < 0.018 + v * 0.095
-        const ripple = Math.sin(x * 0.37 + y * 1.3 + t * 0.45) > 0.18 + v * 0.55
-        if (reflection && ripple) ctx.px(x, y, v < 0.52 ? 24 : 25)
-        else if (Math.sin(x * 0.12 + y * 0.9 + t * 0.35) > 0.985 && y % 3 === 0) ctx.px(x, y, 26)
+        const wave = Math.sin(x * wavePeriod + wavePhase)
+        const ripple = Math.sin(x * 0.14 - t * 1.5 + y * 0.3)
+
+        // Cabin window reflection directly beneath cabin (u = 0.83)
+        const distToCabin = Math.abs(u - 0.83)
+        const inCabinPath = distToCabin < (0.015 + v * 0.04) && (wave + ripple) > 0.25 && y < horizonY + h * 0.16
+
+        // Aurora reflection: samples aurora intensity directly above this x column!
+        const auroraSampleX = Math.max(0, Math.min(w - 1, Math.floor(x + Math.sin(y * 0.06 + t * 0.8) * 8 * v)))
+        const auroraLight = auroraIntensityByX[auroraSampleX]!
+        const inAuroraPath = auroraLight >= 8 && (wave + ripple) > (0.45 + v * 0.2)
+
+        if (inCabinPath && (x + y) % 2 === 0) {
+          ctx.px(x, y, 23) // Shimmering warm golden window glint
+        } else if (inAuroraPath && (x + y) % 2 === 0) {
+          ctx.px(x, y, auroraLight === 9 ? 20 : 19) // Broken emerald aurora wave glint
+        } else if (wave > 0.80 && (x + y) % 4 === 0) {
+          ctx.px(x, y, 18) // Normal wave crest
+        }
+      }
+    }
+
+    // Effect 3: Animated Cabin Chimney Smoke (4 poses at 2 fps)
+    const scale = Math.max(1, Math.min(2, Math.floor(h / 150)))
+    const cabinX = Math.floor(w * 0.83 - (cabinSprite.width * scale) / 2)
+    const cabinY = Math.floor(h * 0.67 - cabinSprite.height * scale)
+    const chimneyX = cabinX + Math.floor(cabinSprite.width * scale * 0.75)
+    const chimneyY = cabinY - 2 * scale
+    const smokeFrame = Math.floor(t * 2) % 4
+    ctx.spriteFrame(smokeSheet, smokeFrame, chimneyX, chimneyY - Math.floor((t * 2) % 6), scale)
+
+    // Effect 4: 32 Falling Snow Particles across 2 Depth Planes
+    for (let i = 0; i < 32; i++) {
+      const isNear = i >= 16
+      const speed = isNear ? 5.5 : 2.8
+      const flakeSeed = (i * 17.31 + ctx.seed * 0.23) % 1
+      const driftX = Math.sin(t * 0.8 + i) * (isNear ? 6 : 3)
+      const flakeX = (flakeSeed * w + t * (isNear ? 3.5 : 1.8) + driftX) % w
+      const flakeY = ((i * 0.61803398875 + t * speed * 0.06) % 1) * h
+      const px = Math.floor((flakeX + w) % w)
+      const py = Math.floor(flakeY)
+
+      if (px >= 0 && px < w && py >= 0 && py < h) {
+        ctx.px(px, py, isNear ? 31 : 30)
+        if (isNear && py + 1 < h) {
+          ctx.px(px, py + 1, 30)
+        }
+      }
+    }
+
+    // Effect 5: Twinkling Stars
+    const twinkleIndices = [0, 3, 6, 9, 14, 20]
+    const twinklePhase = Math.floor(t * 2)
+    for (const [idx, starIdx] of twinkleIndices.entries()) {
+      const star = STARS[starIdx]
+      if (!star) continue
+      const sx = Math.floor(star.u * w)
+      const sy = Math.floor(star.v * h)
+      if (sy < horizonY - 4) {
+        const pulse = (twinklePhase + idx) % 4 === 0
+        ctx.px(sx, sy, pulse ? 6 : (star.bright ? 5 : 4))
       }
     }
   },
 }
 
-export default scene
+export default tromso

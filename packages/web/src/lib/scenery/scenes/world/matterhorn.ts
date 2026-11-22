@@ -1,22 +1,30 @@
 /**
- * Matterhorn v2: keeps the iconic hooked Stellisee peak, sunlit/shadowed
- * split snow faces, and lake-forest silhouette while replacing random cracks
- * and solid-black pines with faceted alpine strata, 3 snow-dusted pine
- * variants, scale-anchor valley cabin + chimney smoke, drifting far clouds,
- * valley birds, and fast pre-baked horizontal Stellisee reflection/wave cycling.
+ * Matterhorn v3: the hooked horn silhouette (steep upper west ridge, a knife
+ * summit, a concave east face that bends into the Hornli shoulder), three
+ * faces (sunlit west, cold north-shadow centre, alpenglow east), explicit snow
+ * couloirs, a foothill ladder, a 10–14 px conifer treeline, and a Riffelsee
+ * reflection. Geometry is authored on a 480x270 reference grid and sampled
+ * back onto the real buffer, so every size keeps the same composition.
  */
-import type { Point } from '../../engine/geometry'
-import type { BuildCtx, FrameCtx, Mask, SceneDef } from '../../engine/types'
+import type { BuildCtx, FrameCtx, Mask, SceneDef, Sprite } from '../../engine/types'
 import {
   MATTERHORN_LEGACY_PALETTES,
   MATTERHORN_THEME_PALETTES,
   alpineCabin,
   birdSheet,
-  pineBroad,
-  pineMedium,
-  pineTall,
   smokeSheet,
+  treeLarge,
+  treeMedium,
+  treeSmall,
 } from './matterhorn-sprites'
+
+type Knot = readonly [number, number]
+
+const REF_W = 480
+const REF_H = 270
+const HORIZON_REF = 175
+const TIP_Y = 26
+const TIP_X = 418
 
 const STAR_SEEDS = [
   [0.09, 0.05], [0.18, 0.09], [0.27, 0.04], [0.36, 0.08], [0.46, 0.05],
@@ -24,23 +32,43 @@ const STAR_SEEDS = [
   [0.41, 0.12], [0.86, 0.13],
 ] as const
 
-const MATTERHORN_OUTLINE: readonly (readonly [number, number])[] = [
-  [-0.56, 0.65],
-  [-0.41, 0.59],
-  [-0.29, 0.505],
-  [-0.20, 0.405],
-  [-0.135, 0.31],
-  [-0.075, 0.215],
-  [-0.038, 0.16],
-  [-0.018, 0.144],
-  [0.0, 0.14],
-  [0.022, 0.165],
-  [0.055, 0.27],
-  [0.105, 0.395],
-  [0.17, 0.52],
-  [0.26, 0.615],
-  [0.34, 0.65],
+/** Silhouette (reference px). Each side is monotone in y, so a row has exactly one left and one right edge. */
+/** Steep 55–60° upper west ridge, then a convex Zmutt-style shoulder that eases into the foothills. */
+const PEAK_LEFT: readonly Knot[] = [
+  [418, 26], [410, 34], [402, 46], [394, 62], [386, 78], [378, 94],
+  [370, 108], [362, 120], [354, 130], [344, 138], [332, 146], [316, 152],
+  [296, 160], [272, 168], [250, 174], [236, 176],
 ]
+/** Knife summit overhangs a concave east face (the hook), then bulges out into the Hornli shoulder. */
+const PEAK_RIGHT: readonly Knot[] = [
+  [418, 26], [424, 32], [432, 42], [438, 56], [440, 70], [436, 80],
+  [440, 88], [452, 94], [466, 106], [480, 120], [496, 138], [506, 156],
+  [512, 176],
+]
+/** Arêtes from the summit: west splits the sunlit face from the shadow face, east splits shadow from alpenglow. */
+const ARETE_WEST: readonly Knot[] = [[TIP_X, TIP_Y], [352, 176]]
+const ARETE_EAST: readonly Knot[] = [[TIP_X, TIP_Y], [430, 176]]
+
+/**
+ * Snow couloirs, reference px. Each is walked row by row as a 2–3px streak with
+ * noise-broken gaps, so it reads as snow packed into a gully, not a drawn wire.
+ */
+const COULOIRS: readonly { pts: readonly Knot[]; idx: number }[] = [
+  // Sunlit face: two short snow-packed gullies, offset so they do not line up.
+  { pts: [[376, 104], [370, 116], [366, 126]], idx: 12 },
+  { pts: [[364, 134], [358, 146], [354, 156]], idx: 13 },
+  // Shadow face: staggered snow streaks down the north face.
+  { pts: [[414, 50], [412, 66], [410, 78]], idx: 13 },
+  { pts: [[406, 96], [404, 112], [402, 124]], idx: 13 },
+  { pts: [[400, 138], [397, 152], [395, 164]], idx: 13 },
+  // Alpenglow face: a dark gully cut through the warm snow.
+  { pts: [[432, 90], [440, 108]], idx: 25 },
+  { pts: [[452, 118], [460, 134], [464, 146]], idx: 25 },
+  // West buttress: a dark rock rib that breaks the sunlit ramp into two facets.
+  { pts: [[368, 120], [352, 146], [330, 176]], idx: 25 },
+]
+
+const CABIN_REF: Knot = [346, 166]
 
 interface LakeRowSpan {
   y: number
@@ -50,6 +78,15 @@ interface LakeRowSpan {
   colors: Uint8Array
   /** Static non-zero cycle index where a horizontal ripple glint lives. */
   rippleMask: Uint8Array
+  /** Inclusive local [start, end] pairs of lake pixels only, so frame() never visits shore or tree pixels. */
+  runs: Uint16Array
+}
+
+interface CloudStencil {
+  baseU: number
+  baseV: number
+  speed: number
+  stencil: Int16Array
 }
 
 interface MatterhornCache {
@@ -57,62 +94,71 @@ interface MatterhornCache {
   height: number
   horizonY: number
   peakOcclusion: Mask
-  lakeMask: Mask
+  clouds: CloudStencil[]
   lakeRows: LakeRowSpan[]
   cabinX: number
   cabinY: number
   birdOcclusion: Mask
 }
 
+/**
+ * Drifting cloud layout as fractions of the frame, so a frame reads constants and
+ * allocates nothing. Puff tuple: [offsetU, offsetPx, radiusU, radiusV].
+ */
+const CLOUDS: readonly {
+  baseU: number
+  baseV: number
+  speed: number
+  puffs: readonly (readonly [number, number, number, number])[]
+}[] = [
+  {
+    baseU: 0.14, baseV: 0.34, speed: 0.15,
+    puffs: [[0, 0, 0.042, 0.025], [-0.032, 2, 0.028, 0.017], [0.028, 1, 0.034, 0.021], [0.056, 3, 0.020, 0.014]],
+  },
+  {
+    baseU: 0.42, baseV: 0.41, speed: 0.12,
+    puffs: [[0, 0, 0.034, 0.020], [-0.026, 2, 0.024, 0.015], [0.028, 2, 0.022, 0.014]],
+  },
+  {
+    baseU: 0.89, baseV: 0.38, speed: 0.15,
+    puffs: [[0, 0, 0.035, 0.021], [-0.028, 2, 0.022, 0.014], [0.026, 1, 0.025, 0.016]],
+  },
+]
+
 const sceneCache = new WeakMap<Uint8Array, MatterhornCache>()
 
-function peakUFromX(x: number, w: number, h: number): number {
-  const span = Math.max(w, Math.round(h * 1.15))
-  const anchorX = w * 0.78
-  return (x - anchorX) / span
+function clamp(v: number, lo: number, hi: number): number {
+  return v < lo ? lo : v > hi ? hi : v
 }
 
-function sampleOutline(relU: number): number | undefined {
-  if (relU < MATTERHORN_OUTLINE[0]![0]! || relU > MATTERHORN_OUTLINE[MATTERHORN_OUTLINE.length - 1]![0]!) {
-    return undefined
+/** Linear interpolation of a y-monotone polyline at height y, returning x. */
+function xAtY(knots: readonly Knot[], y: number): number {
+  if (y <= knots[0]![1]) return knots[0]![0]
+  for (let i = 0; i < knots.length - 1; i++) {
+    const [x0, y0] = knots[i]!
+    const [x1, y1] = knots[i + 1]!
+    if (y <= y1) return x0 + (x1 - x0) * ((y - y0) / Math.max(1e-6, y1 - y0))
   }
-  for (let i = 0; i < MATTERHORN_OUTLINE.length - 1; i++) {
-    const a = MATTERHORN_OUTLINE[i]!
-    const b = MATTERHORN_OUTLINE[i + 1]!
-    if (relU <= b[0]!) {
-      const s = (relU - a[0]!) / Math.max(1e-5, b[0]! - a[0]!)
-      return a[1]! + (b[1]! - a[1]!) * s
-    }
-  }
-  return undefined
+  return knots[knots.length - 1]![0]
 }
 
-function evalCatmull(knots: readonly Point[], u: number): number {
-  const n = knots.length
-  if (u <= knots[0]!.x) return knots[0]!.y
-  if (u >= knots[n - 1]!.x) return knots[n - 1]!.y
-  let i = 0
-  while (i < n - 2 && u > knots[i + 1]!.x) i++
-  const p0 = knots[Math.max(0, i - 1)]!
-  const p1 = knots[i]!
-  const p2 = knots[i + 1]!
-  const p3 = knots[Math.min(n - 1, i + 2)]!
-  const t = (u - p1.x) / Math.max(1e-5, p2.x - p1.x)
-  const t2 = t * t
-  const t3 = t2 * t
-  return 0.5 * (
-    (2 * p1.y) +
-    (-p0.y + p2.y) * t +
-    (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
-    (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3
-  )
+/** Linear interpolation of an x-monotone polyline at x, returning y. */
+function yAtX(knots: readonly Knot[], x: number): number {
+  if (x <= knots[0]![0]) return knots[0]![1]
+  for (let i = 0; i < knots.length - 1; i++) {
+    const [x0, y0] = knots[i]!
+    const [x1, y1] = knots[i + 1]!
+    if (x <= x1) return y0 + (y1 - y0) * ((x - x0) / Math.max(1e-6, x1 - x0))
+  }
+  return knots[knots.length - 1]![1]
 }
 
 function drawSky(ctx: BuildCtx): void {
   const { width: w, height: h } = ctx
   const horizonY = Math.floor(h * 0.65)
   ctx.layer({ kind: 'sky', z: 0 }, () => {
-    const seam = 5
+    // Four clean bands; the dithered seam is 2px either side of each step.
+    const seam = 2
     const first = Math.floor(horizonY * 0.28)
     const second = Math.floor(horizonY * 0.58)
     const third = Math.floor(horizonY * 0.85)
@@ -132,23 +178,11 @@ function drawSky(ctx: BuildCtx): void {
 
     const sunX = Math.round(w * 0.24)
     const sunY = Math.round(h * 0.20)
-    const sunR = Math.max(4, Math.round(Math.min(w, h) * 0.035))
-    // Core sun disc (slot 4 matches sky[1] at night, rendering it 100% invisible at night)
+    const sunR = Math.max(4, Math.round(Math.min(w, h) * 0.032))
+    // Sun disc uses slot 4; a single flat halo ring (no checkerboard) sits one px outside it.
+    // Slot 4 matches sky[1] at night, so the sun vanishes after dark. A ring in another slot would show as a hoop at night.
+    ctx.disc(sunX, sunY, sunR + 2, 4)
     ctx.disc(sunX, sunY, sunR, 4)
-    // Stepped radial glow: dither between local sky background and slot 4
-    for (let dy = -sunR - 3; dy <= sunR + 3; dy++) {
-      for (let dx = -sunR - 3; dx <= sunR + 3; dx++) {
-        const d2 = dx * dx + dy * dy
-        if (d2 > sunR * sunR && d2 <= (sunR + 3) * (sunR + 3)) {
-          const px = sunX + dx
-          const py = sunY + dy
-          if (px >= 0 && px < w && py >= 0 && py < horizonY) {
-            const bgSlot = py < first ? 0 : py < second ? 1 : 2
-            ctx.px(px, py, ctx.dither(px, py, 0.45, bgSlot, 4))
-          }
-        }
-      }
-    }
 
     for (const [su, sv] of STAR_SEEDS) {
       ctx.px(Math.round(su * w), Math.round(sv * h), 5)
@@ -170,199 +204,163 @@ function drawSky(ctx: BuildCtx): void {
   })
 }
 
-function drawFarRidges(ctx: BuildCtx, peakOcclusion: Mask): void {
+/** A jagged ridge line: knots give the broad shape, fbm adds the crags. */
+function drawRange(
+  ctx: BuildCtx,
+  knots: readonly Knot[],
+  noiseSeed: number,
+  crag: number,
+  topIdx: number,
+  bodyIdx: number,
+  occlusion: Mask | undefined,
+): void {
   const { width: w, height: h } = ctx
   const horizonY = Math.floor(h * 0.65)
-  const knots0: readonly Point[] = [
-    { x: -0.1, y: 0.49 }, { x: 0.0, y: 0.47 }, { x: 0.18, y: 0.44 },
-    { x: 0.36, y: 0.49 }, { x: 0.56, y: 0.45 }, { x: 0.78, y: 0.43 },
-    { x: 1.0, y: 0.47 }, { x: 1.1, y: 0.49 },
-  ]
-  const knots1: readonly Point[] = [
-    { x: -0.1, y: 0.54 }, { x: 0.0, y: 0.53 }, { x: 0.14, y: 0.50 },
-    { x: 0.29, y: 0.55 }, { x: 0.48, y: 0.50 }, { x: 0.85, y: 0.52 },
-    { x: 1.0, y: 0.54 }, { x: 1.1, y: 0.56 },
-  ]
+  const kx = REF_W / w
+  const ky = REF_H / h
+  for (let x = 0; x < w; x++) {
+    const xc = (x + 0.5) * kx
+    const top = Math.floor((yAtX(knots, xc) + (ctx.fbm1(xc * 0.05 + noiseSeed) - 0.5) * crag) / ky)
+    for (let y = Math.max(0, top); y < horizonY; y++) {
+      ctx.px(x, y, y < top + 2 ? topIdx : bodyIdx)
+      occlusion?.set(x, y, 15)
+    }
+  }
+}
 
+function drawForeground(ctx: BuildCtx, peakOcclusion: Mask): void {
+  // Far range: cool haze blue, lit crest over a shade body.
   ctx.layer({ kind: 'far', z: 1 }, () => {
-    for (let x = 0; x < w; x++) {
-      const u = x / w
-      const top0 = Math.floor((evalCatmull(knots0, u) + (ctx.fbm1(u * 5) - 0.5) * 0.025) * h)
-      const slope0 = evalCatmull(knots0, u + 0.004) - evalCatmull(knots0, u)
-      const shade0 = Math.max(0, Math.min(1, slope0 * 800))
-      for (let y = top0; y < horizonY; y++) {
-        const d = (y - top0) / h
-        const amt = shade0 * Math.min(1, d * 24)
-        ctx.px(x, y, amt > 0.55 ? 9 : amt > 0.2 ? ctx.dither(x, y, (amt - 0.2) / 0.35, 8, 9) : 8)
-      }
-
-      const top1 = Math.floor((evalCatmull(knots1, u) + (ctx.fbm1(u * 7 + 19) - 0.5) * 0.025) * h)
-      const slope1 = evalCatmull(knots1, u + 0.004) - evalCatmull(knots1, u)
-      const shade1 = Math.max(0, Math.min(1, slope1 * 800))
-      for (let y = top1; y < horizonY; y++) {
-        const d = (y - top1) / h
-        const amt = shade1 * Math.min(1, d * 24)
-        ctx.px(x, y, amt > 0.55 ? 11 : amt > 0.2 ? ctx.dither(x, y, (amt - 0.2) / 0.35, 10, 11) : 10)
-        peakOcclusion.set(x, y, 15)
-      }
-    }
+    drawRange(
+      ctx,
+      [[0, 122], [40, 110], [70, 116], [100, 104], [135, 114], [170, 108], [200, 118], [240, 112],
+        [270, 116], [300, 106], [330, 114], [360, 108], [390, 118], [430, 110], [470, 116], [480, 114]],
+      3,
+      4,
+      8,
+      9,
+      peakOcclusion,
+    )
+  })
+  // Foothills: a nearer, darker ladder step below the far range.
+  ctx.layer({ kind: 'mid', z: 2 }, () => {
+    drawRange(
+      ctx,
+      [[0, 152], [60, 144], [110, 152], [160, 146], [220, 158], [280, 150], [340, 158], [400, 152], [440, 156], [480, 150]],
+      11,
+      5,
+      10,
+      11,
+      peakOcclusion,
+    )
   })
 }
 
-function drawMatterhornPeak(ctx: BuildCtx, peakOcclusion: Mask): void {
+/** Hooked silhouette with three faces, rock strata, snow fields and explicit couloirs. */
+function drawMatterhorn(ctx: BuildCtx, peakOcclusion: Mask): void {
   const { width: w, height: h } = ctx
   const horizonY = Math.floor(h * 0.65)
+  const kx = REF_W / w
+  const ky = REF_H / h
+  const topY = Math.max(0, Math.floor(TIP_Y / ky))
+
   ctx.layer({ kind: 'mid', z: 3 }, () => {
-    for (let x = 0; x < w; x++) {
-      const relU = peakUFromX(x, w, h)
-      const topV = sampleOutline(relU)
-      if (topV === undefined) continue
-      const topY = Math.max(0, Math.floor(topV * h))
-
-      for (let y = topY; y < horizonY; y++) {
-        peakOcclusion.set(x, y, 15)
-        const v = y / h
-        const spine = -0.01 - Math.max(0, v - 0.14) * 0.24 - Math.sin((v - 0.14) * 7.5) * 0.015
-        const onSunFace = relU < spine
-        const ridgeDist = Math.abs(relU - spine)
-
-        // Multi-octave organic rock texture & strata grain
-        const n1 = ctx.fbm2(x * 0.035, y * 0.045)
-        const n2 = ctx.fbm2(x * 0.08, y * 0.09)
-        const grain = ctx.fbm2(x * 0.16, y * 0.16)
-
-        // Geological strata dipping ~35 degrees from Furggen to Zmutt
-        const strata = Math.sin((relU - spine) * 26 - (v - 0.14) * 18 + n1 * 1.6)
-        // Steep vertical rock fissures and couloir gullies
-        const couloir = Math.sin((relU - spine) * 16 + (v - 0.14) * 26 + n2 * 1.7)
-
-        // Elevation-based snowline (higher on steep rock, clinging to ledges)
-        const snowLedge = strata > 0.25 || couloir > 0.40
-        const snowLine = onSunFace ? (0.42 + strata * 0.04 + (n1 - 0.5) * 0.04) : (0.30 + (n1 - 0.5) * 0.04)
-        const hasSnow = v < snowLine || (v < 0.52 && snowLedge && n2 > 0.42)
-
+    for (let py = topY; py < horizonY; py++) {
+      const yc = (py + 0.5) * ky
+      const xl = xAtY(PEAK_LEFT, yc)
+      const xr = xAtY(PEAK_RIGHT, yc)
+      const t = clamp((yc - TIP_Y) / (HORIZON_REF - TIP_Y), 0, 1)
+      const s1 = xAtY(ARETE_WEST, yc)
+      const s2 = xAtY(ARETE_EAST, yc)
+      const x0 = Math.max(0, Math.floor(xl / kx))
+      const x1 = Math.min(w - 1, Math.ceil(xr / kx))
+      for (let px = x0; px <= x1; px++) {
+        const xc = (px + 0.5) * kx
+        if (xc < xl || xc > xr) continue
+        peakOcclusion.set(px, py, 15)
+        const n = ctx.fbm2(xc * 0.07, yc * 0.07)
+        // Rock texture is noise blobs, not parallel lines: parallel strata read as a grid on a big face.
+        const blob = ctx.fbm2(xc * 0.2, yc * 0.2) > 0.6
+        // Snow ledges follow the rock dip (diagonal, sparse), only where the noise lifts.
+        const ledge = n > 0.6 && ((yc + xc * 0.5 + n * 12) % 13) < 1.2
+        const dl = xc - xl
+        const dr = xr - xc
         let idx: number
-        if (onSunFace) {
-          // East face: sunlit alpenglow
-          if (hasSnow) {
-            // Crisp snow on upper summit & ledges
-            if (ridgeDist < 0.018 || (v < 0.22 && strata > -0.2)) {
-              idx = 12 // sunlit snow highlight
-            } else if (strata > 0.15 || couloir > 0.35) {
-              idx = 13 // sunlit snow midtone
-            } else if (grain > 0.65) {
-              idx = 23 // rock cleft peeking through snow
-            } else {
-              idx = 15 // granite ledge peeking through snow
-            }
-          } else {
-            // Sunlit rock buttresses below snowline
-            if (couloir > 0.68 && strata > 0.10) {
-              idx = 13 // snow patch in lower couloir
-            } else if (couloir < -0.35 || (strata < -0.30 && n2 < 0.40)) {
-              idx = 23 // deep rock cleft shadow
-            } else if (ridgeDist < 0.016) {
-              idx = 13 // lit ridge crest
-            } else if (grain > 0.72) {
-              idx = 12 // sunlit quartzite sparkle
-            } else {
-              idx = 15 // sunlit warm granite face
-            }
-          }
+        if (xc < s1) {
+          // West face, sunlit: warm granite with snow fields on the top third.
+          const snowTop = 0.30 + (n - 0.5) * 0.12
+          if (dl < 1.2 && t < 0.5) idx = 12
+          else if (t < snowTop) idx = n > 0.55 ? 12 : 13
+          else if (n < 0.30) idx = 25
+          else idx = blob ? 24 : 23
+        } else if (xc < s2) {
+          // North-shadow centre: cold snow above the snowline, slate rock below.
+          const snowLine = 0.52 + (n - 0.5) * 0.14
+          if (t < snowLine) idx = n > 0.62 ? 13 : 14
+          else if (ledge) idx = 13
+          else idx = blob ? 24 : 25
         } else {
-          // North face: steep, cold, shadowed abyss with narrow couloir snow ribbons
-          if (hasSnow) {
-            // Cold shadow snow in couloirs and upper ledges
-            if (ridgeDist < 0.012) {
-              idx = 13 // rim light catching the razor spine
-            } else if (v < 0.22 && strata > 0.10) {
-              idx = 14 // upper north face snow cap
-            } else if (couloir > 0.48 && strata > -0.15) {
-              idx = 14 // narrow diagonal snow ribbon down couloir
-            } else if (grain > 0.65) {
-              idx = 15 // cold slate ambient rock ledge
-            } else {
-              idx = 23 // deep shadow granite
-            }
-          } else {
-            // Sheer lower north face
-            if (couloir > 0.64 && n2 > 0.45) {
-              idx = 14 // isolated snow pocket in couloir
-            } else if (strata > 0.40 && grain > 0.45) {
-              idx = 15 // ambient slate ledge
-            } else {
-              idx = 23 // deep shadow granite
-            }
-          }
+          // East face: alpenglow on the upper hook, then plain shadow rock.
+          if (dr < 1.2) idx = 15
+          else if (t < 0.22) idx = n > 0.45 ? 15 : 12
+          else if (t < 0.45) idx = n > 0.5 ? 15 : 24
+          else idx = blob ? 24 : 25
         }
-        ctx.px(x, y, idx)
+        ctx.px(px, py, idx)
       }
+    }
 
-      // Crisp 1px alpenglow rim along the sunlit silhouette
-      if (relU > -0.44 && relU <= -0.005 && (x % 3 !== 0)) {
-        ctx.px(x, topY, 12)
+    for (const { pts, idx } of COULOIRS) {
+      const yTop = pts[0]![1]
+      const yBot = pts[pts.length - 1]![1]
+      for (let py = Math.max(topY, Math.ceil(yTop / ky)); py <= Math.min(horizonY - 1, Math.floor(yBot / ky)); py++) {
+        const yc = (py + 0.5) * ky
+        const xc = xAtY(pts, yc)
+        const g = ctx.fbm2(xc * 0.2, yc * 0.2)
+        if (g < 0.36) continue // rock break in the gully
+        const half = g > 0.62 ? 1 : 0
+        const px = Math.round(xc / kx)
+        ctx.rect(px - half, py, 2 + half, 1, idx)
       }
     }
   })
 }
 
+/** Forest mass and 10–14 px conifers along the foothill edge, plus the valley cabin. */
 function drawValleyForestAndCabin(ctx: BuildCtx, peakOcclusion: Mask): { cabinX: number; cabinY: number } {
   const { width: w, height: h } = ctx
   const horizonY = Math.floor(h * 0.65)
-  const cabinX = Math.round(w * 0.72)
-  const cabinY = Math.round(h * 0.61)
-
-  const benchKnots: readonly Point[] = [
-    { x: 0.0, y: 0.615 },
-    { x: 0.22, y: 0.625 },
-    { x: 0.36, y: 0.620 },
-    { x: 0.52, y: 0.635 },
-    { x: 0.68, y: 0.625 },
-    { x: 0.82, y: 0.618 },
-    { x: 1.0, y: 0.612 },
-  ]
+  const kx = REF_W / w
+  const ky = REF_H / h
+  const cabinX = Math.round(CABIN_REF[0] / kx)
+  const cabinY = Math.round(CABIN_REF[1] / ky)
 
   ctx.layer({ kind: 'mid', z: 4 }, () => {
+    // Forest line: a thin dark floor under the trees, its top edge ragged with fbm.
     for (let x = 0; x < w; x++) {
-      const u = x / w
-      const topY = Math.floor(evalCatmull(benchKnots, u) * h)
-      for (let y = topY; y < horizonY; y++) {
+      const xc = (x + 0.5) * kx
+      const forestTop = (170 + (ctx.fbm1(xc * 0.2 + 7) - 0.5) * 5) / ky
+      for (let y = Math.max(0, Math.floor(forestTop)); y < horizonY; y++) {
         peakOcclusion.set(x, y, 15)
-        ctx.px(x, y, y < topY + 2 ? 25 : 26)
+        ctx.px(x, y, 28)
       }
     }
 
-    // 3 distinct pine models clustered naturally with breathing space
-    const pines = [pineTall, pineMedium, pineBroad] as const
-    const midTrees = [
-      [0.04, 0.655, 0],
-      [0.08, 0.660, 1],
-      [0.12, 0.662, 2],
-      [0.17, 0.658, 0],
-      [0.21, 0.663, 1],
-      [0.26, 0.660, 2],
-      [0.42, 0.662, 0],
-      [0.46, 0.665, 2],
-      [0.65, 0.658, 1],
-      [0.68, 0.662, 2],
-      [0.82, 0.656, 0],
-      [0.86, 0.660, 1],
-      [0.91, 0.658, 0],
-      [0.95, 0.662, 2],
-      [0.98, 0.658, 1],
-    ] as const
-    for (const [tu, tv, variant] of midTrees) {
-      const spr = pines[variant]!
-      const sx = Math.round(tu * w - spr.width / 2)
-      const sy = Math.round(tv * h - spr.height + 2)
-      ctx.sprite(spr, sx, sy, 1)
-      for (let py = 0; py < spr.height; py++) {
-        for (let px = 0; px < spr.width; px++) {
-          if (spr.pixels[py * spr.width + px]! >= 0) {
-            peakOcclusion.set(sx + px, sy + py, 15)
-          }
-        }
-      }
+    // Treeline: three size classes (10, 12, 14 px), mixed by the seeded rng so
+    // no two gaps repeat. Back row first (smaller, higher), then the front row.
+    for (let x = -2; x < REF_W + 4; ) {
+      const pick = ctx.rng()
+      const pool = pick < 0.55 ? treeSmall : pick < 0.85 ? treeMedium : treeLarge
+      const spr = pool[Math.floor(ctx.rng() * pool.length)]!
+      drawTree(ctx, spr, (x + 0.5) / kx, (168 + ctx.rng() * 3) / ky, peakOcclusion)
+      x += 7 + Math.round(ctx.rng() * 8)
+    }
+    for (let x = 0; x < REF_W + 6; ) {
+      const pick = ctx.rng()
+      const pool = pick < 0.25 ? treeSmall : pick < 0.6 ? treeMedium : treeLarge
+      const spr = pool[Math.floor(ctx.rng() * pool.length)]!
+      drawTree(ctx, spr, (x + 0.5) / kx, (176 + ctx.rng() * 2) / ky, peakOcclusion)
+      x += 10 + Math.round(ctx.rng() * 12)
     }
 
     const cx = cabinX - Math.floor(alpineCabin.width / 2)
@@ -376,7 +374,7 @@ function drawValleyForestAndCabin(ctx: BuildCtx, peakOcclusion: Mask): { cabinX:
       }
     }
 
-    // Warm amber window glow on doorstep/snow
+    // Warm amber window glow on the doorstep.
     const winX = cx + 8
     for (let dy = 0; dy <= 3; dy++) {
       for (let dx = -3; dx <= 4; dx++) {
@@ -384,7 +382,7 @@ function drawValleyForestAndCabin(ctx: BuildCtx, peakOcclusion: Mask): { cabinX:
         const gy = cy + alpineCabin.height + dy - 2
         if (gx >= 0 && gx < w && gy >= 0 && gy < h) {
           if ((dx * dx) / 9 + (dy * dy) / 4 <= 1.0) {
-            ctx.px(gx, gy, dy === 0 ? 28 : 27)
+            ctx.px(gx, gy, dy === 0 ? 30 : 29)
           }
         }
       }
@@ -392,6 +390,17 @@ function drawValleyForestAndCabin(ctx: BuildCtx, peakOcclusion: Mask): { cabinX:
   })
 
   return { cabinX, cabinY }
+}
+
+function drawTree(ctx: BuildCtx, spr: Sprite, baseX: number, baseY: number, occlusion: Mask): void {
+  const sx = Math.round(baseX - spr.width / 2)
+  const sy = Math.round(baseY - spr.height + 1)
+  ctx.sprite(spr, sx, sy, 1)
+  for (let py = 0; py < spr.height; py++) {
+    for (let px = 0; px < spr.width; px++) {
+      if (spr.pixels[py * spr.width + px]! >= 0) occlusion.set(sx + px, sy + py, 15)
+    }
+  }
 }
 
 function buildLakeAndShore(ctx: BuildCtx, lakeMask: Mask, birdOcclusion: Mask): LakeRowSpan[] {
@@ -422,7 +431,7 @@ function buildLakeAndShore(ctx: BuildCtx, lakeMask: Mask, birdOcclusion: Mask): 
       const sy = shoreY[x]!
       for (let y = sy; y < h; y++) {
         const d = y - sy
-        let idx = d < 3 ? 31 : d < 8 ? 25 : 26
+        let idx = d < 3 ? 31 : d < 10 ? 24 : 28
         if (d >= 3 && ctx.fbm2(x * 0.09, y * 0.11) > 0.67) idx = 23
         ctx.px(x, y, idx)
       }
@@ -438,22 +447,23 @@ function buildLakeAndShore(ctx: BuildCtx, lakeMask: Mask, birdOcclusion: Mask): 
       for (let dy = -rh; dy <= rh; dy++) {
         for (let dx = -rw; dx <= rw; dx++) {
           if ((dx * dx) / (rw * rw) + (dy * dy) / (rh * rh) <= 1) {
-            ctx.px(rx + dx, ry + dy, dy < 0 && dx < 0 ? 31 : dy < 1 ? 15 : 23)
+            ctx.px(rx + dx, ry + dy, dy < 0 && dx < 0 ? 23 : dy < 1 ? 24 : 25)
             lakeMask.set(rx + dx, ry + dy, 0)
           }
         }
       }
     }
 
-    const pines = [pineTall, pineMedium, pineBroad] as const
+    // Foreground conifers: the largest 14 px class, shore-side.
     const nearTrees = [
-      [0.04, 0.84, 0], [0.09, 0.88, 1], [0.15, 0.92, 2],
-      [0.91, 0.87, 0], [0.96, 0.90, 1],
+      [0.04, 0.86, 0], [0.09, 0.90, 1], [0.15, 0.93, 2],
+      [0.91, 0.88, 0], [0.96, 0.91, 1],
     ] as const
+    const nearPool = [treeLarge[0]!, treeLarge[1]!, treeLarge[2]!]
     for (const [tu, tv, variant] of nearTrees) {
-      const spr = pines[variant]!
+      const spr = nearPool[variant]!
       const sx = Math.round(tu * w - spr.width / 2)
-      const sy = Math.round(tv * h - spr.height + 2)
+      const sy = Math.round(tv * h - spr.height + 1)
       ctx.sprite(spr, sx, sy, 1)
       for (let py = 0; py < spr.height; py++) {
         for (let px = 0; px < spr.width; px++) {
@@ -466,7 +476,7 @@ function buildLakeAndShore(ctx: BuildCtx, lakeMask: Mask, birdOcclusion: Mask): 
     }
   })
 
-  // Pre-bake inverted mountain reflection & horizontal wavelet masks for <0.5ms frames.
+  // Pre-bake the inverted mountain reflection and horizontal wavelets for cheap frames.
   const lakeRows: LakeRowSpan[] = []
   for (let y = horizonY; y < lakeMaxY; y++) {
     let xStart = w
@@ -488,7 +498,7 @@ function buildLakeAndShore(ctx: BuildCtx, lakeMask: Mask, birdOcclusion: Mask): 
 
     for (let i = 0; i < len; i++) {
       const x = xStart + i
-      // Natural horizontal wind ripples (delicate wavelets)
+      // Wind ripples: short streaks on a few rows only, never a full-width barcode.
       const wind = ctx.fbm2(x * 0.035, y * 0.18)
       const isRippleRow = (y % 4 === 1) || (y % 6 === 3 && depth > 0.3)
       const rippleStreak = ((x + y * 7) % 13) < 6
@@ -496,130 +506,111 @@ function buildLakeAndShore(ctx: BuildCtx, lakeMask: Mask, birdOcclusion: Mask): 
         rippleMask[i] = 16 + ((Math.floor(dist / 3) + Math.floor(x / 7)) % 6)
       }
 
-      // Real inverted mountain reflection from landscape above horizon
       const srcIdx = ctx.base[srcRow + x]!
-      if (srcIdx === 12) {
-        colors[i] = 19 // sunlit alpenglow snow highlight reflection
-      } else if (srcIdx === 13) {
-        colors[i] = 18 // sunlit snow mid reflection
-      } else if (srcIdx === 14) {
-        colors[i] = 18 // shaded snow reflection
-      } else if (srcIdx === 15) {
-        colors[i] = 17 // sunlit rock reflection
+      if (srcIdx === 12 || srcIdx === 15) {
+        colors[i] = 19 // sunlit snow and alpenglow highlight
+      } else if (srcIdx === 13 || srcIdx === 14) {
+        colors[i] = 18 // snow midtone and shadow
       } else if (srcIdx === 23) {
-        colors[i] = 22 // shadow rock / couloir reflection
-      } else if (srcIdx === 25 || srcIdx === 26) {
-        colors[i] = 22 // valley forest bench reflection
-      } else if (srcIdx === 27 || srcIdx === 28) {
-        colors[i] = 20 // chalet timber & window glow reflection
+        colors[i] = 17 // sunlit granite
+      } else if (srcIdx === 24 || srcIdx === 25 || srcIdx === 22 || srcIdx === 31) {
+        colors[i] = 22 // shadow rock and forest/shore base
+      } else if (srcIdx >= 26 && srcIdx <= 28) {
+        colors[i] = 22 // conifer shadow
+      } else if (srcIdx === 29 || srcIdx === 30) {
+        colors[i] = 20 // cabin timber and window glow
       } else if (srcIdx >= 8 && srcIdx <= 11) {
-        colors[i] = 17 // far ridge reflection
+        colors[i] = 17 // far and foothill ridges
       } else {
-        // Sky reflection
-        colors[i] = depth < 0.25 ? 17 : 16
+        colors[i] = depth < 0.25 ? 17 : 16 // sky reflection
       }
     }
 
-    lakeRows.push({ y, xStart, xEnd, colors, rippleMask })
+    const runList: number[] = []
+    let runStart = -1
+    for (let i = 0; i < len; i++) {
+      const inLake = lakeMask.contains(xStart + i, y)
+      if (inLake && runStart < 0) runStart = i
+      else if (!inLake && runStart >= 0) {
+        runList.push(runStart, i - 1)
+        runStart = -1
+      }
+    }
+    if (runStart >= 0) runList.push(runStart, len - 1)
+    lakeRows.push({ y, xStart, xEnd, colors, rippleMask, runs: Uint16Array.from(runList) })
   }
 
   return lakeRows
 }
 
-function drawDriftingClouds(ctx: FrameCtx, t: number, w: number, h: number, peakOcclusion: Mask): void {
-  const frame = ctx.frame
-  const occ = peakOcclusion.coverage
-  const clouds = [
-    {
-      baseU: 0.14,
-      baseV: 0.34,
-      speed: 0.15,
-      puffs: [
-        [0, 0, Math.round(w * 0.042), Math.round(h * 0.025)],
-        [-Math.round(w * 0.032), 2, Math.round(w * 0.028), Math.round(h * 0.017)],
-        [Math.round(w * 0.028), 1, Math.round(w * 0.034), Math.round(h * 0.021)],
-        [Math.round(w * 0.056), 3, Math.round(w * 0.020), Math.round(h * 0.014)],
-      ],
-    },
-    {
-      baseU: 0.42,
-      baseV: 0.41,
-      speed: 0.12,
-      puffs: [
-        [0, 0, Math.round(w * 0.034), Math.round(h * 0.020)],
-        [-Math.round(w * 0.026), 2, Math.round(w * 0.024), Math.round(h * 0.015)],
-        [Math.round(w * 0.028), 2, Math.round(w * 0.022), Math.round(h * 0.014)],
-      ],
-    },
-    {
-      baseU: 0.89,
-      baseV: 0.38,
-      speed: 0.15,
-      puffs: [
-        [0, 0, Math.round(w * 0.035), Math.round(h * 0.021)],
-        [-Math.round(w * 0.028), 2, Math.round(w * 0.022), Math.round(h * 0.014)],
-        [Math.round(w * 0.026), 1, Math.round(w * 0.025), Math.round(h * 0.016)],
-      ],
-    },
-  ] as const
-
-  for (const c of clouds) {
-    const cx = Math.round(((c.baseU * w + t * c.speed) % (w + 90)) - 45)
-    const cy = Math.round(c.baseV * h)
-    for (const [ox, oy, rx, ry] of c.puffs) {
+/** Build-time stencil per cloud: triplets [dx, dy, colour] relative to the cloud anchor, in puff order. */
+function buildClouds(w: number, h: number): CloudStencil[] {
+  return CLOUDS.map((cloud) => {
+    const out: number[] = []
+    for (const puff of cloud.puffs) {
+      const ox = Math.round(puff[0] * w)
+      const oy = puff[1]
+      const rx = Math.round(puff[2] * w)
+      const ry = Math.round(puff[3] * h)
       const rx2 = Math.max(1, rx * rx)
       const ry2 = Math.max(1, ry * ry)
       const maxDy = Math.floor(ry * 0.55)
       const litCut = Math.round(ry * 0.18)
       for (let dy = -ry; dy <= maxDy; dy++) {
-        const py = cy + oy + dy
-        if (py < 0 || py >= h) continue
-        const rowOff = py * w
         const dyTerm = (dy * dy) / ry2
         const color = dy < litCut ? 6 : 7
         for (let dx = -rx; dx <= rx; dx++) {
-          if ((dx * dx) / rx2 + dyTerm <= 1) {
-            const px = cx + ox + dx
-            if (px >= 0 && px < w && occ[rowOff + px] === 0) frame[rowOff + px] = color
-          }
+          if ((dx * dx) / rx2 + dyTerm <= 1) out.push(ox + dx, oy + dy, color)
         }
       }
+    }
+    return { baseU: cloud.baseU, baseV: cloud.baseV, speed: cloud.speed, stencil: Int16Array.from(out) }
+  })
+}
+
+function drawDriftingClouds(ctx: FrameCtx, t: number, cache: MatterhornCache): void {
+  const { width: w, height: h, frame } = ctx
+  const occ = cache.peakOcclusion.coverage
+  for (const cloud of cache.clouds) {
+    const cx = Math.round(((cloud.baseU * w + t * cloud.speed) % (w + 90)) - 45)
+    const cy = Math.round(cloud.baseV * h)
+    const s = cloud.stencil
+    for (let k = 0; k < s.length; k += 3) {
+      const py = cy + s[k + 1]!
+      const px = cx + s[k]!
+      if (py < 0 || py >= h || px < 0 || px >= w) continue
+      const i = py * w + px
+      if (occ[i] === 0) frame[i] = s[k + 2]!
     }
   }
 }
 
 function drawLakeReflection(ctx: FrameCtx, t: number, cache: MatterhornCache): void {
   const { width: w, frame } = ctx
-  const { lakeMask, lakeRows } = cache
   const warpTick = Math.floor(t * 3)
-  const cov = lakeMask.coverage
 
-  for (let r = 0; r < lakeRows.length; r++) {
-    const row = lakeRows[r]!
-    const y = row.y
-    const dstRow = y * w
+  for (const row of cache.lakeRows) {
+    const { y, xStart, colors, rippleMask, runs } = row
+    const dstRow = y * w + xStart
     const rowWarp = Math.round(Math.sin(y * 0.42 + warpTick * 0.85))
-    const { xStart, xEnd, colors, rippleMask } = row
-    const maxLocal = xEnd - xStart
-
-    for (let x = xStart; x <= xEnd; x++) {
-      const dst = dstRow + x
-      if (cov[dst] === 0) continue
-      const local = x - xStart
-      const rip = rippleMask[local]!
-      if (rip !== 0) {
-        frame[dst] = rip
-      } else {
-        const srcLocal = local + rowWarp
-        const clamped = srcLocal < 0 ? 0 : srcLocal > maxLocal ? maxLocal : srcLocal
-        frame[dst] = colors[clamped]!
+    const maxLocal = row.xEnd - xStart
+    for (let k = 0; k < runs.length; k += 2) {
+      const end = runs[k + 1]!
+      for (let local = runs[k]!; local <= end; local++) {
+        const rip = rippleMask[local]!
+        if (rip !== 0) {
+          frame[dstRow + local] = rip
+        } else {
+          const srcLocal = local + rowWarp
+          frame[dstRow + local] = colors[srcLocal < 0 ? 0 : srcLocal > maxLocal ? maxLocal : srcLocal]!
+        }
       }
     }
   }
 }
 
 function drawBirdsAndSmoke(ctx: FrameCtx, t: number, cache: MatterhornCache): void {
-  const { width: w, height: h } = ctx
+  const { width: w } = ctx
 
   const smokePose = Math.floor(t * 2) % 4
   ctx.spriteFrame(smokeSheet, smokePose, cache.cabinX + 5, cache.cabinY - 10, 1)
@@ -631,7 +622,7 @@ function drawBirdsAndSmoke(ctx: FrameCtx, t: number, cache: MatterhornCache): vo
 
   for (const b of birds) {
     const bx = Math.round(((b.startU * w + t * b.speed) % (w + 24)) - 12)
-    const by = Math.round(b.baseV * h + Math.sin(t * 0.45 + b.phase) * 4)
+    const by = Math.round(b.baseV * ctx.height + Math.sin(t * 0.45 + b.phase) * 4)
     if (cache.birdOcclusion.contains(bx, by)) continue
     const pose = Math.floor(t * 6 + b.phase) % 4
     ctx.spriteFrame(birdSheet, pose, bx, by, 1)
@@ -657,8 +648,8 @@ const scene: SceneDef = {
     const birdOcclusion = ctx.mask()
 
     drawSky(ctx)
-    drawFarRidges(ctx, peakOcclusion)
-    drawMatterhornPeak(ctx, peakOcclusion)
+    drawForeground(ctx, peakOcclusion)
+    drawMatterhorn(ctx, peakOcclusion)
     const { cabinX, cabinY } = drawValleyForestAndCabin(ctx, peakOcclusion)
     const lakeRows = buildLakeAndShore(ctx, lakeMask, birdOcclusion)
 
@@ -667,7 +658,7 @@ const scene: SceneDef = {
       height: h,
       horizonY: Math.floor(h * 0.65),
       peakOcclusion,
-      lakeMask,
+      clouds: buildClouds(w, h),
       lakeRows,
       cabinX,
       cabinY,
@@ -677,7 +668,7 @@ const scene: SceneDef = {
   frame(ctx, t) {
     const cache = sceneCache.get(ctx.base)
     if (!cache) return
-    drawDriftingClouds(ctx, t, cache.width, cache.height, cache.peakOcclusion)
+    drawDriftingClouds(ctx, t, cache)
     drawLakeReflection(ctx, t, cache)
     drawBirdsAndSmoke(ctx, t, cache)
   },

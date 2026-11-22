@@ -338,7 +338,7 @@ function RunHeaderView({
           </div>
 
           {run.historyLiveOnly ? (
-            <p role="status" aria-label={t('History live-only')} className="py-1 text-xs text-amber-600 dark:text-amber-400">
+            <p role="status" aria-label={t('History live-only')} className="py-1 text-xs text-pending-strong">
               {t('History live-only. New events are not being saved and may be missing after reload.')}
             </p>
           ) : null}

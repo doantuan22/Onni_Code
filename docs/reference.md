@@ -265,7 +265,7 @@ Open **Settings → Appearance** (`/settings/global/appearance`) for theme, dens
 reading width and **Background scenes**. Scenes are optional procedural pixel landscapes,
 off by default, drawn behind the content column; the sidebar keeps its solid background.
 The eight scenes are Ha Long Bay, Mu Cang Chai, Fansipan, Phu Quoc, Tromsø aurora,
-Santorini, Matterhorn and Sahara, grouped into Vietnam and World.
+Kyoto, Matterhorn and Sahara, grouped into Vietnam and World.
 
 **Quick controls:** the mountain button beside the theme button in the sidebar footer
 opens a popover with **Enable background scenes**, the scene library, **Visibility** and
@@ -296,7 +296,7 @@ first paint; the server's saved preferences win after loading.
 | `mode.chat` | `full` or `horizon` | `horizon` |
 
 IDs are `vn-halong`, `vn-mu-cang-chai`, `vn-fansipan`, `vn-phu-quoc`,
-`world-tromso`, `world-santorini`, `world-matterhorn` and `world-sahara`.
+`world-tromso`, `world-kyoto`, `world-matterhorn` and `world-sahara`.
 An unknown ID leaves scenes off. **Full frame** fills the content column; **Horizon**
 concentrates the landscape in its bottom 45%, fading into the background above it.
 Narrow screens use Horizon with a smaller rendering buffer; other pages also use Horizon.

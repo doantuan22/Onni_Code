@@ -22,7 +22,7 @@ export const SCENE_IDS = [
   'vn-fansipan',
   'vn-phu-quoc',
   'world-tromso',
-  'world-santorini',
+  'world-kyoto',
   'world-matterhorn',
   'world-sahara',
 ] as const

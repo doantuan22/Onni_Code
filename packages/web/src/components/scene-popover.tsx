@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils'
 const SCENE_NAMES: Record<string, string> = {
   'vn-halong': 'Ha Long Bay', 'vn-mu-cang-chai': 'Mu Cang Chai',
   'vn-fansipan': 'Fansipan', 'vn-phu-quoc': 'Phu Quoc',
-  'world-tromso': 'Tromsø aurora', 'world-santorini': 'Santorini',
+  'world-tromso': 'Tromsø aurora', 'world-kyoto': 'Kyoto Fushimi Inari',
   'world-matterhorn': 'Matterhorn', 'world-sahara': 'Sahara',
 }
 

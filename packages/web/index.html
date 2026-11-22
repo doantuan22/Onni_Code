@@ -45,7 +45,7 @@
           var scene = JSON.parse(localStorage.getItem('onni-scene') || 'null')
           var sceneIds = [
             'vn-halong', 'vn-mu-cang-chai', 'vn-fansipan', 'vn-phu-quoc',
-            'world-tromso', 'world-santorini', 'world-matterhorn', 'world-sahara'
+            'world-tromso', 'world-kyoto', 'world-matterhorn', 'world-sahara'
           ]
           document.documentElement.dataset.scene =
             scene && scene.on === true && sceneIds.indexOf(scene.id) !== -1 ? 'on' : 'off'

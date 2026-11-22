@@ -160,7 +160,7 @@ describe('scene rendering and lazy registry', () => {
   it('registers all eight v1 scenes with the same ids as appearance preferences', async () => {
     const expected = [
       'vn-halong', 'vn-mu-cang-chai', 'vn-fansipan', 'vn-phu-quoc',
-      'world-tromso', 'world-santorini', 'world-matterhorn', 'world-sahara',
+      'world-tromso', 'world-kyoto', 'world-matterhorn', 'world-sahara',
     ].sort()
     expect([...SCENE_IDS].sort()).toEqual(expected)
     expect([...sceneRegistry.ids].sort()).toEqual(expected)

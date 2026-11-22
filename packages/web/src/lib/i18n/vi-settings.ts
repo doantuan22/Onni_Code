@@ -34,7 +34,7 @@ export const viSettings: Record<string, string> = {
   Fansipan: 'Fansipan',
   'Phu Quoc': 'Phú Quốc',
   'Tromsø aurora': 'Cực quang Tromsø',
-  Santorini: 'Santorini',
+  Kyoto: 'Kyoto',
   Matterhorn: 'Matterhorn',
   Sahara: 'Sahara',
   // Appearance

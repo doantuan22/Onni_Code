@@ -24,6 +24,17 @@
     <link rel="stylesheet" href="styles/tokens.css" />
     <link rel="stylesheet" href="styles/base.css" />
     <link rel="stylesheet" href="styles/sections.css" />
+    <link rel="stylesheet" href="styles/sections/nav.css" />
+    <link rel="stylesheet" href="styles/sections/hero.css" />
+    <link rel="stylesheet" href="styles/sections/backends.css" />
+    <link rel="stylesheet" href="styles/sections/worktrees.css" />
+    <link rel="stylesheet" href="styles/sections/live.css" />
+    <link rel="stylesheet" href="styles/sections/orchestration.css" />
+    <link rel="stylesheet" href="styles/sections/gate.css" />
+    <link rel="stylesheet" href="styles/sections/automations.css" />
+    <link rel="stylesheet" href="styles/sections/local.css" />
+    <link rel="stylesheet" href="styles/sections/launch.css" />
+    <link rel="stylesheet" href="styles/sections/footer.css" />
   </head>
   <body>
     <div class="page-shell">
@@ -31,6 +42,7 @@
       <div class="spine" aria-hidden="true"></div>
 
       <!-- 0. Sticky Navigation (56px) -->
+      <!-- section:nav -->
       <header class="site-header" data-scrolled="false">
         <div class="container site-header__inner">
           <a href="#hero" class="site-header__brand" aria-label="OnniCode home">
@@ -67,9 +79,11 @@
         </div>
         <div class="site-header__progress" aria-hidden="true"></div>
       </header>
+      <!-- /section:nav -->
 
       <main id="main-content">
         <!-- 1. Hero -->
+        <!-- section:hero -->
         <section
           id="hero"
           class="stage lamp-frame"
@@ -115,8 +129,10 @@
             </div>
           </div>
         </section>
+        <!-- /section:hero -->
 
         <!-- 2. Backends + workflow -->
+        <!-- section:backends -->
         <section id="backends" class="section" aria-labelledby="backends-title">
           <div class="container">
             <header class="section__header" data-reveal>
@@ -147,8 +163,10 @@
             </div>
           </div>
         </section>
+        <!-- /section:backends -->
 
         <!-- 3. Worktrees -->
+        <!-- section:worktrees -->
         <section id="worktrees" class="section" aria-labelledby="worktrees-title">
           <div class="container">
             <header class="section__header" data-reveal>
@@ -174,8 +192,10 @@
             </div>
           </div>
         </section>
+        <!-- /section:worktrees -->
 
         <!-- 4. Live evidence -->
+        <!-- section:live -->
         <section
           id="live"
           class="stage lamp-frame"
@@ -217,8 +237,10 @@
             </div>
           </div>
         </section>
+        <!-- /section:live -->
 
         <!-- 5. Manager / workers -->
+        <!-- section:orchestration -->
         <section id="orchestration" class="section" aria-labelledby="orchestration-title">
           <div class="container">
             <header class="section__header" data-reveal>
@@ -245,8 +267,10 @@
             </div>
           </div>
         </section>
+        <!-- /section:orchestration -->
 
         <!-- 6. Review gate — the wow -->
+        <!-- section:gate -->
         <section id="gate" class="section lamp-frame" aria-labelledby="gate-title">
           <div class="container">
             <header class="section__header" data-reveal>
@@ -269,8 +293,10 @@
             </div>
           </div>
         </section>
+        <!-- /section:gate -->
 
         <!-- 7. Automations -->
+        <!-- section:automations -->
         <section id="automations" class="section" aria-labelledby="automations-title">
           <div class="container">
             <header class="section__header" data-reveal>
@@ -296,8 +322,10 @@
             </div>
           </div>
         </section>
+        <!-- /section:automations -->
 
         <!-- 8. Local-first, zero config -->
+        <!-- section:local -->
         <section id="local" class="section" aria-labelledby="local-title">
           <div class="container">
             <header class="section__header" data-reveal>
@@ -325,8 +353,10 @@
             </div>
           </div>
         </section>
+        <!-- /section:local -->
 
         <!-- 9. Launch -->
+        <!-- section:launch -->
         <section id="launch" class="section lamp-frame" aria-labelledby="launch-title">
           <div class="container">
             <header class="section__header" data-reveal>
@@ -349,9 +379,11 @@
             </div>
           </div>
         </section>
+        <!-- /section:launch -->
       </main>
 
       <!-- Footer -->
+      <!-- section:footer -->
       <footer class="site-footer">
         <div class="container site-footer__inner">
           <div class="site-header__brand">
@@ -374,8 +406,20 @@
           </div>
         </div>
       </footer>
+      <!-- /section:footer -->
     </div>
 
     <script type="module" src="scripts/choreographer.js"></script>
+    <script type="module" src="scripts/sections/nav.js"></script>
+    <script type="module" src="scripts/sections/hero.js"></script>
+    <script type="module" src="scripts/sections/backends.js"></script>
+    <script type="module" src="scripts/sections/worktrees.js"></script>
+    <script type="module" src="scripts/sections/live.js"></script>
+    <script type="module" src="scripts/sections/orchestration.js"></script>
+    <script type="module" src="scripts/sections/gate.js"></script>
+    <script type="module" src="scripts/sections/automations.js"></script>
+    <script type="module" src="scripts/sections/local.js"></script>
+    <script type="module" src="scripts/sections/launch.js"></script>
+    <script type="module" src="scripts/sections/footer.js"></script>
   </body>
 </html>

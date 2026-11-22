@@ -69,13 +69,29 @@ describe('world-tromso', () => {
     }
   })
 
-  it('draws aurora indices only after daylight', () => {
-    const day = new SceneRenderer(tromso, { width: 320, height: 180, seed: 42, theme: 'light', time: 'day' })
-    day.render(1)
-    expect([...day.indexed].some((index) => index >= 7 && index <= 9)).toBe(false)
+  it('draws aurora indices only after daylight and animates curtains smoothly', () => {
+    for (const theme of ['light', 'dark'] as const) {
+      const day = new SceneRenderer(tromso, { width: 320, height: 180, seed: 42, theme, time: 'day' })
+      day.render(1)
+      expect([...day.indexed].some((index) => index >= 7 && index <= 10)).toBe(false)
+    }
 
     const dusk = new SceneRenderer(tromso, { width: 320, height: 180, seed: 42, theme: 'dark', time: 'dusk' })
     dusk.render(1)
-    expect([...dusk.indexed].some((index) => index >= 7 && index <= 9)).toBe(true)
+    expect([...dusk.indexed].some((index) => index >= 7 && index <= 10)).toBe(true)
+
+    const nightA = new SceneRenderer(tromso, { width: 480, height: 270, seed: 42, theme: 'dark', time: 'night' })
+    const frame0 = nightA.render(0).slice()
+    const frame4 = nightA.render(4).slice()
+    expect(frame4).not.toEqual(frame0)
+    expect(nightA.render(0)).toEqual(frame0)
+  })
+
+  it('keeps open upper sky bands free of checkerboard dither behind the /new panel', () => {
+    const renderer = new SceneRenderer(tromso, { width: 480, height: 270, seed: 42, theme: 'light', time: 'day' })
+    renderer.render(0)
+    // Solid upper sky band around v = 0.04..0.10 (avoiding cirrus/sun) should stay uniform index 0
+    const row12 = renderer.indexed.subarray(12 * 480 + 140, 12 * 480 + 200)
+    expect(new Set(row12).size).toBe(1)
   })
 })

@@ -467,9 +467,13 @@ const tromso: SceneDef = {
         const wave = Math.sin(x * 0.19 + wavePhase)
         const ripple = Math.sin(x * 0.11 - t * 1.2 + y * 0.24)
 
-        // Cabin window reflection directly beneath cabin (u = 0.83)
+        // Cabin window reflection: a narrow, widening path made of short connected
+        // streaks. The gaps preserve water movement without detaching orange blocks.
         const distToCabin = Math.abs(u - 0.83)
-        const inCabinPath = distToCabin < (0.012 + v * 0.032) && (wave + ripple) > 0.55 && y < horizonY + h * 0.20
+        const cabinHalfWidth = 0.010 + v * 0.026
+        const streakPhase = Math.floor((y - horizonY) / 3) + Math.floor(t * 3)
+        const cabinStreak = (streakPhase % 4) !== 3
+        const inCabinPath = distToCabin < cabinHalfWidth && cabinStreak && wave + ripple > -0.35 && y < horizonY + h * 0.20
 
         // Aurora reflection: samples aurora intensity directly above this x column!
         const auroraSampleX = Math.max(0, Math.min(w - 1, Math.floor(x + Math.sin(y * 0.05 + t * 0.65) * (3 + 7 * v))))

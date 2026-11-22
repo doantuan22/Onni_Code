@@ -331,6 +331,23 @@ function drawStoneLantern(ctx: BuildCtx, cx: number, baseY: number, scale = 1): 
   }
 }
 
+function drawLanternGlow(ctx: BuildCtx, cx: number, baseY: number, radius: number, pulse = 0): void {
+  const { width: w, height: h } = ctx
+  const maxRadius = Math.max(3, radius + pulse)
+  for (let dy = 0; dy <= maxRadius; dy++) {
+    for (let dx = -maxRadius; dx <= maxRadius; dx++) {
+      const px = cx + dx
+      const py = baseY + dy
+      if (px < 0 || px >= w || py < 0 || py >= h) continue
+      const distance = Math.hypot(dx, dy * 1.12)
+      if (distance > maxRadius) continue
+      const ground = ctx.base[py * w + px]!
+      if (ground < 8 || ground > 14) continue
+      ctx.px(px, py, distance < maxRadius * 0.30 ? 24 : distance < maxRadius * 0.62 ? 23 : 22)
+    }
+  }
+}
+
 const kyoto: SceneDef = {
   id: 'world-kyoto',
   name: { en: 'Kyoto Torii Path', vi: 'Đường cổng Torii Kyoto' },
@@ -461,24 +478,15 @@ const kyoto: SceneDef = {
     const lScale = Math.max(1, Math.floor(h / 140))
     drawStoneLantern(ctx, lanternX, lanternY, lScale)
 
-    // Ambient warm glow from lantern onto flagstones
-    for (let dy = 0; dy < 6 * lScale; dy++) {
-      for (let dx = -6 * lScale; dx <= 6 * lScale; dx++) {
-        const px = lanternX + dx
-        const py = lanternY + dy
-        if (px >= 0 && px < w && py >= 0 && py < h) {
-          if (Math.hypot(dx, dy) < 6 * lScale && (px + py) % 2 === 0) {
-            ctx.px(px, py, 24)
-          }
-        }
-      }
-    }
+    // Concentric palette steps read as a small radial pool of warm light, not a dither mat.
+    drawLanternGlow(ctx, lanternX, lanternY, 7 * lScale)
 
     // 6. Near Giant Torii Gate framing the whole scene
     const fgBaseY = Math.floor(h * 0.98)
     const fgLeftX = Math.floor(w * 0.14)
     const fgRightX = Math.floor(w * 0.90)
-    const fgTopY = Math.floor(h * 0.17)
+    // Keep the near torii as a top-frame silhouette so its two lintels leave the reading area clear.
+    const fgTopY = Math.floor(h * 0.07)
     const fgPostW = Math.max(6, Math.floor(w * 0.024))
 
     // Giant Kasagi lintel arching across
@@ -506,7 +514,7 @@ const kyoto: SceneDef = {
     }
 
     // Giant Nuki crossbeam below
-    const fgNukiY = Math.floor(fgTopY + h * 0.08)
+    const fgNukiY = Math.floor(fgTopY + h * 0.065)
     const fgNukiH = Math.max(3, Math.floor(h * 0.025))
     for (let x = Math.floor(w * 0.11); x < Math.floor(w * 0.94); x++) {
       for (let dy = 0; dy < fgNukiH; dy++) {
@@ -604,18 +612,7 @@ const kyoto: SceneDef = {
       ctx.px(lanternX, lanternY - 10 * lScale, 22)
     }
 
-    const glowRadius = Math.round((5 + flicker * 0.8) * lScale)
-    for (let dy = 0; dy < glowRadius; dy++) {
-      for (let dx = -glowRadius; dx <= glowRadius; dx++) {
-        const px = lanternX + dx
-        const py = lanternY + dy
-        if (px >= 0 && px < w && py >= 0 && py < h) {
-          if (Math.hypot(dx, dy) < glowRadius && (px + py + Math.floor(t * 2)) % 3 === 0) {
-            ctx.px(px, py, 24)
-          }
-        }
-      }
-    }
+    drawLanternGlow(ctx, lanternX, lanternY, 7 * lScale, Math.round(flicker))
   },
 }
 

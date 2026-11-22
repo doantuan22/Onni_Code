@@ -1,186 +1,147 @@
-// Reference (§3): west-facing beach on Phú Quốc, with coconut palms leaning over
-// an indigo sea, a small fishing boat, and a path of copper below a coral sunset.
-import { parseSprite } from '../../engine/sprite'
+/**
+ * Hand-drawn V2 reference: a west-facing Phú Quốc beach at last light.
+ * Two rim-lit palms frame a quiet sea, a boat, and an asymmetric S-curve shore.
+ */
+import { createSpriteSheet, parseSprite } from '../../engine/sprite'
 import type { BuildCtx, Palettes, SceneDef } from '../../engine/types'
 
 const enum Ink {
-  Zenith, Sky, Haze, Halo, Sun, Island,
-  DeepSea, Sea, Ripple, GlintLow, GlintMiddle, GlintHigh,
-  Sand, Foam, Silhouette, PalmLight,
+  SkyTop, SkyMid, SkyLow, Cloud, Sun, Halo, IslandFar, IslandNear,
+  SeaDeep, SeaMid, SeaLight, Wave0, Wave1, Wave2, Wave3, Wave4, Wave5,
+  Path0, Path1, Path2, SandDark, Sand, Foam, Rock, PalmShadow, Palm, PalmRim,
+  BoatHull, BoatSail, Wake, Moon, Accent,
 }
 
-const palettes = {
-  dawn: [0x535c8d, 0x9a83a5, 0xd69b9f, 0xf4bfab, 0xffe2ab, 0x887795, 0x4d5c80, 0x68718d, 0x86859f, 0xae90a0, 0xcc9fa3, 0xeab5a8, 0x746475, 0xc0a8ac, 0x32324d, 0x54475f],
-  day: [0x4a83a6, 0x80b4c8, 0xb4d5d5, 0xd5e2cc, 0xffecc0, 0x71949e, 0x32677a, 0x4f8e99, 0x78adb2, 0x96beba, 0xb9d2c5, 0xdee4c9, 0xa29484, 0xcdd7c8, 0x284a4e, 0x496761],
-  dusk: [0x3d3e71, 0x86537e, 0xc36982, 0xf3a084, 0xffd49a, 0x825572, 0x3d456b, 0x625075, 0x885d7b, 0xb37588, 0xd88c8b, 0xfab096, 0x624b63, 0xb58694, 0x272641, 0x4b3955],
-  night: [0x171f39, 0x243252, 0x384567, 0x536283, 0xb8cad8, 0x364460, 0x1c2a45, 0x2b3a57, 0x414f6d, 0x516281, 0x687d9b, 0x839cb3, 0x333d54, 0x5a6c81, 0x151d31, 0x2d3951],
-} satisfies Palettes
+const palette = (sky: readonly number[], sea: readonly number[], sand: readonly number[], palm: readonly number[], boat: readonly number[]): readonly number[] => [
+  ...sky, 0x72898c, 0x48686b, ...sea, 0x3d7280, 0x57909a, 0x78adb0, 0xa3c6bb, 0xc8d7bd, 0xf0d7ad,
+  0xc0846c, 0xd8ae85, 0xe9caa0, ...sand, ...palm, boat[0]!, boat[1]!, 0xdac39a, 0xb6c8cc, 0xe8b57d, 0x493c42,
+]
+const light: Palettes = {
+  dawn: palette([0xa9cdd2, 0xc6d4c6, 0xf1c7a0, 0xd8d2ba, 0xf4d8a2, 0xf8e8c7], [0x2e707d, 0x438c96, 0x75aeb0], [0x8c7967, 0xad9771, 0xe6d3a8], [0x263f3d, 0x385b50, 0x9eb07b], [0x714b3e, 0x986b4d]),
+  day: palette([0x72b4ca, 0xa8cfce, 0xd7dfbf, 0xd4decf, 0xf4df9c, 0xf8e8bf], [0x226b79, 0x3d93a0, 0x75bdba], [0x8b806a, 0xb9a77b, 0xe8d7a6], [0x244441, 0x396b5d, 0x9ab07a], [0x664839, 0x946a48]),
+  dusk: palette([0x5d4f72, 0x9a6475, 0xdb926c, 0xb98a7a, 0xf0b277, 0xf4d39a], [0x263e55, 0x394b63, 0x607687], [0x544a54, 0x64515a, 0xb99479], [0x1d343d, 0x273d42, 0x7d8363], [0x794a3d, 0xc08a66]),
+  night: palette([0x142843, 0x283c58, 0x4a6279, 0x40536c, 0xb8cddd, 0xd4d5bf], [0x183c57, 0x285b70, 0x4d8190], [0x454653, 0x675b60, 0xa88d78], [0x172c36, 0x25404a, 0x718474], [0x60413c, 0x99745d]),
+}
+const dark: Palettes = {
+  dawn: palette([0x4a6170, 0x829194, 0xc89678, 0xa79083, 0xe9bd85, 0xf2d6a5], [0x1d5261, 0x347782, 0x62979d], [0x6f635c, 0x917d66, 0xd0b88d], [0x1d3537, 0x31564e, 0x89996b], [0x654239, 0x8d6049]),
+  day: palette([0x345f76, 0x679ca8, 0xaec6b5, 0xa7c1b7, 0xdccf8c, 0xe9dbae], [0x174e60, 0x2c7886, 0x589ca0], [0x6d685c, 0x958761, 0xd5c28f], [0x19383b, 0x2d5d54, 0x84976a], [0x593d37, 0x865c42]),
+  dusk: palette([0x39314f, 0x874f63, 0xdb926c, 0x956b70, 0xe9a672, 0xf0c68e], [0x20364e, 0x394b63, 0x637384], [0x4a414d, 0x64515a, 0xb99479], [0x172d36, 0x273d42, 0x778168], [0x6b423e, 0xc08a66]),
+  night: palette([0x0c1b30, 0x1d304a, 0x394e67, 0x30455e, 0x91a9b6, 0xb9c3b6], [0x102e48, 0x204b63, 0x3e7180], [0x393d4b, 0x5a525a, 0x937e71], [0x10252e, 0x203b46, 0x617667], [0x503a3b, 0x896850]),
+}
 
-const horizon = 0.53
-const sunX = 0.64
-const boatX = 0.79
-const boat = parseSprite([
-  '...........m..........',
-  '...........m..........',
-  '.......mmmmm..........',
-  '.......mffsm..........',
-  '.....mmmsfsmmmm.......',
-  '.mssssssssssssssssssm.',
-  '..ssssssssssssssssss..',
-  '...rrrrrrrrrrrrrrrr...',
-], { m: Ink.Silhouette, s: Ink.PalmLight, r: Ink.Silhouette, f: Ink.Ripple })
+const boatSheet = createSpriteSheet(parseSprite([
+  '...........bb...........',
+  '..........bbbb..........',
+  '.........bbbbbb.........',
+  '..........bbbb..........',
+  '......aaaaaaaaaaaa......',
+  '.....cccccccccccccc.....',
+  '........................',
+  '...........bb...........',
+  '..........bbbb..........',
+  '.........bbbbbb.........',
+  '.........bbbbb..........',
+  '......aaaaaaaaaaaa......',
+  '.....cccccccccccccc.....',
+  '........................',
+], { a: Ink.BoatHull, b: Ink.BoatSail, c: Ink.Wake }), [
+  { x: 0, y: 0, width: 24, height: 7, pivot: { x: 12, y: 5 } },
+  { x: 0, y: 7, width: 24, height: 7, pivot: { x: 12, y: 5 } },
+])
 
-function drawSky(ctx: BuildCtx, waterline: number) {
+function sky(ctx: BuildCtx, line: number): void {
   const { width: w, height: h } = ctx
-  const sunY = waterline - h * 0.038
-  const radius = Math.min(w, h) * 0.082
-  for (let y = 0; y < waterline; y++) {
-    const v = y / waterline
-    for (let x = 0; x < w; x++) {
-      const u = x / w
-      const glow = Math.max(0, 1 - Math.hypot((x - w * sunX) / radius * 0.20, (y - sunY) / radius * 0.30))
-      const step = Math.min(Ink.Halo, v * 2.65 + glow * 0.9)
-      const low = Math.floor(step)
-      ctx.px(x, y, ctx.dither(x, y, step - low, low, Math.min(Ink.Halo, low + 1), 8))
-      const cloud = ctx.fbm2(u * 150 + v * 9, v * 374)
-      const cloudOpacity = Math.min(1, (v - 0.27) * 11, (0.78 - v) * 10)
-      if (cloudOpacity > 0 && cloud > 0.64 && low >= Ink.Sky) {
-        ctx.px(x, y, ctx.dither(x, y, cloudOpacity * (cloud - 0.64) * 6, low, low - 1))
-      }
+  ctx.layer({ kind: 'sky', z: 0 }, () => {
+    for (let y = 0; y < line; y++) {
+      const step = Math.min(2.94, y / line * 3.1)
+      for (let x = 0; x < w; x++) ctx.px(x, y, ctx.dither(x, y, step % 1, Math.floor(step), Math.ceil(step)))
     }
-  }
-  ctx.disc(w * sunX, sunY, radius, Ink.Sun)
-  for (let i = 0; i < 2; i++) {
-    const y = Math.floor(sunY + radius * (0.26 + i * 0.36))
-    const half = Math.sqrt(Math.max(0, radius ** 2 - (y - sunY) ** 2))
-    ctx.rect(Math.ceil(w * sunX - half), y, Math.floor(w * sunX + half) - Math.ceil(w * sunX - half) + 1, 1, Ink.Halo)
-  }
+    ctx.disc(w * 0.76, h * 0.37, Math.min(w, h) * 0.065, Ink.Sun)
+    for (let x = w * 0.49; x < w * 0.93; x += 17) ctx.line(x, h * (0.25 + ((x / 17) & 1) * 0.02), x + 12, h * (0.25 + ((x / 17) & 1) * 0.02), Ink.Cloud)
+  })
 }
 
-// Fixed glint pixels share three neighboring palette slots; only their color changes.
-const glintsByBase = new WeakMap<Uint8Array, Uint32Array>()
-const glintRamp = [Ink.GlintLow, Ink.GlintMiddle, Ink.GlintHigh, Ink.GlintMiddle] as const
-
-function drawSea(ctx: BuildCtx, waterline: number) {
+function water(ctx: BuildCtx, line: number): void {
   const { width: w, height: h } = ctx
-  const depth = h - waterline
-  for (let y = waterline; y < h; y++) {
-    const v = (y - waterline) / depth
-    ctx.rect(0, y, w, 1, ctx.dither(0, y, Math.sin(v * 11) * 0.24 + 0.52, Ink.DeepSea, Ink.Sea))
-    const spacing = Math.max(1, Math.round(1 + v * h / 89))
-    const waveWidth = Math.min(w, h) * (0.018 + v * 0.086)
-    const pathWidth = Math.min(w, h) * (0.08 + v * 0.31)
-    if (y % spacing !== 0) continue
-    const waveCount = Math.ceil(w / (9 + waveWidth * 1.6))
-    for (let n = 0; n < waveCount; n++) {
-      const x = ctx.rng() * w
-      const length = 1 + ctx.rng() * waveWidth
-      ctx.rect(x, y, length, 1, ctx.rng() > 0.44 ? Ink.Ripple : Ink.DeepSea)
+  ctx.layer({ kind: 'water', z: 3 }, () => {
+    for (let y = line; y < h; y++) {
+      const d = (y - line) / (h - line)
+      ctx.rect(0, y, w, 1, ctx.dither(0, y, d * 0.7, Ink.SeaDeep, Ink.SeaMid))
+      for (let x = (y * 3) % 17; x < w; x += 19 - Math.floor(d * 8)) if (ctx.fbm2(x * .13, y) > .42) ctx.line(x, y, x + 3 + d * 10, y, Ink.Wave0 + ((x + y) % 6))
+      const half = 4 + d * w * .11
+      for (let x = w * .76 - half; x < w * .76 + half; x += 5) if (ctx.fbm2(x, y * .2) > .32) ctx.line(x, y, x + 3 + d * 7, y, Ink.SeaLight)
     }
-    const shift = Math.sin(y * 0.44) * waveWidth * 0.36
-    for (let n = 0; n < 3 + v * 3; n++) {
-      const offset = ctx.rng() + ctx.rng() - 1
-      const length = 1 + ctx.rng() * waveWidth * (1 - Math.abs(offset) * 0.65)
-      const x = w * sunX + offset * pathWidth + shift
-      const ink = Math.abs(offset) > 0.54 ? Ink.Ripple : Ink.GlintLow + Math.floor(ctx.rng() * 3)
-      ctx.rect(x - length / 2, y, length, 1, ink)
-    }
+  })
+}
+
+function palm(ctx: BuildCtx, footX: number, footY: number, height: number, lean: number, radius: number): void {
+  const crownX = footX + lean
+  const crownY = footY - height
+  for (let y = crownY; y < footY; y++) {
+    const t = (y - crownY) / height
+    const x = crownX - lean * t * t
+    const wide = Math.max(1, radius * (.07 + t * .045))
+    ctx.rect(x - wide / 2, y, wide, 1, Ink.PalmShadow)
+    if (y % 5 !== 0) ctx.px(x + wide / 2 - 1, y, Ink.Palm)
+  }
+  for (let arm = 0; arm < 8; arm++) {
+    const angle = -2.9 + arm * .78
+    const length = radius * (.75 + (arm % 3) * .13)
+    const endX = crownX + Math.cos(angle) * length
+    const endY = crownY + Math.sin(angle) * length * .48
+    ctx.line(crownX, crownY, endX, endY, Ink.PalmShadow)
+    ctx.line(crownX + 1, crownY, endX, endY + 2, arm > 3 ? Ink.PalmRim : Ink.Palm)
   }
 }
 
-// Curved, drooping leaflets give the coconut fronds their jagged outer edges.
-const fronds = [
-  [-0.93, 0.22, 0.48], [-0.85, -0.16, 0.70], [-0.55, -0.55, 0.55],
-  [0.01, -0.63, 0.62], [0.55, -0.49, 0.58], [1, -0.02, 0.70],
-  [0.81, 0.34, 0.55], [0.39, 0.47, 0.36], [-0.49, 0.44, 0.34],
-] as const
-
-function drawPalm(ctx: BuildCtx, footX: number, footY: number, height: number, lean: number, crown: number) {
-  const tipX = footX + lean
-  const tipY = footY - height
-  for (let y = Math.floor(tipY); y <= footY; y++) {
-    const t = (footY - y) / height
-    const x = footX + lean * t * t
-    const width = Math.max(1, crown * (0.125 - t * 0.071))
-    ctx.rect(x - width / 2, y, width, 1, Ink.Silhouette)
-    if (width > 2 && y % 6 < 4) ctx.px(x + width / 2 - 1, y, Ink.PalmLight)
-  }
-  ctx.disc(tipX, tipY, crown * 0.08, Ink.Silhouette)
-  for (const [dx, dy, arch] of fronds) {
-    let lastX = tipX
-    let lastY = tipY
-    const steps = Math.max(5, Math.round(crown * 0.43))
-    for (let i = 1; i <= steps; i++) {
-      const t = i / steps
-      const x = tipX + dx * t * crown
-      const y = tipY + (dy * t - arch * t * (1 - t)) * crown
-      ctx.line(lastX, lastY, x, y, Ink.Silhouette)
-      const leaflet = Math.sin(t * Math.PI) * crown * 0.25
-      const bend = dx * leaflet * 0.55
-      ctx.line(x, y, x + bend - (1 - Math.abs(dx)) * leaflet * 0.65, y + leaflet, Ink.Silhouette)
-      ctx.line(x, y, x + bend + (1 - Math.abs(dx)) * leaflet * 0.49, y + leaflet * 0.46, Ink.Silhouette)
-      lastX = x
-      lastY = y
-    }
-  }
-}
-
-const phuQuoc: SceneDef = {
-  id: 'vn-phu-quoc',
-  name: { vi: 'Phú Quốc hoàng hôn', en: 'Phú Quốc Sunset' },
-  region: 'vn',
-  tone: 'both',
-  defaultTime: 'dusk',
-  horizon,
-  focus: { x: sunX, y: horizon },
-  palettes,
+const scene: SceneDef = {
+  id: 'vn-phu-quoc', name: { vi: 'Phú Quốc hoàng hôn', en: 'Phú Quốc Sunset' }, region: 'vn', tone: 'both',
+  defaultTime: 'dusk', themePalettes: { light, dark }, themeDefaultTime: { light: 'dawn', dark: 'dusk' }, palettes: light,
+  cycles: [{ indices: [Ink.Wave0, Ink.Wave1, Ink.Wave2, Ink.Wave3, Ink.Wave4, Ink.Wave5], rate: 6 }],
+  horizon: .57, focus: { x: .72, y: .65 },
   build(ctx) {
     const { width: w, height: h } = ctx
-    const waterline = Math.floor(h * horizon)
-    const unit = Math.min(w, h)
-    drawSky(ctx, waterline)
-    drawSea(ctx, waterline)
-    for (let x = 0; x < w * 0.41; x++) {
-      const u = x / w
-      const height = (1 - u / 0.41) ** 0.76 * (0.029 + ctx.fbm2(u * 265 + 14, 44) * 0.08)
-      ctx.rect(x, waterline - height * h, 1, height * h + 1, Ink.Island)
-    }
-    for (let x = 0; x < w; x++) {
-      const u = x / w
-      const shore = h * (0.76 + u * 0.60 - u * u * 0.28) + (ctx.fbm2(u * 173, 154) - 0.5) * unit * 0.028
-      const sand = h * (0.84 + u * 0.60 - u * u * 0.19) + (ctx.fbm2(u * 100, 99) - 0.5) * unit * 0.07
-      ctx.rect(x, shore, 1, h, Ink.Sand)
-      if (ctx.fbm2(u * 233, 27) > 0.33) ctx.px(x, shore, Ink.Foam)
-      ctx.rect(x, sand, 1, h, Ink.Silhouette)
-    }
-    drawPalm(ctx, w * 0.24, h * 1.01, h * 0.40, unit * 0.058, unit * 0.155)
-    drawPalm(ctx, w * 0.075, h * 0.90, h * 0.49, unit * 0.18, unit * 0.23)
-    const glints: number[] = []
-    for (let i = waterline * w; i < ctx.base.length; i++) {
-      const ink = ctx.base[i]!
-      if (ink >= Ink.GlintLow && ink <= Ink.GlintHigh) glints.push(i)
-    }
-    glintsByBase.set(ctx.base, Uint32Array.from(glints))
+    const line = Math.floor(h * .57)
+    sky(ctx, line)
+    ctx.layer({ kind: 'far', z: 1 }, () => {
+      for (let x = 0; x < w * .50; x++) {
+        const u = x / w
+        const top = h * (.54 - Math.sin(u * 7) * .025 - ctx.fbm2(x * .08, 33) * .028)
+        ctx.rect(x, top, 1, line - top, x > w * .32 ? Ink.IslandNear : Ink.IslandFar)
+      }
+    })
+    water(ctx, line)
+    ctx.layer({ kind: 'near', z: 5 }, () => {
+      for (let x = 0; x < w; x++) {
+        const u = x / w
+        const shore = h * (.73 + u * .44 - u * u * .24) + (ctx.fbm2(x * .11, 70) - .5) * 4
+        ctx.rect(x, shore, 1, h - shore, Ink.Sand)
+        if (ctx.fbm2(x * .14, 90) > .42) ctx.px(x, shore, Ink.Foam)
+        if (u < .36 && shore < h * .91) ctx.line(x, shore + 3, x + 2, shore + 3, Ink.SandDark)
+      }
+      palm(ctx, w * .09, h * 1.02, h * .64, w * .16, Math.min(w, h) * .17)
+      palm(ctx, w * .25, h * 1.04, h * .49, w * .045, Math.min(w, h) * .13)
+    })
   },
   frame(ctx, t) {
-    const { width: w, height: h, base, buffer } = ctx
-    const phase = Math.floor(t * 2)
-    const fraction = t * 2 - phase
-    const glints = glintsByBase.get(base)
-    if (glints) {
-      for (const i of glints) {
-        const x = i % w
-        const y = Math.floor(i / w)
-        const step = phase + ctx.dither(x, y, fraction, 0, 1)
-        buffer[i] = glintRamp[(base[i]! - Ink.GlintLow + step) & 3]!
+    const { width: w, height: h } = ctx
+    ctx.layer({ kind: 'fx', z: 4 }, () => {
+      const boatY = h * .70 + Math.round(Math.sin(t * Math.PI * 2 / 7))
+      ctx.spriteFrame(boatSheet, Math.floor(t * 2), w * .72, boatY, Math.max(1, Math.floor(h / 150)))
+      for (let i = 0; i < 3; i++) ctx.line(w * .72 - 17 - i * 4, boatY + i + 1, w * .72 - 10 - i * 3, boatY + i + 1, Ink.Wake)
+    })
+    // Foam pulses locally along the shore; frond tips sway without moving their trunks.
+    ctx.layer({ kind: 'fx', z: 7 }, () => {
+      const shift = Math.round(Math.sin(t * Math.PI / 4) * 2)
+      for (let i = 0; i < 17; i++) {
+        const x = w * (.08 + i * .035)
+        const y = h * (.76 + i * .012)
+        ctx.line(x + shift, y, x + 5 + shift, y, Ink.Foam)
       }
-    }
-    const scale = Math.max(1, Math.floor(Math.min(w, h) / 120))
-    const x = Math.round(w * boatX - boat.width * scale / 2)
-    const y = Math.round(h * 0.625 - boat.height * scale / 2 + scale * Math.sin(t * 0.9))
-    ctx.sprite(boat, x, y, scale)
-    ctx.rect(x - scale * 3, y + boat.height * scale + 1, boat.width * scale * 0.7, 1, Ink.Ripple)
+      const sway = Math.round(Math.sin(t * Math.PI / 6) * 2)
+      for (const x of [w * .09, w * .25]) ctx.line(x, h * .39, x + sway * 4, h * .35, Ink.PalmRim)
+    })
   },
 }
 
-export default phuQuoc
+export default scene

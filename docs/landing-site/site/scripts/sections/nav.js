@@ -1,3 +1,4 @@
+/* iife */ (() => {
 /**
  * Section 00: Sticky Navigation (scripts/sections/nav.js)
  * Tracks the currently visible section (#worktrees, #live, #orchestration, #local)
@@ -56,3 +57,4 @@ if (navEl) {
     }
   }
 }
+})();

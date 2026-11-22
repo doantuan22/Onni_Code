@@ -1,3 +1,4 @@
+/* iife */ (() => {
 const demo = document.querySelector('#gate [data-gate-state]');
 
 if (demo) {
@@ -26,3 +27,4 @@ if (demo) {
     merge.hidden = false;
   });
 }
+})();

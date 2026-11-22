@@ -1,3 +1,4 @@
+/* iife */ (() => {
 // section: worktrees — ES module; see site/README.md contract
 
 const section = document.getElementById('worktrees');
@@ -18,3 +19,4 @@ if (section) {
     });
   }
 }
+})();

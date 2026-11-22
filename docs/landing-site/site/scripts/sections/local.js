@@ -1,3 +1,4 @@
+/* iife */ (() => {
 /**
  * Section 08: Local-First & Zero Config (scripts/sections/local.js)
  * ES module · Zero-dependency · Contract: site/README.md & 04-review.md
@@ -38,3 +39,4 @@ if (localSection) {
     localSection.style.setProperty('--peel-ratio', String(p));
   });
 }
+})();

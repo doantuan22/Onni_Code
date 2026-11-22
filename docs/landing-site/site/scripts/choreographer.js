@@ -1,3 +1,4 @@
+/* iife */ (() => {
 /**
  * OnniCode Landing Site — Scroll, Reveal, Pointer & Theme Choreographer
  * Zero-dependency ES module (~200 lines). Works from file:// and static servers.
@@ -304,3 +305,4 @@ window.OnniChoreographer = {
   },
   scrollToStageStep,
 };
+})();

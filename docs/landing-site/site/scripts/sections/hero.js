@@ -1,3 +1,4 @@
+/* iife */ (() => {
 /**
  * Section 01: Hero (scripts/sections/hero.js)
  * Implements the 3-second boot choreography from 02-concept.md ("Hero, in detail"):
@@ -164,3 +165,4 @@ if (heroEl) {
   // Launch the 3-second boot choreography on load
   startBootSequence();
 }
+})();

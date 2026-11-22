@@ -1,3 +1,4 @@
+/* iife */ (() => {
 const flow = document.querySelector('#automations [data-automation-flow]');
 
 if (flow && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -22,3 +23,4 @@ if (flow && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
   }, { threshold: 0.25 });
   observer.observe(flow);
 }
+})();

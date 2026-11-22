@@ -1,3 +1,4 @@
+/* iife */ (() => {
 /**
  * Section: Footer (scripts/sections/footer.js)
  * ES module · Zero-dependency · Back-to-top handler
@@ -13,3 +14,4 @@ backToTopBtn?.addEventListener('click', (event) => {
     behavior: 'smooth',
   });
 });
+})();

@@ -1,3 +1,4 @@
+/* iife */ (() => {
 // section: backends — ES module; see site/README.md contract
 
 const section = document.getElementById('backends');
@@ -70,3 +71,4 @@ if (section) {
     applyBackendPreview(selectedId, isInstalled);
   });
 }
+})();

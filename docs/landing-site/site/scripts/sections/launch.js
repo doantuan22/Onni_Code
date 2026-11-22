@@ -1,3 +1,4 @@
+/* iife */ (() => {
 /**
  * Section 09: Desktop & CLI (scripts/sections/launch.js)
  * ES module · Zero-dependency · Copy-to-clipboard, boot log & dawn horizon
@@ -106,3 +107,4 @@ if (launchSection) {
     }
   }
 }
+})();

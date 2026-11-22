@@ -82,6 +82,8 @@ export interface BuildCtx {
 
 export interface FrameCtx extends BuildCtx {
   readonly frame: Uint8Array
+  /** Resolved palette anchor for time-bound scene effects. */
+  time: TimeOfDay | number
 }
 
 export interface SceneDef {

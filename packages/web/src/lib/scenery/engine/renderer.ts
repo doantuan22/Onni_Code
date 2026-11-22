@@ -37,9 +37,9 @@ export class SceneRenderer {
     this.indexed = new Uint8Array(width * height)
     this.rgba = new Uint32Array(width * height)
     const noise = createNoiseAtlas(seed)
-    scene.build(createContext(width, height, seed, this.base, this.base, noise))
-    this.ctx = createContext(width, height, seed, this.base, this.indexed, noise)
     this.time = options.time ?? scene.themeDefaultTime?.[options.theme ?? 'light'] ?? scene.defaultTime
+    scene.build(createContext(width, height, seed, this.base, this.base, noise, this.time))
+    this.ctx = createContext(width, height, seed, this.base, this.indexed, noise, this.time)
     this.tone = options
     this.palette = interpolatePalette(paletteForTheme(scene.palettes, scene.themePalettes, options.theme), this.time)
     this.cyclePaletteBuffer = new Array(this.palette.length)
@@ -48,6 +48,7 @@ export class SceneRenderer {
 
   setPalette(time: TimeOfDay | number = this.time, tone: ToneMap = this.tone): void {
     this.time = time
+    this.ctx.time = time
     this.tone = tone
     this.palette = interpolatePalette(paletteForTheme(this.scene.palettes, this.scene.themePalettes, this.options.theme), time)
     this.lut = writeLut(this.palette, tone, this.lut)
@@ -55,6 +56,7 @@ export class SceneRenderer {
 
   render(t = 0, dt = 0, activity = 0): Uint32Array {
     this.indexed.set(this.base)
+    this.ctx.time = this.time
     this.scene.frame(this.ctx, t, dt, activity)
     if (this.scene.cycles?.length) {
       cyclePalette(this.palette, this.scene.cycles, t, this.cyclePaletteBuffer)

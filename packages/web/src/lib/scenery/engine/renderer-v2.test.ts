@@ -24,6 +24,19 @@ describe('v2 renderer palette API', () => {
     expect(first.render(0)[0]).not.toBe(first.render(1)[0])
   })
 
+  it('forwards the resolved palette time to frame effects', () => {
+    const times: (string | number)[] = []
+    const timedScene: SceneDef = {
+      ...scene,
+      frame(ctx) { times.push(ctx.time) },
+    }
+    const renderer = new SceneRenderer(timedScene, { width: 32, height: 18, time: 'dawn' })
+    renderer.render()
+    renderer.setPalette('night')
+    renderer.render()
+    expect(times).toEqual(['dawn', 'night'])
+  })
+
   it('keeps the 480×270 fixture core p95 within the P0 budget', () => {
     const renderer = new SceneRenderer(fixture, { width: 480, height: 270, seed: 42 })
     for (let frame = 0; frame < 12; frame++) renderer.render(frame / 12, 1 / 12)

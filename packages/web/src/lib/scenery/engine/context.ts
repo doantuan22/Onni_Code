@@ -4,9 +4,9 @@ import { createMask } from './layers'
 import type { NoiseAtlas } from './noise'
 import { mulberry32 } from './rng'
 import { ridge } from './terrain'
-import type { BuildCtx, FrameCtx, LayerSpec, Mask, SpriteSheet } from './types'
+import type { BuildCtx, FrameCtx, LayerSpec, Mask, SpriteSheet, TimeOfDay } from './types'
 
-export function createContext(width: number, height: number, seed: number, base: Uint8Array, buffer: Uint8Array, noise: NoiseAtlas): FrameCtx {
+export function createContext(width: number, height: number, seed: number, base: Uint8Array, buffer: Uint8Array, noise: NoiseAtlas, time: TimeOfDay | number = 'day'): FrameCtx {
   let activeMask: Mask | undefined
   const px = (x: number, y: number, index: number): void => {
     x = Math.floor(x)
@@ -22,7 +22,7 @@ export function createContext(width: number, height: number, seed: number, base:
     }
   }
   const ctx: FrameCtx = {
-    width, height, aspect: width / height, seed, base, buffer, frame: buffer,
+    width, height, aspect: width / height, seed, base, buffer, frame: buffer, time,
     rng: mulberry32(seed), px, rect, dither,
     ridge: (options) => ridge(width, noise, options),
     fbm1: (x) => noise.sample(x, 0),

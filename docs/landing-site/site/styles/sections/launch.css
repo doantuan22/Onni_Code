@@ -1,1 +1,456 @@
-/* section: launch — scoped under #launch; see site/README.md and ../../05-plan.md */
+/* ==========================================================================
+   Section 09: Desktop & CLI (#launch)
+   Creative Direction: "Parallel Light"
+   Contract: docs/landing-site/site/README.md & 04-review.md
+   ========================================================================== */
+
+#launch {
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+}
+
+#launch .launch__cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
+/* ---------- Cards: Desktop & CLI ---------- */
+
+#launch .launch__card {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+#launch .launch__card:hover {
+  transform: translateY(-2px);
+}
+
+#launch .launch__card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+#launch .launch__card-title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+#launch .launch__card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  background-color: var(--muted);
+  border: 1px solid var(--border);
+  color: var(--violet);
+}
+
+#launch .launch__card-title {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+#launch .launch__card-tagline {
+  font-size: var(--text-sm);
+  color: var(--violet);
+  font-weight: 500;
+  margin-bottom: var(--space-3);
+}
+
+#launch .launch__card-desc {
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+  color: var(--muted-foreground);
+  margin-bottom: var(--space-5);
+  flex-grow: 1;
+}
+
+/* Desktop App Card specifics */
+
+#launch .launch__card-features {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-5);
+  font-size: var(--text-xs);
+}
+
+#launch .launch__feature-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#launch .launch__feature-key {
+  color: var(--soft-foreground);
+}
+
+#launch .launch__feature-val {
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+/* CLI Card specifics */
+
+#launch .launch__cli-terminal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-5);
+  font-size: var(--text-xs);
+}
+
+#launch .launch__cli-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+#launch .launch__cli-prompt {
+  color: var(--violet);
+  user-select: none;
+}
+
+#launch .launch__cli-cmd {
+  color: var(--foreground);
+}
+
+#launch .launch__cli-comment {
+  color: var(--soft-foreground);
+  font-size: var(--text-2xs);
+  margin-left: auto;
+}
+
+/* Card CTA Action */
+
+#launch .launch__card-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: auto;
+}
+
+#launch .launch__cta-btn {
+  gap: var(--space-2);
+  padding-inline: var(--space-5);
+}
+
+#launch .launch__card-note {
+  font-size: var(--text-2xs);
+  color: var(--soft-foreground);
+}
+
+/* ---------- Command Block with Copy & Boot Log ---------- */
+
+#launch .launch__terminal-box {
+  margin-bottom: var(--space-10);
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  background-color: var(--card-2);
+}
+
+#launch .launch__terminal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+#launch .launch__terminal-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+
+#launch .launch__terminal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--done);
+  box-shadow: 0 0 8px var(--done);
+}
+
+#launch .launch__command-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  background-color: var(--background);
+  border: 1px solid var(--border);
+}
+
+#launch .launch__command-prefix {
+  color: var(--violet);
+  font-weight: 700;
+  user-select: none;
+}
+
+#launch .launch__command-code {
+  color: var(--foreground);
+  font-size: var(--text-base);
+  flex-grow: 1;
+}
+
+#launch .launch__copy-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--muted);
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+#launch .launch__copy-button:hover {
+  background-color: var(--card);
+  color: var(--foreground);
+  border-color: color-mix(in srgb, var(--violet) 45%, var(--border));
+}
+
+#launch .launch__copy-icon,
+#launch .launch__check-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out);
+}
+
+#launch .launch__check-icon {
+  display: none;
+}
+
+#launch .launch__copy-button.is-copied {
+  border-color: color-mix(in srgb, var(--done) 50%, var(--border));
+  color: var(--done);
+  background-color: color-mix(in srgb, var(--done) 10%, transparent);
+}
+
+#launch .launch__copy-button.is-copied .launch__copy-icon {
+  display: none;
+}
+
+#launch .launch__copy-button.is-copied .launch__check-icon {
+  display: inline-flex;
+  animation: check-spring 180ms var(--ease-spring) forwards;
+}
+
+@keyframes check-spring {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 2-line boot log */
+
+#launch .launch__boot-log {
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  background-color: color-mix(in srgb, var(--background) 90%, #000000);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  font-size: var(--text-xs);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+#launch .launch__log-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  color: var(--muted-foreground);
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+#launch .launch__log-line:first-child .launch__log-text {
+  color: var(--done);
+}
+
+#launch .launch__log-line:last-child .launch__log-text {
+  color: var(--foreground);
+}
+
+#launch .launch__log-arrow {
+  color: var(--violet);
+  font-weight: 700;
+  user-select: none;
+}
+
+/* ---------- Pixel Horizon Dawn Scenery ---------- */
+
+#launch .launch__horizon-container {
+  --dawn-p: 0;
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background-color: var(--card);
+}
+
+#launch .launch__horizon-frame {
+  position: relative;
+  width: 100%;
+  height: clamp(200px, 28vw, 320px);
+  overflow: hidden;
+  background-color: #0d0d12;
+}
+
+#launch .launch__horizon-img {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
+  transform: scale(1.02);
+  filter:
+    brightness(calc(0.72 + var(--dawn-p, 0) * 0.48))
+    contrast(calc(0.95 + var(--dawn-p, 0) * 0.18));
+  transition: filter var(--duration-fast) linear;
+}
+
+#launch .launch__horizon-dawn-wash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 100%,
+    rgba(251, 191, 36, calc(var(--dawn-p, 0) * 0.18)),
+    rgba(188, 154, 255, calc(var(--dawn-p, 0) * 0.12)),
+    transparent 72%
+  );
+  pointer-events: none;
+  mix-blend-mode: screen;
+  transition: opacity var(--duration-fast) linear;
+}
+
+#launch .launch__horizon-vignette {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 65%,
+    color-mix(in srgb, var(--card) 85%, transparent) 100%
+  );
+  pointer-events: none;
+}
+
+#launch .launch__horizon-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  background-color: var(--card);
+  border-top: 1px solid var(--border);
+  font-size: var(--text-xs);
+  color: var(--soft-foreground);
+}
+
+#launch .launch__horizon-location {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+#launch .launch__horizon-coord {
+  color: var(--muted-foreground);
+}
+
+#launch .launch__horizon-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--foreground);
+}
+
+/* ---------- Responsive Breakpoints ---------- */
+
+@media (max-width: 840px) {
+  #launch .launch__cards-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+}
+
+@media (max-width: 640px) {
+  #launch .launch__command-row {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  #launch .launch__copy-button {
+    margin-left: auto;
+  }
+
+  #launch .launch__command-code {
+    font-size: var(--text-sm);
+  }
+
+  #launch .launch__horizon-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+}
+
+@media (max-width: 390px) {
+  #launch .launch__card {
+    padding: var(--space-4);
+  }
+
+  #launch .launch__terminal-box {
+    padding: var(--space-4);
+  }
+
+  #launch .launch__card-action {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+
+  #launch .launch__card-note {
+    text-align: center;
+  }
+}

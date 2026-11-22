@@ -1,1 +1,494 @@
-/* section: local — scoped under #local; see site/README.md and ../../05-plan.md */
+/* ==========================================================================
+   Section 08: Local-First & Zero Config (#local)
+   Creative Direction: "Parallel Light"
+   Contract: docs/landing-site/site/README.md & 04-review.md
+   ========================================================================== */
+
+#local {
+  --peel-ratio: var(--p, 0);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+}
+
+:root:not(.js-ready) #local {
+  --peel-ratio: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #local {
+    --peel-ratio: 1 !important;
+  }
+}
+
+#local .local__container {
+  display: flex;
+  flex-direction: column;
+}
+
+#local .local__grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(360px, 1.25fr);
+  gap: var(--space-8);
+  align-items: center;
+  margin-top: var(--space-4);
+}
+
+/* ---------- Left column: Checklist ---------- */
+
+#local .local__checklist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+}
+
+#local .local__checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background-color: var(--card-2);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+#local .local__checklist-item:hover {
+  border-color: color-mix(in srgb, var(--violet) 40%, var(--border));
+  transform: translateX(2px);
+}
+
+#local .local__check-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  color: var(--done);
+}
+
+#local .local__checklist-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+#local .local__checklist-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--foreground);
+  line-height: var(--leading-tight);
+}
+
+#local .local__checklist-desc {
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  color: var(--muted-foreground);
+}
+
+#local .local__checklist-desc code {
+  color: var(--foreground);
+  font-size: var(--text-xs);
+  padding: 0.1rem 0.35rem;
+  background: var(--muted);
+  border-radius: var(--radius-xs);
+}
+
+/* ---------- Right column: Machine Boundary & Isometric Planes ---------- */
+
+#local .local__diagram-col {
+  position: relative;
+  width: 100%;
+}
+
+#local .local__machine-boundary {
+  position: relative;
+  border: 1px dashed color-mix(in srgb, var(--violet) 45%, var(--border));
+  border-radius: var(--radius-xl);
+  padding: var(--space-6) var(--space-5) var(--space-4);
+  background: color-mix(in srgb, var(--card) 65%, transparent);
+  box-shadow: 0 0 32px rgba(0, 0, 0, 0.25);
+  overflow: visible;
+}
+
+#local .local__machine-badge {
+  position: absolute;
+  top: -12px;
+  left: var(--space-6);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.2rem 0.65rem;
+  background: var(--surface-1);
+  border: 1px solid color-mix(in srgb, var(--violet) 50%, var(--border));
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  color: var(--violet);
+  box-shadow: 0 0 10px var(--violet-soft);
+  z-index: 10;
+}
+
+#local .local__machine-icon {
+  display: inline-flex;
+  color: var(--violet);
+}
+
+#local .local__machine-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--done);
+  box-shadow: 0 0 6px var(--done);
+}
+
+#local .local__machine-status {
+  color: var(--muted-foreground);
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+}
+
+/* 3D Isometric Viewport */
+
+#local .local__iso-wrapper {
+  position: relative;
+  perspective: 1200px;
+  perspective-origin: 50% 45%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 440px;
+  padding-block: var(--space-4);
+}
+
+#local .local__iso-stage {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  height: 280px;
+  transform-style: preserve-3d;
+  transform: rotateX(55deg) rotateZ(-35deg);
+  will-change: transform;
+}
+
+/* Individual Planes */
+
+#local .local__plane {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  background-color: var(--card);
+  backface-visibility: hidden;
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+#local .local__plane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+#local .local__plane-badge-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+#local .local__plane-sub {
+  font-size: var(--text-2xs);
+  color: var(--muted-foreground);
+}
+
+#local .local__plane-tag {
+  font-size: var(--text-2xs);
+  color: var(--soft-foreground);
+}
+
+#local .local__plane-window-dots {
+  display: flex;
+  gap: 4px;
+}
+
+#local .local__plane-window-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--border);
+}
+
+#local .local__plane-window-dots span:nth-child(1) {
+  background: color-mix(in srgb, var(--danger) 70%, var(--border));
+}
+#local .local__plane-window-dots span:nth-child(2) {
+  background: color-mix(in srgb, var(--pending) 70%, var(--border));
+}
+#local .local__plane-window-dots span:nth-child(3) {
+  background: color-mix(in srgb, var(--done) 70%, var(--border));
+}
+
+/* Plane 1: Cockpit UI (Top plane) */
+
+#local .local__plane--ui {
+  z-index: 3;
+  background-color: color-mix(in srgb, var(--card) 95%, #18181b);
+  border-color: color-mix(in srgb, var(--violet) 35%, var(--border));
+  transform: translate3d(
+    calc(var(--peel-ratio, 0) * -12px),
+    calc(var(--peel-ratio, 0) * -65px),
+    calc(25px + var(--peel-ratio, 0) * 85px)
+  );
+  box-shadow:
+    0 calc(10px + var(--peel-ratio, 0) * 18px) calc(20px + var(--peel-ratio, 0) * 25px) rgba(0, 0, 0, 0.45),
+    0 0 0 1px color-mix(in srgb, var(--violet) 25%, transparent);
+}
+
+#local .local__ui-mockup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+#local .local__ui-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--text-2xs);
+  color: var(--muted-foreground);
+}
+
+#local .local__ui-run-id {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--foreground);
+}
+
+#local .local__ui-task-title {
+  color: var(--foreground);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#local .local__ui-chip {
+  color: var(--done);
+  border-color: color-mix(in srgb, var(--done) 35%, var(--border));
+}
+
+#local .local__ui-tabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  font-size: var(--text-2xs);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--space-1);
+}
+
+#local .local__ui-tab {
+  color: var(--muted-foreground);
+  padding-bottom: 2px;
+}
+
+#local .local__ui-tab.is-active {
+  color: var(--violet);
+  border-bottom: 2px solid var(--violet);
+  font-weight: 600;
+}
+
+/* Plane 2: /api/v1 contract (Middle plane) */
+
+#local .local__plane--api {
+  z-index: 2;
+  background-color: var(--card-2);
+  border-color: var(--border);
+  transform: translate3d(0, 0, 0);
+  box-shadow: 0 calc(6px + var(--peel-ratio, 0) * 12px) calc(14px + var(--peel-ratio, 0) * 20px) rgba(0, 0, 0, 0.35);
+}
+
+#local .local__api-routes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--text-2xs);
+}
+
+#local .local__api-route {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.25rem var(--space-2);
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--muted) 45%, transparent);
+}
+
+#local .local__method {
+  font-weight: 700;
+  padding: 0.1rem 0.3rem;
+  border-radius: var(--radius-xs);
+  font-size: 10px;
+  line-height: 1;
+}
+
+#local .local__method--get {
+  background: color-mix(in srgb, var(--info) 18%, transparent);
+  color: var(--info);
+}
+
+#local .local__method--ws {
+  background: color-mix(in srgb, var(--violet) 22%, transparent);
+  color: var(--violet);
+}
+
+#local .local__method--post {
+  background: color-mix(in srgb, var(--done) 18%, transparent);
+  color: var(--done);
+}
+
+#local .local__path {
+  color: var(--foreground);
+}
+
+#local .local__contract-type {
+  color: var(--soft-foreground);
+  margin-left: auto;
+  font-size: 10px;
+}
+
+/* Plane 3: Plain files (Bottom plane) */
+
+#local .local__plane--files {
+  z-index: 1;
+  background-color: var(--card);
+  border-color: var(--border);
+  transform: translate3d(
+    calc(var(--peel-ratio, 0) * 12px),
+    calc(var(--peel-ratio, 0) * 65px),
+    calc(-25px - var(--peel-ratio, 0) * 85px)
+  );
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+#local .local__file-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  font-size: var(--text-2xs);
+}
+
+#local .local__file-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.2rem var(--space-1);
+  border-radius: var(--radius-xs);
+}
+
+#local .local__file-item:hover {
+  background: color-mix(in srgb, var(--muted) 65%, transparent);
+}
+
+#local .local__file-icon {
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+#local .local__file-name {
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+#local .local__file-desc {
+  color: var(--muted-foreground);
+  margin-left: auto;
+  font-size: 10px;
+}
+
+/* Machine footer metadata */
+
+#local .local__machine-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px dashed color-mix(in srgb, var(--border) 75%, transparent);
+  font-size: var(--text-2xs);
+  color: var(--soft-foreground);
+}
+
+/* ---------- Responsive Breakpoints ---------- */
+
+@media (max-width: 960px) {
+  #local .local__grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+
+  #local .local__iso-wrapper {
+    min-height: 380px;
+  }
+
+  #local .local__iso-stage {
+    max-width: 400px;
+    height: 260px;
+    transform: scale(0.9) rotateX(55deg) rotateZ(-35deg);
+  }
+}
+
+@media (max-width: 640px) {
+  #local .local__iso-wrapper {
+    min-height: 340px;
+    perspective: 900px;
+  }
+
+  #local .local__iso-stage {
+    max-width: 340px;
+    height: 240px;
+    transform: scale(0.76) rotateX(55deg) rotateZ(-35deg);
+  }
+
+  #local .local__machine-boundary {
+    padding: var(--space-5) var(--space-3) var(--space-3);
+  }
+
+  #local .local__contract-type,
+  #local .local__file-desc {
+    display: none;
+  }
+}
+
+@media (max-width: 390px) {
+  #local .local__iso-stage {
+    max-width: 300px;
+    height: 230px;
+    transform: scale(0.66) rotateX(55deg) rotateZ(-35deg);
+  }
+
+  #local .local__plane {
+    padding: var(--space-3);
+  }
+
+  #local .local__machine-footer {
+    flex-wrap: wrap;
+    gap: var(--space-1);
+    font-size: 10px;
+  }
+}

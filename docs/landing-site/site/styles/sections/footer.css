@@ -1,1 +1,99 @@
-/* section: footer — scoped under #footer; see site/README.md and ../../05-plan.md */
+/* ==========================================================================
+   Section: Footer (#footer)
+   Creative Direction: "Parallel Light"
+   Contract: docs/landing-site/site/README.md & 04-review.md
+   ========================================================================== */
+
+#footer,
+.site-footer {
+  padding-block: var(--space-12);
+  border-top: 1px solid var(--border);
+  background-color: var(--sidebar);
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+}
+
+#footer .site-footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+#footer .site-footer__brand-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+#footer .site-footer__tagline {
+  font-size: var(--text-xs);
+  color: var(--soft-foreground);
+  max-width: 44ch;
+  line-height: var(--leading-normal);
+}
+
+#footer .site-footer__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-xs);
+}
+
+#footer .site-footer__sep {
+  color: var(--border);
+  user-select: none;
+}
+
+#footer .site-footer__back-to-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background-color: var(--card);
+  color: var(--foreground);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+#footer .site-footer__back-to-top:hover {
+  background-color: var(--card-2);
+  border-color: color-mix(in srgb, var(--violet) 55%, var(--border));
+  color: var(--violet);
+  transform: translateY(-1px);
+}
+
+#footer .site-footer__arrow {
+  color: var(--violet);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+#footer .site-footer__back-to-top:hover .site-footer__arrow {
+  transform: translateY(-2px);
+}
+
+/* ---------- Responsive Breakpoints ---------- */
+
+@media (max-width: 768px) {
+  #footer .site-footer__inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-5);
+  }
+
+  #footer .site-footer__meta {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  #footer .site-footer__back-to-top {
+    margin-top: var(--space-1);
+  }
+}

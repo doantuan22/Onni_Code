@@ -71,7 +71,7 @@ export function createLut(palette: Palette, options: ToneMap = {}): Uint32Array 
 }
 
 /** Writes a reusable 32-entry LUT; render loops must not allocate a LUT for cycling. */
-export function writeLut(palette: Palette, options: ToneMap = {}, target = new Uint32Array(32)): Uint32Array {
+export function writeLut(palette: Palette, options: ToneMap = {}, target: Uint32Array = new Uint32Array(32)): Uint32Array {
   if (target.length !== 32) throw new RangeError('LUTs require exactly 32 entries')
   validatePalette(palette)
   for (let index = 0; index < 32; index++) {

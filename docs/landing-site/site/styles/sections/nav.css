@@ -33,13 +33,13 @@
   gap: var(--space-4);
 }
 
-/* ---------- Brand Lockup (assets/brand/onni-lockup.svg) ---------- */
+/* ---------- Brand Mark + Chakra Petch 600 "onni" Wordmark on Dark Bar ---------- */
 
 #nav .nav__brand {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: 4px 6px 4px 4px;
+  gap: 10px;
+  padding: 4px 8px 4px 4px;
   border-radius: var(--radius);
   transition: background-color var(--duration-fast) var(--ease-out);
 }
@@ -48,46 +48,22 @@
   background-color: var(--card-2);
 }
 
-#nav .nav__lockup-plate {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 24px;
-  padding-inline: 6px;
-  border-radius: var(--radius-sm);
-  background-color: var(--brand-tile, #ffffff);
-  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-  box-shadow: var(--shadow-xs);
-}
-
-#nav .nav__lockup-img {
-  width: 67px;
-  height: 16px;
+#nav .nav__mark {
+  width: 20px;
+  height: 20px;
   display: block;
+  flex-shrink: 0;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
 
 #nav .nav__wordmark {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-}
-
-#nav .nav__local-pill {
-  display: inline-flex;
-  align-items: center;
-  height: 20px;
-  padding-inline: 6px;
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--border);
-  background-color: var(--card);
-  color: var(--muted-foreground);
-  font-size: var(--text-2xs);
-  letter-spacing: 0.04em;
+  font-family: var(--brand);
+  font-weight: 600;
+  font-size: 1.125rem;
+  line-height: 1;
+  letter-spacing: 0.015em;
+  color: var(--foreground);
 }
 
 /* ---------- Anchor Links (Worktrees · Live · Orchestration · Local) ---------- */
@@ -214,10 +190,6 @@
     flex-wrap: wrap;
     padding-block: 8px;
     row-gap: 6px;
-  }
-
-  #nav .nav__local-pill {
-    display: none;
   }
 
   #nav .nav__links {

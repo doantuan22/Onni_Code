@@ -46,17 +46,17 @@
       <header id="nav" class="site-header" data-scrolled="false">
         <div class="container site-header__inner nav__inner">
           <a href="#hero" class="site-header__brand nav__brand" aria-label="OnniCode home">
-            <span class="nav__lockup-plate">
-              <img
-                src="assets/brand/onni-lockup.svg"
-                alt="onni"
-                width="67"
-                height="16"
-                class="nav__lockup-img pixelated"
-              />
-            </span>
-            <span class="wordmark nav__wordmark" aria-hidden="true">onni</span>
-            <span class="nav__local-pill mono">local</span>
+            <img
+              src="assets/brand/onni-mark-dark.svg"
+              data-scene="onni-mark"
+              data-src-dark="assets/brand/onni-mark-dark.svg"
+              data-src-light="assets/brand/onni-mark.svg"
+              alt=""
+              width="20"
+              height="20"
+              class="nav__mark pixelated"
+            />
+            <span class="wordmark nav__wordmark">onni</span>
           </a>
 
           <nav class="site-header__nav nav__links" aria-label="Primary sections">
@@ -121,7 +121,7 @@
           data-stage
           data-steps="4"
           data-boot-state="settled"
-          style="--stage-h: 138vh"
+          style="--stage-h: 136vh"
           aria-labelledby="hero-title"
         >
           <div class="stage__sticky hero__sticky">
@@ -134,93 +134,42 @@
             </div>
 
             <div class="container hero__container">
-              <!-- 0.0-0.4s: Cockpit boot splash hairline bar (mark breathe + 1px violet bar) -->
-              <div class="hero__boot-bar" role="status" aria-label="OnniCode local engine status">
-                <div class="hero__boot-brand">
-                  <span class="hero__boot-mark-wrap">
-                    <img
-                      src="assets/brand/onni-mark.svg"
-                      alt=""
-                      width="16"
-                      height="16"
-                      class="hero__boot-mark pixelated"
-                    />
-                  </span>
-                  <span class="wordmark hero__boot-word">onni</span>
-                  <span class="hero__boot-sep" aria-hidden="true">/</span>
-                  <span class="mono hero__boot-bus">ws://127.0.0.1:4321/api/v1/ws</span>
+              <!-- Copy + Two CTAs (Full-width 2-line headline + subline/CTA row below) -->
+              <header class="section__header hero__header">
+                <div class="hero__eyebrow-row">
+                  <span class="hero__spine-tap" aria-hidden="true"></span>
+                  <p class="eyebrow hero__eyebrow">
+                    <span class="eyebrow__index hero__index-box" data-index="01">01</span>
+                    <span>Local AI Coding Cockpit</span>
+                  </p>
                 </div>
-                <div class="hero__boot-track" aria-hidden="true">
-                  <span class="hero__boot-fill"></span>
-                </div>
-                <div class="hero__boot-meta">
-                  <span class="mono hero__boot-state" data-hero-boot-label>cockpit ready</span>
-                  <button
-                    type="button"
-                    class="hero__replay-btn mono"
-                    data-hero-replay
-                    aria-label="Replay 3-second cockpit boot sequence"
-                  >
-                    ↻ replay boot
-                  </button>
-                </div>
-              </div>
 
-              <!-- Copy + Pinned Stage Controls -->
-              <div class="hero__top-grid">
-                <header class="section__header hero__header">
-                  <div class="hero__eyebrow-row">
-                    <span class="hero__spine-tap" aria-hidden="true"></span>
-                    <p class="eyebrow hero__eyebrow">
-                      <span class="eyebrow__index hero__index-box" data-index="01">01</span>
-                      <span>Local AI Coding Cockpit</span>
-                    </p>
-                  </div>
+                <h1 id="hero-title" class="hero__title">
+                  <span class="hero__title-line hero__title-line--1">One repository.</span>
+                  <span class="hero__title-line hero__title-line--2">Room for many agents.</span>
+                </h1>
 
-                  <h1 id="hero-title" class="hero__title">
-                    <span class="hero__title-line hero__title-line--1">One repository.</span>
-                    <span class="hero__title-line hero__title-line--2">Room for many agents.</span>
-                  </h1>
-
+                <div class="hero__lead-row">
                   <p class="section__subline hero__subline">
                     A local cockpit for AI coding agents. Every task in its own git worktree,
                     streamed live, merged only by you.
                   </p>
-                </header>
 
-                <div class="hero__controls">
                   <div class="hero__cta-row">
                     <a href="#launch" class="btn btn-primary hero__cta-primary">
                       Sit down at the cockpit
                     </a>
-                    <a href="#gate" class="btn btn-ghost">Review gate</a>
-                  </div>
-
-                  <div
-                    class="stage__steps hero__step-pills"
-                    role="tablist"
-                    aria-label="Hero stage playhead steps"
-                  >
-                    <button type="button" class="chip" data-step-target="0" aria-current="true">
-                      01 · Boot &amp; prompt
-                    </button>
-                    <button type="button" class="chip" data-step-target="1" aria-current="false">
-                      02 · Worktree 3f2a91c4
-                    </button>
-                    <button type="button" class="chip" data-step-target="2" aria-current="false">
-                      03 · Manager + 3 workers
-                    </button>
-                    <button type="button" class="chip" data-step-target="3" aria-current="false">
-                      04 · Signal Spine bus
-                    </button>
+                    <a href="#gate" class="btn btn-ghost hero__cta-ghost">
+                      See the review gate
+                    </a>
                   </div>
                 </div>
-              </div>
+              </header>
 
-              <!-- Focal Stage: Pixel-art Window Backdrop + Tilted Cockpit Twin -->
+              <!-- Single Focal Stage: Framed Pixel-Art Backdrop Window BEHIND the Tilted Cockpit Twin -->
               <div class="hero__deck">
-                <!-- Studio window behind the cockpit twin with theme-reactive pixel scenery -->
-                <div class="hero__window">
+                <!-- Studio window behind the cockpit twin (offset up/right, partially covered, lower opacity) -->
+                <div class="hero__window" aria-hidden="true">
                   <div class="hero__window-bar mono">
                     <span class="hero__window-title">window · scenery/vn-halong</span>
                     <span class="hero__window-coords">local studio · no cloud</span>
@@ -229,12 +178,12 @@
                     <img
                       src="assets/scenery/vn-halong-dark.png"
                       data-scene="vn-halong"
-                      alt="Pixel-art Halong Bay night and daylight horizon behind the OnniCode cockpit"
+                      alt=""
                       width="320"
                       height="180"
                       class="pixelated hero__window-img"
                     />
-                    <div class="hero__window-vignette" aria-hidden="true"></div>
+                    <div class="hero__window-vignette"></div>
                   </div>
                 </div>
 
@@ -244,17 +193,29 @@
                     class="hairline-card hero__twin"
                     aria-label="OnniCode live cockpit twin running task Split the settings page into tabs and add tests"
                   >
-                    <!-- Twin Top Window Chrome -->
+                    <!-- Twin Top Window Chrome (Merged with 0.0-0.4s boot bar & compact step indicator) -->
                     <div class="twin__chrome">
                       <div class="twin__chrome-left">
                         <span class="twin__dots" aria-hidden="true">
                           <i></i><i></i><i></i>
                         </span>
+                        <span class="twin__boot-mark-wrap">
+                          <img
+                            src="assets/brand/onni-mark-dark.svg"
+                            data-scene="onni-mark-twin"
+                            data-src-dark="assets/brand/onni-mark-dark.svg"
+                            data-src-light="assets/brand/onni-mark.svg"
+                            alt=""
+                            width="15"
+                            height="15"
+                            class="twin__boot-mark pixelated"
+                          />
+                        </span>
                         <span class="wordmark twin__app-title">onni</span>
                         <span class="mono twin__repo-path">repo: onnicode · main</span>
                       </div>
 
-                      <!-- 2.2-3.0s: Status dot turns green + worktree badge prints -->
+                      <!-- 2.2-3.0s: Status dot turns green + worktree badge prints + boot state -->
                       <div class="twin__worktree-badge mono" data-hero-worktree-badge>
                         <span
                           class="led led--done twin__status-led"
@@ -264,6 +225,8 @@
                         <span class="twin__worktree-path">
                           .ai/onni/worktrees/3f2a91c4 · onni/3f2a91c4
                         </span>
+                        <span class="twin__boot-sep" aria-hidden="true">·</span>
+                        <span class="twin__boot-state" data-hero-boot-label>cockpit ready</span>
                       </div>
 
                       <div class="twin__chrome-right mono">
@@ -271,7 +234,69 @@
                           <span class="twin__bus-dot" aria-hidden="true"></span>
                           /api/v1/ws
                         </span>
-                        <span class="twin__gate-pill">gate: manual</span>
+
+                        <!-- Tiny in-twin step progress indicator -->
+                        <div
+                          class="twin__steps"
+                          role="tablist"
+                          aria-label="Hero stage playhead steps"
+                        >
+                          <button
+                            type="button"
+                            class="twin__step-pip"
+                            data-step-target="0"
+                            aria-current="true"
+                            aria-label="Step 1: Boot and prompt"
+                            title="01 · Boot & prompt"
+                          >
+                            1
+                          </button>
+                          <button
+                            type="button"
+                            class="twin__step-pip"
+                            data-step-target="1"
+                            aria-current="false"
+                            aria-label="Step 2: Worktree 3f2a91c4"
+                            title="02 · Worktree 3f2a91c4"
+                          >
+                            2
+                          </button>
+                          <button
+                            type="button"
+                            class="twin__step-pip"
+                            data-step-target="2"
+                            aria-current="false"
+                            aria-label="Step 3: Manager and 3 workers"
+                            title="03 · Manager + 3 workers"
+                          >
+                            3
+                          </button>
+                          <button
+                            type="button"
+                            class="twin__step-pip"
+                            data-step-target="3"
+                            aria-current="false"
+                            aria-label="Step 4: Signal Spine bus"
+                            title="04 · Signal Spine bus"
+                          >
+                            4
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          class="twin__replay-btn mono"
+                          data-hero-replay
+                          aria-label="Replay 3-second cockpit boot sequence"
+                          title="Replay 3-second boot sequence"
+                        >
+                          ↻
+                        </button>
+                      </div>
+
+                      <!-- 0.0-0.4s: 1px violet boot sweep bar integrated into twin title bar bottom -->
+                      <div class="twin__boot-track" aria-hidden="true">
+                        <span class="twin__boot-fill"></span>
                       </div>
                     </div>
 

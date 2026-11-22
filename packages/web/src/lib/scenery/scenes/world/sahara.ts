@@ -153,16 +153,19 @@ function drawSkyLayer(ctx: BuildCtx): void {
 
   ctx.layer({ kind: 'sky', z: 0, mask: skyMask }, () => {
     const horizonPx = Math.floor(h * 0.52)
+    const seam = Math.max(2, Math.round(h * 0.015))
     for (let y = 0; y < horizonPx; y++) {
-      const t = y / Math.max(1, horizonPx)
+      const first = Math.floor(horizonPx * 0.29)
+      const second = Math.floor(horizonPx * 0.57)
+      const third = Math.floor(horizonPx * 0.85)
       for (let x = 0; x < w; x++) {
         let idx: number
-        if (t < 0.25) idx = 0
-        else if (t < 0.33) idx = ctx.dither(x, y, (t - 0.25) / 0.08, 0, 1)
-        else if (t < 0.55) idx = 1
-        else if (t < 0.63) idx = ctx.dither(x, y, (t - 0.55) / 0.08, 1, 2)
-        else if (t < 0.82) idx = 2
-        else if (t < 0.90) idx = ctx.dither(x, y, (t - 0.82) / 0.08, 2, 3)
+        if (y < first - seam) idx = 0
+        else if (y <= first + seam) idx = ctx.dither(x, y, (y - first + seam) / (seam * 2 + 1), 0, 1)
+        else if (y < second - seam) idx = 1
+        else if (y <= second + seam) idx = ctx.dither(x, y, (y - second + seam) / (seam * 2 + 1), 1, 2)
+        else if (y < third - seam) idx = 2
+        else if (y <= third + seam) idx = ctx.dither(x, y, (y - third + seam) / (seam * 2 + 1), 2, 3)
         else idx = 3
         ctx.px(x, y, idx)
       }

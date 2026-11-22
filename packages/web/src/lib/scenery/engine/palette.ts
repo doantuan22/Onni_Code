@@ -5,6 +5,13 @@ export const TIME_ANCHORS: Readonly<Record<TimeOfDay, number>> = { dawn: 0.25, d
 export function resolveTime(time: TimeOfDay | number | 'auto' | undefined, date = new Date()): TimeOfDay | number | undefined {
   return time === 'auto' ? (date.getHours() * 60 + date.getMinutes()) / 1440 : time
 }
+/** 0 = full day, 1 = deep night; numeric time is a day fraction (0 = midnight). */
+export function darkness(time: TimeOfDay | number | undefined): number {
+  if (time === undefined) return 0
+  if (typeof time === 'string') return { night: 1, dusk: 0.7, dawn: 0.35, day: 0 }[time]
+  const t = ((time % 1) + 1) % 1
+  return clamp01(0.5 + 0.5 * Math.cos(t * Math.PI * 2))
+}
 const shifts = [16, 8, 0] as const
 export const channels = (color: number): number[] => shifts.map((shift) => (color >>> shift) & 255)
 

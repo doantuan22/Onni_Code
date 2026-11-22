@@ -82,6 +82,8 @@ export interface BuildCtx {
 
 export interface FrameCtx extends BuildCtx {
   readonly frame: Uint8Array
+  /** Resolved time of day for this frame (additive; see `darkness` in palette.ts). */
+  readonly time?: TimeOfDay | number
 }
 
 export interface SceneDef {

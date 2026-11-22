@@ -55,6 +55,7 @@ export class SceneRenderer {
 
   render(t = 0, dt = 0, activity = 0): Uint32Array {
     this.indexed.set(this.base)
+    ;(this.ctx as { time?: TimeOfDay | number }).time = this.time
     this.scene.frame(this.ctx, t, dt, activity)
     if (this.scene.cycles?.length) {
       cyclePalette(this.palette, this.scene.cycles, t, this.cyclePaletteBuffer)

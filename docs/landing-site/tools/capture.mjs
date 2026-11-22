@@ -35,7 +35,7 @@ const page = await ctx.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-if (light) await page.addInitScript(() => localStorage.setItem('onni-theme', 'light'));
+if (light) await page.addInitScript(() => localStorage.setItem('onni-landing-theme', 'light'));
 await page.goto(pathToFileURL(resolve(here, '../site/index.html')).href);
 if (light) await page.evaluate(() => { document.documentElement.dataset.theme = 'light'; });
 await page.waitForTimeout(3500); // let the hero boot finish

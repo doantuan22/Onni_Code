@@ -1038,3 +1038,12 @@
     transform: none !important;
   }
 }
+
+/* QA pass 2: keep the outflow caption inside a 390px viewport. */
+@media (max-width: 480px) {
+  #gate .gate-outflow__label {
+    max-width: calc(100vw - 48px);
+    white-space: normal;
+    text-align: center;
+  }
+}

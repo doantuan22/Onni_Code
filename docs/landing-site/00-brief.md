@@ -7,9 +7,11 @@ Everything for this project lives in `docs/landing-site/` (ideas, mockups, revie
 | `00-brief.md` | this brief (the product facts and the goal) |
 | `01-ideas/` | one concept proposal per worker |
 | `02-concept.md` | the merged creative direction |
-| `03-mockups/` | sketch images (round-1, round-2) + notes |
+| `03-mockups/` | round-1: generated mockup images + notes; round-2: captures of the HTML prototype |
 | `04-review.md` | evaluation of the mockups and the fixes asked for |
 | `05-plan.md` | implementation plan |
+| `06-qa.md` | browser QA passes and their fixes |
+| `tools/capture.mjs` | headless capture of the site (desktop / mobile / light / reduced motion) |
 | `site/` | the final static website (HTML/CSS/JS, no build step) |
 
 ## Goal

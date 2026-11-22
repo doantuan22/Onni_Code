@@ -593,6 +593,7 @@ describe('chat column layout', () => {
     expect(bubble.className).toContain('rounded-2xl')
     expect(bubble.className).toContain('self-end')
     expect(bubble.className).toContain('bg-muted/40')
+    expect(bubble.className).not.toContain('scene-reading-panel')
     expect(bubble.className).not.toContain('border-l-2')
     expect(bubble.textContent).not.toContain('You')
   })

@@ -397,60 +397,92 @@
   top: auto;
   bottom: var(--scene-dock-height, 0px);
   height: var(--scene-horizon-height, 36%);
-  /* A 25% sky fade leaves 75% of the Horizon strip visible above the dock. */
-  mask-image: linear-gradient(to top, black 75%, transparent);
+  /* 22% gentle exponential fade at the sky edge, leaving 78% of the Horizon strip at full opacity above the dock. */
+  mask-image: linear-gradient(
+    to top,
+    black 0%,
+    black 78%,
+    rgba(0, 0, 0, 0.6) 88%,
+    rgba(0, 0, 0, 0.15) 96%,
+    transparent 100%
+  );
 }
 
 /* Defined on the root, not on the backdrop: the panels are siblings of the backdrop, so
  * variables scoped to it never reached them (the protection rendered transparent). */
 :root {
-  /* The scene can contain a near-white snow rim or aurora. Keep all reading text on an
-   * almost-solid local surface rather than dimming the whole scene behind it. */
-  --scene-panel-alpha: 97%;
+  /* Scenery panel protection (D4-compliant: tint + 1px border, never backdrop-filter). */
+  --scene-panel-alpha: 92%;
   --scene-panel-surface: color-mix(in srgb, var(--background) var(--scene-panel-alpha), transparent);
-  --scene-panel-border: color-mix(in srgb, var(--border) 92%, var(--background));
+  --scene-panel-border: color-mix(in srgb, var(--border) 80%, var(--background));
+  --scene-panel-radius: var(--radius-xl);
 }
 
 :root.light {
-  --scene-panel-alpha: 98%;
+  --scene-panel-alpha: 94%;
+  --scene-panel-border: color-mix(in srgb, var(--border) 85%, var(--background));
 }
 
 /* Scenery stays full-strength in empty gutters. Text only sits on locally protected panels; this
  * replaces the former full-column scrim and its duplicate visibility reduction. */
 [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) .scene-reading-panel,
-[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) :is([data-slot='composer'], [data-slot='task-settings-panel']) {
+[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='task-settings-panel'],
+[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='thread-dock'][data-floating] [data-slot='composer'] {
   background-color: var(--scene-panel-surface);
   border-color: var(--scene-panel-border);
 }
 
-[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='thread-reading-lane'] {
-  border-inline: 1px solid var(--scene-panel-border);
-  border-radius: var(--radius-lg);
-}
-
-/* Horizon is an actual strip, not a barely-visible image beneath a full-height
- * transcript plate. Keep message-sized text surfaces protected and leave the
- * lane's empty space clear so the 36% strip can read above the dock. */
-[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready]) [data-slot='thread-reading-lane'] {
-  background-color: transparent;
-  border-color: transparent;
-}
-
-[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready])
-  :is([data-slot='assistant-message'], [data-slot='note-line'], [data-slot='history-start'], [data-slot='history-boundary'], [data-slot='thread-empty'], [data-slot='working-indicator'], [data-slot='thread-footer']) {
-  background-color: var(--scene-panel-surface);
-  border: 1px solid var(--scene-panel-border);
-  border-radius: var(--radius);
-  padding-inline: 0.75rem;
-}
-
 [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='new-task-main'] {
-  border: 1px solid var(--scene-panel-border);
-  border-radius: var(--radius-lg);
-  padding: 1.25rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+}
+
+/* Inside the unified /new reading card, the composer sits directly on the card surface without compounding alpha. */
+[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='new-task-main'] [data-slot='composer'] {
+  background-color: transparent;
+  border-color: var(--scene-panel-border);
+}
+
+/* Chat transcript: one continuous protected reading lane on desktop, shielding all text,
+ * timestamps, tool streaks, and reasoning uniformly while leaving side gutters clear for Horizon. */
+[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready]:not([data-narrow]))
+  [data-slot='thread-reading-lane'] {
+  background-color: var(--scene-panel-surface);
+  border-inline: 1px solid var(--scene-panel-border);
+  border-radius: var(--scene-panel-radius);
+  padding: 1rem 1.5rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+}
+
+/* Inside the protected lane, message items sit cleanly without nested duplicate card boxes. */
+[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready]:not([data-narrow]))
+  :is(
+    [data-slot='assistant-message'],
+    [data-slot='note-line'],
+    [data-slot='history-start'],
+    [data-slot='history-boundary'],
+    [data-slot='thread-empty'],
+    [data-slot='working-indicator'],
+    [data-slot='thread-footer'],
+    [data-slot='tool-streak'],
+    [data-slot='execution-details'],
+    [data-slot='reasoning'],
+    [data-slot='turn-time'],
+    [data-slot='day-separator']
+  ) {
+  background-color: transparent;
+  border: none;
+  padding-inline: 0;
+}
+
+/* User message bubbles keep their distinct shape inside the lane without duplicate panel alpha. */
+[data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready]:not([data-narrow]))
+  [data-slot='user-bubble'] {
+  background-color: color-mix(in srgb, var(--accent) 12%, var(--background));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='thread-dock']:not([data-floating]) {
+  background-color: var(--background);
   border-top: 1px solid var(--scene-panel-border);
 }
 
@@ -460,17 +492,35 @@
 }
 
 @media (max-width: 767px) {
-  /* A phone has no safe gutter for a translucent lane: freeze a small `/new` hero and make
-   * reading surfaces solid rather than forcing the desktop Horizon geometry onto the form. */
+  /* A phone has no safe gutter for a translucent lane: freeze a compact /new hero strip
+   * above a solid reading form, and disable scenery on mobile chat. */
   [data-slot='scene-backdrop'][data-surface='new'][data-narrow] > [data-slot='scene-layer'] {
     inset: 0 0 auto;
-    height: clamp(160px, 30vh, 200px);
-    mask-image: linear-gradient(to bottom, black 72%, transparent);
+    height: clamp(140px, 24vh, 180px);
+    mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+  }
+
+  [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='new'][data-narrow][data-ready])
+    [data-route='new'] {
+    padding-top: clamp(104px, 18vh, 144px);
+  }
+
+  [data-slot='scene-backdrop'][data-surface='chat'][data-narrow] {
+    display: none;
   }
 
   [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) .scene-reading-panel,
-  [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) :is([data-slot='composer'], [data-slot='task-settings-panel']) {
+  [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='task-settings-panel'],
+  [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-ready]) [data-slot='thread-dock'][data-floating] [data-slot='composer'] {
     background-color: var(--background);
+  }
+
+  [data-slot='app-content-column']:has(> [data-slot='scene-backdrop'][data-surface='chat'][data-ready])
+    [data-slot='thread-reading-lane'] {
+    background-color: var(--background);
+    border-inline: none;
+    border-radius: 0;
+    box-shadow: none;
   }
 }
 
@@ -492,6 +542,7 @@
   --radius: 6px; /* default control radius — no namespace suffix, so it makes no utility of its own */
   --radius-lg: 8px;
   --radius-xl: 10px;
+  --radius-2xl: 16px;
 
   /* Borders carry the separation; shadows exist only to lift overlays off the canvas. */
   --shadow-*: initial;

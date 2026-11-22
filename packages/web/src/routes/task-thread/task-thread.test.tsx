@@ -1978,3 +1978,30 @@ it('shows lifecycle recovery before agent activity and prevents misleading reply
   expect(screen.getByText('Resolve the worktree operation above before continuing this task.')).toBeTruthy()
   expect(screen.queryByRole('textbox')).toBeNull()
 })
+
+it('shields thread items inside one continuous thread-reading-lane while keeping the dock solid', () => {
+  const events: RunEvent[] = [
+    line(1, 'turn.started', { turnId: 'turn_1' }),
+    line(2, 'item.completed', {
+      item: { kind: 'tool', id: 't1', name: 'Read', toolKind: 'read', title: 'Read a.ts', status: 'completed' },
+    }),
+    line(3, 'item.completed', {
+      item: { kind: 'tool', id: 't2', name: 'Bash', toolKind: 'execute', title: 'Ran npm test', status: 'completed', output: 'ok' },
+    }),
+    line(4, 'item.completed', { item: { kind: 'reasoning', id: 'r1', text: 'Checking layout' } }),
+    line(5, 'item.completed', { item: { kind: 'message', id: 'm1', role: 'assistant', text: 'Done.' } }),
+    { ...line(6, 'turn.completed', { turnId: 'turn_1', stopReason: 'end_turn' }), ts: '2026-07-14T12:00:10.000Z' },
+  ]
+  renderView(<ThreadView run={run('done')} thread={reduceThread(events)} />)
+  const lane = document.querySelector('[data-slot="thread-reading-lane"]') as HTMLElement
+  expect(lane.className).toContain('scene-reading-panel')
+  expect(lane.contains(document.querySelector('[data-slot="tool-streak"]'))).toBe(true)
+  expect(lane.contains(document.querySelector('[data-slot="reasoning"]'))).toBe(true)
+  expect(lane.contains(document.querySelector('[data-slot="turn-time"]'))).toBe(true)
+  const bubble = document.querySelector('[data-slot="user-bubble"]') as HTMLElement
+  expect(lane.contains(bubble)).toBe(true)
+  expect(bubble.className).not.toContain('scene-reading-panel')
+  const dock = document.querySelector('[data-slot="thread-dock"]') as HTMLElement
+  expect(dock.className).toContain('bg-background')
+  expect(dock.className).not.toContain('scene-reading-panel')
+})

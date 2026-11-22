@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { Link, MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -158,5 +160,23 @@ describe('SceneBackdrop', () => {
     await act(async () => { resolveScene(await loadScene('vn-halong')) })
     expect(createHost).not.toHaveBeenCalled()
     expect(sceneCanvas()).toBeUndefined()
+  })
+
+  it('ships D4-compliant scenery integration CSS rules per R6', () => {
+    const rawCss = readFileSync(resolve(__dirname, '../styles/index.css'), 'utf8')
+    const css = rawCss.replace(/\/\*[\s\S]*?\*\//g, '')
+    expect(css).not.toContain('backdrop-filter')
+    expect(css).toContain('--scene-panel-alpha: 92%;')
+    expect(css).toContain('--scene-panel-alpha: 94%;')
+    expect(css).toContain('--radius-2xl: 16px;')
+    expect(css).toContain('black 78%')
+    expect(css).toContain("[data-slot='new-task-main'] [data-slot='composer']")
+    expect(css).toContain("[data-slot='scene-backdrop'][data-surface='chat'][data-ready]:not([data-narrow])")
+    expect(css).toContain("[data-slot='tool-streak']")
+    expect(css).toContain("[data-slot='execution-details']")
+    expect(css).toContain("[data-slot='reasoning']")
+    expect(css).toContain("[data-slot='turn-time']")
+    expect(css).toContain('height: clamp(140px, 24vh, 180px);')
+    expect(css).toContain("[data-slot='scene-backdrop'][data-surface='chat'][data-narrow]")
   })
 })

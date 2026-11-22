@@ -357,22 +357,13 @@ const tromso: SceneDef = {
       }
     }
 
-    // 2. Stars
-    for (const star of STARS) {
-      const sx = Math.floor(star.u * w)
-      const sy = Math.floor(star.v * h)
-      if (sy < horizonY - 4) {
-        ctx.px(sx, sy, star.bright ? 5 : 4)
-      }
-    }
-
-    // 3. Far Alpine Mountain Ridge
+    // 2. Far Alpine Mountain Ridge
     drawFarRidge(ctx)
 
-    // 4. Mid Mountain Ridge & Nordic Cabin
+    // 3. Mid Mountain Ridge & Nordic Cabin
     drawMidRidgeAndCabin(ctx)
 
-    // 5. Base Fjord Water
+    // 4. Base Fjord Water
     for (let y = horizonY; y < h; y++) {
       const depth = (y - horizonY) / Math.max(1, h - horizonY)
       for (let x = 0; x < w; x++) {
@@ -380,17 +371,17 @@ const tromso: SceneDef = {
       }
     }
 
-    // 6. Near Shoreline and Pier Posts
+    // 5. Near Shoreline and Pier Posts
     drawNearShore(ctx)
   },
 
   frame(ctx: FrameCtx, t: number): void {
     const { width: w, height: h } = ctx
     const horizonY = Math.floor(h * 0.65)
+    const auroraStrength = ctx.time === 'night' ? 1 : ctx.time === 'dusk' ? 0.75 : ctx.time === 'dawn' ? 0.08 : 0
 
-    // Effect 1: three separately phased hanging curtains. Their sparse, dithered
-    // vertical rays deliberately leave sky between them; the bright wavy hems make
-    // the form read as fabric rather than a filled scallop.
+    // Effect 1: Curtains belong to the dark sky; dawn keeps only a faint trace and
+    // daytime reserves this space for the clean winter sky.
     const auroraIntensityByX = new Uint8Array(w)
     const drawCurtain = (
       left: number,
@@ -418,7 +409,7 @@ const tromso: SceneDef = {
         const rayWave = (Math.sin(u * 91 + phase + drift * 3) + 1) * 0.5
         const shimmer = (Math.sin(u * 41 - t * 0.25 + phase) + 1) * 0.5
         const rayWidth = rayWave > 0.80 ? 2 : 1
-        const hasRay = edge > 0.22 && rayWave > 0.54
+        const hasRay = edge > 0.22 && rayWave > 0.54 + (1 - auroraStrength) * 0.40
 
         // 1–2px rays rise from the hem in four increasingly sparse value steps.
         if (hasRay) {
@@ -443,7 +434,7 @@ const tromso: SceneDef = {
 
         // The 2–4px brightest hem is continuous enough to bind the vertical rays.
         if (edge > 0.10) {
-          const hemThickness = 2 + Math.floor(shimmer * 2)
+          const hemThickness = Math.max(1, Math.round((2 + Math.floor(shimmer * 2)) * auroraStrength))
           for (let y = hemY - hemThickness; y <= hemY; y++) {
             if (y >= 0 && y < horizonY - 3) ctx.px(x, y, bodyInk)
           }
@@ -451,9 +442,11 @@ const tromso: SceneDef = {
         }
       }
     }
-    drawCurtain(0.18, 0.94, 0.2, 0.09, 0.36, 7, 8)
-    drawCurtain(0.25, 0.88, 2.1, 0.13, 0.31, 7, 9)
-    drawCurtain(0.12, 0.72, 4.4, 0.18, 0.42, 7, 8)
+    if (auroraStrength > 0) {
+      drawCurtain(0.18, 0.94, 0.2, 0.09, 0.36, 7, 8)
+      drawCurtain(0.25, 0.88, 2.1, 0.13, 0.31, 7, 9)
+      drawCurtain(0.12, 0.72, 4.4, 0.18, 0.42, 7, 8)
+    }
 
     // Effect 2: Natural Fjord Water Waves and Dynamic Aurora & Cabin Reflections
     for (let y = horizonY; y < h; y++) {
@@ -524,17 +517,19 @@ const tromso: SceneDef = {
       }
     }
 
-    // Effect 5: Twinkling Stars
-    const twinkleIndices = [0, 3, 6, 9, 14, 20]
-    const twinklePhase = Math.floor(t * 2)
-    for (const [idx, starIdx] of twinkleIndices.entries()) {
-      const star = STARS[starIdx]
-      if (!star) continue
-      const sx = Math.floor(star.u * w)
-      const sy = Math.floor(star.v * h)
-      if (sy < horizonY - 4) {
-        const pulse = (twinklePhase + idx) % 4 === 0
-        ctx.px(sx, sy, pulse ? 6 : (star.bright ? 5 : 4))
+    // Effect 5: Twinkling stars belong to the dusk/night sky.
+    if (ctx.time === 'dusk' || ctx.time === 'night') {
+      const twinkleIndices = [0, 3, 6, 9, 14, 20]
+      const twinklePhase = Math.floor(t * 2)
+      for (const [idx, starIdx] of twinkleIndices.entries()) {
+        const star = STARS[starIdx]
+        if (!star) continue
+        const sx = Math.floor(star.u * w)
+        const sy = Math.floor(star.v * h)
+        if (sy < horizonY - 4) {
+          const pulse = (twinklePhase + idx) % 4 === 0
+          ctx.px(sx, sy, pulse ? 6 : (star.bright ? 5 : 4))
+        }
       }
     }
   },

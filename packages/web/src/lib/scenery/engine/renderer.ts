@@ -37,9 +37,9 @@ export class SceneRenderer {
     this.indexed = new Uint8Array(width * height)
     this.rgba = new Uint32Array(width * height)
     const noise = createNoiseAtlas(seed)
-    scene.build(createContext(width, height, seed, this.base, this.base, noise))
-    this.ctx = createContext(width, height, seed, this.base, this.indexed, noise)
     this.time = options.time ?? scene.themeDefaultTime?.[options.theme ?? 'light'] ?? scene.defaultTime
+    scene.build(createContext(width, height, seed, this.base, this.base, noise, this.time))
+    this.ctx = createContext(width, height, seed, this.base, this.indexed, noise, this.time)
     this.tone = options
     this.palette = interpolatePalette(paletteForTheme(scene.palettes, scene.themePalettes, options.theme), this.time)
     this.cyclePaletteBuffer = new Array(this.palette.length)
@@ -48,6 +48,7 @@ export class SceneRenderer {
 
   setPalette(time: TimeOfDay | number = this.time, tone: ToneMap = this.tone): void {
     this.time = time
+    this.ctx.time = time
     this.tone = tone
     this.palette = interpolatePalette(paletteForTheme(this.scene.palettes, this.scene.themePalettes, this.options.theme), time)
     this.lut = writeLut(this.palette, tone, this.lut)
@@ -55,7 +56,7 @@ export class SceneRenderer {
 
   render(t = 0, dt = 0, activity = 0): Uint32Array {
     this.indexed.set(this.base)
-    ;(this.ctx as { time?: TimeOfDay | number }).time = this.time
+    this.ctx.time = this.time
     this.scene.frame(this.ctx, t, dt, activity)
     if (this.scene.cycles?.length) {
       cyclePalette(this.palette, this.scene.cycles, t, this.cyclePaletteBuffer)
@@ -66,14 +67,9 @@ export class SceneRenderer {
 }
 
 export function bufferSize(width: number, height: number, narrow = width < 768): { width: number; height: number } {
-  const maxWidth = narrow ? 240 : 480
-  const maxHeight = narrow ? 480 : 270
-  // CSS enlarges this buffer with nearest-neighbour sampling. Pick an integer
-  // display scale from the art budget, rather than an arbitrary art-pixel size,
-  // so a 480×270 scene does not become a handful of oversized screen pixels.
-  const scale = Math.max(1, Math.ceil(Math.max(width / maxWidth, height / maxHeight)))
-  const w = Math.max(1, Math.ceil(width / scale))
-  const h = Math.max(1, Math.ceil(height / scale))
-  const fit = Math.min(1, maxWidth / w, maxHeight / h, Math.sqrt((480 * 270) / (w * h)))
-  return { width: Math.max(1, Math.floor(w * fit)), height: Math.max(1, Math.floor(h * fit)) }
+  const px = Math.max(3, Math.min(6, Math.round(height / 180)))
+  const w = Math.max(1, Math.ceil(width / px))
+  const h = Math.max(1, Math.ceil(height / px))
+  const scale = Math.min(1, (narrow ? 240 : 480) / w, (narrow ? 480 : 270) / h, Math.sqrt(480 * 270 / (w * h)))
+  return { width: Math.max(1, Math.floor(w * scale)), height: Math.max(1, Math.floor(h * scale)) }
 }

@@ -68,4 +68,14 @@ describe('world-tromso', () => {
       }
     }
   })
+
+  it('draws aurora indices only after daylight', () => {
+    const day = new SceneRenderer(tromso, { width: 320, height: 180, seed: 42, theme: 'light', time: 'day' })
+    day.render(1)
+    expect([...day.indexed].some((index) => index >= 7 && index <= 9)).toBe(false)
+
+    const dusk = new SceneRenderer(tromso, { width: 320, height: 180, seed: 42, theme: 'dark', time: 'dusk' })
+    dusk.render(1)
+    expect([...dusk.indexed].some((index) => index >= 7 && index <= 9)).toBe(true)
+  })
 })

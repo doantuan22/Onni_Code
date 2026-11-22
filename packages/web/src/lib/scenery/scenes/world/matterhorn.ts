@@ -5,7 +5,8 @@
  * variants, scale-anchor valley cabin + chimney smoke, drifting far clouds,
  * valley birds, and fast pre-baked horizontal Stellisee reflection/wave cycling.
  */
-import type { BuildCtx, FrameCtx, Mask, Point, SceneDef } from '../../engine/types'
+import type { Point } from '../../engine/geometry'
+import type { BuildCtx, FrameCtx, Mask, SceneDef } from '../../engine/types'
 import {
   MATTERHORN_LEGACY_PALETTES,
   MATTERHORN_THEME_PALETTES,

@@ -3,7 +3,8 @@
  * far dunes, masked desert heat haze, 3-scale animated camel caravan with
  * bounded footprint trail, and wind-gust crest sand + dry scrub.
  */
-import type { BuildCtx, FrameCtx, Mask, Point, SceneDef } from '../../engine/types'
+import type { Point } from '../../engine/geometry'
+import type { BuildCtx, FrameCtx, Mask, SceneDef } from '../../engine/types'
 import {
   SAHARA_LEGACY_PALETTES,
   SAHARA_THEME_PALETTES,

@@ -687,3 +687,10 @@ html.js-ready [data-reveal].is-in,
     display: none;
   }
 }
+
+/* Guard: decorative transforms (3D planes, glows) must never create a horizontal scrollbar.
+   `clip` (not `hidden`) keeps position: sticky working. */
+html,
+body {
+  overflow-x: clip;
+}

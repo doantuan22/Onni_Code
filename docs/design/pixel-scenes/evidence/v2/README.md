@@ -29,6 +29,13 @@ The `/new` captures use the Full surface. The chat captures were taken from
 the dry-run thread `Dry-run scenery evidence task` and use the Horizon surface.
 Scenes were selected with the real **Background scenes** popover.
 
+The requested 390×844 narrow `/new` capture set is also present:
+
+- `vn-halong-{light,dark}-narrow-new.png`
+- `world-sahara-{light,dark}-narrow-new.png`
+- `world-tromso-{light,dark}-narrow-new.png`
+- `off-narrow-new.png`
+
 The thumbnail command regenerated all 16 real-engine thumbnails in
 `packages/web/public/scenery-thumbs/`.
 
@@ -44,10 +51,6 @@ The thumbnail command regenerated all 16 real-engine thumbnails in
 
 ## Defects / follow-up
 
-- Narrow capture follow-up is incomplete: only the Hạ Long chat frame was
-  captured before the capture window closed. Capture the requested Hạ Long,
-  Sahara, and Tromsø light/dark narrow matrix plus the scene-off frame in a
-  follow-up QA run.
 - The service-workspace build failure above prevents calling this a fully
   production-built service capture, even though the web production build and
   real local dry-run cockpit were used.

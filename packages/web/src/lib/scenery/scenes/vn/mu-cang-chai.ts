@@ -88,7 +88,17 @@ const scene: SceneDef = {
   build(ctx) {
     const { width: w, height: h } = ctx
     // 1: clean, layered sky and a restrained sun.
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) ctx.px(x, y, ctx.dither(x, y, y / h * 0.9, 0, 2, 8))
+    for (let y = 0; y < h; y++) {
+      const boundaries = [h * .16, h * .32, h * .48]
+      const boundary = boundaries.findIndex((value) => Math.abs(y - value) <= 10)
+      if (boundary >= 0) {
+        const center = boundaries[boundary]!
+        const amount = Math.max(0, Math.min(1, (y - (center - 10)) / 20))
+        for (let x = 0; x < w; x++) ctx.px(x, y, ctx.dither(x, y, amount, boundary, boundary + 1))
+      } else {
+        ctx.rect(0, y, w, 1, y < boundaries[0]! ? 0 : y < boundaries[1]! ? 1 : y < boundaries[2]! ? 2 : 3)
+      }
+    }
     ctx.disc(w * 0.22, h * 0.20, Math.max(4, h * 0.035), 3)
     // 2-3: two distant ridge planes, deliberately separate silhouettes.
     ridge(ctx, 0.39, 4, 17)
@@ -106,7 +116,12 @@ const scene: SceneDef = {
     const hx = Math.floor(w * 0.77); const hy = Math.floor(h * 0.59)
     ctx.polygon([{ x: hx - 15, y: hy }, { x: hx + 15, y: hy }, { x: hx + 7, y: hy - 8 }, { x: hx - 9, y: hy - 8 }], 16)
     ctx.polygon([{ x: hx - 11, y: hy - 8 }, { x: hx + 7, y: hy - 8 }, { x: hx + 13, y: hy - 14 }, { x: hx - 6, y: hy - 14 }], 18)
-    ctx.rect(hx - 9, hy, 17, 7, 17); ctx.rect(hx - 6, hy + 7, 2, 8, 16); ctx.rect(hx + 5, hy + 7, 2, 8, 16)
+    ctx.rect(hx - 9, hy, 17, 7, 17)
+    ctx.rect(hx - 3, hy + 2, 4, 3, 27)
+    ctx.line(hx - 8, hy + 6, hx + 7, hy + 6, 18)
+    ctx.rect(hx - 6, hy + 7, 2, 8, 16); ctx.rect(hx + 5, hy + 7, 2, 8, 16)
+    ctx.line(hx + 7, hy + 7, hx + 12, hy + 14, 16)
+    ctx.line(hx + 9, hy + 10, hx + 13, hy + 10, 18)
     ctx.rect(hx - 12, hy + 14, 25, 2, 25)
     // 6: near rice and a path occlude the lowest terrace corner.
     ctx.polygon([{ x: w * 0.84, y: h }, { x: w, y: h }, { x: w, y: h * 0.70 }, { x: w * 0.90, y: h * 0.76 }], 19)
@@ -120,12 +135,10 @@ const scene: SceneDef = {
       const y = Math.floor(h * (0.48 + Math.sin((x + drift) * 0.08) * 0.018))
       if (ctx.fbm2((x + drift) * 0.04, 91) > 0.38) ctx.rect(x, y, 7, 2, 23)
     }
-    // Narrow water glints animate independently from the rice hues.
+    // Sparse glints follow the water's S-curve, never a ladder down the paddies.
     const glint = Math.floor(t * 4) % 4
-    for (let i = 0; i < 9; i++) {
-      const y = Math.floor(h * (0.65 + i * 0.032))
-      const x = Math.floor(w * (0.58 + i * 0.009 + Math.sin((i + glint) * 2) * 0.018))
-      ctx.rect(x, y, 3 + ((i + glint) % 4), 1, 15)
+    for (const [u, v, phase] of [[.59, .86, 0], [.56, .76, 1], [.61, .67, 3], [.65, .58, 2]] as const) {
+      if ((phase + glint) % 3 !== 1) ctx.line(w * u, h * v, w * u + 2 + ((phase + glint) & 1), h * v, 15)
     }
     // Wind ripples only the foreground rice clumps, in three nonmatching phases.
     for (let i = 0; i < 12; i++) {

@@ -73,8 +73,16 @@ function drawSky(ctx: BuildCtx): void {
   const { width: w, height: h } = ctx
   ctx.layer({ kind: 'sky', z: 0 }, () => {
     for (let y = 0; y < h * 0.64; y++) {
-      const level = Math.min(2.95, y / h * 4.6)
-      for (let x = 0; x < w; x++) ctx.px(x, y, ctx.dither(x, y, level % 1, Math.floor(level), Math.ceil(level)))
+      const skyHeight = h * .64
+      const boundaries = [skyHeight / 3, skyHeight * 2 / 3]
+      const boundary = boundaries.findIndex((value) => Math.abs(y - value) <= 10)
+      if (boundary >= 0) {
+        const center = boundaries[boundary]!
+        const amount = Math.max(0, Math.min(1, (y - (center - 10)) / 20))
+        for (let x = 0; x < w; x++) ctx.px(x, y, ctx.dither(x, y, amount, boundary, boundary + 1))
+      } else {
+        ctx.rect(0, y, w, 1, y < boundaries[0]! ? 0 : y < boundaries[1]! ? 1 : 2)
+      }
     }
     ctx.disc(w * 0.80, h * 0.27, Math.min(w, h) * 0.052, Ink.Sun)
     for (let i = 0; i < 5; i++) ctx.line(w * (0.08 + i * 0.19), h * (0.19 + (i & 1) * 0.035), w * (0.19 + i * 0.19), h * (0.19 + (i & 1) * 0.035), Ink.Cloud)
@@ -113,14 +121,13 @@ function drawWater(ctx: BuildCtx, waterline: number): void {
       for (let x = (y & 3) * 5; x < w; x += Math.max(13, Math.floor(25 - depth * 8))) {
         if (ctx.fbm2(x * 0.2, y * 0.3) > 0.57) ctx.line(x, y, x + 3 + depth * 8, y, Ink.Wave0 + ((x + y) % 6))
       }
-      const row = Math.floor(depth * 11)
-      if (row % 2 === 0) {
-        const center = w * (0.79 + (row % 3 - 1) * 0.012)
-        const spread = 5 + depth * 54
-        for (let part = 0; part < 3; part++) {
-          const offset = (part - 1) * spread * 0.42 + ((row + part) % 2) * 3
-          const length = 3 + depth * 13 - part * 1.5
-          if ((row + part) % 3 !== 1) ctx.line(center + offset, y, center + offset + length, y, Ink.WaterLight)
+      const row = Math.floor(depth * 12)
+      if (row % 3 === 0 && y % 3 === 0) {
+        const center = w * (.79 + Math.sin(row * 1.7) * .008)
+        const spread = 6 + depth * 48
+        for (const offset of [-.46, -.13, .24] as const) {
+          const length = 2 + depth * 8 + ((row + Math.round(offset * 10)) & 2)
+          ctx.line(center + offset * spread, y, center + offset * spread + length, y, Ink.WaterLight)
         }
       }
     }
@@ -148,7 +155,10 @@ const scene: SceneDef = {
     ctx.layer({ kind: 'mid', z: 3 }, () => {
       karst(ctx, 0.38, 0.77, 0.35, 0.66, Ink.MidRock, Ink.MidFace, Ink.MidRim, [0, .18, .66, 1, .88, .54, .22, 0])
       karst(ctx, 0.82, 1.03, 0.30, 0.72, Ink.NearRock, Ink.NearFace, Ink.NearRim, [0, .30, .86, 1, .72, .25, 0])
-      for (let y = h * 0.48; y < h * 0.66; y += 7) ctx.line(w * 0.84, y, w * 0.96, y + 2, Ink.Cave)
+      // Short angled fissures sit inside the cliff face instead of reading as cave bars.
+      for (const [x, y, dx, dy] of [[.87, .45, .025, .018], [.92, .51, -.020, .026], [.88, .58, .030, .015], [.96, .63, -.018, .022]] as const) {
+        ctx.line(w * x, h * y, w * (x + dx), h * (y + dy), Ink.Cave)
+      }
     })
     drawWater(ctx, Math.floor(h * 0.63))
     ctx.layer({ kind: 'near', z: 6 }, () => karst(ctx, -0.06, 0.22, 0.38, 1, Ink.NearRock, Ink.NearFace, Ink.NearRim, [0, .30, .78, 1, .76, .38, 0]))

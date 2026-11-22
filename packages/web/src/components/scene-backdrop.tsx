@@ -67,47 +67,21 @@ function useNarrowViewport(): boolean {
   return narrow
 }
 
-function readContrastColors() {
+function readBackground() {
   const tokens = getComputedStyle(document.documentElement)
-  const rgb = (token: string) => {
-    const value = tokens.getPropertyValue(token).trim()
-    return /^#[\da-f]{6}$/i.test(value) ? Number.parseInt(value.slice(1), 16) : undefined
-  }
-  const background = rgb('--background')
-  const foreground = rgb('--foreground')
-  const muted = rgb('--muted-foreground')
-  if (background === undefined || foreground === undefined || muted === undefined) return
-  return { background, foregrounds: [foreground, muted] }
-}
-
-function visibilityCeiling(
-  loaded: LoadedScene,
-  colors: NonNullable<ReturnType<typeof readContrastColors>>,
-  time: ScenePreferences['time'],
-  visibility: number,
-) {
-  const { engine, definition } = loaded
-  let palette = definition.palettes[time === 'auto' ? definition.defaultTime : time]
-  if (time === 'auto') {
-    // Bound every interpolated auto-time color, including the darker reflection bank.
-    const colors = Object.values(definition.palettes).flatMap(engine.expandPalette).map(engine.channels)
-    const edge = (pick: typeof Math.min) => [0, 1, 2].reduce(
-      (rgb, channel) => (rgb << 8) | pick(...colors.map((color) => color[channel]!)), 0,
-    )
-    palette = [...Array<number>(16).fill(edge(Math.min)), ...Array<number>(16).fill(edge(Math.max))]
-  }
-  return engine.contrastCeiling(palette, colors.background, colors.foregrounds, visibility)
+  const value = tokens.getPropertyValue('--background').trim()
+  return /^#[\da-f]{6}$/i.test(value) ? Number.parseInt(value.slice(1), 16) : undefined
 }
 
 function SceneCanvas({ loaded, scene, surface }: { loaded: LoadedScene; scene: ScenePreferences; surface: SceneSurface }) {
   const { resolvedTheme } = useTheme()
   const narrow = useNarrowViewport()
-  const mode: SceneMode = narrow || surface === 'other' ? 'horizon' : scene.mode[surface]
+  const mode: SceneMode = surface === 'other' ? 'horizon' : scene.mode[surface]
   const layer = React.useRef<HTMLDivElement>(null)
   const canvas = React.useRef<HTMLCanvasElement>(null)
   const hostRef = React.useRef<SceneHost | null>(null)
   const [size, setSize] = React.useState<{ width: number; height: number }>()
-  const [colors, setColors] = React.useState<ReturnType<typeof readContrastColors>>()
+  const [background, setBackground] = React.useState<number>()
   const [ready, setReady] = React.useState(false)
   const [failed, setFailed] = React.useState(false)
 
@@ -131,19 +105,8 @@ function SceneCanvas({ loaded, scene, surface }: { loaded: LoadedScene; scene: S
 
   const { time, visibility, speed, motion } = scene
   React.useLayoutEffect(() => {
-    setColors(readContrastColors())
+    setBackground(readBackground())
   }, [resolvedTheme])
-
-  const tone = React.useMemo(() => {
-    if (!colors) return
-    const ceiling = visibilityCeiling(loaded, colors, time, visibility)
-    if (!ceiling.possible) return
-    return {
-      background: colors.background,
-      visibility: Math.min(visibility, ceiling.maxVisibility),
-      scrim: ceiling.minScrim,
-    }
-  }, [loaded, colors, time, visibility])
 
   React.useEffect(() => () => {
     hostRef.current?.dispose()
@@ -151,7 +114,7 @@ function SceneCanvas({ loaded, scene, surface }: { loaded: LoadedScene; scene: S
   }, [])
 
   React.useEffect(() => {
-    if (failed || !tone || !size || !canvas.current) {
+    if (failed || background === undefined || !size || !canvas.current) {
       if (hostRef.current) {
         hostRef.current.dispose()
         hostRef.current = null
@@ -162,11 +125,12 @@ function SceneCanvas({ loaded, scene, surface }: { loaded: LoadedScene; scene: S
     const options: HostOptions = {
       ...size,
       sceneId: loaded.definition.id,
-      background: tone.background,
-      visibility: tone.visibility,
+      background,
+      // Visibility is mixed once by the renderer. Reading surfaces protect text locally.
+      visibility,
       time,
       speed,
-      motion,
+      motion: narrow ? false : motion,
       onError: () => setFailed(true),
     }
     if (hostRef.current) {
@@ -183,7 +147,7 @@ function SceneCanvas({ loaded, scene, surface }: { loaded: LoadedScene; scene: S
     } catch {
       setFailed(true)
     }
-  }, [loaded, size, tone, time, speed, motion, failed])
+  }, [loaded, size, background, time, visibility, speed, motion, narrow, failed])
 
   if (failed) return null
   return (
@@ -193,13 +157,12 @@ function SceneCanvas({ loaded, scene, surface }: { loaded: LoadedScene; scene: S
       data-slot="scene-backdrop"
       data-surface={surface}
       data-mode={mode}
-      data-ready={ready && tone ? '' : undefined}
-      style={{ '--scene-scrim': `${(tone?.scrim ?? 0) * 100}%` } as React.CSSProperties}
+      data-narrow={narrow ? '' : undefined}
+      data-ready={ready && background !== undefined ? '' : undefined}
     >
       <div ref={layer} data-slot="scene-layer">
         <canvas ref={canvas} className="block size-full [image-rendering:pixelated]" />
       </div>
-      <div data-slot="scene-scrim" />
     </div>
   )
 }

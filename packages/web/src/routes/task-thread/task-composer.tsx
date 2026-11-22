@@ -207,7 +207,7 @@ export function TaskDock({
       data-floating={floating || undefined}
       style={style}
       className={cn(
-        'sticky bottom-[var(--kb,0px)] z-10 bg-background px-3 pt-1 pb-2 max-md:border-t max-md:border-border md:px-5 md:pt-1.5 md:pb-3',
+        'scene-reading-panel sticky bottom-[var(--kb,0px)] z-10 bg-background px-3 pt-1 pb-2 max-md:border-t max-md:border-border md:px-5 md:pt-1.5 md:pb-3',
         floating && 'pointer-events-none bg-transparent max-md:border-t-0 [&_[data-slot=composer]]:shadow-modal',
         className,
       )}

@@ -350,7 +350,10 @@ export function ThreadView({
 
       {/* Row spacing lives on each thread row (pb-2.5, both render modes measure alike);
           this gap only separates the sections — rows, empty state, footer, review panel. */}
-      <div className="mx-auto flex w-full max-w-[var(--chat-measure)] flex-1 flex-col gap-2 px-3 py-3 md:gap-3 md:px-6 md:py-4">
+      <div
+        data-slot="thread-reading-lane"
+        className="scene-reading-panel mx-auto flex w-full max-w-[var(--chat-measure)] flex-1 flex-col gap-2 px-3 py-3 md:gap-3 md:px-6 md:py-4"
+      >
         {run.worktreeLifecycle ? <TaskLifecycleCard worktreeId={run.worktreeLifecycle.worktreeId} operationId={run.worktreeLifecycle.activeOperationId} worktreePath={run.worktreePath} taskTitle={run.title ?? run.task} /> : null}
         {history ? (
           <HistoryBoundary

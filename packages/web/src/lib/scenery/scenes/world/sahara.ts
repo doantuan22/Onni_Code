@@ -1,7 +1,9 @@
 /**
- * Sahara v2 redraw: Erg Chebbi sweeping S-curve slip-face dune, atmospheric
- * far dunes, masked desert heat haze, 3-scale animated camel caravan with
- * bounded footprint trail, and wind-gust crest sand + dry scrub.
+ * Sahara v2 rewrite: Erg Chebbi sweeping S-curve slip-face dune, knife-edge
+ * crest ridge, clean atmospheric far dunes (no checkerboard heat haze),
+ * 3-scale animated camel caravan (32x22 lead camel with leader figure and
+ * amber rim light, 24x16 mid camel, 18x12 small camel), depth-shaded footprint
+ * trail, and dynamic crest sand plume.
  */
 import type { Point } from '../../engine/geometry'
 import type { BuildCtx, FrameCtx, Mask, SceneDef } from '../../engine/types'
@@ -20,15 +22,24 @@ const STAR_SEEDS = [
   [0.12, 0.11], [0.47, 0.11],
 ] as const
 
+const PARTICLE_COUNT = 48
+
 interface SaharaCache {
   width: number
   height: number
   ridgeY: Float32Array
   nearTopY: Float32Array
-  hazeMask: Mask
+  caravanY: Float32Array
   nearMask: Mask
-  hazeBandTop: number
-  hazeBandBottom: number
+  // Precomputed particle parameters for fast frame evaluation
+  pPeriod: Float32Array
+  pLife: Float32Array
+  pPhase: Float32Array
+  pSpawnX: Float32Array
+  pBaseY: Float32Array
+  pVx: Float32Array
+  pVy: Float32Array
+  pIsNear: Uint8Array
 }
 
 const sceneCache = new WeakMap<Uint8Array, SaharaCache>()
@@ -47,7 +58,7 @@ function windGust(t: number): number {
   return Math.sin(((cycle - 7.8) / 2.6) * Math.PI)
 }
 
-/** Smooth C1 Catmull-Rom interpolation through sorted x knots (no flat-slope seams). */
+/** Smooth C1 Catmull-Rom interpolation through sorted x knots. */
 function evalCatmull(knots: readonly Point[], u: number): number {
   const n = knots.length
   if (u <= knots[0]!.x) return knots[0]!.y
@@ -69,64 +80,72 @@ function evalCatmull(knots: readonly Point[], u: number): number {
   )
 }
 
-/** Distant dune ridge 1 (v = 0.38..0.46): gentle atmospheric erg silhouette. */
+/** Distant dune ridge 1 (v = 0.38..0.43): gentle atmospheric erg silhouette. */
 function farDune1(u: number): number {
   return evalCatmull([
-    { x: -0.1, y: 0.42 },
-    { x: 0.0, y: 0.415 },
-    { x: 0.18, y: 0.39 },
-    { x: 0.39, y: 0.435 },
-    { x: 0.60, y: 0.405 },
-    { x: 0.80, y: 0.385 },
-    { x: 1.0, y: 0.42 },
-    { x: 1.1, y: 0.43 },
+    { x: -0.15, y: 0.42 },
+    { x: 0.0, y: 0.412 },
+    { x: 0.16, y: 0.385 },
+    { x: 0.36, y: 0.428 },
+    { x: 0.56, y: 0.395 },
+    { x: 0.76, y: 0.375 },
+    { x: 0.96, y: 0.422 },
+    { x: 1.15, y: 0.43 },
   ], u)
 }
 
-/** Distant dune ridge 2 (v = 0.44..0.54): asymmetric windward/leeward shapes. */
+/** Distant dune ridge 2 (v = 0.44..0.50): asymmetric windward/leeward slopes. */
 function farDune2(u: number): number {
   return evalCatmull([
-    { x: -0.1, y: 0.49 },
-    { x: 0.0, y: 0.478 },
-    { x: 0.15, y: 0.452 },
-    { x: 0.33, y: 0.502 },
-    { x: 0.52, y: 0.464 },
-    { x: 0.70, y: 0.446 },
-    { x: 0.87, y: 0.486 },
-    { x: 1.0, y: 0.472 },
-    { x: 1.1, y: 0.485 },
+    { x: -0.15, y: 0.485 },
+    { x: 0.0, y: 0.472 },
+    { x: 0.14, y: 0.446 },
+    { x: 0.34, y: 0.496 },
+    { x: 0.53, y: 0.455 },
+    { x: 0.72, y: 0.435 },
+    { x: 0.88, y: 0.478 },
+    { x: 1.0, y: 0.468 },
+    { x: 1.15, y: 0.475 },
   ], u)
 }
 
-/** Main mid-ground dune crest silhouette rising to (0.62, 0.56) and sloping to (0.93, 0.66). */
+/**
+ * Main mid-ground dune crest silhouette:
+ * Rises majestically to an iconic knife-edge apex at (0.59, 0.542) and slopes
+ * down to (0.93, 0.655), framing the camel caravan in the right gutter.
+ */
 function midDuneCrest(u: number): number {
   return evalCatmull([
-    { x: -0.18, y: 0.59 },
-    { x: 0.0, y: 0.568 },
-    { x: 0.22, y: 0.582 },
-    { x: 0.44, y: 0.568 },
-    { x: 0.62, y: 0.56 },
-    { x: 0.78, y: 0.602 },
-    { x: 0.93, y: 0.66 },
-    { x: 1.0, y: 0.682 },
-    { x: 1.18, y: 0.72 },
+    { x: -0.18, y: 0.595 },
+    { x: 0.0, y: 0.582 },
+    { x: 0.20, y: 0.592 },
+    { x: 0.39, y: 0.575 },
+    { x: 0.59, y: 0.542 },
+    { x: 0.77, y: 0.592 },
+    { x: 0.93, y: 0.655 },
+    { x: 1.0, y: 0.678 },
+    { x: 1.18, y: 0.715 },
   ], u)
 }
 
-/** Sweeping S-curve slip-face spine from (0.62, 0.56) down-left to (0.24, 0.89). */
+/**
+ * Organic sweeping S-curve slip-face spine:
+ * Curves naturally from the knife-edge apex at (0.59, 0.542) down-left to (0.19, 0.93),
+ * with wind-sculpted concave/convex curvature dividing lit sand from plum shadow.
+ */
 function slipSpineU(v: number): number {
-  const s = Math.max(0, Math.min(1, (v - 0.56) / (0.92 - 0.56)))
-  return 0.62 - 0.38 * (s * s * (3 - 2 * s)) + Math.sin(s * Math.PI) * 0.055
+  const s = Math.max(0, Math.min(1, (v - 0.542) / (0.93 - 0.542)))
+  return 0.59 - 0.40 * (s * s * (3 - 2 * s)) + Math.sin(s * Math.PI) * 0.065 - Math.sin(s * Math.PI * 2) * 0.012
 }
 
-/** Caravan travel path passing through (.59,.59), (.64,.61), (.72,.64). */
+/** Caravan travel path winding along the dune ridge at (.57,.595), (.63,.61), (.72,.64). */
 function caravanV(u: number): number {
   return evalCatmull([
-    { x: -0.18, y: 0.615 },
-    { x: 0.10, y: 0.605 },
-    { x: 0.36, y: 0.585 },
-    { x: 0.59, y: 0.59 },
-    { x: 0.64, y: 0.61 },
+    { x: -0.18, y: 0.62 },
+    { x: 0.10, y: 0.61 },
+    { x: 0.36, y: 0.59 },
+    { x: 0.57, y: 0.595 },
+    { x: 0.63, y: 0.61 },
     { x: 0.72, y: 0.64 },
     { x: 0.93, y: 0.692 },
     { x: 1.18, y: 0.745 },
@@ -153,11 +172,12 @@ function drawSkyLayer(ctx: BuildCtx): void {
 
   ctx.layer({ kind: 'sky', z: 0, mask: skyMask }, () => {
     const horizonPx = Math.floor(h * 0.52)
-    const seam = Math.max(2, Math.round(h * 0.015))
+    const seam = Math.max(2, Math.round(h * 0.015)) // narrow <=6px dithered seams
+    const first = Math.floor(horizonPx * 0.28)
+    const second = Math.floor(horizonPx * 0.56)
+    const third = Math.floor(horizonPx * 0.84)
+
     for (let y = 0; y < horizonPx; y++) {
-      const first = Math.floor(horizonPx * 0.29)
-      const second = Math.floor(horizonPx * 0.57)
-      const third = Math.floor(horizonPx * 0.85)
       for (let x = 0; x < w; x++) {
         let idx: number
         if (y < first - seam) idx = 0
@@ -171,19 +191,24 @@ function drawSkyLayer(ctx: BuildCtx): void {
       }
     }
 
-    // Sun at (0.25, 0.23) in solid sky[1], clear of dune crests; equals sky[1] at night.
-    const sunX = Math.round(w * 0.25)
-    const sunY = Math.round(h * 0.23)
-    const sunR = Math.max(5, Math.round(Math.min(w, h) * 0.050))
-    for (let dy = -sunR - 3; dy <= sunR + 3; dy++) {
-      for (let dx = -sunR - 3; dx <= sunR + 3; dx++) {
+    // Desert sun at (0.24, 0.22) in upper sky: clean 3-stage stepped radial glow (no checkerboard)
+    const sunX = Math.round(w * 0.24)
+    const sunY = Math.round(h * 0.22)
+    const sunR = Math.max(5, Math.round(Math.min(w, h) * 0.048))
+    for (let dy = -sunR - 4; dy <= sunR + 4; dy++) {
+      for (let dx = -sunR - 4; dx <= sunR + 4; dx++) {
         const dist = Math.hypot(dx, dy)
-        if (dist <= sunR) ctx.px(sunX + dx, sunY + dy, 4)
-        else if (dist <= sunR + 2 && ((dx + dy) & 1) === 0) ctx.px(sunX + dx, sunY + dy, 5)
+        if (dist <= sunR) {
+          ctx.px(sunX + dx, sunY + dy, 4) // sun core
+        } else if (dist <= sunR + 2.5) {
+          ctx.px(sunX + dx, sunY + dy, 5) // sun inner halo
+        } else if (dist <= sunR + 4 && ((dx + dy) & 1) === 0) {
+          ctx.px(sunX + dx, sunY + dy, 5) // outer soft fringe
+        }
       }
     }
 
-    // Quiet stars and small crescent moon strictly inside solid sky[0] (v <= 0.11).
+    // Quiet night stars and small crescent moon strictly inside solid sky[0] (v <= 0.11)
     for (let i = 0; i < STAR_SEEDS.length; i++) {
       const [su, sv] = STAR_SEEDS[i]!
       ctx.px(Math.round(su * w), Math.round(sv * h), i % 3 === 0 ? 6 : 7)
@@ -205,56 +230,52 @@ function drawSkyLayer(ctx: BuildCtx): void {
   })
 }
 
-function drawFarDunes(ctx: BuildCtx, hazeMask: Mask): { hazeTop: number; hazeBottom: number } {
+/**
+ * Clean atmospheric far dunes without checkerboard heat haze ribbons.
+ * Layer 1 and 2 provide depth stratification with soft atmospheric valley haze
+ * hugging each dune's natural base contours.
+ */
+function drawFarDunes(ctx: BuildCtx): void {
   const { width: w, height: h } = ctx
-  let hazeTop = h
-  let hazeBottom = 0
 
   ctx.layer({ kind: 'far', z: 1 }, () => {
     for (let x = 0; x < w; x++) {
       const u = x / w
+
+      // Far dune 1: atmospheric silhouette (roles 8 & 9)
       const top1 = Math.floor(farDune1(u) * h)
-      const slope1 = farDune1(u + 0.004) - farDune1(u)
-      // Smooth diagonal shadow slope along leeward sides (no abrupt vertical column jumps).
-      const shade1 = Math.max(0, Math.min(1, slope1 * 900))
+      const slope1 = farDune1(u + 0.005) - farDune1(u)
+      const isShade1 = slope1 > 0.0002
       for (let y = top1; y < Math.ceil(h * 0.76); y++) {
         const d1 = (y - top1) / h
-        const amt = shade1 * Math.min(1, d1 * 28)
-        ctx.px(x, y, amt > 0.55 ? 9 : amt > 0.2 ? ctx.dither(x, y, (amt - 0.2) / 0.35, 8, 9) : 8)
+        let idx = isShade1 && d1 > 0.015 ? 9 : 8
+        // Gentle atmospheric dust wash at base of far dune 1 (role 12)
+        if (d1 > 0.045 && (y % 2 === 0 || d1 > 0.07)) {
+          idx = 12
+        }
+        ctx.px(x, y, idx)
       }
 
+      // Far dune 2: asymmetric windward/leeward slopes (roles 10 & 11)
       const top2 = Math.floor(farDune2(u) * h)
-      const slope2 = farDune2(u + 0.004) - farDune2(u)
-      const shade2 = Math.max(0, Math.min(1, slope2 * 900))
+      const slope2 = farDune2(u + 0.005) - farDune2(u)
+      const isShade2 = slope2 > 0.0003
       for (let y = top2; y < Math.ceil(h * 0.78); y++) {
         const d2 = (y - top2) / h
-        const amt = shade2 * Math.min(1, d2 * 24)
-        ctx.px(x, y, amt > 0.5 ? 11 : amt > 0.15 ? ctx.dither(x, y, (amt - 0.15) / 0.35, 10, 11) : 10)
-      }
-
-      // Soft, organic desert heat haze wisps curving naturally into low valley saddles.
-      const midTop = Math.floor(midDuneCrest(u) * h)
-      const bandTop = Math.max(top2 + 4, Math.floor(h * 0.495 + Math.sin(u * 7.5) * h * 0.012))
-      const bandBot = Math.min(midTop - 1, bandTop + Math.max(4, Math.round(h * 0.045)))
-      if (bandTop < bandBot) {
-        hazeTop = Math.min(hazeTop, bandTop)
-        hazeBottom = Math.max(hazeBottom, bandBot)
-        for (let y = bandTop; y < bandBot; y++) {
-          const tBand = (y - bandTop) / Math.max(1, bandBot - bandTop)
-          const envelope = Math.sin(tBand * Math.PI)
-          const pocket = ctx.fbm2(x * 0.018, y * 0.06)
-          if (pocket * envelope > 0.50) {
-            hazeMask.set(x, y, 15)
-            ctx.px(x, y, ctx.dither(x, y, envelope * 0.55, 13, 12))
-          }
+        let idx = isShade2 && d2 > 0.018 ? 11 : 10
+        // Gentle warm valley dust wash at base of far dune 2 (role 13)
+        if (d2 > 0.050 && (y % 2 === 0 || d2 > 0.08)) {
+          idx = 13
         }
+        ctx.px(x, y, idx)
       }
     }
   })
-
-  return { hazeTop, hazeBottom }
 }
 
+/**
+ * Sweeping wind-carved mid dune with organic S-curve slip face and knife-edge crest.
+ */
 function drawMidDune(ctx: BuildCtx, ridgeY: Float32Array): void {
   const { width: w, height: h } = ctx
   ctx.layer({ kind: 'mid', z: 3 }, () => {
@@ -263,7 +284,6 @@ function drawMidDune(ctx: BuildCtx, ridgeY: Float32Array): void {
       const crestV = midDuneCrest(u)
       const topY = Math.floor(crestV * h)
       ridgeY[x] = topY
-      const slope = midDuneCrest(u + 0.004) - crestV
 
       for (let y = topY; y < h; y++) {
         const v = y / h
@@ -272,41 +292,51 @@ function drawMidDune(ctx: BuildCtx, ridgeY: Float32Array): void {
         const dxSpine = u - spine
 
         let idx: number
-        if (v >= 0.56 && dxSpine >= 0) {
-          const slipWidth = 0.14 + (v - 0.56) * 0.22
+        if (v >= 0.542 && dxSpine >= 0) {
+          // Leeward slip face: deep plum/violet shadow (roles 19, 20, 21)
+          const slipWidth = 0.16 + (v - 0.542) * 0.26
           const slipT = dxSpine / slipWidth
-          if (dxSpine < 0.012) idx = 21
-          else if (slipT < 0.36) idx = 20
-          else if (slipT < 0.68) idx = 19
-          else if (slipT < 0.92) idx = ctx.dither(x, y, (slipT - 0.68) / 0.24, 19, 18)
-          else idx = depth < 0.06 ? 17 : 18
-        } else if (v >= 0.56 && dxSpine < 0) {
+          if (dxSpine < 0.014) idx = 21 // deep shadow well along knife-edge spine
+          else if (slipT < 0.42) idx = 20 // mid plum slip-face shadow
+          else if (slipT < 0.80) idx = 19 // ambient plum shadow
+          else if (slipT < 1.05) idx = 18 // soft basin transition
+          else idx = depth < 0.05 ? 17 : 18
+        } else if (v >= 0.542 && dxSpine < 0) {
+          // Windward sunlit slope (roles 14, 15, 16, 17)
           const distLeft = -dxSpine
-          if (distLeft < 0.009 && (x + y) % 4 !== 0) idx = 14
-          else if (distLeft < 0.055) idx = 15
-          else if (distLeft < 0.17) idx = 16
-          else idx = 17
+          const litBand = 0.08 + (v - 0.542) * 0.15
+          const midBand = 0.22 + (v - 0.542) * 0.18
+          if (distLeft < 0.012) idx = 14 // crisp sunlit rim
+          else if (distLeft < litBand) idx = 15 // bright sunlit dune face
+          else if (distLeft < midBand) idx = 16 // mid golden sand
+          else idx = 17 // warm base sand
         } else {
-          idx = depth < 0.022 ? 15 : depth < 0.075 ? 16 : depth < 0.15 ? 17 : 18
+          // Crest body
+          idx = depth < 0.02 ? 15 : depth < 0.07 ? 16 : depth < 0.14 ? 17 : 18
         }
 
-        if ((idx === 16 || idx === 17) && depth > 0.03) {
-          const cluster = ctx.fbm2(x * 0.035, y * 0.09)
-          if (cluster > 0.67 && (y + Math.floor(x * 0.14)) % 4 === 0 && (x % 7 < 4)) {
+        // Delicate eolian sand micro-ripples across windward face (12-18% subtle stipple)
+        if ((idx === 16 || idx === 17) && depth > 0.025) {
+          if ((y + Math.floor(x * 0.16)) % 4 === 0 && ((x * 17 + y * 7) % 11 < 3)) {
             idx = idx === 16 ? 17 : 18
           }
         }
         ctx.px(x, y, idx)
       }
 
-      if (u >= 0.36 && u <= 0.64 && slope <= 0.0001 && (x % 4 !== 0)) {
+      // Continuous, razor-sharp 1px sunlit rim highlight along the knife-edge crest (role 14)
+      if (u >= 0.18 && u <= 0.90) {
         ctx.px(x, topY, 14)
       }
     }
 
-    for (let y = Math.floor(h * 0.56); y < Math.floor(h * 0.90); y++) {
+    // Crisp 1px spine edge dividing lit sand from leeward shadow
+    for (let y = Math.floor(h * 0.542); y < Math.floor(h * 0.93); y++) {
       const sx = Math.round(slipSpineU(y / h) * w)
-      if ((y % 3) !== 0) ctx.px(sx - 1, y, 14)
+      if (sx >= 0 && sx < w) {
+        ctx.px(sx, y, 14) // knife-edge rim highlight
+        if (sx + 1 < w) ctx.px(sx + 1, y, 21) // immediate deep shadow contact
+      }
     }
   })
 }
@@ -324,14 +354,15 @@ function drawNearDune(ctx: BuildCtx, nearTopY: Float32Array, nearMask: Mask): vo
         nearMask.set(x, y, 15)
         const depth = (y - topY) / Math.max(1, h - topY)
         let idx = depth < 0.08 ? 22 : depth < 0.45 ? 23 : 24
-        if (depth > 0.12 && depth < 0.38 && ctx.fbm2(x * 0.06, y * 0.1) > 0.68 && y % 3 === 0) {
+        if (depth > 0.12 && depth < 0.38 && ((x * 17 + y * 31) % 13 === 0)) {
           idx = 24
         }
         ctx.px(x, y, idx)
       }
-      if (topY >= 0 && topY < h && x % 3 !== 0) ctx.px(x, topY, 22)
+      if (topY >= 0 && topY < h && (x % 4 !== 0)) ctx.px(x, topY, 22)
     }
 
+    // Desert stones with contact shadow (roles 28 & 29)
     const stones = [
       [0.14, 0.87, 3],
       [0.29, 0.93, 2],
@@ -352,103 +383,97 @@ function drawNearDune(ctx: BuildCtx, nearTopY: Float32Array, nearMask: Mask): vo
   })
 }
 
-function drawCaravanAndTrail(ctx: FrameCtx, t: number, w: number, h: number, nearMask: Mask): void {
+/**
+ * 3-scale camel caravan with leader figure, amber rim light, and depth-shaded footprint trail.
+ * Uses ctx.spriteFrame for efficient, high-performance rendering.
+ */
+function drawCaravanAndTrail(ctx: FrameCtx, t: number, w: number, cache: SaharaCache): void {
   const span = 1.26
   const speedU = 0.45 / Math.max(320, w)
   const travel = t * speedU
-  const scale = 1
 
   const members = [
-    { baseU: 0.72, sheet: camelLargeSheet, phase: 0, shadowW: 11, bobAmp: 1 },
-    { baseU: 0.64, sheet: camelMidSheet, phase: 1.7, shadowW: 8, bobAmp: 1 },
-    { baseU: 0.59, sheet: camelSmallSheet, phase: 3.1, shadowW: 5, bobAmp: 0 },
+    { baseU: 0.72, sheet: camelLargeSheet, phase: 0, shadowOffsets: [-11, -2, 12], shadowWidths: [5, 5, 4], bobAmp: 1 },
+    { baseU: 0.63, sheet: camelMidSheet, phase: 1.7, shadowOffsets: [-8, -2], shadowWidths: [4, 4], bobAmp: 1 },
+    { baseU: 0.57, sheet: camelSmallSheet, phase: 3.1, shadowOffsets: [-6, -1], shadowWidths: [3, 3], bobAmp: 0 },
   ] as const
 
   const wrapU = (u: number): number => ((((u + 0.14) % span) + span) % span) - 0.14
 
+  // Winding caravan trail with paired depth-shaded footprints along the crest
   const leadRawU = members[0].baseU + travel
-  const stepU = 0.014
-  const trailLen = 0.20
+  const stepU = 0.012
+  const trailLen = 0.22
   const maxKnot = Math.floor(leadRawU / stepU)
   const minKnot = Math.floor((leadRawU - trailLen) / stepU)
   for (let k = minKnot; k <= maxKnot; k++) {
     const ku = wrapU(k * stepU)
     if (ku < -0.02 || ku > 1.02) continue
     const kx = Math.round(ku * w)
-    const ky = Math.round(caravanV(ku) * h) + (k % 2 === 0 ? 0 : 1)
-    if (nearMask.contains(kx, ky)) continue
-    ctx.px(kx, ky, 21)
-    if (leadRawU - k * stepU < 0.10) ctx.px(kx + 1, ky, 21)
+    if (kx < 0 || kx >= w) continue
+    const ky = Math.round(cache.caravanY[kx]!)
+
+    // Paired footprints: shadow depression (21) + sunlit sand rim (15)
+    const stagger = (k % 2 === 0 ? 0 : 1)
+    ctx.px(kx, ky + stagger, 21)
+    if (leadRawU - k * stepU < 0.14) {
+      ctx.px(kx + 1, ky + stagger, 15)
+    }
   }
 
-  for (const m of members) {
+  // Draw caravan members (far to near order: small -> mid -> lead)
+  for (let i = members.length - 1; i >= 0; i--) {
+    const m = members[i]!
     const cu = wrapU(m.baseU + travel)
-    if (cu < -0.08 || cu > 1.08) continue
+    if (cu < -0.10 || cu > 1.10) continue
     const cx = Math.round(cu * w)
-    const cy = Math.round(caravanV(cu) * h)
+    if (cx < 0 || cx >= w) continue
+    const cy = Math.round(cache.caravanY[cx]!)
     const pose = Math.floor(t * 4 + m.phase) % 4
     const bob = m.bobAmp && (pose === 1 || pose === 3) ? -1 : 0
 
-    for (let sx = -Math.floor(m.shadowW * 0.4); sx <= Math.floor(m.shadowW * 0.65); sx++) {
-      const px = cx + sx + 1
-      const py = cy + 1
-      if (!nearMask.contains(px, py)) ctx.px(px, py, 21)
+    // Ground contact shadows clustered under feet (role 21)
+    for (let s = 0; s < m.shadowOffsets.length; s++) {
+      ctx.rect(cx + m.shadowOffsets[s]!, cy + 1, m.shadowWidths[s]!, 1, 21)
     }
 
-    const item = m.sheet.frames[((pose % m.sheet.frames.length) + m.sheet.frames.length) % m.sheet.frames.length]!
-    const pivot = item.pivot ?? { x: 0, y: 0 }
-    for (let sy = 0; sy < item.height; sy++) {
-      for (let sx = 0; sx < item.width; sx++) {
-        const idx = m.sheet.sprite.pixels[(item.y + sy) * m.sheet.sprite.width + item.x + sx]!
-        if (idx >= 0) {
-          const px = cx + (sx - pivot.x) * scale
-          const py = cy + bob + (sy - pivot.y) * scale
-          if (!nearMask.contains(px, py)) ctx.px(px, py, idx)
-        }
-      }
-    }
+    // Render animated sprite frame via engine's fast rect-fill
+    ctx.spriteFrame(m.sheet, pose, cx, cy + bob, 1)
   }
 }
 
+/**
+ * Localized windblown sand drift particle system:
+ * 48 precomputed particles streaming off the sharp crest knife-edge at 3.6–6.8 px/s.
+ */
 function drawCrestSandParticles(ctx: FrameCtx, t: number, cache: SaharaCache, gust: number): void {
   const { width: w, height: h } = ctx
-  const count = 48
-  const windSpeed = 2.6 + gust * 2.4
+  const windMul = 1.0 + gust * 0.85
 
-  for (let i = 0; i < count; i++) {
-    const h1 = hashInt(ctx.seed * 73 + i * 31 + 1)
-    const h2 = hashInt(ctx.seed * 97 + i * 53 + 2)
-    const period = 3.0 + (h1 % 200) / 100
-    const life = 2.6 + (h2 % 140) / 100
-    const phase = ((h1 >>> 8) % 1000) / 1000 * period
-    const total = t + phase
-    const epoch = Math.floor(total / period)
-    const age = total - epoch * period
-    if (age > life) continue
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const period = cache.pPeriod[i]!
+    const total = t + cache.pPhase[i]!
+    const age = total % period
+    if (age > cache.pLife[i]!) continue
+    if (i >= 30 && gust < 0.20) continue
 
-    const eh = hashInt(ctx.seed * 131 + i * 17 + epoch * 409)
-    const isNear = i < 4
-    const spawnU = isNear
-      ? 0.05 + ((eh % 420) / 1000)
-      : 0.25 + ((eh % 680) / 1000)
-    const spawnX = spawnU * w
-    const sxClamped = Math.max(0, Math.min(w - 1, Math.round(spawnX)))
-    const baseY = isNear ? cache.nearTopY[sxClamped]! : cache.ridgeY[sxClamped]!
-    if (baseY >= h) continue
+    const spawnX = cache.pSpawnX[i]!
+    const baseY = cache.pBaseY[i]!
+    const vx = cache.pVx[i]! * windMul
+    const vy = cache.pVy[i]!
 
-    if (i >= 32 && gust < 0.25) continue
-
-    const yJitter = ((eh >>> 10) % 4) - 2
-    const vx = windSpeed * (0.85 + ((eh >>> 14) % 35) / 100)
-    const vy = -0.35 + ((eh >>> 18) % 25) / 100
     const px = Math.round(spawnX + vx * age)
-    const py = Math.round(baseY + yJitter + vy * age + Math.sin(t * 1.4 + i) * 0.5)
+    const py = Math.round(baseY + vy * age)
     if (px < 0 || px >= w || py < 0 || py >= h) continue
-    if (!isNear && cache.nearMask.contains(px, py)) continue
 
-    const color = age < life * 0.55 ? 30 : 31
+    // Fresh particles are bright glints (30), trailing particles warm dust (31)
+    const color = age < cache.pLife[i]! * 0.45 ? 30 : 31
     ctx.px(px, py, color)
-    if (isNear && gust > 0.35) ctx.px(px + 1, py, color)
+    if (cache.pIsNear[i] && gust > 0.35) {
+      ctx.px(px + 1, py, color)
+    } else if (gust > 0.40 && age < cache.pLife[i]! * 0.30) {
+      ctx.px(px - 1, py, color) // subtle dynamic wisp during strong gusts
+    }
   }
 }
 
@@ -467,23 +492,66 @@ const scene: SceneDef = {
     const { width: w, height: h } = ctx
     const ridgeY = new Float32Array(w)
     const nearTopY = new Float32Array(w)
-    const hazeMask = ctx.mask()
+    const caravanY = new Float32Array(w)
     const nearMask = ctx.mask()
 
     drawSkyLayer(ctx)
-    const { hazeTop, hazeBottom } = drawFarDunes(ctx, hazeMask)
+    drawFarDunes(ctx)
     drawMidDune(ctx, ridgeY)
     drawNearDune(ctx, nearTopY, nearMask)
+
+    // Precompute caravan Y coordinates across all X
+    for (let x = 0; x < w; x++) {
+      caravanY[x] = caravanV(x / w) * h
+    }
+
+    // Precompute particle parameters for fast frame() evaluation
+    const pPeriod = new Float32Array(PARTICLE_COUNT)
+    const pLife = new Float32Array(PARTICLE_COUNT)
+    const pPhase = new Float32Array(PARTICLE_COUNT)
+    const pSpawnX = new Float32Array(PARTICLE_COUNT)
+    const pBaseY = new Float32Array(PARTICLE_COUNT)
+    const pVx = new Float32Array(PARTICLE_COUNT)
+    const pVy = new Float32Array(PARTICLE_COUNT)
+    const pIsNear = new Uint8Array(PARTICLE_COUNT)
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      const h1 = hashInt(ctx.seed * 73 + i * 31 + 1)
+      const h2 = hashInt(ctx.seed * 97 + i * 53 + 2)
+      const eh = hashInt(ctx.seed * 131 + i * 17 + 409)
+      const isNear = i < 4
+
+      pPeriod[i] = 2.8 + (h1 % 180) / 100
+      pLife[i] = 2.2 + (h2 % 120) / 100
+      pPhase[i] = (((h1 >>> 8) % 1000) / 1000) * pPeriod[i]!
+      pIsNear[i] = isNear ? 1 : 0
+
+      const spawnU = isNear ? 0.05 + ((eh % 400) / 1000) : 0.52 + ((eh % 420) / 1000)
+      const sx = spawnU * w
+      pSpawnX[i] = sx
+      const sxClamped = Math.max(0, Math.min(w - 1, Math.round(sx)))
+      const by = isNear ? nearTopY[sxClamped]! : ridgeY[sxClamped]!
+      const yJitter = ((eh >>> 10) % 3) - 1
+      pBaseY[i] = by + yJitter
+      pVx[i] = 3.6 * (0.90 + ((eh >>> 14) % 30) / 100)
+      pVy[i] = -0.35 + ((eh >>> 18) % 20) / 100
+    }
 
     sceneCache.set(ctx.base, {
       width: w,
       height: h,
       ridgeY,
       nearTopY,
-      hazeMask,
+      caravanY,
       nearMask,
-      hazeBandTop: hazeTop,
-      hazeBandBottom: hazeBottom,
+      pPeriod,
+      pLife,
+      pPhase,
+      pSpawnX,
+      pBaseY,
+      pVx,
+      pVy,
+      pIsNear,
     })
   },
   frame(ctx, t) {
@@ -492,27 +560,15 @@ const scene: SceneDef = {
     const { width: w, height: h } = ctx
     const gust = windGust(t)
 
-    // 1. Soft desert haze drift inside masked valley pockets (3fps tick, 1px amplitude).
-    const hazeTick = Math.floor(t * 3)
-    const hazeShift = Math.round(t * 0.2) + (hazeTick & 1)
-    for (let y = cache.hazeBandTop; y <= cache.hazeBandBottom; y += 2) {
-      for (let x = 0; x < w; x += 5) {
-        if (!cache.hazeMask.contains(x, y)) continue
-        if (((x + hazeShift + y * 7) % 17) === 0) {
-          ctx.px(x + ((hazeTick + y) & 1), y, 12)
-        }
-      }
-    }
+    // 1. Animated 3-camel caravan + depth-shaded footprint trail along ridge
+    drawCaravanAndTrail(ctx, t, w, cache)
 
-    // 2. Animated 3-camel caravan + bounded footprint trail along ridge.
-    drawCaravanAndTrail(ctx, t, w, h, cache.nearMask)
-
-    // 3. Dry desert grass tufts swaying with shared wind gust (3 poses, 2fps).
+    // 2. Dry desert grass tufts swaying with shared wind gust (3 poses, 2fps)
     const grassPose = gust > 0.55 ? 2 : gust > 0.15 ? 1 : (Math.floor(t * 2) % 2)
     ctx.spriteFrame(dryGrassSheet, grassPose, Math.round(w * 0.19), Math.round(h * 0.81), 1)
     ctx.spriteFrame(dryGrassSheet, (grassPose + 1) % 3, Math.round(w * 0.34), Math.round(h * 0.89), 1)
 
-    // 4. 48-particle crest-band sand drift + wind-gust burst.
+    // 3. 48-particle knife-edge crest sand plume + wind gust burst
     drawCrestSandParticles(ctx, t, cache, gust)
   },
 }

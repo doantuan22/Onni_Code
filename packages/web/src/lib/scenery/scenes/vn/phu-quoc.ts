@@ -33,20 +33,34 @@ const boatSheet = createSpriteSheet(parseSprite([
   '...........bb...........',
   '..........bbbb..........',
   '.........bbbbbb.........',
-  '..........bbbb..........',
+  '........bbbbbbbb........',
+  '.......bbbbbbbbbb.......',
+  '..........bb............',
+  '..........bb............',
   '......aaaaaaaaaaaa......',
+  '.....aaaaaaaaaaaaaa.....',
+  '....cccccccccccccccc....',
   '.....cccccccccccccc.....',
+  '.........cccccc.........',
+  '........................',
   '........................',
   '...........bb...........',
   '..........bbbb..........',
   '.........bbbbbb.........',
-  '.........bbbbb..........',
+  '........bbbbbbbb........',
+  '.......bbbbbbbbbb.......',
+  '.........bbb............',
+  '.........bbb............',
   '......aaaaaaaaaaaa......',
+  '.....aaaaaaaaaaaaaa.....',
+  '....cccccccccccccccc....',
   '.....cccccccccccccc.....',
+  '.........cccccc.........',
+  '........................',
   '........................',
 ], { a: Ink.BoatHull, b: Ink.BoatSail, c: Ink.Wake }), [
-  { x: 0, y: 0, width: 24, height: 7, pivot: { x: 12, y: 5 } },
-  { x: 0, y: 7, width: 24, height: 7, pivot: { x: 12, y: 5 } },
+  { x: 0, y: 0, width: 24, height: 14, pivot: { x: 12, y: 11 } },
+  { x: 0, y: 14, width: 24, height: 14, pivot: { x: 12, y: 11 } },
 ])
 
 function sky(ctx: BuildCtx, line: number): void {
@@ -67,9 +81,17 @@ function water(ctx: BuildCtx, line: number): void {
     for (let y = line; y < h; y++) {
       const d = (y - line) / (h - line)
       ctx.rect(0, y, w, 1, ctx.dither(0, y, d * 0.7, Ink.SeaDeep, Ink.SeaMid))
-      for (let x = (y * 3) % 17; x < w; x += 19 - Math.floor(d * 8)) if (ctx.fbm2(x * .13, y) > .42) ctx.line(x, y, x + 3 + d * 10, y, Ink.Wave0 + ((x + y) % 6))
-      const half = 4 + d * w * .11
-      for (let x = w * .76 - half; x < w * .76 + half; x += 5) if (ctx.fbm2(x, y * .2) > .32) ctx.line(x, y, x + 3 + d * 7, y, Ink.SeaLight)
+      for (let x = (y * 3) % 27; x < w; x += 29 - Math.floor(d * 7)) if (ctx.fbm2(x * .13, y) > .62) ctx.line(x, y, x + 3 + d * 7, y, Ink.Wave0 + ((x + y) % 6))
+      const row = Math.floor(d * 10)
+      if (row % 2 === 0) {
+        const center = w * (.76 + (row % 3 - 1) * .01)
+        const spread = 5 + d * 48
+        for (let part = 0; part < 3; part++) {
+          if ((row + part) % 3 === 1) continue
+          const start = center + (part - 1) * spread * .44 + ((row + part) & 1) * 3
+          ctx.line(start, y, start + 3 + d * 11 - part, y, Ink.SeaLight)
+        }
+      }
     }
   })
 }
@@ -80,17 +102,29 @@ function palm(ctx: BuildCtx, footX: number, footY: number, height: number, lean:
   for (let y = crownY; y < footY; y++) {
     const t = (y - crownY) / height
     const x = crownX - lean * t * t
-    const wide = Math.max(1, radius * (.07 + t * .045))
+    const wide = Math.max(2, radius * (.055 + t * .04))
     ctx.rect(x - wide / 2, y, wide, 1, Ink.PalmShadow)
-    if (y % 5 !== 0) ctx.px(x + wide / 2 - 1, y, Ink.Palm)
+    if (y % 4 !== 0) ctx.rect(x, y, Math.max(1, wide / 2), 1, Ink.Palm)
+    if (y % 7 === 0) ctx.px(x + wide / 2, y, Ink.PalmRim)
   }
-  for (let arm = 0; arm < 8; arm++) {
-    const angle = -2.9 + arm * .78
-    const length = radius * (.75 + (arm % 3) * .13)
+  for (let arm = 0; arm < 10; arm++) {
+    const angle = -2.95 + arm * .59
+    const length = radius * (.74 + (arm % 4) * .10)
+    const bendX = crownX + Math.cos(angle) * length * .56
+    const bendY = crownY + Math.sin(angle) * length * .40
     const endX = crownX + Math.cos(angle) * length
-    const endY = crownY + Math.sin(angle) * length * .48
-    ctx.line(crownX, crownY, endX, endY, Ink.PalmShadow)
-    ctx.line(crownX + 1, crownY, endX, endY + 2, arm > 3 ? Ink.PalmRim : Ink.Palm)
+    const endY = crownY + Math.sin(angle) * length * .58
+    const thickness = arm % 3 === 0 ? 3 : 2
+    ctx.polygon([
+      { x: crownX - 1, y: crownY + 1 },
+      { x: bendX - thickness, y: bendY + thickness },
+      { x: endX - 1, y: endY + 2 },
+      { x: endX + 2, y: endY - 1 },
+      { x: bendX + thickness, y: bendY - thickness },
+      { x: crownX + 1, y: crownY - 1 },
+    ], Ink.PalmShadow)
+    ctx.line(crownX + 1, crownY, endX, endY + 1, arm > 4 ? Ink.PalmRim : Ink.Palm)
+    if (arm % 2 === 0) ctx.line(bendX, bendY + 1, endX - 2, endY + 3, Ink.Palm)
   }
 }
 
@@ -106,18 +140,23 @@ const scene: SceneDef = {
     ctx.layer({ kind: 'far', z: 1 }, () => {
       for (let x = 0; x < w * .50; x++) {
         const u = x / w
-        const top = h * (.54 - Math.sin(u * 7) * .025 - ctx.fbm2(x * .08, 33) * .028)
-        ctx.rect(x, top, 1, line - top, x > w * .32 ? Ink.IslandNear : Ink.IslandFar)
+        const farTop = h * (.555 - Math.sin(u * 6.5) * .018 - ctx.fbm2(x * .07, 33) * .018)
+        const nearTop = h * (.54 - Math.sin(u * 7.7 + .5) * .026 - ctx.fbm2(x * .09, 63) * .025)
+        ctx.rect(x, farTop, 1, line - farTop, Ink.IslandFar)
+        if (x > w * .10) ctx.rect(x, nearTop, 1, line - nearTop, Ink.IslandNear)
       }
     })
     water(ctx, line)
     ctx.layer({ kind: 'near', z: 5 }, () => {
       for (let x = 0; x < w; x++) {
         const u = x / w
-        const shore = h * (.73 + u * .44 - u * u * .24) + (ctx.fbm2(x * .11, 70) - .5) * 4
+        const shore = h * (.73 + u * .50 - u * u * .31) + (ctx.fbm2(x * .11, 70) - .5) * 4
         ctx.rect(x, shore, 1, h - shore, Ink.Sand)
-        if (ctx.fbm2(x * .14, 90) > .42) ctx.px(x, shore, Ink.Foam)
-        if (u < .36 && shore < h * .91) ctx.line(x, shore + 3, x + 2, shore + 3, Ink.SandDark)
+        if (ctx.fbm2(x * .14, 90) > .48) ctx.line(x, shore, x + 2 + (x % 3), shore, Ink.Foam)
+        if (u < .52 && shore < h * .92 && ctx.fbm2(x * .19, 17) > .54) ctx.line(x, shore + 4, x + 3, shore + 4, Ink.SandDark)
+      }
+      for (const [x, y, size] of [[.43, .84, 3], [.49, .88, 2], [.56, .91, 4], [.62, .94, 2]] as const) {
+        ctx.disc(w * x, h * y, size, Ink.Rock)
       }
       palm(ctx, w * .09, h * 1.02, h * .64, w * .16, Math.min(w, h) * .17)
       palm(ctx, w * .25, h * 1.04, h * .49, w * .045, Math.min(w, h) * .13)
@@ -127,16 +166,16 @@ const scene: SceneDef = {
     const { width: w, height: h } = ctx
     ctx.layer({ kind: 'fx', z: 4 }, () => {
       const boatY = h * .70 + Math.round(Math.sin(t * Math.PI * 2 / 7))
-      ctx.spriteFrame(boatSheet, Math.floor(t * 2), w * .72, boatY, Math.max(1, Math.floor(h / 150)))
-      for (let i = 0; i < 3; i++) ctx.line(w * .72 - 17 - i * 4, boatY + i + 1, w * .72 - 10 - i * 3, boatY + i + 1, Ink.Wake)
+      ctx.spriteFrame(boatSheet, Math.floor(t * 2), w * .72, boatY, Math.max(1, Math.floor(w / 480)))
+      for (let i = 0; i < 3; i++) ctx.line(w * .72 - 16 - i * 4, boatY + i + 2, w * .72 - 9 - i * 3, boatY + i + 2, Ink.Wake)
     })
     // Foam pulses locally along the shore; frond tips sway without moving their trunks.
     ctx.layer({ kind: 'fx', z: 7 }, () => {
       const shift = Math.round(Math.sin(t * Math.PI / 4) * 2)
-      for (let i = 0; i < 17; i++) {
-        const x = w * (.08 + i * .035)
-        const y = h * (.76 + i * .012)
-        ctx.line(x + shift, y, x + 5 + shift, y, Ink.Foam)
+      for (let i = 0; i < 12; i++) {
+        const x = w * (.09 + i * .044)
+        const y = h * (.77 + i * .015)
+        if (i % 3 !== 1) ctx.line(x + shift, y, x + 4 + shift, y, Ink.Foam)
       }
       const sway = Math.round(Math.sin(t * Math.PI / 6) * 2)
       for (const x of [w * .09, w * .25]) ctx.line(x, h * .39, x + sway * 4, h * .35, Ink.PalmRim)

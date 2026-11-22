@@ -32,33 +32,41 @@ const dark: Palettes = {
 }
 
 const boatSheet = createSpriteSheet(parseSprite([
-  '...........aa...........',
-  '..........aaaa..........',
-  '.........aaaaaa.........',
-  '........aaaaaaa.........',
-  '.......aaaaaaaa.........',
-  '..........aa............',
-  '.........aa.............',
-  '........aa..............',
-  '.ccccccccccccccccccccc..',
-  '..ddddddddddddddddddd...',
-  '...eeeeeeeeeeeeeeeee....',
+  '...........b............',
+  '..........abb...........',
+  '.........aabb...........',
+  '........aaabb...........',
+  '.......aaaabb...........',
+  '......aaaaabb...........',
+  '.......aaaabb...........',
+  '.........a.bb...........',
+  '...........b............',
+  '.....cccccccccccccc.....',
+  '....cccccccccccccccc....',
+  '.....dddddddddddddd.....',
+  '..........dddd..........',
   '........................',
-  '...........aa...........',
-  '..........aaaa..........',
-  '.........aaaaaa.........',
-  '........aaaaaaa.........',
-  '.......aaaaaaaa.........',
-  '.........aaa............',
-  '........aa..............',
-  '.......aa...............',
-  '.ccccccccccccccccccccc..',
-  '..ddddddddddddddddddd...',
-  '...eeeeeeeeeeeeeeeee....',
   '........................',
-], { a: Ink.Sail, c: Ink.Hull, d: Ink.SailShadow, e: Ink.Wake }), [
-  { x: 0, y: 0, width: 24, height: 12, pivot: { x: 12, y: 10 } },
-  { x: 0, y: 12, width: 24, height: 12, pivot: { x: 12, y: 10 } },
+  '........................',
+  '...........b............',
+  '..........aabb..........',
+  '.........aaabb..........',
+  '........aaaabb..........',
+  '.......aaaaabb..........',
+  '......aaaaaabb..........',
+  '.......aaa..bb..........',
+  '.........a...b..........',
+  '.............b..........',
+  '.....cccccccccccccc.....',
+  '....cccccccccccccccc....',
+  '.....dddddddddddddd.....',
+  '..........dddd..........',
+  '........................',
+  '........................',
+  '........................',
+], { a: Ink.Sail, b: Ink.SailShadow, c: Ink.Hull, d: Ink.Wake }), [
+  { x: 0, y: 0, width: 24, height: 16, pivot: { x: 12, y: 12 } },
+  { x: 0, y: 16, width: 24, height: 16, pivot: { x: 12, y: 12 } },
 ])
 
 function drawSky(ctx: BuildCtx): void {
@@ -73,18 +81,24 @@ function drawSky(ctx: BuildCtx): void {
   })
 }
 
-function karst(ctx: BuildCtx, left: number, right: number, peak: number, base: number, shadow: Ink, face: Ink, rim: Ink): void {
+function karst(
+  ctx: BuildCtx, left: number, right: number, peak: number, base: number,
+  shadow: Ink, face: Ink, rim: Ink, profile: readonly number[],
+): void {
   const { width: w, height: h } = ctx
   for (let x = Math.floor(left * w); x < right * w; x++) {
     const u = (x / w - left) / (right - left)
-    const shoulder = Math.pow(Math.sin(Math.PI * Math.max(0, Math.min(1, u))), 0.55)
-    const notch = ctx.fbm2(x * 0.075 + peak * 991, 14) * 0.12
-    const top = (base - (base - peak) * shoulder * (0.86 + notch))
+    const clamped = Math.max(0, Math.min(1, u))
+    const point = clamped * (profile.length - 1)
+    const index = Math.min(profile.length - 2, Math.floor(point))
+    const shape = profile[index]! + (profile[index + 1]! - profile[index]!) * (point - index)
+    const notch = (ctx.fbm2(x * 0.11 + peak * 991, 14) - 0.5) * 0.055
+    const top = base - (base - peak) * Math.max(0, Math.min(1, shape + notch))
     for (let y = Math.floor(top * h); y < base * h; y++) {
-      const edge = Math.abs(u - 0.52)
-      let ink = edge < 0.16 ? face : shadow
-      if (u > 0.73 && y < (top + 0.045) * h) ink = rim
-      if (ctx.fbm2(x * 0.13, y * 0.06) > 0.73) ink = edge < 0.3 ? face : shadow
+      const faceStart = 0.32 + shape * 0.12
+      let ink = clamped > faceStart && clamped < 0.82 ? face : shadow
+      if (clamped > 0.70 && y < (top + 0.035) * h) ink = rim
+      if (ctx.fbm2(x * 0.13, y * 0.06) > 0.78) ink = clamped > faceStart ? face : shadow
       ctx.px(x, y, ink)
     }
   }
@@ -96,11 +110,19 @@ function drawWater(ctx: BuildCtx, waterline: number): void {
     for (let y = waterline; y < h; y++) {
       const depth = (y - waterline) / (h - waterline)
       ctx.rect(0, y, w, 1, ctx.dither(0, y, depth * 0.8 + 0.15, Ink.WaterDeep, Ink.WaterMid))
-      for (let x = (y & 3) * 3; x < w; x += Math.max(7, Math.floor(18 - depth * 7))) {
-        if (ctx.fbm2(x * 0.2, y * 0.3) > 0.50) ctx.line(x, y, x + 3 + depth * 11, y, Ink.Wave0 + ((x + y) % 6))
+      for (let x = (y & 3) * 5; x < w; x += Math.max(13, Math.floor(25 - depth * 8))) {
+        if (ctx.fbm2(x * 0.2, y * 0.3) > 0.57) ctx.line(x, y, x + 3 + depth * 8, y, Ink.Wave0 + ((x + y) % 6))
       }
-      const half = 3 + depth * w * 0.13
-      for (let x = w * 0.80 - half; x < w * 0.80 + half; x += 5) if (ctx.fbm2(x * 0.18, y) > 0.34) ctx.line(x, y, x + 2 + depth * 8, y, Ink.WaterLight)
+      const row = Math.floor(depth * 11)
+      if (row % 2 === 0) {
+        const center = w * (0.79 + (row % 3 - 1) * 0.012)
+        const spread = 5 + depth * 54
+        for (let part = 0; part < 3; part++) {
+          const offset = (part - 1) * spread * 0.42 + ((row + part) % 2) * 3
+          const length = 3 + depth * 13 - part * 1.5
+          if ((row + part) % 3 !== 1) ctx.line(center + offset, y, center + offset + length, y, Ink.WaterLight)
+        }
+      }
     }
   })
 }
@@ -116,20 +138,20 @@ const scene: SceneDef = {
     const { width: w, height: h } = ctx
     drawSky(ctx)
     ctx.layer({ kind: 'far', z: 1 }, () => {
-      karst(ctx, 0.08, 0.34, 0.47, 0.63, Ink.FarMist, Ink.FarRock, Ink.FarRim)
-      karst(ctx, 0.29, 0.58, 0.43, 0.63, Ink.FarMist, Ink.FarRock, Ink.FarRim)
-      karst(ctx, 0.54, 0.92, 0.45, 0.63, Ink.FarMist, Ink.FarRock, Ink.FarRim)
+      karst(ctx, 0.08, 0.34, 0.47, 0.63, Ink.FarMist, Ink.FarRock, Ink.FarRim, [0, .35, .86, .62, .30, 0])
+      karst(ctx, 0.29, 0.58, 0.43, 0.63, Ink.FarMist, Ink.FarRock, Ink.FarRim, [0, .20, .48, 1, .72, .40, 0])
+      karst(ctx, 0.54, 0.92, 0.45, 0.63, Ink.FarMist, Ink.FarRock, Ink.FarRim, [0, .42, .70, .45, .90, .58, .16, 0])
     })
     ctx.layer({ kind: 'fog', z: 2 }, () => {
       for (let x = 0; x < w; x += 4) if (ctx.fbm2(x * 0.05, 66) > 0.31) ctx.rect(x, h * 0.59 + (x % 11 > 6 ? 1 : 0), 9, 3, Ink.Fog)
     })
     ctx.layer({ kind: 'mid', z: 3 }, () => {
-      karst(ctx, 0.38, 0.77, 0.35, 0.66, Ink.MidRock, Ink.MidFace, Ink.MidRim)
-      karst(ctx, 0.82, 1.03, 0.30, 0.72, Ink.NearRock, Ink.NearFace, Ink.NearRim)
+      karst(ctx, 0.38, 0.77, 0.35, 0.66, Ink.MidRock, Ink.MidFace, Ink.MidRim, [0, .18, .66, 1, .88, .54, .22, 0])
+      karst(ctx, 0.82, 1.03, 0.30, 0.72, Ink.NearRock, Ink.NearFace, Ink.NearRim, [0, .30, .86, 1, .72, .25, 0])
       for (let y = h * 0.48; y < h * 0.66; y += 7) ctx.line(w * 0.84, y, w * 0.96, y + 2, Ink.Cave)
     })
     drawWater(ctx, Math.floor(h * 0.63))
-    ctx.layer({ kind: 'near', z: 6 }, () => karst(ctx, -0.06, 0.22, 0.38, 1, Ink.NearRock, Ink.NearFace, Ink.NearRim))
+    ctx.layer({ kind: 'near', z: 6 }, () => karst(ctx, -0.06, 0.22, 0.38, 1, Ink.NearRock, Ink.NearFace, Ink.NearRim, [0, .30, .78, 1, .76, .38, 0]))
   },
   frame(ctx, t) {
     const { width: w, height: h } = ctx
@@ -141,8 +163,8 @@ const scene: SceneDef = {
     const boatX = Math.floor(w * 0.73)
     const boatY = waterline + Math.floor(h * 0.135) + Math.round(Math.sin(t * Math.PI * 2 / 7))
     ctx.layer({ kind: 'fx', z: 5 }, () => {
-      ctx.spriteFrame(boatSheet, Math.floor(t * 2), boatX, boatY, Math.max(1, Math.floor(h / 135)))
-      for (let i = 0; i < 3; i++) ctx.line(boatX - 17 - i * 5, boatY + 2 + i, boatX - 10 - i * 4, boatY + 2 + i, Ink.Wake)
+      ctx.spriteFrame(boatSheet, Math.floor(t * 2), boatX, boatY, Math.max(1, Math.floor(w / 480)))
+      for (let i = 0; i < 3; i++) ctx.line(boatX - 16 - i * 5, boatY + 3 + i, boatX - 9 - i * 4, boatY + 3 + i, Ink.Wake)
       const birdX = w * (0.32 + ((t * 0.015) % 0.36))
       for (let i = 0; i < 2; i++) {
         const y = h * (0.34 + i * 0.025) + Math.sin(t * 4 + i) * 2

@@ -27,7 +27,7 @@ and CLI flags that do not exist).
 
 | Section | Verdict | Changes |
 | --- | --- | --- |
-| Hero (`hero-*.png`) | see addendum | (pending the hero worker) |
+| Hero (`hero-*.png`) | **fix** | see addendum below |
 | s2 Backends | **keep** | YAML keys in `#A1A1A1`, values `#EDEDED`, strings `#10B981`; hovered tile also highlights the matching `backend:` line in the YAML; one tile shown as "not installed" (dimmed LED, `#8A8A8A`) to tell the discovery story; command line `onni run "Split settings into tabs" --workflow review`. |
 | s3 Worktrees | **fix** | Single trunk stem → one 3-way junction node; fork fed from the spine rail (G1); restore diff stats and `git trunk · clean` on mobile. |
 | s4 Live | **fix** | Right pane: full-height diff with context lines; diff matches the active step; footer gets clickable step pills `1 Read · 2 Edit · 3 Test · 4 Settle` (replaces "Step 3 / 4" text). |
@@ -45,3 +45,13 @@ The image-generation quota ran out (Gemini image 429, ~5h reset; OpenCode has no
 On the owner's instruction, **round 2 is built as HTML prototypes instead of images**: each section
 is implemented directly in `site/` against the foundation contract, so the reviewed "mockup" is
 the real page. Fixes above are the acceptance list for that round.
+
+## Addendum — hero and style tile (arrived after round 2 started)
+
+- `style-tile.png`: **keep** as the token reference.
+- `hero-desktop-load.png`: **fix**. Centered headline + tilted twin works. Problems: the twin's middle is empty (it needs the
+  step list and the run sidebar), invented metrics (`142 tok/s`, `0.00 KB/s air-gapped`) must go (G6), `onni run --workflow dev.yaml`
+  → `onni run "<task>" --workflow quick-task`, nav CTA cluster is crowded (keep lamp toggle + one "Try offline").
+- `hero-desktop-scrolled.png`: **fix**. Worker rows must be claude / codex / agy (same branches as s3–s6, no "cursor" — cursor is the
+  ghost *outside* the roster in s5), no model names like `claude-3-7-sonnet`.
+- `hero-mobile.png`: **keep** the stacking; drop the hamburger (four anchors fit in a scrollable row).

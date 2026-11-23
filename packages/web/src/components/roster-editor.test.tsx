@@ -14,6 +14,7 @@ afterEach(() => {
 })
 
 const draft: RosterDraft = {
+  mode: 'fanout',
   managerRunner: 'claude',
   managerModel: '',
   workers: [{ runner: 'codex', model: '', role: '', kinds: [], tier: '', maxConcurrent: 1 }],
@@ -23,6 +24,25 @@ const renderEditor = (ui: ReactElement) =>
   render(<QueryClientProvider client={createQueryClient()}>{ui}</QueryClientProvider>)
 
 describe('RosterEditor', () => {
+  it('selects One & One and normalizes the roster to one worker at concurrency one', async () => {
+    const onChange = vi.fn()
+    const fanout: RosterDraft = { ...draft, workers: [...draft.workers, { ...draft.workers[0]!, runner: 'opencode', maxConcurrent: 4 }] }
+    renderEditor(<RosterEditor draft={fanout} onChange={onChange} connected={['claude', 'codex', 'opencode']} />)
+    await pickOption(screen.getByLabelText('Working mode'), 'one-and-one')
+    expect(onChange).toHaveBeenCalledWith({ ...fanout, mode: 'one-and-one', workers: [{ ...fanout.workers[0], maxConcurrent: 1 }] })
+  })
+  it('locks add, remove and concurrency for One & One', () => {
+    renderEditor(<RosterEditor draft={{ ...draft, mode: 'one-and-one', workers: [{ ...draft.workers[0]!, maxConcurrent: 9 }] }} onChange={vi.fn()} connected={['claude', 'codex']} />)
+    expect((screen.getByLabelText('Worker 1 at once') as HTMLInputElement).disabled).toBe(true)
+    expect((screen.getByLabelText('Worker 1 at once') as HTMLInputElement).value).toBe('1')
+    expect((screen.getByLabelText('Remove worker 1') as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: 'Add worker' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+  it('can lock the mode for a live run', () => {
+    renderEditor(<RosterEditor draft={draft} onChange={vi.fn()} connected={['claude', 'codex']} modeLocked />)
+    expect((screen.getByLabelText('Working mode') as HTMLSelectElement).disabled).toBe(true)
+    expect(screen.getByText('The working mode is fixed for a running task.')).toBeTruthy()
+  })
   it('offers only the connected backends', async () => {
     renderEditor(<RosterEditor draft={draft} onChange={vi.fn()} connected={['claude', 'codex']} />)
     const options = await optionValues(screen.getByLabelText('Worker 1 backend'))

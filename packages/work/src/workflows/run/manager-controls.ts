@@ -15,6 +15,7 @@ import {
   PEEK_TAIL_MAX_CHARS_PER_LINE,
   PEEK_TAIL_MAX_LINES,
   REPORT_FILES_MAX,
+  isOneAndOneRoster,
   rosterWorkerKey,
   type DispatchBudget,
   type DispatchConflicts,
@@ -42,6 +43,8 @@ import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { effectiveAntigravityLevel } from '../../core/antigravity-permissions.ts';
 import { parseUsageLimit } from '../../core/usage-limit.ts';
+import { oneAndOneManagerPrompt, oneAndOneWorkerPrompt } from '../../dispatch/pair-prompts.ts';
+import { PairStore } from '../../dispatch/pair-store.ts';
 import { resolveCapabilities } from '../../server/capabilities.ts';
 import { composeDispatchPrompt } from '../../dispatch/prompts.ts';
 import { formatBudgetLine, toDispatchBudget } from '../../dispatch/budget-format.ts';
@@ -138,7 +141,13 @@ export function updateRosterFromUser(ctx: ManagerControlContext, runId: string, 
   if (!['queued', 'running', 'waiting'].includes(run.status)) return { denied: 'task is not live', status: 409 };
   const previous = run.roster;
   const updated = ctx.store.updateRoster(run.id, roster);
-  if (!updated.ok) return { denied: updated.reason === 'manager-changed' ? 'the manager backend and model cannot be changed' : 'roster could not be updated', status: updated.reason === 'invalid' ? 400 : 409 };
+  if (!updated.ok) {
+    const denied = updated.reason === 'manager-changed' ? 'the manager backend and model cannot be changed'
+      : updated.reason === 'mode-changed' ? 'the Manager–Worker mode cannot be changed after the task starts'
+      : updated.reason === 'pair-worker-changed' ? 'the One & One worker cannot be replaced after its first order'
+      : 'roster could not be updated';
+    return { denied, status: updated.reason === 'invalid' ? 400 : 409 };
+  }
   if (workerDiff(previous, updated.roster).length) {
     recordRosterChange(ctx, run, previous, updated.roster, 'user');
     void ctx.pump();
@@ -157,8 +166,17 @@ export function updateRosterFromManager(ctx: ManagerControlContext, runId: strin
   if (!run.roster) return { denied: 'run has no manager–worker roster', status: 409 };
   if (!['queued', 'running', 'waiting'].includes(run.status)) return { denied: 'task is not live', status: 409 };
   const previous = run.roster;
-  const updated = ctx.store.updateRoster(run.id, { manager: run.roster.manager, workers: input.workers });
-  if (!updated.ok) return { denied: updated.reason === 'invalid' ? 'worker roster is invalid' : 'roster could not be updated', status: updated.reason === 'invalid' ? 400 : 409 };
+  const updated = ctx.store.updateRoster(run.id, {
+    manager: run.roster.manager,
+    ...(run.roster.mode !== undefined ? { mode: run.roster.mode } : {}),
+    workers: input.workers,
+  });
+  if (!updated.ok) {
+    const denied = updated.reason === 'invalid' ? 'worker roster is invalid'
+      : updated.reason === 'pair-worker-changed' ? 'the One & One worker cannot be replaced after its first order'
+      : 'roster could not be updated';
+    return { denied, status: updated.reason === 'invalid' ? 400 : 409 };
+  }
   if (workerDiff(previous, updated.roster).length) {
     recordRosterChange(ctx, run, previous, updated.roster, 'manager');
     void ctx.pump();
@@ -304,11 +322,17 @@ export function prepareDispatchSession(ctx: ManagerControlContext, runId: string
     const roster = dispatch ? runs.find((r) => r.id === dispatch.rootRunId)?.roster : undefined;
     if (roster && dispatch) {
       if (dispatch.parentRunId) {
-        const brief = workerPrompt(dispatch.kind, ctx.store.getRun(runId)?.runner);
+        const pairOrder = dispatch.pairMember
+          ? new PairStore(ctx.dataDir).readState(dispatch.pairMember.pairId)?.currentOrderId
+          : undefined;
+        const order = pairOrder ? new PairStore(ctx.dataDir).getOrder(dispatch.pairMember!.pairId, pairOrder) : null;
+        const brief = order ? oneAndOneWorkerPrompt(order) : workerPrompt(dispatch.kind, ctx.store.getRun(runId)?.runner);
         const workerRtk = context.workerRtk ?? workerRtkAvailable(ctx.managerEnv(), ctx.store.getRun(runId)?.runner);
         state.workerRtk = workerRtk;
         state.dispatchPrompt = workerRtk ? `${brief}\n\n${RTK_WORKER_GUIDANCE}` : brief;
         state.workerRepoMap = context.workerRepoMap;
+      } else if (isOneAndOneRoster(roster)) {
+        state.dispatchPrompt = oneAndOneManagerPrompt(roster.workers[0]!);
       } else {
         const scorecard = buildWorkerScorecard(runs);
         const hasHistory = roster.workers.some((worker) => {

@@ -29,10 +29,15 @@ import { drainSkillDeliveries } from './messages.ts';
 import { UNATTENDED_DENIED_TOOLS } from '../push-guard.ts';
 import { describeHit, raiseLimits } from '../limits.ts';
 import { DEFAULT_ALLOWED_TOOLS, stepKind } from '../types.ts';
+import { currentCheckExclusions } from './check-steps.ts';
+import { isPairMember, isPairRoot } from './pair-runtime.ts';
+import { preparePairContinuation } from './pair-coordinator.ts';
 import { agentDirectories, composeSystemPrompt, contentBlocksOf, dispatchPromptPart, pastedAttachmentsText } from './preparation.ts';
 import type { PersistedAttachment, PastedContent } from './preparation.ts';
-import type { ContinuationActiveRun, ContinuationContext, ContinuationOptions } from './internal-types.ts';
+import type { ContinuationActiveRun, ContinuationContext, ContinuationOptions, PairWorkerTurnResult } from './internal-types.ts';
 export function finish(ctx: ContinuationContext, runId: string): boolean {
+    const record = ctx.store.getRun(runId);
+    if (isPairMember(record) || isPairRoot(record)) return false;
     const state = ctx.active.get(runId);
     if (state?.graphFinish && !state.session?.open) {
       ctx.store.appendEvent(runId, { type: 'lifecycle', message: 'finished by user at a workflow wait' });
@@ -323,27 +328,31 @@ export async function runContinuation(ctx: ContinuationContext,
     // for retention again — otherwise it keeps a dir on disk while staying
     // invisible to the enforcer forever. Best-effort; falls back to repoRoot.
     const beforePreparation = ctx.store.getRun(runId);
-    const gatedContinuation = !!beforePreparation?.worktreePath && await ctx.lifecycle.requiresGate(runId).catch(() => true);
-    if (ctx.abandonCancelledStart(runId)) return;
-    if (beforePreparation?.worktreePath && gatedContinuation) {
-      // Keep the original continuation intent durable before any script can start.
-      const preparing: ContinuationActiveRun = {
-        ownerToken: effectiveOwnerToken, cancelled: false, interrupt: () => undefined,
-        cwd: beforePreparation.worktreePath, autonomous: beforePreparation.autonomous === true, autoContinues: 0,
-        autosaveExcludedPaths: ctx.checkArtifactSnapshots.get(runId) ?? new Map(),
-        checkInProgress: false, autosaveCheckpointBlocked: ctx.autosaveCheckpointBlockedRuns.has(runId),
-      };
-      ctx.active.set(runId, preparing); ctx.starting.delete(runId);
-      const preparationController = new AbortController();
-      preparing.interrupt = () => preparationController.abort();
-      const gate = await ctx.lifecycle.prepare(runId, beforePreparation.baseBranch ?? 'HEAD', {
-        kind: 'continuation', runId, stepId, sessionId, backend, prompt, images, persistedImages, persistedAttachments,
-      }, preparationController.signal, {branch: beforePreparation.branch});
-      if (preparing.cancelled) { ctx.dropActive(runId, preparing); return; }
-      if (!gate.ready) { ctx.parkLifecycle(runId, preparing, gate.operationId); return; }
-    } else {
-      await rematerializeReclaimedWorktree(ctx.repoRoot, ctx.store, runId);
+    const pairRun = isPairMember(beforePreparation) || isPairRoot(beforePreparation);
+    let gatedContinuation = false;
+    if (!pairRun) {
+      gatedContinuation = !!beforePreparation?.worktreePath && await ctx.lifecycle.requiresGate(runId).catch(() => true);
       if (ctx.abandonCancelledStart(runId)) return;
+      if (beforePreparation?.worktreePath && gatedContinuation) {
+        // Keep the original continuation intent durable before any script can start.
+        const preparing: ContinuationActiveRun = {
+          ownerToken: effectiveOwnerToken, cancelled: false, interrupt: () => undefined,
+          cwd: beforePreparation.worktreePath, autonomous: beforePreparation.autonomous === true, autoContinues: 0,
+          autosaveExcludedPaths: ctx.checkArtifactSnapshots.get(runId) ?? new Map(),
+          checkInProgress: false, autosaveCheckpointBlocked: ctx.autosaveCheckpointBlockedRuns.has(runId),
+        };
+        ctx.active.set(runId, preparing); ctx.starting.delete(runId);
+        const preparationController = new AbortController();
+        preparing.interrupt = () => preparationController.abort();
+        const gate = await ctx.lifecycle.prepare(runId, beforePreparation.baseBranch ?? 'HEAD', {
+          kind: 'continuation', runId, stepId, sessionId, backend, prompt, images, persistedImages, persistedAttachments,
+        }, preparationController.signal, {branch: beforePreparation.branch});
+        if (preparing.cancelled) { ctx.dropActive(runId, preparing); return; }
+        if (!gate.ready) { ctx.parkLifecycle(runId, preparing, gate.operationId); return; }
+      } else {
+        await rematerializeReclaimedWorktree(ctx.repoRoot, ctx.store, runId);
+        if (ctx.abandonCancelledStart(runId)) return;
+      }
     }
     const record = ctx.store.getRun(runId);
     // A provider/account switch cannot resume the old provider-owned session — and a compacted
@@ -370,8 +379,9 @@ export async function runContinuation(ctx: ContinuationContext,
     // The env is a live ceiling: a run created while the inbox was on must not keep writing
     // follow-ups after it is switched off.
     const generateFollowups = followupsEnabled() && record?.generateFollowups !== false;
-    const cwd =
-      record?.worktreePath && (gatedContinuation || existsSync(record.worktreePath))
+    const cwd = pairRun
+      ? ctx.repoRoot
+      : record?.worktreePath && (existsSync(record.worktreePath) || gatedContinuation)
         ? record.worktreePath
         : ctx.repoRoot;
     // `autonomous` comes off the RECORD, not off an input: a continuation builds its OWN
@@ -396,13 +406,13 @@ export async function runContinuation(ctx: ContinuationContext,
     ctx.starting.delete(runId);
     // The same warm-up as `execute` (C-05): a continuation spawns its own CLI.
     await processJobs.ready();
-    if (record?.worktreePath && state.cwd !== ctx.repoRoot) state.releaseWorktree = await ctx.lifecycle.acquireAgentLease(runId);
-    state.readOnly = record?.readOnly === true && state.cwd === ctx.repoRoot;
-    if (state.cwd === ctx.repoRoot) {
+    if (!pairRun && record?.worktreePath && state.cwd !== ctx.repoRoot) state.releaseWorktree = await ctx.lifecycle.acquireAgentLease(runId);
+    state.readOnly = !pairRun && record?.readOnly === true && state.cwd === ctx.repoRoot;
+    if (state.cwd === ctx.repoRoot && !pairRun) {
       state.autoLand = await ctx.landingPolicy(record, await loadConfig(ctx.repoRoot));
     }
     if (state.cwd === ctx.repoRoot && !state.readOnly) {
-      if (ctx.helpers.repositoryRootLockDisabled()) {
+      if (!pairRun && ctx.helpers.repositoryRootLockDisabled()) {
         ctx.store.appendEvent(runId, {
           type: 'note',
           message: ctx.helpers.repositoryRootLockDisabledNote,
@@ -422,6 +432,21 @@ export async function runContinuation(ctx: ContinuationContext,
           ctx.dropActive(runId, state);
           return;
         }
+      }
+    }
+    if (pairRun) {
+      const prepared = await preparePairContinuation(ctx, runId);
+      if (!prepared.ok || state.cancelled) {
+        const message = prepared.ok ? 'run cancelled' : prepared.error;
+        ctx.store.updateRun(runId, {
+          status: prepared.ok ? 'cancelled' : 'failed',
+          error: prepared.ok ? undefined : message,
+          finishedAt: new Date().toISOString(),
+          currentStepId: undefined,
+        });
+        ctx.store.appendEvent(runId, { type: 'lifecycle', message: `One & One continuation stopped — ${message}` });
+        ctx.dropActive(runId, state);
+        return;
       }
     }
     ctx.armAutosave(runId, state);
@@ -480,6 +505,7 @@ export async function runContinuation(ctx: ContinuationContext,
     let stepCost = 0;
     let turnText = '';
     let sessionError: string | undefined;
+    let pairTurn: Promise<PairWorkerTurnResult> | undefined;
     const sink = ctx.makeUiSink(runId, stepId);
     const resumeGuard = new ResumeFallback(
       sessionId !== undefined,
@@ -548,7 +574,23 @@ export async function runContinuation(ctx: ContinuationContext,
         // working again, so the anti-spin budget is restored. Before the early returns below,
         // because a turn that finished or dispatched is progress too.
         if (!compacted) state.compactionContinues = 0;
-        const done = sessionOpen && ctx.helpers.endsWithDoneMarker(turnText);
+        if (!compacted && ctx.helpers.endsWithDoneMarker(turnText) && isPairMember(ctx.store.getRun(runId))) {
+          const pairReportText = turnText;
+          pairTurn ??= (async () => {
+            try {
+              const excludedPaths = await ctx.helpers.currentCheckExclusions(state.cwd, state.autosaveExcludedPaths);
+              return await ctx.handlePairWorkerTurn(runId, pairReportText, excludedPaths);
+            } catch (error) {
+              return { handled: true, ok: false, error: error instanceof Error ? error.message : String(error) };
+            }
+          })();
+          void pairTurn.then(() => {
+            if (ctx.active.get(runId) === state) state.session?.end();
+          });
+          turnText = '';
+          return;
+        }
+        let done = sessionOpen && ctx.helpers.endsWithDoneMarker(turnText);
         // The dispatch facts of this turn (spec 2026-09-10-dispatch), through the ONE helper both
         // turn-end handlers call. Inert for a run with no `dispatch`.
         const dispatchTurn = ctx.handleDispatchTurn(runId, turnText, {
@@ -556,6 +598,7 @@ export async function runContinuation(ctx: ContinuationContext,
           stepId,
           done: Boolean(done),
         });
+        if (dispatchTurn.doneBlocked) done = false;
         // `ONNI:ASK` → the user is genuinely blocked; wins over `ONNI:MONITORING`
         // (a pending question is always attention), loses to `ONNI:DONE` (#473)
         // and to a turn that dispatched, which parks as a monitor.
@@ -869,6 +912,10 @@ export async function runContinuation(ctx: ContinuationContext,
         for (const content of replay) session.sendMessage(content);
         await session.result;
         if (sessionError) throw new Error(sessionError);
+      }
+      if (pairTurn) {
+        const pairResult = await pairTurn;
+        if (!pairResult.ok) throw new Error(pairResult.error ?? 'One & One worker handoff failed');
       }
       // Before any branch below publishes a terminal status: the finally's autosave comes after it.
       state.turnSettled = true;

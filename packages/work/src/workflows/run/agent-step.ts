@@ -28,8 +28,9 @@ import { UiEventSink } from '../../runs/ui-event-sink.ts';
 import { freshContinuationContext } from '../continuation-context.ts';
 import { agentDirectories, ATTACHMENT_ONLY_TASK, composeSystemPrompt, dispatchPromptPart, pastedAttachmentsText } from './preparation.ts';
 import { withWorkerRepoMap } from '../../dispatch/worker-context.ts';
-import { applyTemplate, expandRegistrySlashSkillText, leadingSlashSkillName, skillSystemPrompt } from './check-steps.ts';
-import type { AgentStepActiveRun, AgentStepContext } from './internal-types.ts';
+import { applyTemplate, currentCheckExclusions, expandRegistrySlashSkillText, leadingSlashSkillName, skillSystemPrompt } from './check-steps.ts';
+import { isPairMember } from './pair-runtime.ts';
+import type { AgentStepActiveRun, AgentStepContext, PairWorkerTurnResult } from './internal-types.ts';
 import type { PersistedAttachment } from './preparation.ts';
 import type { StartRunInput } from '../run.ts';
 import type { RunRecord, StepState } from '../../runs/store.ts';
@@ -141,6 +142,7 @@ export async function runAgentStep(
   let stepCost = stepRecord?.costUsd ?? 0;
   let turnText = '';
   let sessionError: string | undefined;
+  let pairTurn: Promise<PairWorkerTurnResult> | undefined;
   const sink = ctx.makeUiSink(runId, step.id);
   const resumeGuard = new ResumeFallback(
     graphHooks?.resumeSessionId !== undefined,
@@ -204,7 +206,24 @@ export async function runAgentStep(
       const compacted = event.reason === 'context-compaction';
         const markerless = compacted && ctx.markerlessTurn(turnText);
       if (!compacted) state.compactionContinues = 0;
-        const done = interactive && sessionOpen && ctx.endsWithDoneMarker(turnText);
+      if (!compacted && ctx.endsWithDoneMarker(turnText) && isPairMember(ctx.store.getRun(runId))) {
+        if (graphHooks?.lastTurn) graphHooks.lastTurn.text = turnText;
+        const pairReportText = turnText;
+        pairTurn ??= (async () => {
+          try {
+            const excludedPaths = await currentCheckExclusions(state.cwd, state.autosaveExcludedPaths);
+            return await ctx.handlePairWorkerTurn(runId, pairReportText, excludedPaths);
+          } catch (error) {
+            return { handled: true, ok: false, error: error instanceof Error ? error.message : String(error) };
+          }
+        })();
+        void pairTurn.then(() => {
+          if (ctx.active.get(runId) === state) state.session?.end();
+        });
+        turnText = '';
+        return;
+      }
+      let done = interactive && sessionOpen && ctx.endsWithDoneMarker(turnText);
       // The dispatch facts, through the same ONE helper `runContinuation` calls (spec
       // 2026-09-10-dispatch A5). Not gated on `interactive`: a report and a dispatch
       // are the agent telling onni what it did, and a chained workflow's non-final step that
@@ -217,6 +236,7 @@ export async function runAgentStep(
         stepId: step.id,
         done: Boolean(done),
       });
+      if (dispatchTurn.doneBlocked) done = false;
       // `ONNI:ASK` → the user is blocked; wins over `ONNI:MONITORING`, loses to
       // `ONNI:DONE` (#473) and to a turn that dispatched.
       //
@@ -565,6 +585,10 @@ export async function runAgentStep(
       result = await session.result;
       if (sessionError) throw new Error(sessionError);
     }
+    if (pairTurn) {
+      const pairResult = await pairTurn;
+      if (!pairResult.ok) throw new Error(pairResult.error ?? 'One & One worker handoff failed');
+    }
     // v2 counterpart of v1's `done` (spec: the mappers leave session-close
     // events to the RunManager — only it knows how the session settled).
     sink.sessionEnded(state.cancelled ? 'cancelled' : 'end_turn');
@@ -620,6 +644,7 @@ export function handleRunnerUiEvent(
   if (state.cancelled || (ctx.active.has(runId) && ctx.active.get(runId) !== state)) return;
   ctx.recordUsageUiEvent(runId, state, event);
   sink.handle(event);
+  if (event.type === 'turn.started') state.pairTurnSeq = (state.pairTurnSeq ?? 0) + 1;
   if (event.type !== 'ask.requested' || state.cancelled) return;
   ctx.clearIdleTimer(state);
   ctx.leaveMonitoring(runId);

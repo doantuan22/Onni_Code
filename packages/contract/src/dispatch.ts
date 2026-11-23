@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { runnerSchema } from './health.ts';
+import { pairDispatchResultSchema, pairMemberSchema, pairStateSchema } from './one-and-one.ts';
 
 /**
  * The DISPATCH family of `/api/v1`: a task may dispatch other tasks (spec
@@ -613,6 +614,10 @@ export type DispatchIntent = z.infer<typeof dispatchIntentSchema>;
 export const dispatchSchema = z.object({
   /** The tree's root run id (the root names itself). */
   rootRunId: z.string(),
+  /** Bounded One & One coordinator state on the root; full history lives in the pair store. */
+  pair: pairStateSchema.optional(),
+  /** Membership of the persistent One & One worker. */
+  pairMember: pairMemberSchema.optional(),
   /** On a worker started under a roster: which roster entry it occupies (`backend:model`). */
   workerKey: z.string().optional(),
   /** On a ROOT started with the composer's Dispatch toggle: what the user asked for. */
@@ -748,5 +753,6 @@ export type DispatchInput = z.infer<typeof dispatchInputSchema>;
 export const dispatchResponseSchema = z.object({
   id: z.string(),
   branch: z.string().optional(),
+  pair: pairDispatchResultSchema.optional(),
 });
 export type DispatchResponse = z.infer<typeof dispatchResponseSchema>;

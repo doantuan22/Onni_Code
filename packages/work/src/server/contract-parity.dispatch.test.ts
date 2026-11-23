@@ -31,7 +31,7 @@ import {
   treePlanPutSchema,
   treePlanSchema,
 } from '@onni/contract';
-import type { dispatchBudgetSchema, dispatchInputSchema, dispatchResponseSchema, mergeInputSchema, mergeResultSchema } from '@onni/contract';
+import type { dispatchBudgetSchema, dispatchInputSchema, dispatchResponseSchema, mergeInputSchema, mergeResultSchema, pairAcceptInputSchema, pairDecisionInputSchema, pairMessageInputSchema, pairOrderSchema, pairMessageSchema, pairProposalInputSchema, pairProposalSchema, pairDecisionSchema, pairSnapshotSchema } from '@onni/contract';
 import type { AppType } from './app-type.ts';
 
 /**
@@ -83,6 +83,15 @@ describe('src/contract/dispatch.ts matches the dispatch routes exactly', () => {
   type ManagerRosterGet200 = InferResponseType<Run['roster']['$get'], 200>;
   type UserRoster200 = InferResponseType<Run['roster']['$put'], 200>;
   type UserRosterBody = InferRequestType<Run['roster']['$put']>['json'];
+  type PairSnapshot200 = InferResponseType<Run['pair']['$get'], 200>;
+  type PairMessage200 = InferResponseType<Run['pair']['messages']['$post'], 200>;
+  type PairMessageBody = InferRequestType<Run['pair']['messages']['$post']>['json'];
+  type PairProposal200 = InferResponseType<Run['pair']['proposals']['$post'], 200>;
+  type PairProposalBody = InferRequestType<Run['pair']['proposals']['$post']>['json'];
+  type PairDecision200 = InferResponseType<Run['pair']['decisions']['$post'], 200>;
+  type PairDecisionBody = InferRequestType<Run['pair']['decisions']['$post']>['json'];
+  type PairAccept200 = InferResponseType<Run['pair']['accept']['$post'], 200>;
+  type PairAcceptBody = InferRequestType<Run['pair']['accept']['$post']>['json'];
 
   type _Checks = [
     Assert<Exact<z.infer<typeof dispatchResponseSchema>, Dispatch201>>,
@@ -121,6 +130,15 @@ describe('src/contract/dispatch.ts matches the dispatch routes exactly', () => {
     Assert<Exact<z.input<typeof managerRosterUpdateInputSchema>, ManagerRosterBody>>,
     Assert<Exact<z.infer<typeof rosterUpdateResponseSchema>, UserRoster200>>,
     Assert<Exact<z.input<typeof rosterUpdateInputSchema>, UserRosterBody>>,
+    Assert<Exact<z.infer<typeof pairSnapshotSchema>, PairSnapshot200>>,
+    Assert<Exact<z.infer<typeof pairMessageSchema>, PairMessage200>>,
+    Assert<Exact<z.input<typeof pairMessageInputSchema>, PairMessageBody>>,
+    Assert<Exact<z.infer<typeof pairProposalSchema>, PairProposal200>>,
+    Assert<Exact<z.input<typeof pairProposalInputSchema>, PairProposalBody>>,
+    Assert<Exact<z.infer<typeof pairDecisionSchema>, PairDecision200>>,
+    Assert<Exact<z.input<typeof pairDecisionInputSchema>, PairDecisionBody>>,
+    Assert<Exact<z.infer<typeof pairOrderSchema>, PairAccept200>>,
+    Assert<Exact<z.input<typeof pairAcceptInputSchema>, PairAcceptBody>>,
   ];
 
   it('is enforced by tsc, not at runtime', () => {

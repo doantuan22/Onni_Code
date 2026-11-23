@@ -12,6 +12,7 @@ import { createUsageStore, type UsageStore } from './events'
 import { GlobalEventsProvider, RECONCILE_TIMEOUT_MS, useGlobalEvents, useRunUsage, useUsage } from './global-events'
 import { setApiScope, WORKSPACE_RUN_EVENT_OMITTED_KEYS } from '@onni/api-client'
 import { createQueryClient } from './query-client'
+import { pairSnapshot } from '@/routes/task-thread/__fixtures__/pair'
 import { queryKeys, useProviderStatus, useRuns, useTodos, workspaceQueryKeys } from './queries'
 import { RUN_EVENT_BATCH_MS } from './run-events'
 import type { ApiRun, ProjectListEntry, ProjectsResponse, ProviderStatusResponse, RunRecord } from '@onni/api-client'
@@ -664,6 +665,61 @@ describe('useGlobalEvents — run events', () => {
     source.emit('run', stampedRun(runRecord('r2', { status: 'done' })))
 
     expect(invalidate).not.toHaveBeenCalledWith({ queryKey: queryKeys.runs.changes('r2') })
+  })
+
+  it('invalidates a cached pair only when a manager run frame advances its snapshot timestamp', async () => {
+    const cached = pairSnapshot({ updatedAt: '2026-11-18T10:00:00.000Z' })
+    client.setQueryData(queryKeys.runs.pair('pair-1'), cached)
+    const invalidate = vi.spyOn(client, 'invalidateQueries')
+    const { source } = mount()
+
+    source.emit('run', slimRun(runRecord('manager-r1', {
+      dispatch: {
+        rootRunId: 'manager-r1',
+        pair: { ...cached.state, updatedAt: '2026-11-18T10:00:01.000Z' },
+      },
+    })))
+    await flushRunEvents()
+
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.runs.pair('pair-1') })
+    expect(invalidate.mock.calls.filter(([filters]) =>
+      JSON.stringify(filters) === JSON.stringify({ queryKey: queryKeys.runs.pair('pair-1') }))).toHaveLength(1)
+    expect(client.getQueryData(queryKeys.runs.pair('pair-1'))).toEqual(cached)
+  })
+
+  it.each([
+    '2026-11-18T10:00:00.000Z',
+    '2026-11-18T09:59:59.000Z',
+  ])('does not invalidate a pair for an equal or older run-frame timestamp: %s', async (updatedAt) => {
+    const cached = pairSnapshot({ updatedAt: '2026-11-18T10:00:00.000Z' })
+    client.setQueryData(queryKeys.runs.pair('pair-1'), cached)
+    const invalidate = vi.spyOn(client, 'invalidateQueries')
+    const { source } = mount()
+
+    source.emit('run', stampedRun(runRecord('manager-r1', {
+      dispatch: { rootRunId: 'manager-r1', pair: { ...cached.state, updatedAt } },
+    })))
+    source.emit('run', stampedRun(runRecord('manager-r1', {
+      tokensUsed: 42,
+      dispatch: { rootRunId: 'manager-r1', pair: { ...cached.state, updatedAt } },
+    })))
+    await flushRunEvents()
+
+    expect(invalidate).not.toHaveBeenCalledWith({ queryKey: queryKeys.runs.pair('pair-1') })
+  })
+
+  it('does not create or invalidate a pair cache from a manager event nobody has read', async () => {
+    const state = pairSnapshot().state
+    const invalidate = vi.spyOn(client, 'invalidateQueries')
+    const { source } = mount()
+
+    source.emit('run', stampedRun(runRecord('manager-r1', {
+      dispatch: { rootRunId: 'manager-r1', pair: state },
+    })))
+    await flushRunEvents()
+
+    expect(client.getQueryData(queryKeys.runs.pair('pair-1'))).toBeUndefined()
+    expect(invalidate).not.toHaveBeenCalledWith({ queryKey: queryKeys.runs.pair('pair-1') })
   })
 
   it('refreshes the cross-project index from ANOTHER project\u2019s run event', async () => {

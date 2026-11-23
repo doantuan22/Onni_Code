@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { repoFileQuerySchema, type RepoSync } from '@onni/contract';
 import { loadConfig } from '../../config.ts';
 import { branchesCheckedOutElsewhere } from '../../git-worktree.ts';
+import { livePairMutationRefusal } from '../../runs/pair-mutation.ts';
 import {
   getBranches, getCommit, getDiff, getLog, getRepoInfo, getStatus,
 } from '../git.ts';
@@ -37,6 +38,8 @@ export function createRepoRoutes<QueryValueType extends QueryValue>(deps: {
     project: ProjectContext,
     action: (root: string) => Promise<SyncActionResult>,
   ): Promise<{ error: string } | { message: string; sync: RepoSync }> => {
+    const pairRefusal = project.store.listRuns().map(livePairMutationRefusal).find((refusal) => refusal !== null);
+    if (pairRefusal) return { error: pairRefusal };
     const info = await getRepoInfo(project.root);
     if (!info) return { error: 'not a git repository' };
     // A pull moves HEAD and the working files: never under an in-place run's agent.
@@ -237,7 +240,9 @@ export function createRepoRoutes<QueryValueType extends QueryValue>(deps: {
     })
 
     .post('/repo/branch', jsonZodValidator(() => repoBranchSchema), async (c) => {
-      const { root: repoRoot } = c.get('project');
+      const { root: repoRoot, store } = c.get('project');
+      const pairRefusal = store.listRuns().map(livePairMutationRefusal).find((refusal) => refusal !== null);
+      if (pairRefusal) return c.json({ error: pairRefusal }, 409);
       const info = await getRepoInfo(repoRoot);
       if (!info) return c.json({ error: 'not a git repository' }, 409);
       const parsed = { data: c.req.valid('json') };

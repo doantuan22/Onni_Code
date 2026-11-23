@@ -56,6 +56,17 @@ export type RosterManager = z.infer<typeof rosterManagerSchema>;
 
 export const ROSTER_MAX_WORKERS = 6;
 export const ROSTER_MAX_CONCURRENT = 50;
+export const ROSTER_MODES = ['fanout', 'one-and-one'] as const;
+export const rosterModeSchema = z.enum(ROSTER_MODES);
+export type RosterMode = z.infer<typeof rosterModeSchema>;
+
+export function rosterMode(roster: { mode?: RosterMode | undefined }): RosterMode {
+  return roster.mode ?? 'fanout';
+}
+
+export function isOneAndOneRoster(roster: { mode?: RosterMode | undefined }): boolean {
+  return rosterMode(roster) === 'one-and-one';
+}
 
 /**
  * What a worker is good for, and how much it can carry. Both are information for the MANAGER, shown
@@ -94,9 +105,19 @@ export function rosterWorkerKey(worker: { runner: string; model?: string | undef
 export const rosterSchema = z
   .strictObject({
     manager: rosterManagerSchema,
+    /** Absent on records written before One & One; those retain fan-out behavior. */
+    mode: rosterModeSchema.optional(),
     workers: z.array(rosterWorkerSchema).min(1).max(ROSTER_MAX_WORKERS),
   })
   .superRefine((roster, ctx) => {
+    if (roster.mode === 'one-and-one') {
+      if (roster.workers.length !== 1) {
+        ctx.addIssue({ code: 'custom', path: ['workers'], message: 'One & One requires exactly one worker' });
+      }
+      if (roster.workers[0]?.maxConcurrent !== 1) {
+        ctx.addIssue({ code: 'custom', path: ['workers', 0, 'maxConcurrent'], message: 'One & One worker concurrency must be 1' });
+      }
+    }
     const seen = new Set<string>();
     roster.workers.forEach((worker, index) => {
       const key = rosterWorkerKey(worker);

@@ -1,7 +1,9 @@
 import {
   DEFAULT_RUN_LIMITS,
+  isOneAndOneRoster,
   type ManagerPreset,
   type Roster,
+  type RosterMode,
   type RunLimits,
   type RunLimitsRequest,
   type Runner,
@@ -36,6 +38,13 @@ export interface TaskSettingsSnapshot {
   autonomous: boolean
   limits: RunLimitsRequest
   roster: Roster | null
+}
+
+/** One & One deliberately shares the checkout; stale preset state may never reintroduce isolation. */
+export function normalizeTaskSettings(settings: TaskSettingsSnapshot): TaskSettingsSnapshot {
+  return settings.roster && isOneAndOneRoster(settings.roster)
+    ? { ...settings, variants: 1, worktree: false, newBranch: false }
+    : settings
 }
 
 export type TaskPresetOrigin = 'builtin' | 'user' | 'manager-worker'
@@ -129,7 +138,7 @@ export function builtinTaskPresets(input: {
         runner: null,
         model: null,
         variants: 1,
-        worktree: true,
+        worktree: roster ? !isOneAndOneRoster(roster) : true,
         newBranch: false,
         autonomous: false,
         limits: { mode: 'default' },
@@ -165,7 +174,7 @@ export function mergeManagerWorkerPresets(
         runner: null,
         model: null,
         variants: 1,
-        worktree: true,
+        worktree: !isOneAndOneRoster(preset.roster),
         newBranch: false,
         autonomous: false,
         limits: { mode: 'default' },
@@ -179,7 +188,7 @@ export function mergeManagerWorkerPresets(
 export function userTaskPresets(stored: readonly StoredTaskPreset[]): TaskPreset[] {
   return stored.map((preset) => ({
     ...preset,
-    settings: { ...preset.settings, variants: clampVariants(preset.settings.variants) },
+    settings: normalizeTaskSettings({ ...preset.settings, variants: clampVariants(preset.settings.variants) }),
     origin: 'user',
   }))
 }
@@ -218,9 +227,9 @@ export function setAutonomous(
   settings: TaskSettingsSnapshot,
   autonomous: boolean,
 ): TaskSettingsSnapshot {
-  return autonomous
+  return normalizeTaskSettings(autonomous
     ? { ...settings, autonomous: true, worktree: true }
-    : { ...settings, autonomous }
+    : { ...settings, autonomous })
 }
 
 /**
@@ -232,6 +241,9 @@ export function setWorktreeMode(
   worktree: boolean,
   hasGit = true,
 ): { settings: TaskSettingsSnapshot; error?: string } {
+  if (settings.roster && isOneAndOneRoster(settings.roster)) {
+    return { settings: normalizeTaskSettings(settings) }
+  }
   if (!hasGit && worktree) {
     return { settings, error: 'This folder is not a git repository, so there is no worktree to isolate.' }
   }
@@ -339,6 +351,8 @@ export function taskSummarySegments(input: {
   autonomous: boolean
   limitsMode: 'default' | 'none' | 'capped'
   managerWorkers: number | null
+  /** Absent means the backward-compatible fanout roster. */
+  managerMode?: RosterMode | null
   /** The manager may merge ("Full quyền manager"): shown as a warning so it is never forgotten. */
   managerFullAccess?: boolean
   /** The roster's manager. It runs the task in place of the single agent, so the line names it. */
@@ -355,6 +369,7 @@ export function taskSummarySegments(input: {
     ]
   }
   const managed = input.managerWorkers !== null && input.manager != null
+  const oneAndOne = input.managerMode === 'one-and-one'
   const segments: SummarySegment[] = [
     { key: 'agent', label: managed ? input.manager!.runner : input.agent, tone: 'normal', section: 'who' },
     { key: 'model', label: (managed ? input.manager!.model : input.model) || 'auto', tone: 'normal', section: 'who' },
@@ -364,9 +379,9 @@ export function taskSummarySegments(input: {
   } else if (input.worktree) {
     segments.push({ key: 'worktree', label: 'worktree', tone: 'normal', section: 'where' })
   } else {
-    segments.push({ key: 'worktree', label: 'direct checkout', tone: 'danger', section: 'where' })
+    segments.push({ key: 'worktree', label: oneAndOne ? 'shared checkout' : 'direct checkout', tone: oneAndOne ? 'normal' : 'danger', section: 'where' })
   }
-  if (!input.worktree && input.newBranch) {
+  if (!oneAndOne && !input.worktree && input.newBranch) {
     segments.push({ key: 'branch', label: 'new branch', tone: 'warning', section: 'where' })
   }
   if (input.autonomous) {
@@ -386,12 +401,12 @@ export function taskSummarySegments(input: {
   if (input.managerWorkers !== null) {
     segments.push({
       key: 'manager',
-      label: `manager + ${input.managerWorkers} ${input.managerWorkers === 1 ? 'worker' : 'workers'}`,
-      tone: 'warning',
+      label: oneAndOne ? 'one & one' : `manager + ${input.managerWorkers} ${input.managerWorkers === 1 ? 'worker' : 'workers'}`,
+      tone: oneAndOne ? 'normal' : 'warning',
       section: 'who',
     })
   }
-  if (input.managerWorkers !== null && input.managerFullAccess) {
+  if (!oneAndOne && input.managerWorkers !== null && input.managerFullAccess) {
     segments.push({ key: 'manager-access', label: 'manager: full quyền', tone: 'danger', section: 'who' })
   }
   if (input.baseBranch) {
@@ -420,7 +435,7 @@ export function saveTaskPreset(
     unique = `${trimmed} (${suffix})`
     suffix += 1
   }
-  return [...presets, { id: nextTaskPresetId(presets), name: unique, origin: 'user', settings }]
+  return [...presets, { id: nextTaskPresetId(presets), name: unique, origin: 'user', settings: normalizeTaskSettings(settings) }]
 }
 
 export function renameTaskPreset(
@@ -442,7 +457,7 @@ export function updateTaskPreset(
   settings: TaskSettingsSnapshot,
 ): TaskPreset[] {
   return presets.map((preset) =>
-    preset.id === id && preset.origin === 'user' ? { ...preset, settings } : preset,
+    preset.id === id && preset.origin === 'user' ? { ...preset, settings: normalizeTaskSettings(settings) } : preset,
   )
 }
 

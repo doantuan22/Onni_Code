@@ -25,6 +25,7 @@ import {
   getRunHandoff,
   getRunHistory,
   getRunHistoryContext,
+  getRunPair,
   getRuns,
   getSkills,
   getSkillsWhenReady,
@@ -148,6 +149,7 @@ describe('request shapes', () => {
     { name: 'getRun', call: () => getRun('run-1'), path: '/api/v1/runs/run-1', method: 'GET' },
     { name: 'getRunDiff', call: () => getRunDiff('run-1'), path: '/api/v1/runs/run-1/diff', method: 'GET' },
     { name: 'getRunHandoff', call: () => getRunHandoff('run-1'), path: '/api/v1/runs/run-1/handoff', method: 'GET' },
+    { name: 'getRunPair', call: () => getRunPair('run-1'), path: '/api/v1/runs/run-1/pair', method: 'GET' },
     { name: 'getUiState', call: () => getUiState(), path: '/api/v1/ui-state', method: 'GET' },
     { name: 'getWorkflows', call: () => getWorkflows(), path: '/api/v1/workflows', method: 'GET' },
     { name: 'getSkills', call: () => getSkills(), path: '/api/v1/skills', method: 'GET' },
@@ -353,6 +355,15 @@ describe('request shapes', () => {
     reply([])
     const controller = new AbortController()
     await getRuns({ signal: controller.signal })
+    expect((fetchMock.mock.calls.at(-1)?.[1] as RequestInit).signal).toBe(controller.signal)
+  })
+
+  it('forwards a pair read abort signal and keeps the project scope on the request', async () => {
+    reply({})
+    setApiScope('shop')
+    const controller = new AbortController()
+    await getRunPair('run/1', { signal: controller.signal })
+    expect(lastCall().path).toBe('/api/v1/p/shop/runs/run%2F1/pair')
     expect((fetchMock.mock.calls.at(-1)?.[1] as RequestInit).signal).toBe(controller.signal)
   })
 })

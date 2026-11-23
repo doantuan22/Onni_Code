@@ -1,4 +1,4 @@
-import { rosterSchema, ROSTER_MAX_CONCURRENT, runnerCanManage, type ManagerPreset, type ProviderStatusResponse, type Roster, type Runner, type WorkerKind, type WorkerTier } from '@onni/api-client'
+import { rosterMode, rosterSchema, ROSTER_MAX_CONCURRENT, runnerCanManage, type ManagerPreset, type ProviderStatusResponse, type Roster, type RosterMode, type Runner, type WorkerKind, type WorkerTier } from '@onni/api-client'
 
 /**
  * Manager–worker roster helpers (docs/design/manager-worker.md). The backends offered are the ones
@@ -18,6 +18,7 @@ export interface WorkerDraft {
 }
 
 export interface RosterDraft {
+  mode: RosterMode
   managerRunner: Runner | ''
   managerModel: string
   workers: WorkerDraft[]
@@ -46,6 +47,7 @@ export function starterDraft(connected: readonly Runner[]): RosterDraft {
   const manager = managerCapable(connected)[0]
   const worker = connected.find((runner) => runner !== manager) ?? manager
   return {
+    mode: 'fanout',
     managerRunner: manager ?? '',
     managerModel: '',
     workers: [emptyWorker(worker ?? '')],
@@ -54,6 +56,7 @@ export function starterDraft(connected: readonly Runner[]): RosterDraft {
 
 export function draftFromRoster(roster: Roster): RosterDraft {
   return {
+    mode: rosterMode(roster),
     managerRunner: roster.manager.runner,
     managerModel: roster.manager.model ?? '',
     workers: roster.workers.map((w) => ({ runner: w.runner, model: w.model ?? '', role: w.role, kinds: [...(w.kinds ?? [])], tier: w.tier ?? '', maxConcurrent: w.maxConcurrent })),
@@ -61,16 +64,22 @@ export function draftFromRoster(roster: Roster): RosterDraft {
 }
 
 export function rosterFromDraft(draft: RosterDraft): { ok: true; roster: Roster } | { ok: false; error: string } {
+  const workers = draft.mode === 'one-and-one'
+    ? draft.workers.slice(0, 1)
+    : draft.workers
   const parsed = rosterSchema.safeParse({
+    mode: draft.mode,
     manager: { runner: draft.managerRunner || undefined, ...(draft.managerModel.trim() ? { model: draft.managerModel.trim() } : {}) },
-    workers: draft.workers.map((w) => ({
+    workers: workers.map((w) => ({
       runner: w.runner || undefined,
       ...(w.model.trim() ? { model: w.model.trim() } : {}),
       role: w.role,
       // Absent, not empty: a worker that states nothing must serialise exactly as before.
       ...(w.kinds.length ? { kinds: w.kinds } : {}),
       ...(w.tier ? { tier: w.tier } : {}),
-      maxConcurrent: Math.min(Math.max(1, Math.round(w.maxConcurrent)), ROSTER_MAX_CONCURRENT),
+      maxConcurrent: draft.mode === 'one-and-one'
+        ? 1
+        : Math.min(Math.max(1, Math.round(w.maxConcurrent)), ROSTER_MAX_CONCURRENT),
     })),
   })
   if (parsed.success) return { ok: true, roster: parsed.data }

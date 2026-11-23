@@ -5,6 +5,8 @@ import { previewSettingsKey, StartTimePicker, type StartChoice } from '@/compone
 import { ApiError, createDeferredStart, putWorkspaceConfig } from '@/api/client'
 import {
   deferredCreateInputSchema,
+  isOneAndOneRoster,
+  rosterMode as resolveRosterMode,
   type ManagerPreset,
   type Roster,
   type TaskPreset as StoredTaskPreset,
@@ -91,6 +93,7 @@ import {
   effectiveLimits,
   limitsDraftFromRequest,
   mergeManagerWorkerPresets,
+  normalizeTaskSettings,
   persistedLimits,
   renameTaskPreset,
   resolvePanelWorktree,
@@ -243,6 +246,28 @@ export function NewTaskSurface({
   }, [draft, draftProjectId, draftId])
   const update = (patch: Partial<NewTaskDraft>) =>
     setDraft((current) => ({ ...current, ...patch }))
+  const roster = draft.roster ?? null
+  const oneAndOne = roster !== null && isOneAndOneRoster(roster)
+  useEffect(() => {
+    if (!oneAndOne) return
+    // Presets, restored drafts and inline roster edits all enter through this surface. Keep the
+    // visible draft honest even before the final serializer gets a chance to sanitize the wire body.
+    setDraft((current) => {
+      if (current.variants === 1 && current.worktree === false && current.newBranch !== true &&
+        !current.branchName && current.dispatch === null && current.readOnly === false &&
+        current.managerFullAccess === false) return current
+      return {
+        ...current,
+        variants: 1,
+        worktree: false,
+        newBranch: false,
+        branchName: undefined,
+        dispatch: null,
+        readOnly: false,
+        managerFullAccess: false,
+      }
+    })
+  }, [oneAndOne])
 
   // The composer's attachments, controlled from here (#1018). `/new` used to leave them to the
   // composer's own uncontrolled state, which meant a pasted screenshot lived only as long as the
@@ -293,6 +318,7 @@ export function NewTaskSurface({
   const inPlaceByDefault = config.data?.taskWorkspace === 'in-place'
   const askOffered = repo.data?.info != null && (inPlaceByDefault || config.data?.profile === 'trunk')
   const askWanted =
+    !oneAndOne &&
     askOffered &&
     draft.variants <= 1 &&
     draft.dispatch === null &&
@@ -400,7 +426,7 @@ export function NewTaskSurface({
   // repo: a child forks off the parent's committed branch, so there is nothing to fork without
   // one. A draft toggled on under a server that has since turned it off sends nothing.
   const dispatchAvailable = health.data?.capabilities.dispatch === true && hasGit
-  const dispatch: DispatchIntent | null = dispatchAvailable ? draft.dispatch : null
+  const dispatch: DispatchIntent | null = !oneAndOne && dispatchAvailable ? draft.dispatch : null
   const dispatchOn = dispatch !== null
   // The hint line under the composer: up for 6 s after every change of the toggle or its
   // settings, and the whole time the settings surface is open.
@@ -418,10 +444,27 @@ export function NewTaskSurface({
     update({ limits: request.ok ? persistedLimits(request.request) : undefined })
   }
   // The Manager–Worker roster is a way of working, so it sticks with the draft (null = off).
-  const roster = draft.roster ?? null
-  const changeRoster = (next: Roster | null) => update({ roster: next ?? undefined })
-  const changeFullAccess = (next: boolean | undefined) => update({ managerFullAccess: next })
-  const fullAccessOn = roster !== null && (draft.managerFullAccess ?? workspaceConfig.data?.safety?.managerFullAccess ?? false)
+  const changeRoster = (next: Roster | null) => setDraft((current) => {
+    const pair = next !== null && isOneAndOneRoster(next)
+    return {
+      ...current,
+      roster: next ?? undefined,
+      ...(pair ? {
+        variants: 1,
+        worktree: false,
+        newBranch: false,
+        branchName: undefined,
+        dispatch: null,
+        readOnly: false,
+        managerFullAccess: false,
+      } : {}),
+    }
+  })
+  const changeFullAccess = (next: boolean | undefined) => {
+    if (!oneAndOne || next === false) update({ managerFullAccess: next })
+  }
+  const fullAccessOn = !oneAndOne && roster !== null &&
+    (draft.managerFullAccess ?? workspaceConfig.data?.safety?.managerFullAccess ?? false)
   const [dispatchSettingsOpen, setDispatchSettingsOpen] = useState(false)
   const dispatchHintTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const changeDispatch = (next: DispatchIntent | null) => {
@@ -442,7 +485,7 @@ export function NewTaskSurface({
 
   // Worktree is forced by parallel variants (one tree per competing run) and by dispatch (the
   // server forces it too: subtasks fork off this task's commits).
-  const worktreeForced = variants > 1 || dispatchOn || rosterMode
+  const worktreeForced = variants > 1 || dispatchOn || (rosterMode && !oneAndOne)
 
   // ---- Task settings panel (ADR 0008) -------------------------------------------------------
   // One wide panel under the composer. It starts folded and is never remembered: the summary
@@ -522,12 +565,14 @@ export function NewTaskSurface({
   const autonomousOn = runMode.autonomous && hasGit
   // The PANEL is stricter than the engine-facing resolver: Autonomous pins the isolated worktree,
   // and a read-only Ask never runs in either mode (ADR 0008).
-  const worktreeOn = resolvePanelWorktree(runMode.worktree || rosterMode, autonomousOn, hasGit) && !askOn
+  const worktreeOn = oneAndOne
+    ? false
+    : resolvePanelWorktree(runMode.worktree || rosterMode, autonomousOn, hasGit) && !askOn
 
   // ---- presets ↔ live settings --------------------------------------------------------------
   // One snapshot the presets compare against, assembled from what the run will actually send.
   const limitRequest = limitsRequest.ok ? limitsRequest.request : ({ mode: 'default' } as const)
-  const currentSettings: TaskSettingsSnapshot = {
+  const currentSettings: TaskSettingsSnapshot = normalizeTaskSettings({
     runner: draft.runner,
     model: draft.model,
     variants: clampVariants(variants),
@@ -536,7 +581,7 @@ export function NewTaskSurface({
     autonomous: autonomousOn,
     limits: limitRequest,
     roster,
-  }
+  })
   // The applied preset lives on the draft, so "(modified)" survives a reload (ADR 0008).
   const [appliedPresetId, setAppliedPresetId] = useState<string | null>(() => draft.presetId ?? null)
   const selectedPreset = presets.find((preset) => preset.id === appliedPresetId) ?? null
@@ -549,17 +594,25 @@ export function NewTaskSurface({
   }
 
   const applySettings = (settings: TaskSettingsSnapshot) => {
-    setLimitsDraft(limitsDraftFromRequest(settings.limits))
+    const next = normalizeTaskSettings(settings)
+    const pair = next.roster !== null && isOneAndOneRoster(next.roster)
+    setLimitsDraft(limitsDraftFromRequest(next.limits))
     update({
-      runner: settings.runner,
-      model: settings.model,
-      variants: settings.variants,
-      worktree: hasGit && settings.worktree,
+      runner: next.runner,
+      model: next.model,
+      variants: next.variants,
+      worktree: hasGit && next.worktree,
       worktreeBasis: config.data?.taskWorkspace ?? 'default',
-      newBranch: settings.newBranch,
-      autonomous: settings.autonomous,
-      limits: persistedLimits(settings.limits),
-      roster: settings.roster ?? undefined,
+      newBranch: next.newBranch,
+      autonomous: next.autonomous,
+      limits: persistedLimits(next.limits),
+      roster: next.roster ?? undefined,
+      ...(pair ? {
+        branchName: undefined,
+        dispatch: null,
+        readOnly: false,
+        managerFullAccess: false,
+      } : {}),
     })
     setWorktreeError(undefined)
   }
@@ -583,7 +636,7 @@ export function NewTaskSurface({
     const result = setWorktreeMode(currentSettings, next, hasGit)
     setWorktreeError(result.error)
     if (result.error) return
-    update({ worktree: next, worktreeBasis: config.data?.taskWorkspace ?? 'default' })
+    update({ worktree: result.settings.worktree, worktreeBasis: config.data?.taskWorkspace ?? 'default' })
   }
   const saveCurrentPreset = (name: string) => {
     const next = saveTaskPreset(presets, name, currentSettings)
@@ -899,9 +952,10 @@ export function NewTaskSurface({
     autonomous: autonomousOn,
     limitsMode: limitRequest.mode,
     managerWorkers: roster ? roster.workers.length : null,
+    managerMode: roster ? resolveRosterMode(roster) : null,
     manager: roster?.manager ?? null,
     managerFullAccess: fullAccessOn,
-    baseBranch: repo.data?.baseBranch ?? null,
+    baseBranch: oneAndOne ? null : repo.data?.baseBranch ?? null,
     readOnly: askOn,
     askAuto: draft.readOnly === undefined,
   })
@@ -936,6 +990,7 @@ export function NewTaskSurface({
                 for a non-git folder, where there is no worktree to opt into. */}
             <p data-slot="run-mode-note" className="mt-1.5 text-[12.5px] text-muted-foreground max-md:text-xs">
               {t(composerRunModeNote({
+                oneAndOne,
                 worktree: worktreeOn,
                 hasGit,
                 dispatch: dispatchOn,
@@ -1210,6 +1265,13 @@ export function NewTaskSurface({
                 <p data-slot="where-no-git" className="text-xs leading-snug text-soft-foreground">
                   {t('No git repository — the run stays in this folder. There is no worktree to isolate in, so it cannot run unattended.')}
                 </p>
+              ) : oneAndOne ? (
+                <div data-slot="pair-checkout" className="rounded-md border border-primary/25 bg-primary/[0.04] p-3">
+                  <p className="text-[13px] font-medium text-foreground">{t('Shared checkout')}</p>
+                  <p className="mt-1 text-xs leading-snug text-soft-foreground">
+                    {t('One manager and one worker share this checkout. No separate worktree or branch is created.')}
+                  </p>
+                </div>
               ) : askOn ? (
                 <p data-slot="where-readonly" className="text-xs leading-snug text-soft-foreground">
                   {t('A read-only question runs in your checkout and changes nothing — there is no worktree to choose.')}
@@ -1247,7 +1309,7 @@ export function NewTaskSurface({
                   {t(worktreeError)}
                 </p>
               ) : null}
-              {hasGit && !askOn && (!worktreeOn || draft.newBranch === true) ? (
+              {hasGit && !oneAndOne && !askOn && (!worktreeOn || draft.newBranch === true) ? (
                 <div className="flex flex-col gap-1">
                   <Field label={t('New branch')}>
                     <NewBranchToggle
@@ -1264,7 +1326,7 @@ export function NewTaskSurface({
                   ) : null}
                 </div>
               ) : null}
-              {repo.data ? (
+              {repo.data && !oneAndOne ? (
                 <Field label={t('Base branch')}>
                   <BaseBranchPill repo={repo.data} />
                 </Field>
@@ -1289,9 +1351,13 @@ export function NewTaskSurface({
                 {autonomousOn ? <AlertTriangleIcon aria-hidden="true" className="mt-0.5 size-3 shrink-0" /> : null}
                 {!hasGit
                   ? t('Unavailable: there is no worktree to isolate, so the run must stay attended.')
-                  : autonomousOn
-                    ? t('The run will not pause for your approval. It stays fenced: no auto-land, and the limits below bound cost, time and steps.')
-                    : t('The run pauses when the agent needs you. Turning Autonomous on forces an isolated worktree.')}
+                  : oneAndOne
+                    ? autonomousOn
+                      ? t('The run will not pause for your approval. The pair shares this checkout, and the limits below bound cost, time and steps.')
+                      : t('The pair shares this checkout. Autonomous does not create a worktree or branch.')
+                    : autonomousOn
+                      ? t('The run will not pause for your approval. It stays fenced: no auto-land, and the limits below bound cost, time and steps.')
+                      : t('The run pauses when the agent needs you. Turning Autonomous on forces an isolated worktree.')}
               </p>
               <Field label={t('Limits')}>
                 <LimitsPill draft={limitsDraft} onChange={changeLimits} request={limitsRequest} />
@@ -1322,9 +1388,21 @@ export function NewTaskSurface({
           }
           advanced={
             <div className="grid gap-3 @xl:grid-cols-2">
-              {askOffered ? (
+              {askOffered || oneAndOne ? (
                 <Field label={t('Read-only question')}>
-                  <AskToggle on={askOn} auto={draft.readOnly === undefined} onChange={(on) => update({ readOnly: on })} />
+                  {oneAndOne ? (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="flex w-fit items-center gap-3">
+                        <Switch data-slot="ask-toggle" checked={false} disabled />
+                        <span className="text-[13px] text-muted-foreground">{t('Ask')}</span>
+                      </label>
+                      <p className="text-[11.5px] leading-snug text-soft-foreground">
+                        {t('Read-only questions are unavailable because they would remove the pair.')}
+                      </p>
+                    </div>
+                  ) : (
+                    <AskToggle on={askOn} auto={draft.readOnly === undefined} onChange={(on) => update({ readOnly: on })} />
+                  )}
                 </Field>
               ) : null}
               {followupsToggleShown ? (
@@ -1358,22 +1436,28 @@ export function NewTaskSurface({
                       </span>
                     </span>
                     <p className="text-[11.5px] leading-snug text-soft-foreground">
-                      {t('Tap to turn it on; its own limits open from the arrow beside it.')}
+                      {oneAndOne
+                        ? t('One & One uses its fixed worker; ordinary Dispatch is unavailable.')
+                        : t('Tap to turn it on; its own limits open from the arrow beside it.')}
                     </p>
                   </div>
                   <div className="shrink-0">
-                    <DispatchToggle
-                      available={dispatchAvailable}
-                      value={dispatch}
-                      onChange={changeDispatch}
-                      onSettingsOpenChange={setDispatchSettingsOpen}
-                      runners={runners}
-                      parentRunner={displayRunner}
-                      // The composer's own catalog, already fetched for the runner this task runs as —
-                      // the list "same as parent" resolves to. A subtask runner the user changes to
-                      // discovers its own inside the toggle, which is the only place that knows it.
-                      parentModels={models}
-                    />
+                    {oneAndOne ? (
+                      <Switch data-slot="dispatch-toggle" aria-label={t('Dispatch')} checked={false} disabled />
+                    ) : (
+                      <DispatchToggle
+                        available={dispatchAvailable}
+                        value={dispatch}
+                        onChange={changeDispatch}
+                        onSettingsOpenChange={setDispatchSettingsOpen}
+                        runners={runners}
+                        parentRunner={displayRunner}
+                        // The composer's own catalog, already fetched for the runner this task runs as —
+                        // the list "same as parent" resolves to. A subtask runner the user changes to
+                        // discovers its own inside the toggle, which is the only place that knows it.
+                        parentModels={models}
+                      />
+                    )}
                   </div>
                 </div>
               ) : null}

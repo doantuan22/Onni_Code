@@ -14,8 +14,10 @@ import {
   agentTranscriptSections,
   buildTranscriptRows,
   mainTranscriptSections,
+  type TranscriptRowModel,
   type TranscriptSection,
 } from './session-transcript'
+import { pairSnapshot } from './__fixtures__/pair'
 import { clearThreadScrollCaches } from './thread-scroll'
 import { clearOpenCardCache } from './thread-open-cards'
 import { collectSubagents, subagentChildren } from './subagent-dock'
@@ -712,5 +714,38 @@ describe('SessionTranscript', () => {
       />,
     )
     expect(document.querySelector('[data-slot="codex-empty"]')?.textContent).toBe('No attributed output')
+  })
+})
+
+describe('SessionTranscript pair rows', () => {
+  it('renders a stable non-timeline pair row and updates it from the authoritative snapshot', () => {
+    const view = (snapshot: ReturnType<typeof pairSnapshot>) => {
+      const rowModels: TranscriptRowModel[] = [{
+        key: 'pair:pair-1',
+        scope: 'pair:pair-1',
+        content: { kind: 'pair', snapshot },
+      }]
+      return (
+        <QueryClientProvider client={createQueryClient()}>
+          <SessionTranscript
+            runId="worker-r1"
+            viewId="main"
+            mode="document"
+            renderMode="flat"
+            sections={[]}
+            rowModels={rowModels}
+          />
+        </QueryClientProvider>
+      )
+    }
+    const { rerender } = render(view(pairSnapshot()))
+    const row = document.querySelector('[data-slot="thread-row"][data-row-key="pair:pair-1"]')
+    expect(row?.querySelector('[data-slot="pair-card"]')?.getAttribute('data-phase')).toBe('manager_review')
+    expect(row?.querySelector('time')).toBeNull()
+
+    rerender(view(pairSnapshot({ phase: 'complete', completedAt: '2026-11-18T10:05:00.000Z' })))
+    expect(document.querySelector('[data-slot="thread-row"][data-row-key="pair:pair-1"]')).toBe(row)
+    expect(row?.querySelector('[data-slot="pair-card"]')?.getAttribute('data-phase')).toBe('complete')
+    expect(document.querySelectorAll('[data-slot="pair-card"]')).toHaveLength(1)
   })
 })

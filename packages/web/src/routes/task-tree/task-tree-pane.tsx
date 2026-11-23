@@ -93,6 +93,23 @@ function BackendChip({ run }: { run: ApiRun }) {
   )
 }
 
+function PersistentWorkerChip({ run }: { run: ApiRun }) {
+  const { t } = useI18n()
+  if (run.dispatch?.pairMember?.role !== 'worker') return null
+  const identity = run.dispatch.workerKey?.trim() || [run.runner, run.model].filter(Boolean).join(' / ')
+  if (!identity) return null
+  return (
+    <span
+      data-slot="persistent-worker-label"
+      className="inline-flex max-w-40 shrink-0 items-center gap-1 rounded-sm border border-border bg-card px-1.5 py-px text-[10px] font-medium text-muted-foreground"
+      title={`${t('Persistent worker')}: ${identity}`}
+    >
+      <span className="shrink-0">{t('Persistent worker')}</span>
+      <span className="truncate font-mono">{identity}</span>
+    </span>
+  )
+}
+
 function TaskTreeHeader({ rootRun }: { rootRun?: ApiRun }) {
   const { t } = useI18n()
   return (
@@ -362,6 +379,7 @@ export function TaskTreePane({
                         {title}
                       </span>
                       <BackendChip run={node.run} />
+                      <PersistentWorkerChip run={node.run} />
                       {node.run.branch ? (
                         <span
                           data-slot="branch-chip"

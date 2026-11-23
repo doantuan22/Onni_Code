@@ -40,6 +40,8 @@ const roster: Roster = {
   workers: [{ runner: 'codex', role: '', maxConcurrent: 1 }],
 }
 
+const pairRoster: Roster = { ...roster, mode: 'one-and-one' }
+
 const snapshot: TaskSettingsSnapshot = {
   runner: 'claude',
   model: 'sonnet',
@@ -94,6 +96,12 @@ describe('built-in task presets', () => {
     })
   })
 
+  it('keeps One & One in the shared checkout for built-in and legacy presets', () => {
+    expect(builtinTaskPresets({ managerRoster: pairRoster })[2]?.settings).toMatchObject({ worktree: false, newBranch: false })
+    const legacy = mergeManagerWorkerPresets([], [{ id: 'pair', name: 'Pair', roster: pairRoster }])
+    expect(legacy[0]?.settings).toMatchObject({ worktree: false, newBranch: false })
+  })
+
   it('marks Manager–Worker unavailable until Settings has a default roster', () => {
     const without = builtinTaskPresets({})[2] as TaskPreset
     expect(without.settings.roster).toBeNull()
@@ -144,6 +152,13 @@ describe('Autonomous and the worktree', () => {
   it('forces a worktree when Autonomous is turned on', () => {
     const direct = { ...snapshot, worktree: false }
     expect(setAutonomous(direct, true)).toMatchObject({ autonomous: true, worktree: true })
+  })
+
+  it('does not let autonomy or worktree selection override One & One shared checkout', () => {
+    const pair = { ...snapshot, roster: pairRoster, worktree: true, newBranch: true }
+    expect(setAutonomous(pair, true)).toMatchObject({ autonomous: true, worktree: false, newBranch: false })
+    expect(setWorktreeMode(pair, true)).toEqual({ settings: { ...pair, worktree: false, newBranch: false } })
+    expect(setWorktreeMode({ ...pair, autonomous: true }, false).error).toBeUndefined()
   })
 
   it('leaves the worktree alone when Autonomous is turned off', () => {
@@ -258,6 +273,15 @@ describe('the summary line names the manager when a roster is on', () => {
   })
 })
 
+describe('the One & One summary', () => {
+  it('names shared checkout and the pair without branch or manager-access danger', () => {
+    const segments = taskSummarySegments({ agent: 'claude', model: '', hasGit: true, worktree: false, newBranch: true, autonomous: true, limitsMode: 'default', managerWorkers: 1, managerMode: 'one-and-one', manager: { runner: 'claude' }, managerFullAccess: true })
+    expect(segments.find((segment) => segment.key === 'worktree')).toMatchObject({ label: 'shared checkout', tone: 'normal' })
+    expect(segments.find((segment) => segment.key === 'manager')).toMatchObject({ label: 'one & one', tone: 'normal' })
+    expect(segments.some((segment) => segment.key === 'branch' || segment.key === 'manager-access')).toBe(false)
+  })
+})
+
 describe('the summary line flags a manager that may merge', () => {
   const input = { agent: 'claude', model: 'opus', hasGit: true, worktree: true, newBranch: false, autonomous: false, limitsMode: 'default' as const, managerWorkers: 2, manager: { runner: 'claude' } }
   it('adds a danger segment only when a roster is on and full access is granted', () => {
@@ -354,6 +378,12 @@ describe('task-preset CRUD', () => {
     const panel = userTaskPresets(stored)
     expect(panel[0]).toMatchObject({ id: 'task-preset-2', name: 'Mine', origin: 'user' })
     expect(storedTaskPresets([...builtinTaskPresets({}), ...panel])).toEqual(stored)
+  })
+
+  it('normalizes a restored One & One preset instead of trusting stale isolation state', () => {
+    const stale = { ...snapshot, roster: pairRoster, variants: 3 as const, worktree: true, newBranch: true }
+    expect(userTaskPresets([{ id: 'old', name: 'Old pair', settings: stale }])[0]?.settings)
+      .toMatchObject({ variants: 1, worktree: false, newBranch: false })
   })
 
   it('updates only a user preset, keeping its id and name', () => {

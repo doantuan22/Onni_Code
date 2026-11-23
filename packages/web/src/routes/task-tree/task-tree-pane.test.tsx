@@ -76,6 +76,7 @@ function renderTree(props: Partial<React.ComponentProps<typeof TaskTreePane>> = 
 }
 
 const LIVE_ROSTER: Roster = {
+  mode: 'fanout',
   manager: { runner: 'claude', model: 'opus' },
   workers: [{ runner: 'codex', model: 'gpt-5', role: 'tests', maxConcurrent: 1 }],
 }
@@ -423,5 +424,55 @@ describe('TaskTreePane', () => {
     expect(rows[0]?.className).toContain('min-w-0')
     expect(rows[0]?.querySelector('[data-slot="task-title"]')?.className).toContain('truncate')
     expect(rows[1]?.querySelector('[data-slot="branch-chip"]')?.className).toContain('truncate')
+  })
+
+  it('labels only persistent pair workers beside their backend, using the stable worker key', async () => {
+    stubFetch()
+    const runs: ApiRun[] = [
+      makeRun('manager-1', { dispatch: { rootRunId: 'manager-1' } }),
+      makeRun('pair-worker', {
+        runner: 'codex',
+        model: 'gpt-5',
+        dispatch: {
+          rootRunId: 'manager-1',
+          parentRunId: 'manager-1',
+          workerKey: 'codex/gpt-5',
+          pairMember: { pairId: 'pair-1', role: 'worker', peerRunId: 'manager-1' },
+        },
+      }),
+      makeRun('fanout-worker', {
+        dispatch: { rootRunId: 'manager-1', parentRunId: 'manager-1' },
+      }),
+    ]
+    renderTree({ runs })
+
+    const pairRow = await screen.findByText('Task pair-worker')
+    const label = pairRow.closest('[data-slot="task-tree-row"]')?.querySelector('[data-slot="persistent-worker-label"]')
+    expect(label?.textContent).toContain('Persistent worker')
+    expect(label?.textContent).toContain('codex/gpt-5')
+    expect(label?.getAttribute('title')).toBe('Persistent worker: codex/gpt-5')
+    expect(document.querySelector('[data-run-id="manager-1"] [data-slot="persistent-worker-label"]')).toBeNull()
+    expect(document.querySelector('[data-run-id="fanout-worker"] [data-slot="persistent-worker-label"]')).toBeNull()
+  })
+
+  it('falls back to runner and model when a pair worker has no usable worker key', async () => {
+    stubFetch()
+    renderTree({ runs: [
+      makeRun('manager-1', { dispatch: { rootRunId: 'manager-1' } }),
+      makeRun('pair-worker', {
+        runner: 'claude',
+        model: 'opus',
+        dispatch: {
+          rootRunId: 'manager-1',
+          parentRunId: 'manager-1',
+          workerKey: '   ',
+          pairMember: { pairId: 'pair-1', role: 'worker', peerRunId: 'manager-1' },
+        },
+      }),
+    ] })
+
+    const label = await screen.findByText('Task pair-worker')
+    expect(label.closest('[data-slot="task-tree-row"]')?.querySelector('[data-slot="persistent-worker-label"]')?.textContent)
+      .toContain('claude / opus')
   })
 })

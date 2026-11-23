@@ -12,6 +12,7 @@ import { createQueryClient } from '@/api/query-client'
 import type {
   ApiRun,
   HealthResponse,
+  PairSnapshot,
   ProviderStatusResponse,
   RunEvent,
   RunStatus,
@@ -19,6 +20,7 @@ import type {
 
 import { TaskThreadRoute, ThreadView, liveTurnStart } from './task-thread'
 import { buildTranscriptRows, mainTranscriptSections } from './session-transcript'
+import { pairSnapshot } from './__fixtures__/pair'
 import { reduceThread, type ThreadTurn } from './thread-state'
 
 afterEach(() => {
@@ -44,6 +46,7 @@ function renderView(
     ],
   },
   health: Partial<HealthResponse> = {},
+  pair?: PairSnapshot,
 ) {
   vi.stubGlobal(
     'fetch',
@@ -52,6 +55,7 @@ function renderView(
       const body =
         path === '/api/v1/providers/status' ? providerStatus
         : path === '/api/v1/health' ? health
+        : path.endsWith('/pair') && pair !== undefined ? pair
         : []
       return Promise.resolve(
         new Response(JSON.stringify(body), {
@@ -111,6 +115,63 @@ const transcriptRows = (fixture: ApiRun, thread = reduceThread(EVENTS)) =>
   buildTranscriptRows(mainTranscriptSections(fixture, thread), fixture.id)
 
 describe('ThreadView', () => {
+  it('appends one stable pair row after the timeline and updates it without inventing a timestamp', async () => {
+    const snapshot = pairSnapshot()
+    const manager = run('running', {
+      id: 'manager-r1',
+      dispatch: { rootRunId: 'manager-r1', pair: snapshot.state },
+    })
+    const view = renderView(
+      <ThreadView run={manager} thread={reduceThread([])} />,
+      undefined,
+      undefined,
+      snapshot,
+    )
+
+    await waitFor(() => expect(view.queryClient.getQueryData(queryKeys.runs.pair('pair-1'))).toEqual(snapshot))
+    const keys = [...document.querySelectorAll('[data-slot="thread-row"]')].map((row) => row.getAttribute('data-row-key'))
+    expect(keys.at(-1)).toBe('pair:pair-1')
+    expect(keys.filter((key) => key === 'pair:pair-1')).toHaveLength(1)
+    const row = document.querySelector('[data-row-key="pair:pair-1"]')
+    expect(row?.querySelector('[data-slot="pair-card"]')?.getAttribute('data-phase')).toBe('manager_review')
+    expect(row?.querySelector('time')).toBeNull()
+
+    act(() => view.queryClient.setQueryData(queryKeys.runs.pair('pair-1'), pairSnapshot({ phase: 'complete' })))
+    await waitFor(() => expect(row?.querySelector('[data-slot="pair-card"]')?.getAttribute('data-phase')).toBe('complete'))
+    expect(document.querySelector('[data-row-key="pair:pair-1"]')).toBe(row)
+    expect(document.querySelectorAll('[data-slot="pair-card"]')).toHaveLength(1)
+  })
+
+  it('loads a worker pair through its membership and appends the same single row', async () => {
+    const snapshot = pairSnapshot()
+    const worker = run('running', {
+      id: 'worker-r1',
+      dispatch: {
+        rootRunId: 'manager-r1',
+        pairMember: { pairId: 'pair-1', role: 'worker', peerRunId: 'manager-r1' },
+      },
+    })
+    const view = renderView(
+      <ThreadView run={worker} thread={reduceThread([])} />,
+      undefined,
+      undefined,
+      snapshot,
+    )
+
+    await waitFor(() => expect(document.querySelectorAll('[data-slot="pair-card"]')).toHaveLength(1))
+    expect(document.querySelectorAll('[data-row-key="pair:pair-1"]')).toHaveLength(1)
+    expect(view.queryClient.getQueryData(queryKeys.runs.pair('pair-1'))).toEqual(snapshot)
+    const pairReads = vi.mocked(fetch).mock.calls.filter(([input]) => String(input).endsWith('/pair'))
+    expect(pairReads).toHaveLength(1)
+    expect(String(pairReads[0]?.[0])).toBe('/api/v1/runs/worker-r1/pair')
+  })
+
+  it('adds no pair row or pair read to an ordinary task', () => {
+    renderView(<ThreadView run={run('running')} thread={reduceThread([])} />)
+    expect(document.querySelector('[data-row-key^="pair:"]')).toBeNull()
+    expect(vi.mocked(fetch).mock.calls.some(([input]) => String(input).endsWith('/pair'))).toBe(false)
+  })
+
   it('keeps provider authorization recovery visible after the run reaches done', () => {
     const authRequired = [
       line(1, 'provider-auth-required', { provider: 'codex', authFailureId: 'incident-1' }),

@@ -1,4 +1,4 @@
-import { QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -20,6 +20,7 @@ import {
   updateBranchPrompt,
 } from './run-actions'
 import { __resetGitStepFlights } from '../task-git/run-git-step'
+import { pairSnapshot } from './__fixtures__/pair'
 
 beforeEach(() => {
   // Radix's tooltip arrow measures itself with a ResizeObserver; jsdom has no layout observer.
@@ -115,9 +116,10 @@ function renderHeader(
   planTally?: { done: number; total: number },
   continuationEngine?: ReactNode,
   tab?: RunTab,
+  client: QueryClient = createQueryClient(),
 ) {
   return render(
-    <QueryClientProvider client={createQueryClient()}>
+    <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[`/tasks/${record.id}`]}>
         <Routes>
           <Route
@@ -2465,5 +2467,69 @@ describe('lifecycle-aware task deletion', () => {
     for (const name of ['Finish','Cancel','Continue']) expect(actionBar().queryByRole('button',{name})).toBeNull()
     // Delete stays in place, greyed out like a live run's (Pin · Archive · Delete, always in place).
     expect(itemActions().getByRole('button',{name:'Delete'}).getAttribute('aria-disabled')).toBe('true')
+  })
+})
+
+describe('One & One header status', () => {
+  it('renders the manager pair immediately and enriches its current order from the snapshot', () => {
+    stubFetch()
+    const snapshot = pairSnapshot()
+    const client = createQueryClient()
+    client.setQueryData(queryKeys.runs.pair('pair-1'), snapshot)
+    renderHeader(run('running', {
+      id: 'manager-r1',
+      dispatch: { rootRunId: 'manager-r1', pair: snapshot.state },
+    }), undefined, undefined, undefined, undefined, client)
+
+    const line = document.querySelector('[data-slot="pair-status-line"]')
+    expect(line?.getAttribute('data-pair-id')).toBe('pair-1')
+    expect(line?.closest('[data-slot="run-details"]')).toBeNull()
+    expect(line?.querySelector('[data-slot="pair-phase"]')?.textContent).toBe('Manager review')
+    expect(line?.querySelector('[data-slot="pair-active-role"]')?.textContent).toBe('Active: Worker')
+    expect(line?.querySelector('[data-slot="pair-order"]')?.textContent).toContain('Order 2')
+    expect(line?.querySelector('[data-order-status="reported"]')?.textContent).toBe('Reported')
+    expect(line?.textContent).toContain('onni/pair-1')
+    expect(line?.querySelector('[data-checkpoint]')?.getAttribute('data-checkpoint')).toBe('123456abcdef0')
+  })
+
+  it('renders a persistent worker from the shared pair snapshot', () => {
+    stubFetch()
+    const snapshot = pairSnapshot()
+    const client = createQueryClient()
+    client.setQueryData(queryKeys.runs.pair('pair-1'), snapshot)
+    renderHeader(run('running', {
+      id: 'worker-r1',
+      dispatch: {
+        rootRunId: 'manager-r1',
+        pairMember: { pairId: 'pair-1', role: 'worker', peerRunId: 'manager-r1' },
+      },
+    }), undefined, undefined, undefined, undefined, client)
+
+    const line = document.querySelector('[data-slot="pair-status-line"]')
+    expect(line?.querySelector('[data-slot="pair-phase"]')?.textContent).toBe('Manager review')
+    expect(line?.querySelector('[data-slot="pair-active-role"]')?.textContent).toBe('Active: Worker')
+    expect(line?.querySelector('[data-order-status="reported"]')?.textContent).toBe('Reported')
+  })
+
+  it('keeps the root revision visible before its snapshot arrives and leaves ordinary runs alone', () => {
+    const state = pairSnapshot().state
+    const sent = stubFetch({ '/api/v1/runs/r1/pair': () => jsonResponse(pairSnapshot()) })
+    const view = renderHeader(run('running', { dispatch: { rootRunId: 'r1', pair: state } }))
+    expect(document.querySelector('[data-slot="pair-order"]')?.textContent).toContain('Order 2')
+    expect(document.querySelector('[data-slot="pair-status-line"] [data-order-status]')).toBeNull()
+
+    view.rerender(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter initialEntries={['/tasks/r1']}>
+          <Routes>
+            <Route path="/tasks/:id" element={<RunHeader run={run('running')} />} />
+            <Route path="/" element={<div data-slot="home-probe" />} />
+          </Routes>
+          <Toaster />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    expect(document.querySelector('[data-slot="pair-status-line"]')).toBeNull()
+    expect(sent.some((request) => request.path === '/api/v1/runs/r1/pair')).toBe(true)
   })
 })

@@ -1265,7 +1265,8 @@ export const createRunInputBaseSchema = z
     dispatch: dispatchIntentSchema.optional(),
     /** Limits for this run: omitted / `default` = the workspace default. User surfaces only. */
     limits: runLimitsRequestSchema.optional(),
-    /** Start this task as the MANAGER of a worker roster (needs dispatch; forces a worktree). */
+    /** Start this task as the MANAGER of a worker roster. Fan-out forces a worktree; One & One
+     *  pins both agents to the repository checkout. */
     roster: rosterSchema.optional(),
     /** Give the manager the merge permission for this task; absent = the workspace default (off). */
     managerFullAccess: z.boolean().optional(),

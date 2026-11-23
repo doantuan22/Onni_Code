@@ -1,5 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { isOneAndOneRoster } from '@onni/contract';
+import { PairStore } from '../../dispatch/pair-store.ts';
 import type { ContentBlock, RunnerId } from '../../core/agent-runner.ts';
 import { agentModelsLocked } from '../../core/agent-model-policy.ts';
 import { formatModelIdentity, normalizeModelForBackend } from '../../core/model-identity.ts';
@@ -23,9 +25,12 @@ import {
 import type { ExecuteActiveRun, ExecuteContext } from './internal-types.ts';
 import type { StartRunInput } from '../run.ts';
 import type { WorkflowDef } from '../types.ts';
+import { initializePair, isPairMember, mirrorPairState, validatePairWorkspace } from './pair-runtime.ts';
 
 export async function executeRun(ctx: ExecuteContext, runId: string, workflow: WorkflowDef, input: StartRunInput, ownerToken?: symbol): Promise<void> {
     const original = ctx.store.getRun(runId);
+    const pairRoot = original?.roster !== undefined && isOneAndOneRoster(original.roster);
+    const pairMember = isPairMember(original);
     // Only a job queued as a usage-limit resume re-enters its interrupted agent (#1300); the
     // step/session checkpoint survives missing optional attempt accounting.
     const resumeStep = input.usageLimitResume && original ? ctx.interruptedWorkflowStep(original) : undefined;
@@ -76,8 +81,12 @@ export async function executeRun(ctx: ExecuteContext, runId: string, workflow: W
       input = { ...input, worktree: false };
       ctx.store.updateRun(runId, { worktree: false });
     }
+    if (pairRoot || pairMember) {
+      input = { ...input, worktree: false, newBranch: undefined, branch: undefined, forkRef: undefined, dispatchIntent: undefined };
+      ctx.store.updateRun(runId, { worktree: false, branch: undefined, baseBranch: undefined, inPlaceBranch: undefined });
+    }
     state.readOnly = input.readOnly === true && input.worktree === false;
-    state.autoLand = await ctx.landingPolicy(ctx.store.getRun(runId), config, (message) =>
+    state.autoLand = pairRoot || pairMember ? undefined : await ctx.landingPolicy(ctx.store.getRun(runId), config, (message) =>
       ctx.store.appendEvent(runId, { type: 'note', message }),
     );
     // Extra system prompt (R2 2.3): POST override > config default; echoed on
@@ -255,7 +264,7 @@ export async function executeRun(ctx: ExecuteContext, runId: string, workflow: W
     if (state.cwd === ctx.repoRoot && state.readOnly) {
       emit({ type: 'note', message: 'read-only — answering from the repo working tree, alongside any running task' });
     } else if (state.cwd === ctx.repoRoot) {
-      if (ctx.repositoryRootLockDisabled()) {
+      if (ctx.repositoryRootLockDisabled() && !pairRoot && !pairMember) {
         emit({
           type: 'note',
           message: ctx.repositoryRootLockDisabledNote,
@@ -278,6 +287,56 @@ export async function executeRun(ctx: ExecuteContext, runId: string, workflow: W
       // check also covers the explicit lock-bypass path, where the account may close while the
       // run is preparing its first step.
       if (ctx.requeueWhileHeld(runId, workflow, input, taskBackend, state)) return;
+    }
+    if (pairRoot) {
+      const initialized = await initializePair(ctx.repoRoot, ctx.store, new PairStore(ctx.dataDir), runId);
+      if (!initialized.ok) {
+        const error = `One & One could not start: ${initialized.error}`;
+        ctx.store.updateRun(runId, { status: 'failed', error, finishedAt: new Date().toISOString(), currentStepId: undefined });
+        emit({ type: 'lifecycle', message: `run failed — ${error}` });
+        ctx.dropActive(runId, state);
+        return;
+      }
+    }
+    if (pairMember) {
+      const membership = original?.dispatch?.pairMember;
+      const pairs = new PairStore(ctx.dataDir);
+      const pairState = membership ? pairs.readState(membership.pairId) : null;
+      const valid = pairState ? await validatePairWorkspace(ctx.repoRoot, pairs, membership!.pairId) : { ok: false as const, error: 'pair state is missing' };
+      const current = membership ? pairs.readState(membership.pairId) : null;
+      const currentOrder = current?.currentOrderId ? pairs.getOrder(membership!.pairId, current.currentOrderId) : null;
+      const membershipMismatch = !current || !membership
+        || membership.role !== 'worker'
+        || membership.peerRunId !== current.managerRunId
+        || original?.dispatch?.rootRunId !== current.managerRunId
+        || (current.workerRunId !== undefined && current.workerRunId !== runId);
+      if (
+        !valid.ok
+        || !current
+        || current.phase === 'stopped'
+        || current.phase === 'complete'
+        || membershipMismatch
+        || !currentOrder
+        || (currentOrder.status !== 'queued' && currentOrder.status !== 'working')
+      ) {
+        const error = `One & One worker could not start: ${
+          !valid.ok
+            ? valid.error
+            : !current || current.phase === 'stopped' || current.phase === 'complete'
+              ? `pair is ${current?.phase ?? 'missing'}`
+              : membershipMismatch
+                ? 'worker membership does not match the persistent pair worker'
+                : 'the current order is not runnable'
+        }`;
+        ctx.store.updateRun(runId, { status: 'failed', error, finishedAt: new Date().toISOString(), currentStepId: undefined });
+        emit({ type: 'lifecycle', message: `run failed — ${error}` });
+        ctx.dropActive(runId, state);
+        return;
+      }
+      if (currentOrder.status === 'queued') {
+        pairs.markOrderWorking(membership!.pairId, currentOrder.id);
+        mirrorPairState(ctx.store, pairs.readState(membership!.pairId)!);
+      }
     }
     if (repo && switchInPlaceTo && !state.cancelled) {
       // Re-read HEAD: the lease wait may have let another in-place run move the checkout.

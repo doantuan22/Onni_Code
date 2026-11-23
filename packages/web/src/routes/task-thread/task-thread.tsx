@@ -12,6 +12,7 @@ import {
   usePatchRun,
   useRemoveQueuedMessage,
   useRun,
+  useRunPair,
   useProjectRepoBase,
   useRuns,
 } from '@/api/queries'
@@ -302,7 +303,14 @@ export function ThreadView({
   )
 
   const sections = useMemo(() => mainTranscriptSections(run, thread), [run, thread])
-  const rows = useMemo(() => buildTranscriptRows(sections, run.id), [sections, run.id])
+  const pairId = run.dispatch?.pair?.pairId ?? run.dispatch?.pairMember?.pairId ?? ''
+  const pair = useRunPair(run.id, pairId)
+  const rows = useMemo(() => {
+    const transcriptRows = buildTranscriptRows(sections, run.id)
+    return pair.data === undefined
+      ? transcriptRows
+      : [...transcriptRows, { key: `pair:${pairId}`, scope: `pair:${pairId}`, content: { kind: 'pair' as const, snapshot: pair.data } }]
+  }, [sections, run.id, pair.data, pairId])
   const renderAsk = useCallback((ask: ThreadAsk) => <AskCard ask={ask} run={run} />, [run])
   const messageActions = useMemo<Readonly<Record<string, TranscriptMessageActions>> | undefined>(() => {
     if (edit === undefined) return undefined

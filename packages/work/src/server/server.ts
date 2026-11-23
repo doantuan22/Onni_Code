@@ -154,6 +154,7 @@ import { deleteUpload, writeUpload } from '../uploads.ts';
 import { diskHealth } from './disk-health.ts';
 import { branchesCheckedOutElsewhere, removeWorktree } from '../git-worktree.ts';
 import { protectedByLiveTree } from '../runs/retention.ts';
+import { pairRunMutationRefusal } from '../runs/pair-mutation.ts';
 import { worktreeLifecycleRoutes } from './worktree-lifecycle.ts';
 import { readLifecycleConfigOrDefault } from '../worktree-lifecycle/config.ts';
 import { getRepoInfo } from './git.ts';
@@ -1957,6 +1958,8 @@ export function createApp(deps: ServerDeps) {
     if (manager.isActive(id)) return { ok: false, status: 409, error: 'run is active — cancel it first' };
     const run = store.getRun(id);
     if (!run) return { ok: false, status: 404, error: 'not found' };
+    const pairRefusal = pairRunMutationRefusal(run);
+    if (pairRefusal) return { ok: false, status: 409, error: pairRefusal };
     if (protectedByLiveTree(run, store.listRuns())) return { ok: false, status: 409, error: 'this worker belongs to a task tree that is still running — its manager may still be integrating the branch; try again when the tree has finished' };
     try {
       return await legacyWorktreeMutation(project, id, async () => {

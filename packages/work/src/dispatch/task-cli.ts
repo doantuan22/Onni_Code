@@ -10,7 +10,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
-import { MANAGER_ASK_TIMEOUT_MINUTES_MAX, MANAGER_CANCEL_REASON_MAX_CHARS, MANAGER_MESSAGE_MAX_CHARS, MANAGER_REDIRECT_INSTRUCTION_MAX_CHARS, REPORT_CHECKS_MAX, PEEK_TAIL_MAX_LINES, VERIFY_TOTAL_TIMEOUT_MS, rosterWorkerKey, rosterWorkerSchema, runnerSchema, type DispatchBudget, type DispatchConflicts, type DispatchManagerCancelResult, type DispatchManagerMessageResult, type DispatchManagerRedirectResult, type DispatchPeek, type DispatchVerifyResult, type ManagerMemoryRead, type Roster, type RosterWorker, type TreePlan } from '@onni/contract';
+import { MANAGER_ASK_TIMEOUT_MINUTES_MAX, MANAGER_CANCEL_REASON_MAX_CHARS, MANAGER_MESSAGE_MAX_CHARS, MANAGER_REDIRECT_INSTRUCTION_MAX_CHARS, REPORT_CHECKS_MAX, PEEK_TAIL_MAX_LINES, VERIFY_TOTAL_TIMEOUT_MS, pairAcceptInputSchema, pairDecisionInputSchema, pairMessageInputSchema, pairProposalInputSchema, rosterWorkerKey, rosterWorkerSchema, runnerSchema, type DispatchBudget, type DispatchConflicts, type DispatchManagerCancelResult, type DispatchManagerMessageResult, type DispatchManagerRedirectResult, type DispatchPeek, type DispatchVerifyResult, type ManagerMemoryRead, type PairAcceptInput, type PairDecisionInput, type PairMessage, type PairMessageInput, type PairProposalInput, type PairSnapshot, type Roster, type RosterWorker, type TreePlan } from '@onni/contract';
 import { missingCockpitMessage } from '../cockpit-address.ts';
 import { formatBudgetLine } from './budget-format.ts';
 import { formatPeek } from './peek.ts';
@@ -68,6 +68,7 @@ async function callRoute(
   path: string,
   init: RequestInit,
   refusalPrefix?: string | RefusalFormatter,
+  options: { missingIsRefusal?: boolean } = {},
 ): Promise<unknown> {
   let response: Response;
   try {
@@ -76,7 +77,7 @@ async function callRoute(
     throw new Error(`could not reach the cockpit — ${error instanceof Error ? error.message : String(error)}`);
   }
   if (!response.ok) {
-    if (response.status === 404) throw new Error('server does not support this command yet — restart Onni (CLI and server versions differ)');
+    if (response.status === 404 && !options.missingIsRefusal) throw new Error('server does not support this command yet — restart Onni (CLI and server versions differ)');
     const failure = await readError(response);
     if (typeof refusalPrefix === 'function') throw new Error(refusalPrefix(response.status, failure.body, failure.message));
     throw new Error(refusalPrefix ? `${refusalPrefix} ${failure.message}` : failure.message);
@@ -89,6 +90,42 @@ function number(value: string | undefined, name: string): number | undefined {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) throw new Error(`--${name} must be a number`);
   return parsed;
+}
+
+function jsonOption(raw: string): unknown {
+  const source = raw.startsWith('@') ? readFileSync(raw.slice(1), 'utf8') : raw;
+  try {
+    return JSON.parse(source);
+  } catch (error) {
+    throw new Error(`--json is not valid JSON — ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+function formatPairSnapshot(snapshot: PairSnapshot): string {
+  const { state } = snapshot;
+  const lines = [
+    `One & One ${state.pairId} — ${state.phase}${state.activeRole ? ` · ${state.activeRole}'s turn` : ''}`,
+    `Manager ${state.managerRunId} · worker ${state.workerRunId ?? 'not assigned'} · order revision ${state.orderRevision} · handoffs ${state.handoffs}`,
+  ];
+  for (const order of snapshot.orders) {
+    lines.push(`- order ${order.id.slice(0, 8)} r${order.revision} [${order.status}] ${order.objective}${order.report ? ` — ${order.report}` : ''}`);
+  }
+  const messages = snapshot.messages.slice(-20);
+  if (messages.length) {
+    lines.push(`Messages (${snapshot.messages.length}${snapshot.messages.length > messages.length ? ', latest 20' : ''}):`);
+    for (const message of messages) lines.push(`- ${message.from}→${message.to} [${message.kind}] ${message.id.slice(0, 8)}: ${message.text}`);
+  }
+  const proposals = snapshot.proposals.slice(-10);
+  if (proposals.length) {
+    lines.push(`Proposals (${snapshot.proposals.length}${snapshot.proposals.length > proposals.length ? ', latest 10' : ''}):`);
+    for (const proposal of proposals) lines.push(`- ${proposal.id.slice(0, 8)} [${proposal.status}] ${proposal.question} — ${proposal.options.map((option) => `${option.id}: ${option.title}`).join(' | ')}`);
+  }
+  const decisions = snapshot.decisions.slice(-10);
+  if (decisions.length) {
+    lines.push(`Decisions (${snapshot.decisions.length}${snapshot.decisions.length > decisions.length ? ', latest 10' : ''}):`);
+    for (const decision of decisions) lines.push(`- ${decision.decidedBy} ${decision.outcome}${decision.optionId ? ` ${decision.optionId}` : ''} on ${decision.proposalId.slice(0, 8)}${decision.note ? ` — ${decision.note}` : ''}`);
+  }
+  return lines.join('\n');
 }
 
 /**
@@ -261,6 +298,116 @@ export async function runTaskCommand(
         }, 'report refused —');
         io.log(`report recorded — status ${values.status}${values.verdict ? `, verdict ${values.verdict}` : ''}. It is delivered to your parent when this task settles.`);
         return 0;
+      }
+      case 'pair': {
+        if (!env.ONNI_TASK_ID) throw new Error('ONNI_TASK_ID is not set — only a running One & One task can use pair controls');
+        const [sub, ...words] = rest;
+        const scope = `/runs/${encodeURIComponent(env.ONNI_TASK_ID)}/pair`;
+        const post = (suffix: string, body: unknown, prefix: string) => callRoute(
+          api, io, `${scope}/${suffix}`,
+          { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) },
+          prefix, { missingIsRefusal: true },
+        );
+        if (sub === 'show') {
+          const { values, positionals } = parseArgs({ args: words, allowPositionals: true, options: { json: { type: 'boolean' } } });
+          if (positionals.length) throw new Error('usage: onni task pair show [--json]');
+          const snapshot = await callRoute(api, io, scope, { method: 'GET' }, 'could not read the pair —', { missingIsRefusal: true }) as PairSnapshot;
+          io.log(values.json ? JSON.stringify(snapshot, null, 2) : formatPairSnapshot(snapshot));
+          return 0;
+        }
+        if (sub === 'message') {
+          const { values, positionals } = parseArgs({
+            args: words,
+            allowPositionals: true,
+            options: { kind: { type: 'string' }, order: { type: 'string' }, 'reply-to': { type: 'string' } },
+          });
+          const parsed = pairMessageInputSchema.safeParse({
+            text: positionals.join(' ').trim(),
+            ...(values.kind !== undefined ? { kind: values.kind } : {}),
+            ...(values.order !== undefined ? { orderId: values.order } : {}),
+            ...(values['reply-to'] !== undefined ? { replyTo: values['reply-to'] } : {}),
+          });
+          if (!parsed.success) throw new Error(parsed.error.issues.map((issue) => issue.message).join('; '));
+          const input: PairMessageInput = parsed.data;
+          const message = await post('messages', input, 'pair message refused —') as PairMessage;
+          io.log(`pair message ${message.id.slice(0, 8)}: ${message.from}→${message.to} [${input.kind ?? 'note'}]`);
+          return 0;
+        }
+        if (sub === 'propose') {
+          const { values, positionals } = parseArgs({
+            args: words,
+            allowPositionals: true,
+            options: {
+              json: { type: 'string' }, question: { type: 'string' }, option: { type: 'string', multiple: true },
+              recommendation: { type: 'string' }, order: { type: 'string' },
+            },
+          });
+          if (positionals.length) throw new Error('usage: onni task pair propose --question "<question>" --option "<id>:<title>" [--option ...] [--recommendation <id>] [--order <id>]');
+          let candidate: unknown;
+          if (values.json !== undefined) {
+            if (values.question !== undefined || values.option?.length || values.recommendation !== undefined || values.order !== undefined) {
+              throw new Error('--json cannot be combined with proposal flags');
+            }
+            candidate = jsonOption(values.json);
+          } else {
+            if (!values.question || !values.option?.length) throw new Error('propose needs --question and at least two --option "<id>:<title>" entries (or --json)');
+            candidate = {
+              question: values.question,
+              options: values.option.map((raw) => {
+                const separator = raw.indexOf(':');
+                const id = (separator < 0 ? raw : raw.slice(0, separator)).trim();
+                const title = separator < 0 ? '' : raw.slice(separator + 1).trim();
+                if (!id || !title) throw new Error('--option must be "<id>:<title>"');
+                return { id, title };
+              }),
+              ...(values.recommendation !== undefined ? { recommendation: values.recommendation } : {}),
+              ...(values.order !== undefined ? { orderId: values.order } : {}),
+            };
+          }
+          const parsed = pairProposalInputSchema.safeParse(candidate);
+          if (!parsed.success) throw new Error(parsed.error.issues.map((issue) => issue.message).join('; '));
+          const input: PairProposalInput = parsed.data;
+          const proposal = await post('proposals', input, 'pair proposal refused —') as { id: string; status: string };
+          io.log(`pair proposal ${proposal.id.slice(0, 8)}: ${proposal.status} · ${input.options.map((option) => option.id).join(', ')}`);
+          return 0;
+        }
+        if (sub === 'decide') {
+          const { values, positionals } = parseArgs({
+            args: words,
+            allowPositionals: true,
+            options: { proposal: { type: 'string' }, outcome: { type: 'string' }, option: { type: 'string' }, note: { type: 'string' } },
+          });
+          if (positionals.length) throw new Error('usage: onni task pair decide --proposal <id> --outcome chosen|declined [--option <id>] [--note "<note>"]');
+          const parsed = pairDecisionInputSchema.safeParse({
+            proposalId: values.proposal ?? '',
+            outcome: values.outcome,
+            ...(values.option !== undefined ? { optionId: values.option } : {}),
+            ...(values.note !== undefined ? { note: values.note } : {}),
+          });
+          if (!parsed.success) throw new Error(parsed.error.issues.map((issue) => issue.message).join('; '));
+          const input: PairDecisionInput = parsed.data;
+          const decision = await post('decisions', input, 'pair decision refused —') as { id: string; outcome: string };
+          io.log(`pair decision ${decision.id.slice(0, 8)}: ${decision.outcome}${input.optionId ? ` ${input.optionId}` : ''}`);
+          return 0;
+        }
+        if (sub === 'accept') {
+          const { values, positionals } = parseArgs({
+            args: words,
+            allowPositionals: true,
+            options: { order: { type: 'string' }, note: { type: 'string' } },
+          });
+          if (positionals.length) throw new Error('usage: onni task pair accept --order <id> [--note "<note>"]');
+          const parsed = pairAcceptInputSchema.safeParse({
+            orderId: values.order ?? '',
+            ...(values.note !== undefined ? { note: values.note } : {}),
+          });
+          if (!parsed.success) throw new Error(parsed.error.issues.map((issue) => issue.message).join('; '));
+          const input: PairAcceptInput = parsed.data;
+          const order = await post('accept', input, 'pair acceptance refused —') as { id: string; status: string };
+          io.log(`pair order ${order.id.slice(0, 8)} ${order.status} — run final checks before ONNI:DONE`);
+          return 0;
+        }
+        throw new Error('usage: onni task pair show [--json] | message "<text>" [--kind note|question|answer] [--order <id>] [--reply-to <id>] | propose --question "<question>" --option "<id>:<title>" [--option ...] [--recommendation <id>] [--order <id>] | decide --proposal <id> --outcome chosen|declined [--option <id>] [--note "<note>"] | accept --order <id> [--note "<note>"]');
       }
       case 'merge': {
         const { values, positionals } = parseArgs({

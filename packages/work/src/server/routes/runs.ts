@@ -44,6 +44,7 @@ import {
 import { checkoutGitStatus } from '../../workflows/landing.ts';
 import { removeWorktree, worktreeDiff } from '../../git-worktree.ts';
 import { protectedByLiveTree } from '../../runs/retention.ts';
+import { pairRunMutationRefusal } from '../../runs/pair-mutation.ts';
 import { lifecycleError } from '../worktree-lifecycle.ts';
 import { getRepoInfo } from '../git.ts';
 import {
@@ -759,6 +760,8 @@ export function createRunsRoutes(deps: RunsRouteDeps) {
       const id = c.req.param('id');
       const before = store.getRun(id);
       if (!before) return c.json({ error: 'not found' }, 404);
+      const refusal = pairRunMutationRefusal(before);
+      if (refusal) return c.json({ error: refusal }, 409);
       const finished = manager.finish(id);
       if (!finished) return c.json({ error: 'no open session' }, 409);
       return c.json({ finished: true });
@@ -768,7 +771,10 @@ export function createRunsRoutes(deps: RunsRouteDeps) {
     .post('/runs/:id/land', async (c) => {
       const { store, manager } = c.get('project');
       const id = c.req.param('id');
-      if (!store.getRun(id)) return c.json({ error: 'not found' }, 404);
+      const run = store.getRun(id);
+      if (!run) return c.json({ error: 'not found' }, 404);
+      const refusal = pairRunMutationRefusal(run);
+      if (refusal) return c.json({ error: refusal }, 409);
       const answer = await manager.land(id);
       return c.json({
         outcome: answer.outcome,
@@ -1219,6 +1225,8 @@ export function createRunsRoutes(deps: RunsRouteDeps) {
       const { store } = c.get('project');
       const run = store.getRun(c.req.param('id'));
       if (!run) return c.json({ error: 'not found' }, 404);
+      const refusal = pairRunMutationRefusal(run);
+      if (refusal) return c.json({ error: refusal }, 409);
       const worktree = worktreeOf(run);
       if (!worktree) return c.json({ error: NO_WORKTREE }, 409);
       const parsed = { data: c.req.valid('json') };
@@ -1233,6 +1241,8 @@ export function createRunsRoutes(deps: RunsRouteDeps) {
       const { root: repoRoot, store } = c.get('project');
       const run = store.getRun(c.req.param('id'));
       if (!run) return c.json({ error: 'not found' }, 404);
+      const refusal = pairRunMutationRefusal(run);
+      if (refusal) return c.json({ error: refusal }, 409);
       const worktree = worktreeOf(run);
       if (!worktree) return c.json({ error: NO_WORKTREE }, 409);
       let result;
@@ -1281,6 +1291,8 @@ export function createRunsRoutes(deps: RunsRouteDeps) {
       const id = c.req.param('id');
       const run = store.getRun(id);
       if (!run) return c.json({ error: 'not found' }, 404);
+      const refusal = pairRunMutationRefusal(run);
+      if (refusal) return c.json({ error: refusal }, 409);
       if (manager.isActive(id)) return c.json({ error: 'run is still active — wait for the review gate' }, 409);
       // A pull-request head run's branch holds the whole foreign PR under this run's changes: a
       // draft PR from it into the default base would re-propose that PR (spec
@@ -1349,6 +1361,8 @@ export function createRunsRoutes(deps: RunsRouteDeps) {
       const id = c.req.param('id');
       const run = store.getRun(id);
       if (!run) return c.json({ error: 'not found' }, 404);
+      const refusal = pairRunMutationRefusal(run);
+      if (refusal) return c.json({ error: refusal }, 409);
       if (run.pullRequestUrl) return c.json({ found: true as const, url: run.pullRequestUrl });
       const worktree = worktreeOf(run);
       const target = worktree ? await resolvePrTarget(run) : null;
@@ -1368,6 +1382,8 @@ export function createRunsRoutes(deps: RunsRouteDeps) {
       const id = c.req.param('id');
       const run = store.getRun(id);
       if (!run) return c.json({ error: 'not found' }, 404);
+      const refusal = pairRunMutationRefusal(run);
+      if (refusal) return c.json({ error: refusal }, 409);
       if (manager.isActive(id)) return c.json({ error: 'run is active — cancel it first' }, 409);
       if (protectedByLiveTree(run, store.listRuns())) return c.json({ error: 'this worker belongs to a task tree that is still running — its manager may still be integrating the branch; try again when the tree has finished' }, 409);
       try {
@@ -1383,7 +1399,12 @@ export function createRunsRoutes(deps: RunsRouteDeps) {
     })
 
     .delete('/runs/:id', async (c) => {
-      const outcome = await deleteRunFully(c.get('project'), c.req.param('id'));
+      const project = c.get('project');
+      const run = project.store.getRun(c.req.param('id'));
+      if (!run) return c.json({ error: 'not found' }, 404);
+      const refusal = pairRunMutationRefusal(run);
+      if (refusal) return c.json({ error: refusal }, 409);
+      const outcome = await deleteRunFully(project, run.id);
       if (outcome.ok) return c.json({ deleted: true as const });
       if (outcome.status === 'lifecycle') return lifecycleError(c, outcome.error);
       return c.json({ error: outcome.error }, outcome.status);

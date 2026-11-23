@@ -1,8 +1,10 @@
 import { existsSync } from 'node:fs';
-import { REPORT_FILES_MAX, rosterWorkerKey, type AgentPermissionLevel, type DispatchInput, type DispatchReport } from '@onni/contract';
+import { isOneAndOneRoster, REPORT_FILES_MAX, rosterWorkerKey, type AgentPermissionLevel, type DispatchInput, type DispatchReport, type PairDispatchResult } from '@onni/contract';
 import { effectiveAntigravityLevel } from '../../core/antigravity-permissions.ts';
 import { autosaveCommit, worktreeChangedFilesReadOnly, worktreeHeadShort } from '../../git-worktree.ts';
 import { composeDispatchPrompt } from '../../dispatch/prompts.ts';
+import { oneAndOneWorkerPrompt } from '../../dispatch/pair-prompts.ts';
+import { PairStore, PairStoreError } from '../../dispatch/pair-store.ts';
 import { formatBudgetLine } from '../../dispatch/budget-format.ts';
 import { requireRootManager } from '../../dispatch/access.ts';
 import { appendLedger, notesSuggestions, readPlan, seedNotes, taskPaths, treeEnvelopeLines, writeBrief, writeInboxMessage, writeOrder, writeReport } from '../../dispatch/tree-fs.ts';
@@ -16,6 +18,7 @@ import type { WorkflowDef } from '../types.ts';
 import type { RunEvent, RunRecord } from '../../runs/store.ts';
 import type { DispatchContext, RedirectDispatchOrigin } from './internal-types.ts';
 import type { PastedContent } from './preparation.ts';
+import { checkpointPair } from './pair-runtime.ts';
 
 /** Last completed assistant text, used to build an automatic manager report when an agy child skips CLI reporting. */
 export function finalAssistantText(events: readonly RunEvent[]): string | undefined {
@@ -125,7 +128,7 @@ export function workerEntryFull(context: DispatchContext, queued: RunRecord): bo
  * so the child forks from it, independent of `ONNI_AUTOSAVE`. If that commit cannot be made the
  * dispatch is refused — a child must never fork silently from an older commit.
  */
-export async function dispatchFromAgent(context: DispatchContext, parentId: string, input: DispatchInput): Promise<{ id: string; branch?: string } | { refused: string }> {
+export async function dispatchFromAgent(context: DispatchContext, parentId: string, input: DispatchInput): Promise<{ id: string; branch?: string; pair?: PairDispatchResult } | { refused: string }> {
   const parent = context.store.getRun(parentId);
   // `--part` (plan v2 §10): validated BEFORE anything is created, so a typo cannot leave an
   // orphan worker whose part the plan never learned about. Marked assigned after the child id
@@ -146,6 +149,18 @@ export async function dispatchFromAgent(context: DispatchContext, parentId: stri
     if (refused) {
       context.store.appendEvent(parentId, { type: 'note', stepId: context.active.get(parentId)?.currentStepId, message: `dispatch refused — ${refused}`, tone: 'danger' });
       return { refused };
+    }
+  }
+  if (parent?.dispatch?.pair && parent.dispatch.rootRunId === parent.id && context.dispatchEnabled()) {
+    const saved = await checkpointPair(parent.dispatch.pair.workspace.repoRoot, new PairStore(context.dataDir), parent.dispatch.pair.pairId, 'manager handoff');
+    if (!saved.ok) {
+      const refused = `One & One could not checkpoint the shared checkout: ${saved.error}`;
+      context.store.appendEvent(parentId, { type: 'note', stepId: context.active.get(parentId)?.currentStepId, message: `dispatch refused — ${refused}`, tone: 'danger' });
+      return { refused };
+    }
+    const current = new PairStore(context.dataDir).readState(parent.dispatch.pair.pairId);
+    if (!current || current.phase === 'stopped' || current.phase === 'complete') {
+      return { refused: `One & One pair is ${current?.phase ?? 'missing'}` };
     }
   }
   if (parent?.worktreePath && parent.branch && existsSync(parent.worktreePath) && context.dispatchEnabled()) {
@@ -192,7 +207,7 @@ export function dispatch(
     redirectOrigin?: RedirectDispatchOrigin;
     preflightOnly?: boolean;
   } = {},
-): { id: string; branch?: string } | { refused: string } {
+): { id: string; branch?: string; pair?: PairDispatchResult } | { refused: string } {
   if (!context.dispatchEnabled()) return { refused: 'dispatch is disabled on this cockpit (ONNI_DISPATCH=0) — the operator turned it off. Do not substitute sub-agents or do the delegated work yourself: stop and report that dispatch is disabled.' };
   const parent = context.store.getRun(parentId);
   if (!parent) return { refused: `no such run: ${parentId}` };
@@ -219,6 +234,10 @@ export function dispatch(
       note(`dispatch refused — ${worker.refused}`, 'danger');
       return { refused: worker.refused };
     }
+  }
+  if (roster && isOneAndOneRoster(roster)) {
+    if (!worker || 'refused' in worker) return { refused: 'One & One could not resolve its worker' };
+    return dispatchPairOrder(context, parent, input, worker, rootRunId0, runs, note, opts.preflightOnly === true);
   }
   // The user's limits, when the root was started with the composer's Dispatch toggle: they may
   // only tighten the engine's own caps, and the child defaults they name fill an order's gaps.
@@ -487,6 +506,123 @@ export function recordReport(context: DispatchContext, runId: string, report: Di
   return true;
 }
 
+function dispatchPairOrder(
+  context: DispatchContext,
+  parent: RunRecord,
+  input: DispatchInput,
+  worker: Extract<ReturnType<typeof resolveWorker>, { ok: true }>,
+  rootRunId: string,
+  runs: readonly RunRecord[],
+  note: (message: string, tone?: 'danger') => void,
+  preflightOnly: boolean,
+): { id: string; pair?: PairDispatchResult } | { refused: string } {
+  const pair = parent.dispatch?.pair;
+  if (!pair || parent.id !== rootRunId) return { refused: 'Only the One & One manager may issue orders' };
+  if (input.after?.length) return { refused: 'One & One has one worker and does not support --after dependencies' };
+  if (preflightOnly) return { id: '' };
+  const pairs = new PairStore(context.dataDir);
+  const state = pairs.readState(pair.pairId);
+  if (!state) return { refused: 'One & One pair state is missing' };
+  if (state.phase === 'complete' || state.phase === 'stopped') return { refused: `One & One pair is ${state.phase}` };
+  const title = input.title ?? input.objective.split('\n')[0]?.slice(0, 120) ?? 'One & One order';
+  let pendingOrder: { id: string; previous: typeof state } | undefined;
+  try {
+    if (state.workerRunId) {
+      const existing = context.store.getRun(state.workerRunId);
+      if (!existing) return { refused: 'The persistent One & One worker record is missing' };
+      if (existing.status === 'cancelled') return { refused: 'The One & One worker was cancelled; start a new pair to continue' };
+      if (existing.status === 'queued' || existing.status === 'running' || context.active.has(existing.id) || context.starting.has(existing.id)) {
+        return { refused: 'The One & One worker is still working on the current order; wait for its report before revising' };
+      }
+      const previousState = pairs.readState(pair.pairId)!;
+      const order = pairs.enqueueOrder(pair.pairId, input);
+      pendingOrder = { id: order.id, previous: previousState };
+      const resumed = context.continueRun(existing.id, { text: oneAndOneWorkerPrompt(order) }, true) as { ok: boolean; error?: string };
+      if (!resumed.ok) {
+        pairs.discardQueuedOrder(pair.pairId, order.id, previousState);
+        pendingOrder = undefined;
+        return { refused: `The One & One worker could not resume: ${resumed.error ?? 'unknown error'}` };
+      }
+      pendingOrder = undefined;
+      const next = pairs.readState(pair.pairId)!;
+      const root = context.store.getRun(rootRunId);
+      context.store.updateRun(rootRunId, { dispatch: { ...(root?.dispatch ?? { rootRunId }), pair: next } });
+      note(`revised One & One order ${order.id.slice(0, 8)} (revision ${order.revision}) for worker ${existing.id}`);
+      appendLedger(context.dataDir, rootRunId, { type: 'dispatch', runId: existing.id, parentRunId: parent.id, kind: input.kind ?? 'implement', title });
+      const active = context.active.get(parent.id);
+      if (active) active.dispatchedThisTurn = true;
+      return { id: existing.id, pair: { workerRunId: existing.id, orderId: order.id, revision: order.revision } };
+    }
+
+    const budget = carveChildBudget(context.store.getRun(parent.id) ?? parent, runs, input.max_cost);
+    if ('refused' in budget) return { refused: budget.refused };
+    const previousState = pairs.readState(pair.pairId)!;
+    const order = pairs.enqueueOrder(pair.pairId, input);
+    pendingOrder = { id: order.id, previous: previousState };
+    const workflow: WorkflowDef = {
+      name: '(one-and-one)',
+      source: 'built-in',
+      steps: [{ id: 'task', name: title, prompt: '{{task}}', ...(input.allowed_tools?.length ? { allowedTools: input.allowed_tools } : {}) }],
+    };
+    const record = context.startRun(workflow, {
+      task: [order.objective, order.scope, order.successCriteria, order.requiredEvidence].filter(Boolean).join('\n'),
+      runner: worker.runner,
+      ...(worker.model ? { model: worker.model } : {}),
+      autonomous: true,
+      worktree: false,
+      newBranch: undefined,
+      branch: undefined,
+      forkRef: undefined,
+      limitsSnapshot: carveChildLimits(parent, runs, input.max_cost !== undefined ? { maxCostUsd: input.max_cost } : undefined),
+      ...(context.deferredBindingActive(parent, runs) ? { deferredBinding: parent.deferredBinding } : {}),
+      dispatch: {
+        rootRunId,
+        parentRunId: parent.id,
+        workerKey: worker.key,
+        pairMember: { pairId: pair.pairId, role: 'worker', peerRunId: parent.id },
+        ...(input.kind && input.kind !== 'implement' ? { kind: input.kind } : {}),
+        ...(input.scope ? { scope: input.scope } : {}),
+        ...(budget.budgetUsd !== undefined ? { budgetUsd: budget.budgetUsd } : {}),
+        order: {
+          objective: order.objective,
+          title,
+          kind: input.kind ?? 'implement',
+          ...(order.scope !== undefined ? { scope: order.scope } : {}),
+          ...(input.allowed_tools !== undefined ? { allowedTools: input.allowed_tools } : {}),
+          ...(input.max_cost !== undefined ? { maxCost: input.max_cost } : {}),
+          ...(order.successCriteria !== undefined ? { successCriteria: order.successCriteria } : {}),
+          ...(order.requiredEvidence !== undefined ? { requiredEvidence: order.requiredEvidence } : {}),
+          retryLimit: 0,
+          backend: worker.runner,
+          ...(worker.model !== undefined ? { model: worker.model } : {}),
+          workerKey: worker.key,
+          after: [],
+        },
+      },
+    });
+    pendingOrder = undefined;
+    context.store.updateRun(record.id, { title });
+    const next = pairs.setWorker(pair.pairId, record.id);
+    const root = context.store.getRun(rootRunId);
+    context.store.updateRun(rootRunId, { dispatch: { ...(root?.dispatch ?? { rootRunId }), pair: next } });
+    appendLedger(context.dataDir, rootRunId, {
+      type: 'dispatch', runId: record.id, parentRunId: parent.id, kind: input.kind ?? 'implement', title,
+      workerKey: worker.key, ...(budget.budgetUsd !== undefined ? { budgetUsd: budget.budgetUsd } : {}),
+    });
+    note(`dispatched One & One order ${order.id.slice(0, 8)} (revision ${order.revision}) to persistent worker ${record.id}`);
+    const active = context.active.get(parent.id);
+    if (active) active.dispatchedThisTurn = true;
+    return { id: record.id, pair: { workerRunId: record.id, orderId: order.id, revision: order.revision } };
+  } catch (error) {
+    if (pendingOrder) {
+      try { pairs.discardQueuedOrder(pair.pairId, pendingOrder.id, pendingOrder.previous); } catch { /* preserve the original dispatch failure */ }
+    }
+    const message = error instanceof PairStoreError ? error.message : error instanceof Error ? error.message : String(error);
+    note(`One & One dispatch refused — ${message}`, 'danger');
+    return { refused: message };
+  }
+}
+
 /**
  * Carve one child's ceiling out of what the parent has left. A parent with no ceiling of its
  * own carves nothing: the child inherits whatever cap it named, or none. A child that names no
@@ -527,6 +663,7 @@ export async function reportSettledChildToParent(context: DispatchContext, runId
     const child = context.store.getRun(runId);
     const parentId = child?.dispatch?.parentRunId;
     if (!child || !parentId) return;
+    if (child.dispatch?.pairMember) return;
     if (!context.dispatchEnabled()) return;
     if (!isTerminalStatus(child.status)) return;
     const managerCancelled = child.dispatch?.managerCancellation !== undefined;

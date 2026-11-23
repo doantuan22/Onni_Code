@@ -31,6 +31,7 @@ import { RUN_EVENT_BATCH_MS } from './run-events'
 import type {
   ApiRun,
   HealthResponse,
+  PairSnapshot,
   ProjectsResponse,
   ProcessUsage,
   ProviderStatusResponse,
@@ -566,6 +567,16 @@ function applyGlobalEvent(
       const changesKey = queryKeys.runs.changes(event.run.id)
       if (queryClient.getQueryData(changesKey) !== undefined) {
         void queryClient.invalidateQueries({ queryKey: changesKey })
+      }
+      // Pair state has its own authoritative read. A run frame only carries the freshness stamp,
+      // so invalidate an existing snapshot when that stamp advances instead of synthesizing one.
+      const pair = event.run.dispatch?.pair
+      if (pair !== undefined) {
+        const pairKey = queryKeys.runs.pair(pair.pairId)
+        const snapshot = queryClient.getQueryData<PairSnapshot>(pairKey)
+        if (snapshot !== undefined && Date.parse(pair.updatedAt) > Date.parse(snapshot.state.updatedAt)) {
+          void queryClient.invalidateQueries({ queryKey: pairKey })
+        }
       }
       // A terminal transition can reclaim (or re-materialize) a worktree (#483); keep the
       // panel live. invalidateQueries only refetches while the panel is actually mounted.

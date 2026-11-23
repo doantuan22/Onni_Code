@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Roster } from '@onni/contract';
 import { childSettleReport } from '../dispatch/engine.ts';
 import { RunStore, type RunRecord } from '../runs/store.ts';
 import { graphIssues, graphRailSteps, graphToSteps, type WorkflowGraph } from './graph.ts';
@@ -29,6 +30,11 @@ vi.mock('node:child_process', async (importOriginal) => {
 
 const run = promisify(execFile);
 const GIT_ID = ['-c', 'user.name=test', '-c', 'user.email=test@local'];
+const PAIR_ROSTER: Roster = {
+  mode: 'one-and-one',
+  manager: { runner: 'claude', model: 'opus' },
+  workers: [{ runner: 'codex', model: 'gpt-5', role: 'implementation', maxConcurrent: 1 }],
+};
 
 /**
  * Phase-1c nodes end to end (spec 2026-09-30-workflow-node-editor): nodes onni runs itself,
@@ -396,6 +402,31 @@ describe('graph system nodes', () => {
     expect(final.graphState?.taken).toEqual(expect.arrayContaining(['council.1->correctness', 'correctness.done->meet', 'meet.done->after']));
     expect(final.graphState?.outputs?.correctness?.runId).toBe(children.find((c) => c.title === 'Correctness')?.id);
   }, 70_000);
+
+  it('One & One refuses graph Git commits on the shared checkout', async () => {
+    const graph: WorkflowGraph = {
+      nodes: [
+        { id: 'start', type: 'start' },
+        { id: 'commit', type: 'git.commit', message: 'must not commit' },
+      ],
+      edges: [{ from: 'start', to: 'commit' }],
+    };
+    const { stdout: before } = await run('git', ['rev-parse', 'HEAD'], { cwd: repoRoot });
+    const id = manager.startRun(def(graph), { task: 'x', roster: PAIR_ROSTER, worktree: false }).id;
+    const final = await until(id, terminal, 30_000);
+    const { stdout: after } = await run('git', ['rev-parse', 'HEAD'], { cwd: repoRoot });
+    expect(final.status).toBe('failed');
+    expect(after).toBe(before);
+    expect(store.readEvents(id).some((event) => event.type === 'note' && typeof event.message === 'string' && event.message.includes('One & One owns this shared checkout'))).toBe(true);
+  }, 40_000);
+
+  it('One & One refuses a workflow fork before it can create fan-out children', async () => {
+    const id = manager.startRun(def(FORK), { task: 'x', roster: PAIR_ROSTER, worktree: false }).id;
+    const final = await until(id, terminal, 30_000);
+    expect(final.status).toBe('failed');
+    expect(final.error).toContain('One & One owns this shared checkout');
+    expect(store.listRuns().filter((run) => run.dispatch?.parentRunId === id)).toEqual([]);
+  }, 40_000);
 
   it("fork commits the task's work first, so the branches fork from it", async () => {
     const id = manager.startRun(def(FORK), { task: 'x', worktree: true }).id;

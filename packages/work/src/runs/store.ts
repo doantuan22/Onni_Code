@@ -78,7 +78,7 @@ import { MAX_REF } from './task-refs.ts';
 import { workflowDefSchema } from '../workflows/types.ts';
 // A contract VALUE, like `workspaceUiStateSchema` in `workspace/migrations.ts`: the persisted
 // `dispatch` object and its wire half are literally the same schema, so they cannot drift.
-import { limitHitSchema, limitUsageSchema, rosterSchema, rosterWorkerKey, runLimitsSchema, type Roster } from '@onni/contract';
+import { isOneAndOneRoster, limitHitSchema, limitUsageSchema, rosterMode, rosterSchema, rosterWorkerKey, runLimitsSchema, type Roster } from '@onni/contract';
 import { dispatchSchema, trackerAssociationSchema, trackerAutomationEventSchema, webhookAttentionRequestSchema, webhookCompletionReasonSchema, worktreeLifecycleProjectionSchema } from '@onni/contract';
 
 import { RUNNER_IDS } from '../core/agent-runner.ts';
@@ -1496,7 +1496,7 @@ export class RunStore extends EventEmitter {
   }
 
   /** Atomically replace a live root's roster while preserving the manager identity. */
-  updateRoster(id: string, roster: Roster): { ok: true; roster: Roster } | { ok: false; reason: 'missing' | 'not-root' | 'manager-changed' | 'invalid' } {
+  updateRoster(id: string, roster: Roster): { ok: true; roster: Roster } | { ok: false; reason: 'missing' | 'not-root' | 'manager-changed' | 'mode-changed' | 'pair-worker-changed' | 'invalid' } {
     const parsed = rosterSchema.safeParse(roster);
     if (!parsed.success) return { ok: false, reason: 'invalid' };
     const run = this.getRun(id);
@@ -1504,6 +1504,11 @@ export class RunStore extends EventEmitter {
     if (!run.roster || run.dispatch?.rootRunId !== id) return { ok: false, reason: 'not-root' };
     if (rosterWorkerKey(parsed.data.manager) !== rosterWorkerKey(run.roster.manager)) {
       return { ok: false, reason: 'manager-changed' };
+    }
+    if (rosterMode(parsed.data) !== rosterMode(run.roster)) return { ok: false, reason: 'mode-changed' };
+    if (isOneAndOneRoster(run.roster) && run.dispatch?.pair?.workerRunId &&
+      rosterWorkerKey(parsed.data.workers[0]!) !== rosterWorkerKey(run.roster.workers[0]!)) {
+      return { ok: false, reason: 'pair-worker-changed' };
     }
     // Removal only affects future dispatch admission. Existing children keep running under their
     // original records; dispatch() resolves against this root's current roster on every call.

@@ -9,7 +9,7 @@ import { MANAGER_COMMANDS_MAX_CHARS } from './prompt-budget.ts';
 
 export interface TaskCommand {
   name: string;
-  role: 'manager' | 'worker';
+  role: 'manager' | 'worker' | 'both';
   /** CLI help text; continuation lines keep their own alignment. */
   usage: string;
   /** The shorter form shown in the brief of the role that may use it. */
@@ -49,6 +49,16 @@ export const TASK_COMMANDS: readonly TaskCommand[] = [
     usage: REPORT_USAGE,
     brief: 'onni task report --status done|partial|failed|blocked --result "<what you did and the state now>" [--evidence "…" …] [--check "npm test=0" …] [--suggestions "…" …] [--confidence 0.8]',
     oneLine: 'report your outcome before you finish',
+  },
+  {
+    name: 'pair',
+    role: 'both',
+    usage: `onni task pair show [--json]   read authoritative One & One state (manager or worker)
+  onni task pair message "<text>" [--kind note|question|answer] [--order <id>] [--reply-to <id>]
+  onni task pair propose --question "<question>" --option "<id>:<title>" [--option ...] [--recommendation <id>] [--order <id>]
+  onni task pair decide --proposal <id> --outcome chosen|declined [--option <id>] [--note "<note>"]
+  onni task pair accept --order <id> [--note "<note>"]   manager only; final checks still required`,
+    oneLine: 'read and control the authoritative One & One pair',
   },
   {
     name: 'merge',
@@ -159,9 +169,9 @@ export function taskUsage(commands: readonly TaskCommand[] = TASK_COMMANDS): str
 }
 
 /** Brief lines for one role, in table order. */
-export function briefCommands(role: TaskCommand['role'], commands: readonly TaskCommand[] = TASK_COMMANDS): string {
+export function briefCommands(role: 'manager' | 'worker', commands: readonly TaskCommand[] = TASK_COMMANDS): string {
   return commands
-    .filter((command) => command.role === role && command.brief)
+    .filter((command) => (command.role === role || command.role === 'both') && command.brief)
     .map((command) => `  ${command.brief}`)
     .join('\n');
 }

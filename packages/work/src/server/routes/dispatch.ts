@@ -9,6 +9,10 @@ import {
   managerAskInputSchema,
   managerRosterUpdateInputSchema,
   mergeInputSchema,
+  pairAcceptInputSchema,
+  pairDecisionInputSchema,
+  pairMessageInputSchema,
+  pairProposalInputSchema,
   PEEK_TAIL_MAX_LINES,
   treePlanPatchSchema,
   treePlanPutSchema,
@@ -48,6 +52,8 @@ export function createDispatchRoutes(deps: {
     .use('/runs/:id/plan', deps.requireDispatch)
     .use('/runs/:id/plan/parts/:partId', deps.requireDispatch)
     .use('/runs/:id/roster', deps.requireDispatch)
+    .use('/runs/:id/pair', deps.requireDispatch)
+    .use('/runs/:id/pair/*', deps.requireDispatch)
 
     /** Create ONE child of run `:id`. Refusals (cap, budget, settled parent) are 409 with the
      *  reason — the same text the parent's transcript notes. */
@@ -125,6 +131,33 @@ export function createDispatchRoutes(deps: {
       const recorded = manager.recordReport(c.req.param('id'), c.req.valid('json'));
       if (!recorded) return c.json({ error: 'run is not part of a dispatch tree' }, 404);
       return c.json({ ok: true as const });
+    })
+
+    /** One & One state is authoritative in the pair store; either peer may read its own pair. */
+    .get('/runs/:id/pair', async (c) => {
+      const outcome = await c.get('project').manager.pairSnapshotFor(c.req.param('id'));
+      if ('denied' in outcome) return c.json({ error: outcome.denied }, outcome.status);
+      return c.json(outcome);
+    })
+    .post('/runs/:id/pair/messages', jsonZodValidator(pairMessageInputSchema), async (c) => {
+      const outcome = await c.get('project').manager.pairMessageFor(c.req.param('id'), c.req.valid('json'));
+      if ('denied' in outcome) return c.json({ error: outcome.denied }, outcome.status);
+      return c.json(outcome);
+    })
+    .post('/runs/:id/pair/proposals', jsonZodValidator(pairProposalInputSchema), async (c) => {
+      const outcome = await c.get('project').manager.pairProposalFor(c.req.param('id'), c.req.valid('json'));
+      if ('denied' in outcome) return c.json({ error: outcome.denied }, outcome.status);
+      return c.json(outcome);
+    })
+    .post('/runs/:id/pair/decisions', jsonZodValidator(pairDecisionInputSchema), async (c) => {
+      const outcome = await c.get('project').manager.pairDecisionFor(c.req.param('id'), c.req.valid('json'));
+      if ('denied' in outcome) return c.json({ error: outcome.denied }, outcome.status);
+      return c.json(outcome);
+    })
+    .post('/runs/:id/pair/accept', jsonZodValidator(pairAcceptInputSchema), async (c) => {
+      const outcome = await c.get('project').manager.pairAcceptFor(c.req.param('id'), c.req.valid('json'));
+      if ('denied' in outcome) return c.json({ error: outcome.denied }, outcome.status);
+      return c.json(outcome);
     })
 
     /** `onni task ask` (plan v2 §9): a root manager asks WITHOUT parking. 409 for a non-root

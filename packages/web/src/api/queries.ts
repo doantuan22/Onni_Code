@@ -45,6 +45,7 @@ import {
   getRepoFile,
   getRepoTree,
   getRun,
+  getRunPair,
   getRunChanges,
   getRunGitStatus,
   getRunDiff,
@@ -115,6 +116,7 @@ import type {
   ProjectsResponse,
   GithubRefStatusData,
   ProviderStatusResponse,
+  PairSnapshot,
   ReferenceStatus,
   RunRecord,
   SelectAgentProfileInput,
@@ -181,6 +183,7 @@ export const queryKeys = {
     },
     list: () => [queryScope(), 'runs', 'list'] as const,
     detail: (id: string) => [queryScope(), 'runs', 'detail', id] as const,
+    pair: (pairId: string) => [queryScope(), 'runs', 'pair', pairId] as const,
     diff: (id: string) => [queryScope(), 'runs', 'diff', id] as const,
     changes: (id: string) => [queryScope(), 'runs', 'changes', id] as const,
     gitStatus: (id: string) => [queryScope(), 'runs', 'git-status', id] as const,
@@ -1154,6 +1157,16 @@ export function useRun(id: string | undefined) {
   return useQuery({
     ...runQueryOptions(id ?? ''),
     enabled: Boolean(id),
+  })
+}
+
+/** Both sides of One & One share this snapshot key; manager run events refresh it on change. */
+export function useRunPair(runId: string, pairId: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.runs.pair(pairId),
+    queryFn: ({ signal }) => getRunPair(runId, { signal }),
+    enabled: enabled && Boolean(runId) && Boolean(pairId),
+    refetchInterval: false,
   })
 }
 

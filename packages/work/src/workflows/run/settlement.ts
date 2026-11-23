@@ -1,6 +1,6 @@
 import { mkdirSync, existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { attachmentExtension, storedAttachmentExtension } from '@onni/contract';
+import { attachmentExtension, isOneAndOneRoster, storedAttachmentExtension } from '@onni/contract';
 import type { ContentBlock } from '../../core/agent-runner.ts';
 import { completionReason } from '../completion-reason.ts';
 import { generateCommitMessage } from '../commit-message.ts';
@@ -19,6 +19,7 @@ import { autoNamingActive, liveTitleUpdatesEnabled, postValidateTitle } from '..
 import { parseTaskMarkers } from '../../runs/task-markers.ts';
 import { reviewGateEnabled } from '../../runs/review-gate.ts';
 import { childrenOf } from '../../dispatch/engine.ts';
+import { PairStore } from '../../dispatch/pair-store.ts';
 import { isUnattended } from '../unattended.ts';
 import { loadConfig, type OnniConfig } from '../../config.ts';
 import { worktreeDiff, worktreeShortstat } from '../../git-worktree.ts';
@@ -26,6 +27,8 @@ import { getRepoInfo } from '../../server/git.ts';
 import { stepKind } from '../types.ts';
 import type { RunRecord } from '../../runs/store.ts';
 import type { SettlementActiveRun, SettlementContext } from './internal-types.ts';
+import { isPairMember, isPairRoot } from './pair-runtime.ts';
+import { finalizePairManager, stopPair } from './pair-coordinator.ts';
 
 export const MAX_LAND_ATTEMPTS = 3;
 
@@ -226,6 +229,52 @@ export async function settleSuccess(
     ctx.active.get(runId) === owner && !owner?.cancelled &&
     (status === 'running' || status === 'waiting');
   if (!canSettle()) return false;
+  if (run && isPairMember(run)) {
+    const pairs = new PairStore(ctx.dataDir);
+    const pairId = run.dispatch?.pairMember?.pairId;
+    const state = pairId ? pairs.readState(pairId) : null;
+    const order = pairId && state?.currentOrderId ? pairs.getOrder(pairId, state.currentOrderId) : null;
+    if (!pairId || !state || state.workerRunId !== run.id || state.phase !== 'manager_review' || order?.status !== 'reported') {
+      const error = 'One & One worker stopped before its current order was checkpointed and reported';
+      if (pairId) stopPair(ctx, pairId, error);
+      ctx.store.updateRun(runId, {
+        status: 'failed',
+        error,
+        finishedAt: new Date().toISOString(),
+        currentStepId: undefined,
+      });
+      ctx.store.appendEvent(runId, { type: 'lifecycle', message: `run failed — ${error}` });
+      return true;
+    }
+  }
+  if (run && run.roster && isOneAndOneRoster(run.roster) && isPairRoot(run)) {
+    const pairId = run.dispatch?.pair?.pairId!;
+    const excludedPaths = await ctx.currentCheckExclusions(ctx.repoRoot, owner?.autosaveExcludedPaths ?? new Map());
+    const finalized = await finalizePairManager(ctx, runId, excludedPaths);
+    if (!canSettle()) return false;
+    if (!finalized.ok) {
+      const error = finalized.error;
+      stopPair(ctx, pairId, error);
+      ctx.store.updateRun(runId, {
+        status: 'failed',
+        error,
+        finishedAt: new Date().toISOString(),
+        currentStepId: undefined,
+      });
+      ctx.store.appendEvent(runId, { type: 'lifecycle', message: `run failed — ${error}` });
+      return true;
+    }
+    ctx.store.updateRun(runId, {
+      status: 'done',
+      completionReason: 'completed',
+      finishedAt: new Date().toISOString(),
+      currentStepId: undefined,
+      autoResumeAttempts: undefined,
+      autoResumeReason: undefined,
+    });
+    ctx.store.appendEvent(runId, { type: 'lifecycle', message: 'One & One complete — accepted work is checkpointed on the shared branch' });
+    return true;
+  }
   // A manager that finishes without having handed anything to a worker did the whole job
   // itself (or ignored its roster): say so once, where the transcript and the digest can see it.
   if (run?.roster && !run.managerDidNotDelegate && childrenOf(ctx.store.listRuns(), runId).length === 0) {

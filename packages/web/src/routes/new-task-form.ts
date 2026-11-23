@@ -1,7 +1,7 @@
 // A contract VALUE, not a type: which runners onni can interrogate for a live catalog is decided
 // once, by the schema `GET /api/v1/models` validates with, so the picker and the route cannot
 // disagree about who has discovery. It narrows `Runner` to `ModelDiscoveryRunner`.
-import { runnerDiscoversModels } from '@onni/api-client'
+import { isOneAndOneRoster, runnerDiscoversModels } from '@onni/api-client'
 import type {
   BackendCheck,
   CreateRunInput,
@@ -409,8 +409,10 @@ export function buildCreateRunBody(opts: {
     readOnly,
     inPlaceByDefault,
   } = opts
-  const asking = readOnly === true && variants <= 1 && !dispatch
-  const inPlace = worktree === false && variants <= 1 && !dispatch && !asking
+  const oneAndOne = Boolean(roster && isOneAndOneRoster(roster))
+  const runVariants = oneAndOne ? 1 : variants
+  const asking = !oneAndOne && readOnly === true && runVariants <= 1 && !dispatch
+  const inPlace = oneAndOne || (worktree === false && runVariants <= 1 && !dispatch && !asking)
   return {
     task,
     ...(source?.source === 'skill'
@@ -421,26 +423,28 @@ export function buildCreateRunBody(opts: {
     // Sent only when the user picked one — an absent key is "follow the project", which is what
     // every launch that never touched the control means.
     agentProfile: agentProfile || undefined,
-    variants: variants > 1 ? variants : undefined,
+    variants: runVariants > 1 ? runVariants : undefined,
     images: images.length > 0 ? [...images] : undefined,
     // Off only matters for a single run — variants always isolate. On is sent only against an
     // in-place project default, which would otherwise win.
-    worktree: asking
-      ? undefined
-      : worktree === false && variants <= 1
-        ? false
-        : inPlaceByDefault && worktree !== false && variants <= 1
-          ? true
-          : undefined,
+    worktree: oneAndOne
+      ? false
+      : asking
+        ? undefined
+        : worktree === false && runVariants <= 1
+          ? false
+          : inPlaceByDefault && worktree !== false && runVariants <= 1
+            ? true
+            : undefined,
     ...(asking ? { readOnly: true } : {}),
-    ...(inPlace && newBranch ? { newBranch: true, ...(branch?.trim() ? { branch: branch.trim() } : {}) } : {}),
+    ...(!oneAndOne && inPlace && newBranch ? { newBranch: true, ...(branch?.trim() ? { branch: branch.trim() } : {}) } : {}),
     autonomous: autonomous === true ? true : undefined,
     generateFollowups: generateFollowups === false ? false : undefined,
     todoId: todoId || undefined,
-    dispatch: dispatch ?? undefined,
+    dispatch: oneAndOne ? undefined : dispatch ?? undefined,
     ...(limits && limits.mode !== 'default' ? { limits } : {}),
     ...(roster ? { roster } : {}),
-    ...(roster && managerFullAccess !== undefined ? { managerFullAccess } : {}),
+    ...(roster && !oneAndOne && managerFullAccess !== undefined ? { managerFullAccess } : {}),
   }
 }
 

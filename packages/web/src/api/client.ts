@@ -110,6 +110,15 @@ import type {
   PatchRunInput,
   PickVariantResponse,
   PlanResponse,
+  PairAcceptInput,
+  PairDecision,
+  PairDecisionInput,
+  PairMessage,
+  PairMessageInput,
+  PairOrder,
+  PairProposal,
+  PairProposalInput,
+  PairSnapshot,
   ProviderConnectResponse,
   ProviderUpdateResponse,
   ProviderId,
@@ -614,6 +623,56 @@ export async function putRunRoster(id: string, roster: Roster): Promise<{ roster
       json: { roster },
     }),
     runPath(id, '/roster'),
+  )
+}
+
+export async function getRunPair(id: string, opts?: ReadOptions): Promise<PairSnapshot> {
+  return unwrap(
+    await onni.api.v1.p[':projectId'].runs[':id'].pair.$get(
+      { param: { projectId: queryScope(), id: encodeURIComponent(id) } },
+      init(opts),
+    ),
+    runPath(id, '/pair'),
+  )
+}
+
+export async function postRunPairMessage(id: string, input: PairMessageInput): Promise<PairMessage> {
+  return unwrap(
+    await onni.api.v1.p[':projectId'].runs[':id'].pair.messages.$post({
+      param: { projectId: queryScope(), id: encodeURIComponent(id) },
+      json: input,
+    }),
+    runPath(id, '/pair/messages'),
+  )
+}
+
+export async function postRunPairProposal(id: string, input: PairProposalInput): Promise<PairProposal> {
+  return unwrap(
+    await onni.api.v1.p[':projectId'].runs[':id'].pair.proposals.$post({
+      param: { projectId: queryScope(), id: encodeURIComponent(id) },
+      json: input,
+    }),
+    runPath(id, '/pair/proposals'),
+  )
+}
+
+export async function postRunPairDecision(id: string, input: PairDecisionInput): Promise<PairDecision> {
+  return unwrap(
+    await onni.api.v1.p[':projectId'].runs[':id'].pair.decisions.$post({
+      param: { projectId: queryScope(), id: encodeURIComponent(id) },
+      json: input,
+    }),
+    runPath(id, '/pair/decisions'),
+  )
+}
+
+export async function postRunPairAccept(id: string, input: PairAcceptInput): Promise<PairOrder> {
+  return unwrap(
+    await onni.api.v1.p[':projectId'].runs[':id'].pair.accept.$post({
+      param: { projectId: queryScope(), id: encodeURIComponent(id) },
+      json: input,
+    }),
+    runPath(id, '/pair/accept'),
   )
 }
 

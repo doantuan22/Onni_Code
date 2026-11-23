@@ -5,6 +5,7 @@ import {
   lifecyclePreviewInputSchema,
 } from '@onni/contract';
 import { LifecycleNotFound } from '../worktree-lifecycle/coordinator.ts';
+import { pairRunMutationRefusal } from '../runs/pair-mutation.ts';
 import { LifecycleTemplateError } from '../worktree-lifecycle/templates.ts';
 import type { ProjectContext } from './project-context.ts';
 import { jsonZodValidator, paramZodValidator, queryZodValidator } from './validators.ts';
@@ -31,6 +32,10 @@ export function worktreeLifecycleRoutes(opts: { stopTaskProcesses?: (runId: stri
     .post('/worktree-lifecycle/operations', jsonZodValidator(startLifecycleRemovalInputSchema), async c => {
       const input = c.req.valid('json');
       try {
+        if ('runId' in input) {
+          const refusal = pairRunMutationRefusal(c.get('project').store.getRun(input.runId));
+          if (refusal) return c.json({ error: refusal }, 409);
+        }
         const operation = await c.get('project').manager.lifecycle.startRemoval(input);
         if ('runId' in input) opts.stopTaskProcesses?.(input.runId);
         return c.json({ operation }, 202);

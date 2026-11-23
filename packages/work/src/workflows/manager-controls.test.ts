@@ -148,6 +148,37 @@ describe('manager message and cancellation controls', () => {
     expect(store.getRun(managerRunId)?.roster?.manager.runner).toBe('claude');
   });
 
+  it('keeps One & One mode and its admitted worker immutable', () => {
+    store.updateRun(managerRunId, {
+      roster: { manager: { runner: 'claude' }, mode: 'one-and-one', workers: [{ runner: 'codex', role: 'worker', maxConcurrent: 1 }] },
+      dispatch: {
+        rootRunId: managerRunId,
+        pair: {
+          pairId: managerRunId,
+          managerRunId,
+          workerRunId: 'worker-id',
+          phase: 'worker_working',
+          activeRole: 'worker',
+          workspace: { repoRoot: root, branch: 'dev', baselineSha: 'a'.repeat(40) },
+          orderRevision: 1,
+          handoffs: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      },
+    });
+    expect(manager.updateRosterFromUser(managerRunId, {
+      manager: { runner: 'claude' },
+      workers: [{ runner: 'codex', role: 'worker', maxConcurrent: 1 }],
+    })).toMatchObject({ status: 409, denied: expect.stringContaining('mode cannot be changed') });
+    expect(manager.updateRosterFromUser(managerRunId, {
+      manager: { runner: 'claude' },
+      mode: 'one-and-one',
+      workers: [{ runner: 'pi', role: 'replacement', maxConcurrent: 1 }],
+    })).toMatchObject({ status: 409, denied: expect.stringContaining('worker cannot be replaced') });
+    expect(store.getRun(managerRunId)?.roster).toMatchObject({ mode: 'one-and-one', workers: [{ runner: 'codex' }] });
+  });
+
   it('persists only delivery metadata while queueing a manager message', () => {
     const worker = queuedWorker('codex');
     const result = manager.messageFor(managerRunId, { target: worker.id, text: 'please finish the parser' });

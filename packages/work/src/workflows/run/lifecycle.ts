@@ -6,6 +6,7 @@ import { continuePromptRefusal, messageText, queuedStackRefusal } from '../queue
 import { compileV1 } from '../graph.ts';
 import { removeAgentTmpDir, sweepAgentTmpDirs } from '../../runs/agent-tmpdir.ts';
 import { RESTART_CONTINUATION_PROMPT, type PastedContent } from './preparation.ts';
+import { pairPeerRunId, stopPairForCancellation, stopTerminalPair } from './pair-coordinator.ts';
 import type { LifecycleActiveRun, LifecycleContext } from './internal-types.ts';
 
 const CANCEL_GRACE_MS = 1_000;
@@ -25,8 +26,14 @@ export async function recover(context: LifecycleContext): Promise<void> {
   context.expireLostManagerDeliveriesAfterRestart();
   const live = context.store
     .listRuns()
-    .filter((r) => ['queued', 'waiting', 'running'].includes(r.status))
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    .filter((r) => ['queued', 'waiting', 'running'].includes(r.status));
+  const pairWorkers = new Set(
+    live.filter((run) => run.dispatch?.pairMember?.role === 'worker').map((run) => run.id),
+  );
+  live.sort((a, b) => {
+    const workerOrder = Number(pairWorkers.has(b.id)) - Number(pairWorkers.has(a.id));
+    return workerOrder || a.createdAt.localeCompare(b.createdAt);
+  });
   // A crash never reaches `dropActive`, so its temp directory (#785) outlived the run.
   // Startup is the one moment we know which runs are still live, so sweep every other
   // per-run directory here — bounded to `<dataDir>/tmp`, never a sibling.
@@ -41,6 +48,17 @@ export async function recover(context: LifecycleContext): Promise<void> {
     'left running by a settled task (found at startup)',
   );
   for (const run of live) {
+    // The worker owns the shared checkout until it reports. Recovering the older manager first
+    // would refuse its continuation and stop the pair before the worker had a chance to resume.
+    const pair = run.dispatch?.pair;
+    if (
+      pair?.managerRunId === run.id &&
+      (pair.phase === 'worker_queued' || pair.phase === 'worker_working') &&
+      pair.workerRunId &&
+      context.store.listRuns().some((worker) =>
+        worker.id === pair.workerRunId && ['queued', 'waiting', 'running'].includes(worker.status),
+      )
+    ) continue;
     if (context.lifecycle.isBlocked(run.id)) {
       context.store.updateRun(run.id, { status: 'waiting', error: 'Worktree scripts need an explicit recovery action' });
       continue;
@@ -110,6 +128,7 @@ export async function recover(context: LifecycleContext): Promise<void> {
           type: 'lifecycle',
           message: 'onni restarted — the task was waiting for your answer; continue it to reply',
         });
+        stopFailedPairAndPeer(context, run.id);
         // Same as the settled branch below: this terminal transition never passes through
         // `dropActive`, so a handed-off child still owes its parent a report.
         await context.reportSettledChildToParent(run.id);
@@ -175,6 +194,7 @@ export async function recover(context: LifecycleContext): Promise<void> {
         ? 'onni restarted — resuming the interrupted task from its last session'
         : `onni restarted — could not resume the interrupted task (${resumed.error ?? 'unknown'})`,
     });
+    if (!resumed.ok) stopFailedPairAndPeer(context, run.id);
   }
   // Re-arm usage-limit resumes (spec 2026-08-03-auto-resume-after-usage-limit): the wait is
   // routinely longer than a onni session, so the deadline is durable and the timer is rebuilt
@@ -188,6 +208,7 @@ export async function recover(context: LifecycleContext): Promise<void> {
 export function abandonCancelledStart(context: LifecycleContext, runId: string): boolean {
   if (!context.cancelledStarting.delete(runId)) return false;
   context.starting.delete(runId);
+  stopFailedPairAndPeer(context, runId);
   redeliverDeferred(context, runId, 'the run was cancelled');
   void context.reportSettledChildToParent(runId);
   context.releaseSlot();
@@ -204,6 +225,22 @@ export function failOwnedContinuation(context: LifecycleContext, runId: string, 
     finishedAt: new Date().toISOString(),
   });
   dropActive(context, runId, state);
+}
+
+function cancelPairPeer(context: LifecycleContext, runId: string): void {
+  const stopped = stopPairForCancellation(context, runId);
+  if (!stopped) return;
+  const peerId = pairPeerRunId(stopped, runId);
+  const peer = peerId ? context.store.getRun(peerId) : undefined;
+  if (peerId && peer && !isTerminalStatus(peer.status)) context.cancelOne(peerId);
+}
+
+function stopFailedPairAndPeer(context: LifecycleContext, runId: string): void {
+  const stopped = stopTerminalPair(context, runId, false);
+  if (!stopped) return;
+  const peerId = pairPeerRunId(stopped, runId);
+  const peer = peerId ? context.store.getRun(peerId) : undefined;
+  if (peerId && peer && !isTerminalStatus(peer.status)) context.cancelOne(peerId);
 }
 
 /** Remove a run from the live registries — keeps `waiting ⊆ active`. */
@@ -252,6 +289,15 @@ export function dropActive(context: LifecycleContext, runId: string, expectedSta
   // left a window — measured as exactly one extra task — where the queue saw a free slot and an
   // account that looked healthy, and started work that was already doomed.
   context.scheduleAutoResumeIfLimited(runId);
+  const terminal = context.store.getRun(runId);
+  const resuming = terminal?.status === 'failed'
+    && (terminal.autoResumeAt !== undefined || context.autoResumeTimers.has(runId));
+  const stopped = stopTerminalPair(context, runId, resuming);
+  if (stopped) {
+    const peerId = pairPeerRunId(stopped, runId);
+    const peer = peerId ? context.store.getRun(peerId) : undefined;
+    if (peerId && peer && !isTerminalStatus(peer.status)) context.cancelOne(peerId);
+  }
   // A settled CHILD owes its parent a report. Persist it before releasing the slot, so a parent
   // that has to be resumed through the queue is already queued when the pump sweeps.
   // Not awaited: the record is persisted synchronously before the report's one git read.
@@ -453,6 +499,7 @@ export function cancelOne(context: LifecycleContext, runId: string): boolean {
     context.startNowRequested.delete(runId);
     context.store.updateRun(runId, { status: 'cancelled', finishedAt: new Date().toISOString() });
     context.store.appendEvent(runId, { type: 'lifecycle', message: 'cancelled while queued' });
+    cancelPairPeer(context, runId);
     context.expireUnacceptedManagerDeliveries(runId, 'target-settled');
     // A queued run never entered `active`, so it never reaches `dropActive` — the one terminal
     // transition that misses the settle hook. Without this a parent waiting on a child the user
@@ -471,12 +518,16 @@ export function cancelOne(context: LifecycleContext, runId: string): boolean {
       const run = context.store.getRun(runId);
       if (run?.status !== 'failed' || (run.autoResumeAt === undefined && !context.autoResumeTimers.has(runId))) return false;
       const cancelled = context.cancelAutoResume(runId);
-      if (cancelled) context.clearSoftAsk(runId);
+      if (cancelled) {
+        cancelPairPeer(context, runId);
+        context.clearSoftAsk(runId);
+      }
       return cancelled;
     }
     context.cancelledStarting.add(runId);
     context.store.updateRun(runId, { status: 'cancelled', finishedAt: new Date().toISOString(), currentStepId: undefined });
     context.store.appendEvent(runId, { type: 'lifecycle', message: 'run cancelled' });
+    cancelPairPeer(context, runId);
     context.expireUnacceptedManagerDeliveries(runId, 'target-settled');
     context.clearSoftAsk(runId);
     return true;
@@ -496,6 +547,7 @@ export function cancelOne(context: LifecycleContext, runId: string): boolean {
   }
   context.store.updateRun(runId, { status: 'cancelled', finishedAt, currentStepId: undefined });
   context.store.appendEvent(runId, { type: 'lifecycle', message: 'run cancelled' });
+  cancelPairPeer(context, runId);
   context.expireUnacceptedManagerDeliveries(runId, 'target-settled');
   context.clearSoftAsk(runId);
   // A startup wedge has no provider session to reap, so release its slot immediately. Once a

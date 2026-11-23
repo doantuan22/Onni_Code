@@ -5,6 +5,7 @@ import type { ContentBlock, RunnerId } from '../../core/agent-runner.ts';
 import { childSettleReport, handoffSectionExcerpt, isTerminalStatus } from '../../dispatch/engine.ts';
 import { autosaveCommit, commitAll, pushBranch, syncWithBase, worktreeChangedFiles, worktreeHeadShort, worktreeShortstat } from '../../git-worktree.ts';
 import { readHandoff } from '../../handoff.ts';
+import { pairRunMutationRefusal } from '../../runs/pair-mutation.ts';
 import type { RunRecord, StepState } from '../../runs/store.ts';
 import { commentOnIssue, commentOnPr, fetchGithubChecks, updatePr } from '../../server/forge/github.ts';
 import { createDraftPr } from '../../server/pr.ts';
@@ -26,6 +27,7 @@ import type { StartRunInput } from '../run.ts';
 const GRAPH_TAKEN_CAP = 500;
 const NODE_SUMMARY_CAP = 4_000;
 const TEAM_SKILLS_WAIT_MS = 10_000;
+const PAIR_FORBIDDEN_SYSTEM_NODES = new Set(['dispatch', 'workflow', 'git.commit', 'github.draft-pr', 'git.push', 'git.sync-base']);
 
 type GraphParkOutcome =
   | { kind: 'answer'; text: string }
@@ -205,6 +207,11 @@ export async function executeGraph(context: GraphContext,
       /** The node the walk leaves from — a fork leaves from its join. */
       let leaveFrom: string = node.id;
       if (node.type === 'fork') {
+        const pairRefusal = pairRunMutationRefusal(context.store.getRun(runId));
+        if (pairRefusal) {
+          context.finishStep(runId, node.id, 'failed', pairRefusal, emit);
+          return pairRefusal;
+        }
         const shape = forkShape(graph, node.id);
         const outcome =
           typeof shape === 'string' ? shape : await context.runFork(graph, runId, state, node, shape, outputs, input.task, emit, persistWalk, resuming);
@@ -602,6 +609,11 @@ export async function runSystemNode(context: GraphContext,
     const note = (message: string, tone?: 'danger') =>
       emit({ type: 'note', stepId: node.id, message, ...(tone ? { tone } : {}) });
     const record = () => context.store.getRun(runId);
+    const pairRefusal = pairRunMutationRefusal(record());
+    if (pairRefusal && PAIR_FORBIDDEN_SYSTEM_NODES.has(node.type)) {
+      note(pairRefusal, 'danger');
+      return 'failed';
+    }
     const prNumber = (): number | undefined => {
       const run = record();
       const ref = run?.prRefs?.find((r) => r.origin === 'created') ?? run?.prRefs?.[0];

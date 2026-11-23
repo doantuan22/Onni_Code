@@ -14,12 +14,23 @@ function containsRunnerToken(text: string, runner: string): boolean {
  *  env, and how it answers a refusal — never the engine, which has its own tests. */
 describe('onni task', () => {
   const env = { ONNI_API_URL: 'http://127.0.0.1:4321/', ONNI_PROJECT_ID: 'proj', ONNI_TASK_ID: 'run-1' };
+  const pairSnapshot = {
+    state: {
+      pairId: 'pair-1', managerRunId: 'run-1', workerRunId: 'worker-1', phase: 'planning', activeRole: 'manager',
+      workspace: { repoRoot: '/repo', branch: 'main', baselineSha: 'a'.repeat(40) }, orderRevision: 0, handoffs: 0,
+      createdAt: '2026-11-23T00:00:00.000Z', updatedAt: '2026-11-23T00:00:00.000Z',
+    },
+    orders: [], messages: [], proposals: [], decisions: [],
+  };
 
-  it('documents the live roster command in task help', async () => {
+  it('documents roster and every One & One pair subcommand in task help', async () => {
     const h = harness({ status: 200, body: {} });
     expect(await runTaskCommand(['--help'], env, h.io)).toBe(0);
     expect(h.out.join('\n')).toContain('onni task roster add <backend[:model]>');
     expect(h.out.join('\n')).toContain('onni task roster remove <backend[:model]>');
+    for (const command of ['show', 'message', 'propose', 'decide', 'accept']) {
+      expect(h.out.join('\n')).toContain(`onni task pair ${command}`);
+    }
   });
 
   const harness = (reply: { status: number; body: unknown }) => {
@@ -55,6 +66,87 @@ describe('onni task', () => {
     };
     return { calls, out, err, io };
   };
+
+  it('pair show reads the project-scoped snapshot in compact or JSON form', async () => {
+    const h = harness({ status: 200, body: pairSnapshot });
+    expect(await runTaskCommand(['pair', 'show'], env, h.io)).toBe(0);
+    expect(h.calls.map((call) => [call.init?.method ?? 'GET', call.url])).toEqual([
+      ['GET', 'http://127.0.0.1:4321/api/v1/p/proj/runs/run-1/pair'],
+    ]);
+    expect(h.out[0]).toContain('One & One pair-1 — planning');
+    expect(h.out[0]).toContain('worker worker-1');
+
+    const json = harness({ status: 200, body: pairSnapshot });
+    expect(await runTaskCommand(['pair', 'show', '--json'], env, json.io)).toBe(0);
+    expect(JSON.parse(json.out[0]!)).toEqual(pairSnapshot);
+  });
+
+  it('pair message and accept send exact typed bodies to their nested routes', async () => {
+    const message = harness({ status: 200, body: { id: 'message-full-id', from: 'manager', to: 'worker' } });
+    expect(await runTaskCommand([
+      'pair', 'message', 'Which', 'option?', '--kind', 'question', '--order', 'order-1', '--reply-to', 'reply-1',
+    ], env, message.io)).toBe(0);
+    expect(message.calls[0]?.url).toBe('http://127.0.0.1:4321/api/v1/p/proj/runs/run-1/pair/messages');
+    expect(JSON.parse(String(message.calls[0]?.init?.body))).toEqual({
+      text: 'Which option?', kind: 'question', orderId: 'order-1', replyTo: 'reply-1',
+    });
+    expect(message.out[0]).toContain('manager→worker [question]');
+
+    const accepted = harness({ status: 200, body: { id: 'order-full-id', status: 'accepted' } });
+    expect(await runTaskCommand(['pair', 'accept', '--order', 'order-full-id', '--note', 'Verified'], env, accepted.io)).toBe(0);
+    expect(accepted.calls[0]?.url).toBe('http://127.0.0.1:4321/api/v1/p/proj/runs/run-1/pair/accept');
+    expect(JSON.parse(String(accepted.calls[0]?.init?.body))).toEqual({ orderId: 'order-full-id', note: 'Verified' });
+    expect(accepted.out[0]).toContain('run final checks before ONNI:DONE');
+  });
+
+  it('pair propose parses options or JSON and pair decide posts the selected outcome', async () => {
+    const proposal = harness({ status: 200, body: { id: 'proposal-full-id', status: 'open' } });
+    expect(await runTaskCommand([
+      'pair', 'propose', '--question', 'Which approach?', '--option', 'small:Small diff', '--option', 'wide:Wide refactor',
+      '--recommendation', 'small', '--order', 'order-1',
+    ], env, proposal.io)).toBe(0);
+    expect(proposal.calls[0]?.url).toBe('http://127.0.0.1:4321/api/v1/p/proj/runs/run-1/pair/proposals');
+    expect(JSON.parse(String(proposal.calls[0]?.init?.body))).toEqual({
+      question: 'Which approach?', options: [{ id: 'small', title: 'Small diff' }, { id: 'wide', title: 'Wide refactor' }],
+      recommendation: 'small', orderId: 'order-1',
+    });
+    expect(proposal.out[0]).toContain('open · small, wide');
+
+    const input = { question: 'JSON proposal?', options: [{ id: 'a', title: 'A' }, { id: 'b', title: 'B' }] };
+    const fromJson = harness({ status: 200, body: { id: 'proposal-json', status: 'open' } });
+    expect(await runTaskCommand(['pair', 'propose', '--json', JSON.stringify(input)], env, fromJson.io)).toBe(0);
+    expect(JSON.parse(String(fromJson.calls[0]?.init?.body))).toEqual(input);
+
+    const decision = harness({ status: 200, body: { id: 'decision-full-id', outcome: 'chosen' } });
+    expect(await runTaskCommand([
+      'pair', 'decide', '--proposal', 'proposal-full-id', '--outcome', 'chosen', '--option', 'small', '--note', 'Focused',
+    ], env, decision.io)).toBe(0);
+    expect(decision.calls[0]?.url).toBe('http://127.0.0.1:4321/api/v1/p/proj/runs/run-1/pair/decisions');
+    expect(JSON.parse(String(decision.calls[0]?.init?.body))).toEqual({
+      proposalId: 'proposal-full-id', outcome: 'chosen', optionId: 'small', note: 'Focused',
+    });
+    expect(decision.out[0]).toContain('chosen small');
+  });
+
+  it('pair validates locally and treats a pair 404 as a refusal rather than a version mismatch', async () => {
+    const invalid = harness({ status: 200, body: {} });
+    for (const args of [
+      ['pair', 'message', '   '],
+      ['pair', 'message', 'hello', '--kind', 'shout'],
+      ['pair', 'propose', '--question', 'Q', '--option', 'bad'],
+      ['pair', 'propose', '--question', 'Q', '--option', 'a:A', '--option', 'a:Again'],
+      ['pair', 'decide', '--proposal', 'p', '--outcome', 'chosen'],
+      ['pair', 'accept'],
+      ['pair', 'show', 'extra'],
+      ['pair', 'unknown'],
+    ]) expect(await runTaskCommand(args, env, invalid.io)).toBe(1);
+    expect(invalid.calls).toHaveLength(0);
+
+    const missing = harness({ status: 404, body: { error: 'run is not part of a One & One pair' } });
+    expect(await runTaskCommand(['pair', 'show'], env, missing.io)).toBe(1);
+    expect(missing.err[0]).toContain('could not read the pair — run is not part of a One & One pair');
+    expect(missing.err[0]).not.toContain('versions differ');
+  });
 
   it('create posts the task order to the parent’s dispatch route, scoped to the project', async () => {
     const h = harness({ status: 201, body: { id: 'child-1', branch: 'onni/child1' } });

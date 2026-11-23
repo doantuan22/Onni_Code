@@ -1,10 +1,11 @@
 import { memo, useMemo, type ReactNode } from 'react'
 
-import type { ApiRun, UiMessageItem, UiReasoningItem, UiToolItem } from '@onni/api-client'
+import type { ApiRun, PairSnapshot, UiMessageItem, UiReasoningItem, UiToolItem } from '@onni/api-client'
 import { useI18n } from '@/lib/i18n'
 import { sameData } from '@/lib/same-data'
 
 import { groupThreadItems, type ThreadBlock } from './thread-groups'
+import { PairCard } from './pair-card'
 import {
   AssistantMessage,
   ContextGroup,
@@ -82,6 +83,7 @@ export interface TranscriptRowModel {
     | { kind: 'block'; block: ThreadBlock; streaming?: boolean; response?: boolean }
     | { kind: 'day-separator'; ts: string }
     | { kind: 'turn-time'; completedAt: string; startedAt?: string }
+    | { kind: 'pair'; snapshot: PairSnapshot }
 }
 
 export interface SessionTranscriptProps {
@@ -351,6 +353,8 @@ function renderRowContent(
       )
     case 'block':
       return <ThreadBlockRenderer block={row.content.block} scope={row.scope} renderAsk={renderAsk} streaming={row.content.streaming} response={row.content.response} />
+    case 'pair':
+      return <div className="pb-2.5"><PairCard snapshot={row.content.snapshot} /></div>
     default:
       return assertNever(row.content)
   }

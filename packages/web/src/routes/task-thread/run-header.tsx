@@ -24,6 +24,7 @@ import { Link } from '@/lib/project-router'
 import {
   useHealth,
   usePatchRun,
+  useRunPair,
   useProjectRepoBase,
   useReferenceProjectId,
   useRuns,
@@ -78,6 +79,7 @@ import {
 import { GitActions } from '../task-git/git-toolbar'
 import { useRunGitStep, type RunGitStep } from '../task-git/run-git-step'
 import { RunConfirmDialog } from './run-confirm-dialog'
+import { pairOrderStatusLabel, pairPhaseLabel, pairRoleLabel } from './pair-card'
 import { useRunEngine } from './run-engine'
 import { WorkflowSteps } from './step-rail'
 import { useDraft } from './thread-draft'
@@ -294,6 +296,7 @@ function RunHeaderView({
               are what the run IS doing right now, not metadata about how it started. */}
           <DispatchParentLine run={run} />
           <DispatchChildrenLine run={run} />
+          <PairStatusLine run={run} />
 
           {tabs === false ? null : (
             <div
@@ -993,6 +996,49 @@ function RunUsage({
       ))}
       <AgentBadge run={run} continuationEngine={continuationEngine} />
     </span>
+  )
+}
+
+/** Current One & One state, outside the metadata disclosure because it describes live work. */
+function PairStatusLine({ run }: { run: ApiRun }) {
+  const { t } = useI18n()
+  const rootPair = run.dispatch?.pair
+  const pairId = rootPair?.pairId ?? run.dispatch?.pairMember?.pairId ?? ''
+  const pair = useRunPair(run.id, pairId)
+  const state = rootPair ?? pair.data?.state
+  if (state === undefined) return null
+  const currentOrder = state.currentOrderId === undefined
+    ? undefined
+    : pair.data?.orders.find((order) => order.id === state.currentOrderId)
+  const checkpoint = state.lastCheckpointSha
+  return (
+    <div
+      data-slot="pair-status-line"
+      data-pair-id={pairId}
+      className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"
+    >
+      <Pill className="shrink-0">{t('One & One')}</Pill>
+      <span data-slot="pair-phase" className="font-medium text-foreground">{pairPhaseLabel(state.phase, t)}</span>
+      {state.activeRole !== undefined ? (
+        <span data-slot="pair-active-role">{t('Active: {role}', { role: pairRoleLabel(state.activeRole, t) })}</span>
+      ) : null}
+      {state.currentOrderId !== undefined ? (
+        <span data-slot="pair-order" className="inline-flex items-center gap-1.5">
+          <span>{t('Order {revision}', { revision: currentOrder?.revision ?? state.orderRevision })}</span>
+          {currentOrder !== undefined ? <Pill data-order-status={currentOrder.status}>{pairOrderStatusLabel(currentOrder.status, t)}</Pill> : null}
+        </span>
+      ) : null}
+      <span className="inline-flex min-w-0 items-center gap-1" title={state.workspace.branch}>
+        <span className="shrink-0 text-soft-foreground">{t('Branch')}:</span>
+        <span className="truncate font-mono text-[11px]">{state.workspace.branch}</span>
+      </span>
+      {checkpoint !== undefined ? (
+        <span className="inline-flex min-w-0 items-center gap-1" title={checkpoint} data-checkpoint={checkpoint}>
+          <span className="shrink-0 text-soft-foreground">{t('Checkpoint')}:</span>
+          <span className="font-mono text-[11px]">{checkpoint.slice(0, 12)}</span>
+        </span>
+      ) : null}
+    </div>
   )
 }
 

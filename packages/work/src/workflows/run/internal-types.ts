@@ -208,7 +208,7 @@ export interface ManagerControlDispatchOptions {
   preflightOnly?: boolean;
 }
 
-export type ManagerControlDispatchResult = { id: string; branch?: string } | { refused: string };
+export type ManagerControlDispatchResult = { id: string; branch?: string; pair?: import('@onni/contract').PairDispatchResult } | { refused: string };
 
 /** The small live-session surface manager controls inspect for state and receipt support. */
 export interface ManagerControlActiveRun {
@@ -266,6 +266,16 @@ export interface DispatchTurnResult {
   overBudget: boolean;
   /** The run's own inbox was delivered into the still-open session, so it is working again. */
   rePrompted: boolean;
+  /** One & One intercepted the turn for a worker report or manager handoff. */
+  pairHandled?: boolean;
+  /** One & One refused ONNI:DONE before its acceptance/final-check gate. */
+  doneBlocked?: boolean;
+}
+
+export interface PairWorkerTurnResult {
+  handled: boolean;
+  ok: boolean;
+  error?: string;
 }
 
 /** The small live-run surface used by manager memory, asks, complexity and inbox delivery. */
@@ -274,6 +284,8 @@ export interface ManagerStateActive {
   autonomous?: boolean;
   currentStepId?: string;
   dispatchedThisTurn?: boolean;
+  pairTurnSeq?: number;
+  pairAcceptedTurnSeq?: number;
   complexityWarned?: boolean;
   autoContinues?: number;
   session?: {
@@ -306,6 +318,7 @@ export interface ManagerStateContext {
   turnEndMarkerText(text: string): string;
   enforceDispatchBudget(runId: string, note: (message: string, tone?: 'danger') => void): boolean;
   deliverMessage(runId: string, content: import('./preparation.ts').PastedContent[], userAuthored: boolean): boolean;
+  continueRun(runId: string, options: { text: string }, deferForCapacity?: boolean): unknown;
   managerComplexityPolicyEnabled(): boolean;
 }
 
@@ -392,6 +405,7 @@ export interface LifecycleContext {
   startRetentionPass(): void;
   cancelDescendants(runId: string, seen: Set<string>): void;
   cancel(runId: string): boolean;
+  cancelOne(runId: string): boolean;
   isQueued(runId: string): boolean;
   enqueueMessage(runId: string, content: PastedContent[], managerDeliveryId?: string): QueuedMessage | null;
   recordManagerDeliveryTransition(
@@ -800,6 +814,7 @@ export interface ContinuationContext {
   flushInbox(runId: string): string | undefined;
   flushPendingReports(runId: string): string | undefined;
   handleDispatchTurn(runId: string, turnText: string, ctx: { state: ContinuationActiveRun; stepId: string; done: boolean }): DispatchTurnResult;
+  handlePairWorkerTurn(runId: string, turnText: string, excludedPaths: readonly string[]): Promise<PairWorkerTurnResult>;
   handleRunnerUiEvent(runId: string, state: ContinuationActiveRun, sink: UiEventSink, event: UiEvent): void;
   idleClosedFails(runId: string, state: ContinuationActiveRun): Promise<boolean>;
   inactivityFailureMessage(runId?: string, state?: ContinuationActiveRun): string;
@@ -918,7 +933,7 @@ export interface GraphContext {
       redirectOrigin?: RedirectDispatchOrigin;
       preflightOnly?: boolean;
     },
-  ): { id: string; branch?: string } | { refused: string };
+  ): { id: string; branch?: string; pair?: import('@onni/contract').PairDispatchResult } | { refused: string };
   cancel(runId: string): boolean;
   releaseSlot(): void;
   parkRepoRoot(runId: string, state: GraphActiveRun): void;
@@ -1024,6 +1039,7 @@ export interface MonitoringContext {
 /** Live-session fields and manager callbacks used by one agent workflow step. */
 export interface AgentStepActiveRun extends ContinuationActiveRun {
   currentStepId?: string;
+  pairTurnSeq?: number;
   lastOverriddenAsk?: string;
   usageInvocation?: {
     stepId: string;
@@ -1079,6 +1095,7 @@ export interface AgentStepContext {
   markQueuedManagerDeliveriesDelivered(runId: string): void;
   flushDeferred(runId: string): void;
   handleDispatchTurn(runId: string, turnText: string, turn: { state: AgentStepActiveRun; stepId: string; done: boolean }): DispatchTurnResult;
+  handlePairWorkerTurn(runId: string, turnText: string, excludedPaths: readonly string[]): Promise<PairWorkerTurnResult>;
   recordTurnEnd(runId: string, turnText: string, owner?: AgentStepActiveRun): Promise<void>;
   landOnDone(runId: string, state: AgentStepActiveRun, stepId: string | undefined, close: () => void): boolean;
   tryAutonomousNudge(runId: string, state: AgentStepActiveRun, stepId: string, ask: import('../../core/ask.ts').AskRequest | null, turn: DispatchTurnResult): boolean;
@@ -1132,6 +1149,7 @@ export interface SettlementContext {
   clearIdleTimer(state: SettlementActiveRun): void;
   clearMonitoringWakeTimer(state: SettlementActiveRun, runId?: string): void;
   continueRun(runId: string, opts: { text: string }): { ok: boolean };
+  currentCheckExclusions(dir: string, owned: Map<string, string>): Promise<string[]>;
   deliverMessage(runId: string, content: PastedContent[], announce: boolean): boolean;
   fileInAttachmentLibrary(
     saved: PersistedAttachment | null,

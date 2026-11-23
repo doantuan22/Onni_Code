@@ -2,9 +2,9 @@ import * as React from 'react'
 import { PencilIcon, UsersIcon } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 
-import type { ApiRun } from '@onni/api-client'
+import { isOneAndOneRoster, rosterWorkerKey, type ApiRun } from '@onni/api-client'
 import { putRunRoster } from '@/api/client'
-import { queryKeys, useProviderStatus } from '@/api/queries'
+import { queryKeys, useProviderStatus, useRuns } from '@/api/queries'
 import { RosterEditor } from '@/components/roster-editor'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -27,6 +27,7 @@ export function EditWorkersButton({ run, iconOnly = false }: EditWorkersButtonPr
   const { t } = useI18n()
   const queryClient = useQueryClient()
   const providers = useProviderStatus()
+  const runs = useRuns()
   const connected = connectedBackends(providers.data)
   const [open, setOpen] = React.useState(false)
   const [draft, setDraft] = React.useState<RosterDraft | null>(null)
@@ -36,14 +37,26 @@ export function EditWorkersButton({ run, iconOnly = false }: EditWorkersButtonPr
 
   const active = run?.status === 'running' || run?.status === 'queued' || run?.status === 'waiting'
   const editable = Boolean(run?.roster && active)
+  const oneAndOne = Boolean(run?.roster && isOneAndOneRoster(run.roster))
+  const pairWorkerRunId = run?.dispatch?.pair?.workerRunId
+  const admittedWorker = pairWorkerRunId === undefined
+    ? undefined
+    : (runs.data ?? []).find((candidate) => candidate.id === pairWorkerRunId)
+  const workerIdentityLocked = oneAndOne && pairWorkerRunId !== undefined
   const parsed = draft ? rosterFromDraft(draft) : null
+  const draftWorker = draft?.workers.length === 1 ? draft.workers[0] : undefined
+  const admittedRunner = admittedWorker?.runner
+  const draftRunner = draftWorker?.runner
+  const admittedWorkerMatches = admittedRunner !== undefined && draftRunner !== undefined && Boolean(draftRunner) &&
+    rosterWorkerKey({ runner: admittedRunner, model: admittedWorker?.model }) ===
+    rosterWorkerKey({ runner: draftRunner, model: draftWorker?.model })
 
   React.useEffect(() => {
     if (open && !editable) setOpen(false)
   }, [open, editable])
 
   const save = async () => {
-    if (!run || !editable || !parsed?.ok || savingRef.current) return
+    if (!run || !editable || !parsed?.ok || savingRef.current || (workerIdentityLocked && !admittedWorkerMatches)) return
     savingRef.current = true
     setSaving(true)
     setError(null)
@@ -98,14 +111,19 @@ export function EditWorkersButton({ run, iconOnly = false }: EditWorkersButtonPr
         <DialogContent data-slot="edit-workers-dialog" className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{t('Edit workers')}</DialogTitle>
-            <DialogDescription>{t('Changes apply to future dispatches. Existing workers keep running.')}</DialogDescription>
+            <DialogDescription>
+              {oneAndOne
+                ? t('One & One keeps its working mode and admitted worker fixed. You may still edit the worker’s role and traits.')
+                : t('Changes apply to future dispatches. Existing workers keep running.')}
+            </DialogDescription>
           </DialogHeader>
-          {draft ? <RosterEditor draft={draft} onChange={setDraft} connected={connected} disabled={!editable || saving} managerLocked /> : null}
+          {draft ? <RosterEditor draft={draft} onChange={setDraft} connected={connected} disabled={!editable || saving} managerLocked modeLocked workerIdentityLocked={workerIdentityLocked} /> : null}
+          {workerIdentityLocked && !admittedWorkerMatches ? <p role="alert" className="text-[12.5px] text-danger">{t('The admitted worker could not be verified. Reload before changing this pair.')}</p> : null}
           {parsed && !parsed.ok ? <p role="alert" className="text-[12.5px] text-danger">{parsed.error}</p> : null}
           {error ? <p role="alert" data-slot="roster-save-error" className="text-[12.5px] text-danger">{error}</p> : null}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t('Cancel')}</Button>
-            <Button type="button" data-slot="save-workers" disabled={!editable || !parsed?.ok || saving} onClick={() => void save()}>{t('Save workers')}</Button>
+            <Button type="button" data-slot="save-workers" disabled={!editable || !parsed?.ok || saving || (workerIdentityLocked && !admittedWorkerMatches)} onClick={() => void save()}>{t('Save workers')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

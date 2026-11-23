@@ -87,7 +87,7 @@ describe('project-route alias parity (unprefixed vs /api/v1/p/<boot> vs /api/v1/
       store,
       // Only routes that never reach the manager are exercised, plus
       // `isActive` guards on 404-paths — a stub keeps the suite hermetic.
-      manager: { isActive: () => false, cancel: () => true } as unknown as RunManager,
+      manager: { isActive: () => false, cancel: () => true, pairSnapshotFor: async () => ({ denied: 'run is not part of a One & One pair', status: 404 }) } as unknown as RunManager,
       version: '0.0.0-test',
       contexts,
     });
@@ -175,6 +175,11 @@ describe('project-route alias parity (unprefixed vs /api/v1/p/<boot> vs /api/v1/
       'GET /runs/:id/history',
       'GET /runs/:id/history-context',
       'POST /runs',
+      'GET /runs/:id/pair',
+      'POST /runs/:id/pair/messages',
+      'POST /runs/:id/pair/proposals',
+      'POST /runs/:id/pair/decisions',
+      'POST /runs/:id/pair/accept',
       'POST /runs/:id/worker-message',
       'POST /runs/:id/worker-cancel',
       'POST /runs/:id/worker-redirect',
@@ -252,6 +257,10 @@ describe('project-route alias parity (unprefixed vs /api/v1/p/<boot> vs /api/v1/
     await expectParity('/config', json('PUT', { maxParallel: 99 }));
     await expectParity('/agent-config/no-such-file', json('PUT', { content: '{}', version: null }));
     await expectParity('/workflows/parse', json('POST', { yaml: '' }));
+    await expectParity(`/runs/${runId}/pair/messages`, json('POST', {}));
+    await expectParity(`/runs/${runId}/pair/proposals`, json('POST', {}));
+    await expectParity(`/runs/${runId}/pair/decisions`, json('POST', {}));
+    await expectParity(`/runs/${runId}/pair/accept`, json('POST', {}));
     // 404: unknown ids.
     await expectParity('/runs/no-such-run/archive', json('POST', {}));
     await expectParity('/runs/no-such-run/pin', json('POST', {}));

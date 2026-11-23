@@ -1,6 +1,7 @@
 import {
   DISPATCH_MAX_IN_FLIGHT,
   DISPATCH_MAX_SUBTASKS,
+  isOneAndOneRoster,
   rosterSchema,
   runLimitsRequestSchema,
   type DispatchIntent,
@@ -156,6 +157,8 @@ export function resolveComposerRunMode(input: ComposerRunModeInput): {
 export function composerRunModeNote(input: {
   worktree: boolean
   hasGit: boolean
+  /** One & One intentionally shares the current checkout instead of creating a task branch. */
+  oneAndOne?: boolean
   /** The Dispatch toggle is on — the line says so, because fanning out is the bigger fact about
    *  where the work happens than which tree the parent sits in. */
   dispatch?: boolean
@@ -167,6 +170,9 @@ export function composerRunModeNote(input: {
   /** The project lands finished in-place work on its base branch itself. */
   autoLand?: boolean
 }): string {
+  if (input.oneAndOne === true) {
+    return 'One manager and one worker share this checkout — no separate worktree or branch.'
+  }
   if (input.readOnly === true && input.hasGit) {
     return 'Asks a read-only question about the current checkout — no branch, nothing to clean up.'
   }
@@ -226,24 +232,26 @@ function normalize(raw: unknown): NewTaskDraft {
   const obj = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
   const limits = normalizeLimits(obj.limits)
   const roster = normalizeRoster(obj.roster)
+  const oneAndOne = roster !== undefined && isOneAndOneRoster(roster)
   return {
     text: typeof obj.text === 'string' ? obj.text : '',
     source: isSource(obj.source) ? obj.source : null,
     runner: typeof obj.runner === 'string' ? (obj.runner as Runner) : null,
     agentProfile: typeof obj.agentProfile === 'string' ? obj.agentProfile : null,
     model: typeof obj.model === 'string' ? obj.model : null,
-    variants: obj.variants === 2 || obj.variants === 3 ? obj.variants : 1,
-    worktree: typeof obj.worktree === 'boolean' ? obj.worktree : null,
+    variants: !oneAndOne && (obj.variants === 2 || obj.variants === 3) ? obj.variants : 1,
+    worktree: oneAndOne ? false : typeof obj.worktree === 'boolean' ? obj.worktree : null,
     ...(typeof obj.worktreeBasis === 'string' ? { worktreeBasis: obj.worktreeBasis } : {}),
-    ...(obj.newBranch === true ? { newBranch: true } : {}),
-    ...(typeof obj.branchName === 'string' && obj.branchName ? { branchName: obj.branchName } : {}),
+    ...(!oneAndOne && obj.newBranch === true ? { newBranch: true } : {}),
+    ...(!oneAndOne && typeof obj.branchName === 'string' && obj.branchName ? { branchName: obj.branchName } : {}),
     autonomous: typeof obj.autonomous === 'boolean' ? obj.autonomous : null,
     generateFollowups:
       typeof obj.generateFollowups === 'boolean' ? obj.generateFollowups : null,
-    dispatch: normalizeDispatchIntent(obj.dispatch),
-    ...(typeof obj.readOnly === 'boolean' ? { readOnly: obj.readOnly } : {}),
+    dispatch: oneAndOne ? null : normalizeDispatchIntent(obj.dispatch),
+    ...(typeof obj.readOnly === 'boolean' ? { readOnly: oneAndOne ? false : obj.readOnly } : {}),
     ...(limits ? { limits } : {}),
     ...(roster ? { roster } : {}),
+    ...(oneAndOne ? { managerFullAccess: false } : {}),
     ...(typeof obj.presetId === 'string' && obj.presetId ? { presetId: obj.presetId } : {}),
   }
 }

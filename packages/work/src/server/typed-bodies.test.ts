@@ -1,6 +1,6 @@
 import type { ExtractSchema } from 'hono/types';
 import { describe, expect, it } from 'vitest';
-import { dispatchManagerCancelInputSchema, dispatchManagerMessageInputSchema, dispatchManagerRedirectInputSchema, managerRosterUpdateInputSchema, rosterUpdateInputSchema, setWorkspaceUiStateInputSchema } from '@onni/contract';
+import { dispatchManagerCancelInputSchema, dispatchManagerMessageInputSchema, dispatchManagerRedirectInputSchema, managerRosterUpdateInputSchema, pairAcceptInputSchema, pairDecisionInputSchema, pairMessageInputSchema, pairProposalInputSchema, rosterUpdateInputSchema, setWorkspaceUiStateInputSchema } from '@onni/contract';
 import type { z } from 'zod';
 import type { AppType } from './app-type.ts';
 
@@ -46,6 +46,10 @@ describe('every mutating route carries a typed body into AppType', () => {
     Assert<HasTypedBody<'/api/v1/automations/:id/check', '$post'>>,
     Assert<HasTypedBody<'/api/v1/runs/:id/dispatch', '$post'>>,
     Assert<HasTypedBody<'/api/v1/runs/:id/report', '$post'>>,
+    Assert<HasTypedBody<'/api/v1/runs/:id/pair/messages', '$post'>>,
+    Assert<HasTypedBody<'/api/v1/runs/:id/pair/proposals', '$post'>>,
+    Assert<HasTypedBody<'/api/v1/runs/:id/pair/decisions', '$post'>>,
+    Assert<HasTypedBody<'/api/v1/runs/:id/pair/accept', '$post'>>,
     Assert<HasTypedBody<'/api/v1/runs/:id/worker-message', '$post'>>,
     Assert<HasTypedBody<'/api/v1/runs/:id/worker-cancel', '$post'>>,
     Assert<HasTypedBody<'/api/v1/runs/:id/worker-redirect', '$post'>>,
@@ -107,6 +111,18 @@ describe('every mutating route carries a typed body into AppType', () => {
   >;
   type _UserRosterInputCheck = Assert<
     Mutual<z.input<typeof rosterUpdateInputSchema>, Schema['/api/v1/runs/:id/roster']['$put']['input']['json']>
+  >;
+  type _PairMessageInputCheck = Assert<
+    Mutual<z.input<typeof pairMessageInputSchema>, Schema['/api/v1/runs/:id/pair/messages']['$post']['input']['json']>
+  >;
+  type _PairProposalInputCheck = Assert<
+    Mutual<z.input<typeof pairProposalInputSchema>, Schema['/api/v1/runs/:id/pair/proposals']['$post']['input']['json']>
+  >;
+  type _PairDecisionInputCheck = Assert<
+    Mutual<z.input<typeof pairDecisionInputSchema>, Schema['/api/v1/runs/:id/pair/decisions']['$post']['input']['json']>
+  >;
+  type _PairAcceptInputCheck = Assert<
+    Mutual<z.input<typeof pairAcceptInputSchema>, Schema['/api/v1/runs/:id/pair/accept']['$post']['input']['json']>
   >;
 
   /** Same idea for the routes that validate a path param or the query string. */

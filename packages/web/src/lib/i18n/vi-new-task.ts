@@ -38,6 +38,21 @@ export const viNewTask: Record<string, string> = {
   'Runs in the repo working tree, one write task at a time — review the changes, then Commit lands them on the base branch.': 'Chạy trên cây làm việc của repo, mỗi lần một nhiệm vụ ghi — xem lại thay đổi, rồi Commit sẽ hợp nhất vào nhánh gốc.',
   'Runs in the repo working tree — your checkout is modified directly.': 'Chạy trên cây làm việc của repo — bản checkout của bạn bị sửa trực tiếp.',
   'Runs in place — no git repository detected, so there is no worktree to isolate in.': 'Chạy tại chỗ — không phát hiện kho git nên không có worktree để tách.',
+  'One manager and one worker share this checkout — no separate worktree or branch.':
+    'Một quản lý và một worker dùng chung checkout này — không tạo worktree hay branch riêng.',
+  'Shared checkout': 'Dùng chung checkout',
+  'shared checkout': 'dùng chung checkout',
+  'one & one': 'one & one',
+  'One manager and one worker share this checkout. No separate worktree or branch is created.':
+    'Một quản lý và một worker dùng chung checkout này. Không tạo worktree hay branch riêng.',
+  'The run will not pause for your approval. The pair shares this checkout, and the limits below bound cost, time and steps.':
+    'Lượt chạy sẽ không dừng để bạn phê duyệt. Cặp dùng chung checkout này và các giới hạn bên dưới giới hạn chi phí, thời gian và số bước.',
+  'The pair shares this checkout. Autonomous does not create a worktree or branch.':
+    'Cặp dùng chung checkout này. Chế độ Tự chủ không tạo worktree hay branch.',
+  'Read-only questions are unavailable because they would remove the pair.':
+    'Không thể dùng câu hỏi chỉ đọc vì sẽ loại bỏ cặp.',
+  'One & One uses its fixed worker; ordinary Dispatch is unavailable.':
+    'One & One dùng worker cố định; không thể dùng Giao việc thông thường.',
   'The original task may already be scheduled. Recover it before starting another task.': 'Nhiệm vụ ban đầu có thể đã được lên lịch. Hãy khôi phục trước khi bắt đầu nhiệm vụ khác.',
   'Recovery uses the original prompt, settings and start time. Your current edits will not be submitted. If scheduling is disabled, restore it on the server and retry recovery; the original request is kept to prevent duplicates. Once recovered, you can manage the task in Scheduled.': 'Khôi phục dùng prompt, cài đặt và thời gian bắt đầu ban đầu. Các chỉnh sửa hiện tại của bạn sẽ không được gửi. Nếu tính năng lên lịch bị tắt, hãy bật lại trên server rồi thử khôi phục; yêu cầu ban đầu được giữ để tránh trùng lặp. Sau khi khôi phục, bạn có thể quản lý nhiệm vụ trong mục Đã lên lịch.',
   'Recovering original schedule…': 'Đang khôi phục lịch ban đầu…',
@@ -218,6 +233,15 @@ export const viNewTask: Record<string, string> = {
   'Choose Unlimited': 'Chọn Không giới hạn',
 
   // ---- manager–worker roster --------------------------------------------------------------
+  'Working mode': 'Chế độ làm việc',
+  'Fanout': 'Chia việc',
+  'One & One': 'One & One',
+  'The working mode is fixed for a running task.': 'Chế độ làm việc được cố định khi nhiệm vụ đang chạy.',
+  'One manager and one worker share this checkout. Add, remove and concurrency are fixed.':
+    'Một quản lý và một worker dùng chung checkout này. Không thể thêm, xoá hay đổi mức chạy song song.',
+  'One manager and one worker share this checkout.': 'Một quản lý và một worker dùng chung checkout này.',
+  'One manager and one worker': 'Một quản lý và một worker',
+  'One & One · {runner}': 'One & One · {runner}',
   'Manager': 'Quản lý',
   'Workers': 'Worker',
   'Manager–worker': 'Quản lý–worker',

@@ -12,6 +12,7 @@ import {
   type WorktreeLifecycleSummary, type WorktreeLifecycleDetail, type LifecyclePreviewResponse,
 } from '@onni/contract';
 import type { RunStore } from '../runs/store.ts';
+import { pairRunMutationRefusal } from '../runs/pair-mutation.ts';
 import { WorkspaceSemaphore } from '../workspace/semaphore.ts';
 import { isSafeGitRef } from '../git-refs.ts';
 import { createWorktree, createWorktreeWithOutcome, removeWorktree, worktreePathFor, branchFor } from '../git-worktree.ts';
@@ -433,10 +434,17 @@ export class WorktreeLifecycleCoordinator {
     });
   }
   private async startRemovalLocked(input: StartLifecycleRemovalInput): Promise<LifecycleOperationView> {
+    if ('runId' in input) this.assertRunMutationAllowed(input.runId);
     const record = 'runId' in input ? await this.enroll(input.runId) : await this.recordById(input.worktreeId);
+    this.assertRunMutationAllowed(record.runId);
     return this.startRecordRemoval(record, input.intent, input.requestId, bodyHash(input));
   }
+  private assertRunMutationAllowed(runId: string): void {
+    const refusal = pairRunMutationRefusal(this.runs.getRun(runId));
+    if (refusal) throw new LifecycleConflict(refusal);
+  }
   private async startRecordRemoval(record: WorktreeLifecycleRecord, intent: LifecycleIntent, requestId: string, hash: string): Promise<LifecycleOperationView> {
+    this.assertRunMutationAllowed(record.runId);
     return this.store.withWorktreeLock(record.runId, async () => {
       const operations = await this.store.listOperations(record.worktreeId);
       for (const prior of operations) {

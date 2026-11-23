@@ -470,6 +470,19 @@ describe('buildCreateRunBody — the exact POST /api/v1/runs payloads legacy sen
       .toEqual({ maxSubtasks: 10, inFlight: 2, runner: 'codex', budgetUsd: 2.5 })
   })
 
+  it('sanitizes One & One at the wire boundary even when stale controls contradict it', () => {
+    const roster = { mode: 'one-and-one' as const, manager: { runner: 'claude' as const }, workers: [{ runner: 'codex' as const, role: '', maxConcurrent: 1 }] }
+    const body = buildCreateRunBody({ task: 'pair', source: null, model: '', runner: 'claude', variants: 3, images: [], roster, worktree: true, newBranch: true, branch: 'stale', dispatch: {}, readOnly: true, managerFullAccess: true })
+    const wire = JSON.parse(JSON.stringify(body))
+    expect(wire).toMatchObject({ roster, worktree: false })
+    expect(wire).not.toHaveProperty('variants')
+    expect(wire).not.toHaveProperty('newBranch')
+    expect(wire).not.toHaveProperty('branch')
+    expect(wire).not.toHaveProperty('dispatch')
+    expect(wire).not.toHaveProperty('readOnly')
+    expect(wire).not.toHaveProperty('managerFullAccess')
+  })
+
   it('variants > 1 and images ride along; ×1 and no images are omitted', () => {
     const body = buildCreateRunBody({
       task: 't', source: { source: 'workflow', ref: 'quick-task' }, model: '',

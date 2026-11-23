@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import {
   MANAGER_ASK_RECORD_QUESTION_MAX_CHARS,
   PENDING_ASK_MAX_QUESTIONS,
+  isOneAndOneRoster,
   rosterWorkerKey,
   type ManagerAskInput,
   type ManagerAskResponse,
@@ -26,6 +27,8 @@ import { requireRootManager, treeRootOf } from '../../dispatch/access.ts';
 import { childrenOf, pendingReportsBlock, workerStatusBoard } from '../../dispatch/engine.ts';
 import { appendManagerMemory, readManagerMemory as readMemory, sanitizeMemoryEntry, writeManagerMemory as writeMemory, type MemoryWriteResult } from '../../dispatch/memory.ts';
 import { managerDoingComplexAlone, SOFT_ASK_EXPIRED_NUDGE } from '../manager-worker.ts';
+import { PairStore } from '../../dispatch/pair-store.ts';
+import { mirrorPairState } from './pair-runtime.ts';
 import { runManagerMerge, type MergeOutcome } from '../manager-merge.ts';
 import type { PastedContent } from './preparation.ts';
 import type { DispatchTurnResult, ManagerStateActive, ManagerStateContext, ManagerStateTurnContext } from './internal-types.ts';
@@ -353,9 +356,55 @@ export function handleDispatchTurn(
   // Before the no-dispatch early return: a manager that never dispatched is exactly the case.
   void checkManagerComplexity(context, runId, ctx);
   if (!dispatch) return idle;
-  if (ctx.done) return { hasDispatch: true, dispatched: false, overBudget: false, rePrompted: false };
   const note = (message: string, tone?: 'danger') =>
     context.store.appendEvent(runId, { type: 'note', stepId: ctx.stepId, message, ...(tone ? { tone } : {}) });
+  const run = context.store.getRun(runId);
+  if (run?.roster && isOneAndOneRoster(run.roster) && run.id === dispatch.rootRunId) {
+    const pairId = dispatch.pair?.pairId;
+    if (!pairId) return { hasDispatch: true, dispatched, overBudget: false, rePrompted: false, doneBlocked: ctx.done };
+    const pairs = new PairStore(context.dataDir);
+    const state = pairs.readState(pairId);
+    const order = state?.currentOrderId ? pairs.getOrder(pairId, state.currentOrderId) : null;
+    const accepted = /^ONNI:PAIR:ACCEPT\s*$/m.test(turnText);
+    const acceptedViaControl = ctx.state.pairAcceptedTurnSeq !== undefined
+      && ctx.state.pairAcceptedTurnSeq === (ctx.state.pairTurnSeq ?? 0);
+    ctx.state.pairAcceptedTurnSeq = undefined;
+    let acceptedNow = acceptedViaControl;
+    if (accepted && !acceptedViaControl) {
+      if (state?.phase === 'manager_review' && order?.status === 'reported') {
+        try {
+          pairs.acceptOrder(pairId, { orderId: order.id });
+          mirrorPairState(context.store, pairs.readState(pairId)!);
+          acceptedNow = true;
+          note(`One & One order ${order.id.slice(0, 8)} accepted — final checks required before completion`);
+        } catch (error) {
+          note(`One & One acceptance failed — ${error instanceof Error ? error.message : String(error)}`, 'danger');
+        }
+      } else {
+        note('One & One acceptance ignored — there is no reported order awaiting review', 'danger');
+      }
+    }
+    const current = pairs.readState(pairId);
+    const currentOrder = current?.currentOrderId ? pairs.getOrder(pairId, current.currentOrderId) : null;
+    const mayComplete = !dispatched && !acceptedNow && currentOrder?.status === 'accepted'
+      && (current?.phase === 'final_check' || current?.phase === 'transitioning' || current?.phase === 'complete');
+    if (ctx.done && !mayComplete) {
+      const message = acceptedNow
+        ? 'Order accepted. Run the final checks now, then emit ONNI:DONE in a later turn. Do not merge, push, or open a PR.'
+        : dispatched
+          ? 'You dispatched the One & One worker and cannot complete this turn. Wait for its report, review the diff, and accept or revise the order.'
+          : 'One & One cannot complete until the worker reports, you review the actual diff, and you accept the current order with ONNI:PAIR:ACCEPT.';
+      const rePrompted = ctx.state.session?.open === true && ctx.state.session.sendMessage([{ type: 'text', text: message }]) === true;
+      return { hasDispatch: true, dispatched, overBudget: false, rePrompted, doneBlocked: true };
+    }
+    if (acceptedNow && ctx.state.session?.open === true) {
+      const message = 'Order accepted. Run final verification and inspect the complete diff from the pair baseline. If everything is correct, end a later turn with ONNI:DONE.';
+      const rePrompted = ctx.state.session.sendMessage([{ type: 'text', text: message }]);
+      return { hasDispatch: true, dispatched, overBudget: false, rePrompted };
+    }
+    return { hasDispatch: true, dispatched, overBudget: false, rePrompted: false };
+  }
+  if (ctx.done) return { hasDispatch: true, dispatched: false, overBudget: false, rePrompted: false };
   const overBudget = context.enforceDispatchBudget(runId, note);
   const rePrompted = !dispatched && !overBudget && deliverOwnInbox(context, runId, ctx.state, ctx.stepId, turnText);
   // The filesystem channel's SIGNAL: this turn may have written into a sibling's or the root's inbox.
@@ -430,7 +479,7 @@ export async function checkManagerComplexity(
   if (ctx.done || ctx.state.complexityWarned) return false;
   if (!context.managerComplexityPolicyEnabled()) return false;
   const run = context.store.getRun(runId);
-  if (!run?.roster || run.dispatch?.parentRunId) return false;
+  if (!run?.roster || run.dispatch?.parentRunId || isOneAndOneRoster(run.roster)) return false;
   if (childrenOf(context.store.listRuns(), runId).length > 0) return false;
   let stat = run.diffStat;
   if (run.worktreePath && existsSync(run.worktreePath)) {

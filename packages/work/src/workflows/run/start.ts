@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { access, realpath } from 'node:fs/promises';
-import { type AgentPermissionLevel, type UsageWindowsObservation } from '@onni/contract';
+import { isOneAndOneRoster, type AgentPermissionLevel, type UsageWindowsObservation } from '@onni/contract';
 import { discoverTaskTestCommands, effectiveAntigravityLevel } from '../../core/antigravity-permissions.ts';
 import { probeCodexIdentity } from '../../core/codex-usage-probe.ts';
 import type { AgentEvent, RunnerId } from '../../core/agent-runner.ts';
@@ -274,11 +274,23 @@ export function startRun(ctx: StartContext,
   if (input.readOnly && !group) {
     input = { ...input, worktree: false, newBranch: undefined, dispatchIntent: undefined, forkRef: undefined, roster: undefined };
   }
-  // A manager runs the roster's manager backend/model and always in its own worktree: its
-  // workers fork its commits, and an in-place run has no branch to fork.
-  if (input.roster && (group || !ctx.dispatchEnabled())) input = { ...input, roster: undefined };
+  let oneAndOne = input.roster !== undefined && isOneAndOneRoster(input.roster);
+  // Fan-out managers need a branch their workers can fork. One & One deliberately shares the
+  // user's checkout, so it must not inherit either the fan-out or composer dispatch override.
+  if (input.roster && (group || !ctx.dispatchEnabled())) {
+    input = { ...input, roster: undefined };
+    oneAndOne = false;
+  }
   if (input.roster) {
-    input = { ...input, runner: input.roster.manager.runner, model: input.roster.manager.model, worktree: undefined, newBranch: undefined, forkRef: undefined };
+    input = {
+      ...input,
+      runner: input.roster.manager.runner,
+      model: input.roster.manager.model,
+      worktree: oneAndOne ? false : undefined,
+      newBranch: undefined,
+      branch: oneAndOne ? undefined : input.branch,
+      forkRef: undefined,
+    };
   }
   // Sanitize at the manager boundary so CLI runs, workflows, variants, and
   // direct callers cannot bypass the HTTP policy.
@@ -287,7 +299,7 @@ export function startRun(ctx: StartContext,
     // A root started with the composer's Dispatch toggle always gets a worktree: children fork
     // its commits, and an in-place run has no branch to fork. Overridden on the INPUT, which is
     // what `execute()` reads, not only on the record.
-    ...(input.dispatchIntent && input.worktree === false ? { worktree: undefined } : {}),
+    ...(!oneAndOne && input.dispatchIntent && input.worktree === false ? { worktree: undefined } : {}),
     // A pull-request head is verified in its own worktree, never in the user's checkout.
     ...(input.forkRef && input.worktree === false ? { worktree: undefined } : {}),
   };
@@ -312,7 +324,7 @@ export function startRun(ctx: StartContext,
     autonomous: input.autonomous === true,
     // Persist the explicit opt-out so queued-run restart recovery and the
     // session Git routes can distinguish it from a removed isolated worktree.
-    worktree: !group && !input.dispatchIntent && !input.forkRef && input.worktree === false ? false : undefined,
+    worktree: !group && (oneAndOne || (!input.dispatchIntent && !input.forkRef && input.worktree === false)) ? false : undefined,
     groupId: group?.groupId,
     variant: group?.variant,
     steps: workflow.graph
@@ -354,7 +366,11 @@ export function startRun(ctx: StartContext,
   if (input.roster) {
     // The root record owns the live fence; dispatch() reads it for every admission, and only the
     // validated roster update routes may change it after this initial write.
-    ctx.store.updateRun(run.id, { roster: input.roster, ...(input.managerFullAccess ?? ctx.semaphore.safety().managerFullAccess ? { managerFullAccess: true } : {}), dispatch: { ...(ctx.store.getRun(run.id)?.dispatch ?? { rootRunId: run.id }), rootRunId: run.id } });
+    ctx.store.updateRun(run.id, {
+      roster: input.roster,
+      ...(!oneAndOne && (input.managerFullAccess ?? ctx.semaphore.safety().managerFullAccess) ? { managerFullAccess: true } : {}),
+      dispatch: { ...(ctx.store.getRun(run.id)?.dispatch ?? { rootRunId: run.id }), rootRunId: run.id },
+    });
   }
   // Initial pasted attachments must be visible while the run is still queued (#612),
   // and must survive a restart before a slot opens. Persist them before the job

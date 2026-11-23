@@ -129,7 +129,7 @@ export function TaskSummary({
             segment.tone === 'warning' && 'font-medium text-warning',
           )}
         >
-          {segment.label}
+          {t(segment.label)}
         </button>
       ))}
       <button

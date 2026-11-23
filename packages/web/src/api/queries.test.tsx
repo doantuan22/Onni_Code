@@ -7,6 +7,7 @@ import { ApiError } from './client'
 import { createQueryClient } from './query-client'
 import { setApiScope } from '@onni/api-client'
 import { ProjectScopeContext } from './project-scope-context'
+import { pairSnapshot } from '@/routes/task-thread/__fixtures__/pair'
 import type { GithubRefStatusData, HealthResponse } from '@onni/api-client'
 import {
   refStatusRecheckAfter,
@@ -26,6 +27,7 @@ import {
   usePatchRun,
   usePutAgentConfigFile,
   useRun,
+  useRunPair,
   useRepoFile,
   useRepoTree,
   useRunChanges,
@@ -873,6 +875,63 @@ describe('useRun', () => {
     rerender({ id: 'run-1' })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(fetchMock.mock.calls.at(-1)?.[0]).toBe('/api/v1/runs/run-1')
+  })
+})
+
+describe('useRunPair', () => {
+  it('shares one project-scoped snapshot between manager and worker readers without polling', async () => {
+    const snapshot = pairSnapshot()
+    const client = createQueryClient()
+    fetchMock.mockResolvedValue(json(snapshot))
+    const wrap = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    )
+    const { result } = renderHook(() => ({
+      manager: useRunPair('manager-r1', 'pair-1'),
+      worker: useRunPair('worker-r1', 'pair-1'),
+    }), { wrapper: wrap })
+
+    await waitFor(() => {
+      expect(result.current.manager.isSuccess).toBe(true)
+      expect(result.current.worker.isSuccess).toBe(true)
+    })
+    expect(queryKeys.runs.pair('pair-1')).toEqual(['default', 'runs', 'pair', 'pair-1'])
+    expect(queryKeys.runs.all).toEqual(['default', 'runs'])
+    expect(client.getQueryData(queryKeys.runs.pair('pair-1'))).toEqual(snapshot)
+    expect(client.getQueryCache().findAll({ queryKey: queryKeys.runs.pair('pair-1') })).toHaveLength(1)
+    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/v1/runs/manager-r1/pair')
+    const options = client.getQueryCache().find({ queryKey: queryKeys.runs.pair('pair-1') })
+      ?.observers[0]?.options
+    expect(options?.refetchInterval).toBe(false)
+  })
+
+  it('passes the query abort signal to the pair read', async () => {
+    const client = createQueryClient()
+    let signal: AbortSignal | null | undefined
+    fetchMock.mockImplementation((_input, init) => {
+      signal = init?.signal
+      return new Promise<Response>(() => {})
+    })
+    const { unmount } = renderHook(() => useRunPair('manager-r1', 'pair-1'), {
+      wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
+    })
+
+    await waitFor(() => expect(signal).toBeInstanceOf(AbortSignal))
+    expect(signal?.aborted).toBe(false)
+    unmount()
+    await waitFor(() => expect(signal?.aborted).toBe(true))
+    client.clear()
+  })
+
+  it.each([
+    { runId: '', pairId: 'pair-1', enabled: true },
+    { runId: 'manager-r1', pairId: '', enabled: true },
+    { runId: 'manager-r1', pairId: 'pair-1', enabled: false },
+  ])('does not read an unresolved or disabled pair: %j', async ({ runId, pairId, enabled }) => {
+    const { result } = renderHook(() => useRunPair(runId, pairId, enabled), { wrapper: wrapper() })
+    expect(result.current.fetchStatus).toBe('idle')
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })
 

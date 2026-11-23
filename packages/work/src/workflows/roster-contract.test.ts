@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { managerPresetSchema, rosterSchema, rosterWorkerKey, dispatchInputSchema } from '@onni/contract';
+import { isOneAndOneRoster, managerPresetSchema, rosterMode, rosterSchema, rosterWorkerKey, dispatchInputSchema } from '@onni/contract';
 import { workspaceConfigSchema } from '../workspace/config.ts';
 
 const base = {
@@ -14,6 +14,20 @@ describe('roster contract', () => {
   it('accepts a roster and fills defaults', () => {
     const roster = rosterSchema.parse(base);
     expect(roster.workers[1]).toMatchObject({ runner: 'opencode', maxConcurrent: 1 });
+  });
+  it('defaults old rosters to fan-out and keeps old presets valid', () => {
+    const roster = rosterSchema.parse(base);
+    expect(roster.mode).toBeUndefined();
+    expect(rosterMode(roster)).toBe('fanout');
+    expect(isOneAndOneRoster(roster)).toBe(false);
+    expect(managerPresetSchema.safeParse({ id: 'old', name: 'Old roster', roster: base }).success).toBe(true);
+  });
+  it('One & One requires exactly one serial worker', () => {
+    const valid = rosterSchema.parse({ ...base, mode: 'one-and-one', workers: [{ runner: 'codex', model: 'gpt-5' }] });
+    expect(isOneAndOneRoster(valid)).toBe(true);
+    expect(valid.workers[0]?.maxConcurrent).toBe(1);
+    expect(rosterSchema.safeParse({ ...base, mode: 'one-and-one' }).success).toBe(false);
+    expect(rosterSchema.safeParse({ ...base, mode: 'one-and-one', workers: [{ runner: 'codex', maxConcurrent: 2 }] }).success).toBe(false);
   });
   it('allows the same backend twice with different models, but not the same entry twice', () => {
     expect(rosterSchema.safeParse({ ...base, workers: [{ runner: 'codex', model: 'a' }, { runner: 'codex', model: 'b' }] }).success).toBe(true);

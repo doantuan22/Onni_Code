@@ -1,7 +1,7 @@
 import { UsersIcon } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import type { Roster } from '@onni/api-client'
+import { isOneAndOneRoster, type Roster } from '@onni/api-client'
 import { chevron, chipClass } from '@/components/picker-pill'
 import { RosterEditor } from '@/components/roster-editor'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -62,6 +62,7 @@ export function ManagerWorkerPill({
   const [open, setOpen] = useState(false)
   const [confirmingAccess, setConfirmingAccess] = useState(false)
   const accessOn = fullAccess ?? config.data?.safety?.managerFullAccess ?? false
+  const oneAndOne = (roster !== null && isOneAndOneRoster(roster)) || draft?.mode === 'one-and-one'
   // The last roster this component reported, so an external change (preset, draft restore) is
   // distinguishable from its own echo.
   const reported = useRef<string>(roster ? JSON.stringify(roster) : '')
@@ -80,6 +81,13 @@ export function ManagerWorkerPill({
     setDraft(roster ? draftFromRoster(roster) : null)
     onEnabledChange?.(roster !== null)
   }, [roster]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!oneAndOne) return
+    setConfirmingAccess(false)
+    // An inherited default is access too: persist the explicit refusal before submitting the pair.
+    if (accessOn && fullAccess !== false) onFullAccess?.(false)
+  }, [oneAndOne, accessOn, fullAccess, onFullAccess])
 
   useEffect(() => {
     if (!rosterNow) {
@@ -122,7 +130,9 @@ export function ManagerWorkerPill({
         <div className="min-w-0 flex-1">
           <div className="text-[13px] font-semibold leading-tight text-foreground">{t('Manager–worker')}</div>
           <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
-            {rosterNow ? describeRoster(rosterNow) : t('One agent plans and hands parts to the workers you list')}
+            {oneAndOne
+              ? t('One manager and one worker share this checkout.')
+              : rosterNow ? describeRoster(rosterNow) : t('One agent plans and hands parts to the workers you list')}
           </p>
         </div>
         <Switch
@@ -138,7 +148,7 @@ export function ManagerWorkerPill({
           <div className={cn(!inline && 'max-h-[min(26rem,60vh)] overflow-y-auto overscroll-contain pr-0.5')}>
             <RosterEditor draft={draft} onChange={setDraft} connected={connected} />
           </div>
-          {onFullAccess ? (
+          {onFullAccess && !oneAndOne ? (
             <label data-slot="manager-full-access" className="flex items-start gap-3 rounded-md border border-border p-2.5">
               <Switch
                 aria-label={t('Full manager access')}
@@ -152,7 +162,7 @@ export function ManagerWorkerPill({
               </span>
             </label>
           ) : null}
-          <ConfirmDialog
+          {!oneAndOne ? <ConfirmDialog
             open={confirmingAccess}
             onOpenChange={setConfirmingAccess}
             danger
@@ -163,7 +173,7 @@ export function ManagerWorkerPill({
               setConfirmingAccess(false)
               onFullAccess?.(true)
             }}
-          />
+          /> : null}
           {parsed && !parsed.ok ? <p data-slot="roster-error" className="text-[12px] text-danger">{parsed.error}</p> : null}
           {gone.length > 0 ? <p className="text-[12px] text-danger">{t('Not connected: {backends} — the task would be refused.', { backends: gone.join(', ') })}</p> : null}
           {!unlimited && rosterNow && maxParallel !== undefined && totalConcurrency(rosterNow) > maxParallel ? (
@@ -190,12 +200,17 @@ export function ManagerWorkerPill({
       aria-label={t('Manager–worker roster')}
       data-slot="manager-worker-pill"
       data-state={on ? 'on' : 'off'}
-      title={rosterNow ? tn(rosterNow.workers.length, 'Manager {runner} with {count} worker', 'Manager {runner} with {count} workers', { runner: rosterNow.manager.runner }) : t('Choose the manager and the workers it may use')}
+      data-mode={rosterNow?.mode ?? 'fanout'}
+      title={rosterNow
+        ? oneAndOne
+          ? t('One manager and one worker')
+          : tn(rosterNow.workers.length, 'Manager {runner} with {count} worker', 'Manager {runner} with {count} workers', { runner: rosterNow.manager.runner })
+        : t('Choose the manager and the workers it may use')}
       onClick={onOpen}
       className={cn(chipClass, on && 'border-primary/60 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary')}
     >
       <UsersIcon aria-hidden="true" className={cn('size-3 shrink-0', on ? 'text-primary' : 'text-soft-foreground')} />
-      {on && rosterNow ? t('Manager · {runner}', { runner: rosterNow.manager.runner }) : t('Manager')}
+      {on && rosterNow ? oneAndOne ? t('One & One · {runner}', { runner: rosterNow.manager.runner }) : t('Manager · {runner}', { runner: rosterNow.manager.runner }) : t('Manager')}
       {chevron}
     </button>
   )

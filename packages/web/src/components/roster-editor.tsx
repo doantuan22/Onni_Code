@@ -65,6 +65,8 @@ export function RosterEditor({
   connected,
   disabled,
   managerLocked,
+  modeLocked,
+  workerIdentityLocked,
 }: {
   draft: RosterDraft
   onChange: (next: RosterDraft) => void
@@ -72,13 +74,42 @@ export function RosterEditor({
   disabled?: boolean
   /** Keep the manager fixed when editing the roster of an already running task. */
   managerLocked?: boolean
+  /** A running task keeps the orchestration mode it started with. */
+  modeLocked?: boolean
+  /** A live pair keeps the backend/model admitted for its worker; role and traits stay editable. */
+  workerIdentityLocked?: boolean
 }) {
   const workerOnly = connected.filter((runner) => !managerCapable(connected).includes(runner))
+  const oneAndOne = draft.mode === 'one-and-one'
+  const workerLocked = disabled || oneAndOne
   const { t } = useI18n()
+  const setMode = (mode: RosterDraft['mode']) => onChange(mode === 'one-and-one'
+    ? { ...draft, mode, workers: draft.workers.slice(0, 1).map((worker) => ({ ...worker, maxConcurrent: 1 })) }
+    : { ...draft, mode })
   const setWorker = (index: number, patch: Partial<WorkerDraft>) =>
     onChange({ ...draft, workers: draft.workers.map((w, i) => (i === index ? { ...w, ...patch } : w)) })
   return (
     <div data-slot="roster-editor" className="@container flex flex-col gap-4">
+      <label className="flex flex-col gap-2">
+        <span className="text-[13px] font-semibold">{t('Working mode')}</span>
+        <AppSelect
+          aria-label={t('Working mode')}
+          data-slot="roster-mode"
+          value={draft.mode}
+          disabled={disabled || modeLocked}
+          onChange={(event) => setMode(event.target.value as RosterDraft['mode'])}
+          className={fieldClass}
+        >
+          <option value="fanout">{t('Fanout')}</option>
+          <option value="one-and-one">{t('One & One')}</option>
+        </AppSelect>
+        {modeLocked ? <span className="text-xs text-soft-foreground">{t('The working mode is fixed for a running task.')}</span> : null}
+      </label>
+      {oneAndOne ? (
+        <p data-slot="roster-pair-note" className="text-xs text-soft-foreground">
+          {t('One manager and one worker share this checkout. Add, remove and concurrency are fixed.')}
+        </p>
+      ) : null}
       {connected.length === 0 ? (
         <p data-slot="roster-no-backends" className="text-xs text-danger">
           {t('No agent is connected on this machine — connect one in Settings → Agents first.')}
@@ -105,20 +136,20 @@ export function RosterEditor({
                 the query is on the CONTAINER, because a 400px-wide phone viewport can still host a
                 wide settings pane. @md is 448px — the four columns need ~110px each to stay legible. */}
             <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 @md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_5rem_auto] @md:items-center">
-              <BackendSelect label={t('Worker {n} backend', { n: index + 1 })} value={worker.runner} connected={connected} disabled={disabled} onChange={(runner) => setWorker(index, { runner })} />
-              <ModelPickerField runner={worker.runner} value={worker.model} onChange={(model) => setWorker(index, { model })} ariaLabel={t('Worker {n} model', { n: index + 1 })} disabled={disabled} />
+              <BackendSelect label={t('Worker {n} backend', { n: index + 1 })} value={worker.runner} connected={connected} disabled={disabled || workerIdentityLocked} onChange={(runner) => setWorker(index, { runner })} />
+              <ModelPickerField runner={worker.runner} value={worker.model} onChange={(model) => setWorker(index, { model })} ariaLabel={t('Worker {n} model', { n: index + 1 })} disabled={disabled || workerIdentityLocked} />
               <input
                 type="number"
                 min={1}
                 max={ROSTER_MAX_CONCURRENT}
                 aria-label={t('Worker {n} at once', { n: index + 1 })}
                 title={t('How many tasks of this worker run at once')}
-                value={worker.maxConcurrent}
-                disabled={disabled}
+                value={oneAndOne ? 1 : worker.maxConcurrent}
+                disabled={workerLocked}
                 onChange={(e) => setWorker(index, { maxConcurrent: Number(e.target.value) || 1 })}
                 className={fieldClass}
               />
-              <Button type="button" variant="ghost" size="icon" className="rounded-sm" aria-label={t('Remove worker {n}', { n: index + 1 })} disabled={disabled || draft.workers.length <= 1} onClick={() => onChange({ ...draft, workers: draft.workers.filter((_, i) => i !== index) })}>
+              <Button type="button" variant="ghost" size="icon" className="rounded-sm" aria-label={t('Remove worker {n}', { n: index + 1 })} disabled={workerLocked || draft.workers.length <= 1} onClick={() => onChange({ ...draft, workers: draft.workers.filter((_, i) => i !== index) })}>
                 <Trash2Icon className="size-[14px]" aria-hidden="true" />
               </Button>
             </div>
@@ -162,14 +193,13 @@ export function RosterEditor({
           </div>
         ))}
         <div>
-          <Button type="button" variant="outline" size="sm" data-slot="roster-add-worker" disabled={disabled || draft.workers.length >= ROSTER_MAX_WORKERS} onClick={() => onChange({ ...draft, workers: [...draft.workers, emptyWorker(connected[0] ?? '')] })}>
+          <Button type="button" variant="outline" size="sm" data-slot="roster-add-worker" disabled={workerLocked || draft.workers.length >= ROSTER_MAX_WORKERS} onClick={() => onChange({ ...draft, workers: [...draft.workers, emptyWorker(connected[0] ?? '')] })}>
             <PlusIcon className="size-[14px]" aria-hidden="true" />
             {t('Add worker')}
           </Button>
         </div>
       </fieldset>
       <p data-slot="roster-fence-note" className="text-xs text-soft-foreground">
-        {t('Tier and the kinds a worker suits only tell the manager who fits which part; they do not limit the worker.')}{' '}
         {t('Tier and the kinds a worker suits only tell the manager who fits which part; they do not limit the worker.')}{' '}
         {t('The manager can hand work only to the workers listed here; the server refuses any other backend. This steers orchestration — it is not a security boundary (an agent can still run a CLI or call the API directly).')}
       </p>

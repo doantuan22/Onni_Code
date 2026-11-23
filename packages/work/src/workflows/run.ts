@@ -9,7 +9,7 @@
   startRun as createRun,
   startVariants as createVariants,
 } from './run/start.ts';
-import type { AgentStepActiveRun, AgentStepContext, CheckContext, ContinuationActiveRun, ContinuationContext, DispatchContext, DispatchTurnResult, ExecuteContext, ManagerControlContext, ManagerStateContext, MonitoringActiveRun, MonitoringContext, RedirectDispatchOrigin, StartContext, VerifyContext, VerifyDependencies } from './run/internal-types.ts';
+import type { AgentStepActiveRun, AgentStepContext, CheckContext, ContinuationActiveRun, ContinuationContext, DispatchContext, DispatchTurnResult, ExecuteContext, ManagerControlContext, ManagerStateContext, MonitoringActiveRun, MonitoringContext, PairWorkerTurnResult, RedirectDispatchOrigin, StartContext, VerifyContext, VerifyDependencies } from './run/internal-types.ts';
 import {
   AUTONOMOUS_NUDGE,
   AUTOSAVE_INTERVAL_MS,
@@ -125,6 +125,18 @@ import {
   fileInAttachmentLibrary as settlementFileInAttachmentLibrary,
 } from './run/settlement.ts';
 import type { SettlementContext } from './run/internal-types.ts';
+import {
+  finalizePairManager,
+  handlePairWorkerTurn as handlePairWorkerTurnTask,
+} from './run/pair-coordinator.ts';
+import {
+  pairAcceptFor as controlPairAcceptFor,
+  pairDecisionFor as controlPairDecisionFor,
+  pairMessageFor as controlPairMessageFor,
+  pairProposalFor as controlPairProposalFor,
+  pairSnapshotFor as controlPairSnapshotFor,
+} from '../dispatch/pair-controls.ts';
+import { pairRunMutationRefusal } from '../runs/pair-mutation.ts';
 export { MAX_LAND_ATTEMPTS } from './run/settlement.ts';
 export type { LandAnswer } from './run/settlement.ts';
 import {
@@ -359,6 +371,11 @@ import type {
   DispatchManagerRedirectResult,
   DispatchOrderSnapshot,
   DispatchReport,
+  PairAcceptInput,
+  PairDecisionInput,
+  PairDispatchResult,
+  PairMessageInput,
+  PairProposalInput,
   RunDispatch,
 } from '@onni/contract';
 import { resolveCapabilities } from '../server/capabilities.ts';
@@ -871,6 +888,9 @@ interface ActiveRun {
   /** Set by `dispatch()` during a turn, read and cleared at that turn's end: the run parks as a
    *  monitor for the children it just created. */
   dispatchedThisTurn?: boolean;
+  /** Backend-neutral turn identity used to fence same-turn pair acceptance and completion. */
+  pairTurnSeq?: number;
+  pairAcceptedTurnSeq?: number;
   /** The complexity-policy warning has fired for this run (once per run). */
   complexityWarned?: boolean;
   /** Release for exclusive execution in the user's repository working tree.
@@ -1726,6 +1746,7 @@ export class RunManager {
       startRetentionPass: () => { this.retentionPass = this.enforceRetention(); },
       cancelDescendants: (runId, seen) => this.cancelDescendants(runId, seen),
       cancel: (runId) => this.cancel(runId),
+      cancelOne: (runId) => this.cancelOne(runId),
       isQueued: (runId) => this.isQueued(runId),
       enqueueMessage: (runId, content, deliveryId) => this.enqueueMessage(runId, content, deliveryId),
       recordManagerDeliveryTransition: (runId, deliveryId, state, reason) =>
@@ -1923,6 +1944,29 @@ export class RunManager {
     return controlMessageFor(this.managerControlContext(), callerId, input);
   }
 
+  pairSnapshotFor(callerId: string): ReturnType<typeof controlPairSnapshotFor> {
+    return controlPairSnapshotFor(this.managerControlContext(), callerId);
+  }
+
+  pairMessageFor(callerId: string, input: PairMessageInput): ReturnType<typeof controlPairMessageFor> {
+    return controlPairMessageFor(this.managerControlContext(), callerId, input);
+  }
+
+  pairProposalFor(callerId: string, input: PairProposalInput): ReturnType<typeof controlPairProposalFor> {
+    return controlPairProposalFor(this.managerControlContext(), callerId, input);
+  }
+
+  pairDecisionFor(callerId: string, input: PairDecisionInput): ReturnType<typeof controlPairDecisionFor> {
+    return controlPairDecisionFor(this.managerControlContext(), callerId, input);
+  }
+
+  pairAcceptFor(callerId: string, input: PairAcceptInput): ReturnType<typeof controlPairAcceptFor> {
+    return controlPairAcceptFor(this.managerControlContext(), callerId, input, (managerRunId) => {
+      const active = this.active.get(managerRunId);
+      if (active) active.pairAcceptedTurnSeq = active.pairTurnSeq ?? 0;
+    });
+  }
+
   updateRosterFromUser(runId: string, roster: Roster) {
     return controlUpdateRosterFromUser(this.managerControlContext(), runId, roster);
   }
@@ -2060,6 +2104,7 @@ export class RunManager {
       turnEndMarkerText,
       enforceDispatchBudget: (runId, note) => this.enforceDispatchBudget(runId, note),
       deliverMessage: (runId, content, userAuthored) => this.deliverMessage(runId, content, userAuthored),
+      continueRun: (runId, options, deferForCapacity) => this.continueRun(runId, options, deferForCapacity),
       managerComplexityPolicyEnabled: () => this.semaphore.safety().managerComplexityPolicy !== false,
     };
   }
@@ -2140,7 +2185,21 @@ export class RunManager {
     return handleManagerDispatchTurn(this.managerStateContext(), runId, turnText, ctx);
   }
 
+  private handlePairWorkerTurn(runId: string, turnText: string, excludedPaths: readonly string[]): Promise<PairWorkerTurnResult> {
+    return handlePairWorkerTurnTask({
+      store: this.store,
+      dataDir: this.dataDir,
+      repoRoot: this.repoRoot,
+      active: this.active,
+      deliverMessage: (id, content, userAuthored) => this.deliverMessage(id, content, userAuthored),
+      deferMessage: (id, content) => this.deferMessage(id, content),
+      continueRun: (id, options, deferForCapacity) => this.continueRun(id, options, deferForCapacity),
+    }, runId, turnText, excludedPaths);
+  }
+
   mergeFromAgent(runId: string, input: MergeInput): Promise<MergeOutcome | { denied: string }> {
+    const refusal = pairRunMutationRefusal(this.store.getRun(runId));
+    if (refusal) return Promise.resolve({ denied: refusal });
     return mergeManagerFromAgent(this.managerStateContext(), runId, input);
   }
 
@@ -2205,7 +2264,7 @@ export class RunManager {
     return dispatchWorkerEntryFull(this.dispatchContext(), queued);
   }
 
-  dispatchFromAgent(parentId: string, input: DispatchInput): Promise<{ id: string; branch?: string } | { refused: string }> {
+  dispatchFromAgent(parentId: string, input: DispatchInput): Promise<{ id: string; branch?: string; pair?: PairDispatchResult } | { refused: string }> {
     return dispatchFromAgentTask(this.dispatchContext(), parentId, input);
   }
 
@@ -2220,7 +2279,7 @@ export class RunManager {
       /** Run every admission check without creating a child or mutating the task tree. */
       preflightOnly?: boolean;
     } = {},
-  ): { id: string; branch?: string } | { refused: string } {
+  ): { id: string; branch?: string; pair?: PairDispatchResult } | { refused: string } {
     return dispatchTask(this.dispatchContext(), parentId, input, opts);
   }
 
@@ -2821,6 +2880,7 @@ export class RunManager {
         ...ctx,
         state: state(ctx.state),
       }),
+      handlePairWorkerTurn: (runId, turnText, excludedPaths) => this.handlePairWorkerTurn(runId, turnText, excludedPaths),
       handleRunnerUiEvent: (runId, run, sink, event) => this.handleRunnerUiEvent(runId, state(run), sink, event),
       idleClosedFails: (runId, run) => this.idleClosedFails(runId, state(run)),
       inactivityFailureMessage: (runId, run) => this.inactivityFailureMessage(runId, run ? state(run) : undefined),
@@ -2864,6 +2924,7 @@ export class RunManager {
    *  over), "Finish" is the third review exit: accept the changes without a
    *  PR and flip straight to `done`. */
   finish(runId: string): boolean {
+    if (pairRunMutationRefusal(this.store.getRun(runId))) return false;
     return finishContinuation(this.continuationContext(), runId);
   }
 
@@ -3115,6 +3176,7 @@ export class RunManager {
       agentPermissionSpec: (runId, backend, onEvent, bashAllowlist) => this.agentPermissionSpec(runId, backend, onEvent, bashAllowlist),
       markQueuedManagerDeliveriesDelivered: (runId) => this.markQueuedManagerDeliveriesDelivered(runId),
       handleDispatchTurn: (runId, text, turn) => this.handleDispatchTurn(runId, text, turn as { state: ActiveRun; stepId: string; done: boolean }),
+      handlePairWorkerTurn: (runId, text, excludedPaths) => this.handlePairWorkerTurn(runId, text, excludedPaths),
       recordTurnEnd: (runId, text, state) => this.recordTurnEnd(runId, text, state as ActiveRun | undefined),
       landOnDone: (runId, state, stepId, close) => this.landOnDone(runId, state as ActiveRun, stepId, close),
       tryAutonomousNudge: (runId, state, stepId, ask, turn) => this.tryAutonomousNudge(runId, state as ActiveRun, stepId, ask, turn),
@@ -3197,6 +3259,7 @@ export class RunManager {
       clearIdleTimer: state => this.clearIdleTimer(state as ActiveRun),
       clearMonitoringWakeTimer: (state, runId) => this.clearMonitoringWakeTimer(state as ActiveRun, runId),
       continueRun: (runId, opts) => this.continueRun(runId, opts),
+      currentCheckExclusions,
       deliverMessage: (runId, content, announce) => this.deliverMessage(runId, content, announce),
       fileInAttachmentLibrary: (saved, name, deferredWrites) => this.fileInAttachmentLibrary(saved, name, deferredWrites),
       landBeforeSettle: runId => this.landBeforeSettle(runId),
@@ -3258,14 +3321,18 @@ export class RunManager {
   }
 
   private landNow(runId: string, policy: NonNullable<ActiveRun['autoLand']>): Promise<LandResult> {
+    const refusal = pairRunMutationRefusal(this.store.getRun(runId));
+    if (refusal) return Promise.resolve({ result: 'failed', stage: 'commit', error: refusal });
     return landSettlementNow(this.settlementContext(), runId, policy);
   }
 
   private landOnDone(runId: string, state: ActiveRun, stepId: string | undefined, close: () => void): boolean {
+    if (pairRunMutationRefusal(this.store.getRun(runId))) return false;
     return landSettlementOnDone(this.settlementContext(), runId, state, stepId, close);
   }
 
   private parkForReview(runId: string, state: ActiveRun, stepId: string | undefined): void {
+    if (pairRunMutationRefusal(this.store.getRun(runId))) return;
     return parkSettlementForReview(this.settlementContext(), runId, state, stepId);
   }
 
@@ -3275,18 +3342,24 @@ export class RunManager {
     stepId: string | undefined,
     close: () => void,
   ): Promise<LandResult> | undefined {
+    if (pairRunMutationRefusal(this.store.getRun(runId))) return undefined;
     return landSettlementWithAgent(this.settlementContext(), runId, state, stepId, close);
   }
 
   land(runId: string): Promise<import('./run/settlement.ts').LandAnswer> {
+    const refusal = pairRunMutationRefusal(this.store.getRun(runId));
+    if (refusal) return Promise.resolve({ outcome: 'unavailable', message: refusal });
     return landSettlement(this.settlementContext(), runId);
   }
 
   private finishReview(runId: string): Promise<void> {
+    if (pairRunMutationRefusal(this.store.getRun(runId))) return Promise.resolve();
     return finishSettlementReview(this.settlementContext(), runId);
   }
 
   private landBeforeSettle(runId: string): Promise<string | 'review' | undefined> {
+    const refusal = pairRunMutationRefusal(this.store.getRun(runId));
+    if (refusal) return Promise.resolve(refusal);
     return landSettlementBeforeSettle(this.settlementContext(), runId);
   }
 

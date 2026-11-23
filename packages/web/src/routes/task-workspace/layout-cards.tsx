@@ -1,4 +1,4 @@
-import { CheckIcon, ChevronDownIcon, MoreHorizontalIcon, NotebookTextIcon, SaveIcon, XIcon } from 'lucide-react'
+import { CheckIcon, ChevronDownIcon, LayoutGridIcon, MoreHorizontalIcon, NotebookTextIcon, SaveIcon, XIcon } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { useI18n } from '@/lib/i18n'
 import { Link } from '@/lib/project-router'
 import { cn } from '@/lib/utils'
@@ -386,7 +387,7 @@ export function LayoutCards({
 /** A tab's icon, or while ⌘ is held the key that selects it. The strip's fit is measured from tab
  *  widths, so a hint must never change one: a digit takes the icon's place at its size, a longer
  *  chord floats over the tab's corner and the icon keeps its space. */
-function TabIcon({ hint, children }: { hint: string | undefined; children: ReactNode }) {
+export function TabIcon({ hint, children }: { hint: string | undefined; children: ReactNode }) {
   const kbdClass =
     'pointer-events-none flex shrink-0 items-center justify-center rounded-[4px] bg-foreground font-mono text-[10px] leading-none font-semibold text-background'
   if (!hint) return children
@@ -440,7 +441,7 @@ export function LayoutGlyph({ count, className }: { count: number; className?: s
 }
 
 /** The name the save dialog offers: the layout's own when it has one worth keeping, else what it shows. */
-function suggestName(layouts: readonly WorkspaceLayout[], active: string | null, fixed: ViewId | null): string {
+export function suggestName(layouts: readonly WorkspaceLayout[], active: string | null, fixed: ViewId | null): string {
   const current = active === null ? undefined : layouts.find((layout) => layout.name === active)
   if (current && current.name !== WORKING_LAYOUT_NAME) return layoutDisplayName(current.name)
   if (current) return current.columns.map((column) => viewLabel(column.view)).join(' + ')
@@ -452,7 +453,7 @@ function suggestName(layouts: readonly WorkspaceLayout[], active: string | null,
  * does). Its menu opens a layout SAVED for every task, lists this task's own (the working
  * arrangement, saved ones it opened) and saves what is on screen under a name the user picks.
  */
-function LayoutMenu({
+export function LayoutMenu({
   layouts,
   active,
   saved,
@@ -462,6 +463,7 @@ function LayoutMenu({
   onSaveCurrent,
   onDeleteSaved,
   suggestedName,
+  iconOnly = false,
 }: {
   layouts: readonly WorkspaceLayout[]
   /** This task's layout that shows, or null while a view tab does. */
@@ -473,6 +475,8 @@ function LayoutMenu({
   onSaveCurrent?: (name: string) => void
   onDeleteSaved?: (name: string) => void
   suggestedName: string
+  /** The rail's compact icon trigger instead of the labelled pill. */
+  iconOnly?: boolean
 }) {
   const { t } = useI18n()
   const current = active === null ? undefined : layouts.find((layout) => layout.name === active)
@@ -483,27 +487,49 @@ function LayoutMenu({
   // The menu closing into the dialog must not take focus back to its button (the name field has it).
   const intoDialog = useRef(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const triggerLabel = current ? t('Layout: {name}', { name: layoutDisplayName(current.name) }) : t('Layouts')
+
+  const trigger = iconOnly ? (
+    <IconTooltip label={triggerLabel} side="left">
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          ref={triggerRef}
+          data-action="layouts"
+          data-active-layout={current ? current.name : undefined}
+          aria-label={triggerLabel}
+          className={cn('size-9 text-muted-foreground', current && 'text-foreground')}
+        >
+          <LayoutGridIcon aria-hidden="true" className="size-[18px]" />
+        </Button>
+      </DropdownMenuTrigger>
+    </IconTooltip>
+  ) : (
+    <DropdownMenuTrigger asChild>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        ref={triggerRef}
+        data-action="layouts"
+        data-active-layout={current ? current.name : undefined}
+        aria-label={current ? t('Layout: {name}', { name: layoutDisplayName(current.name) }) : t('Layouts')}
+        title={t('Layouts — open a saved one, or save what is on screen')}
+        className={cn('h-7 max-w-48 shrink-0 gap-1.5 px-2 text-[12.5px]', current ? 'text-foreground' : 'text-muted-foreground')}
+      >
+        <LayoutGlyph count={current?.columns.length ?? 2} />
+        <span className="truncate max-md:hidden">{current ? layoutDisplayName(current.name) : t('Layout')}</span>
+        <ChevronDownIcon aria-hidden="true" className="size-3.5 opacity-60" />
+      </Button>
+    </DropdownMenuTrigger>
+  )
 
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            ref={triggerRef}
-            data-action="layouts"
-            data-active-layout={current ? current.name : undefined}
-            aria-label={current ? t('Layout: {name}', { name: layoutDisplayName(current.name) }) : t('Layouts')}
-            title={t('Layouts — open a saved one, or save what is on screen')}
-            className={cn('h-7 max-w-48 shrink-0 gap-1.5 px-2 text-[12.5px]', current ? 'text-foreground' : 'text-muted-foreground')}
-          >
-            <LayoutGlyph count={current?.columns.length ?? 2} />
-            <span className="truncate max-md:hidden">{current ? layoutDisplayName(current.name) : t('Layout')}</span>
-            <ChevronDownIcon aria-hidden="true" className="size-3.5 opacity-60" />
-          </Button>
-        </DropdownMenuTrigger>
+        {trigger}
         <DropdownMenuContent
           align="end"
           className="max-h-96 w-64 overflow-y-auto"

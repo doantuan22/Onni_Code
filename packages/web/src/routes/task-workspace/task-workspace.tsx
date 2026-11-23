@@ -29,6 +29,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { useI18n } from '@/lib/i18n'
+import { useIsDesktop } from '@/lib/use-desktop'
 import { Link, useActiveProjectId, useNavigate } from '@/lib/project-router'
 import { isUnread } from '@/lib/read-state'
 import { recordTaskVisit } from '@/lib/recent-tasks'
@@ -77,6 +78,7 @@ import { useSavedLayouts } from './use-saved-layouts'
 import { useWorkspaceLayouts } from './use-workspace-layouts'
 import { AvailableViewsContext } from './view-picker'
 import { ViewDropZones } from './view-drop-zones'
+import { ViewRail } from './view-rail'
 import { WorkspaceColumns, type ColumnActions } from './workspace-columns'
 
 /** Lazy: xterm is the heaviest thing on this screen, and most visits never open a shell. */
@@ -195,6 +197,9 @@ function WorkspaceView({
   const { save: saveLayout, remove: deleteSavedLayout } = savedLayouts
   const layoutState = layouts.state
   const { t } = useI18n()
+  // The view rail is the desktop spelling of the strip; below 1024px the header's tab row stays
+  // (spec §"Session git view" names "mobile/tablet" for one-column-at-a-time, `workspace-host.tsx`).
+  const railDesktop = useIsDesktop(1024)
   const canSaveLayout = (layouts.layout?.columns.length ?? 0) > 0
   const saveCurrentLayout = useCallback(
     (name: string) => {
@@ -821,7 +826,7 @@ function WorkspaceView({
 
   return (
     <div data-route="task-workspace" data-run-id={run.id} className="flex h-full min-h-0 flex-col">
-      <RunHeader run={run} tab={headerTab} onMarkedUnread={markedUnread} tabs={tabs} headerActions={headerActions} wide />
+      <RunHeader run={run} tab={headerTab} onMarkedUnread={markedUnread} tabs={railDesktop ? false : tabs} headerActions={headerActions} wide />
       {layouts.loadFailed ? (
         <div
           data-slot="layouts-unloaded"
@@ -840,55 +845,79 @@ function WorkspaceView({
           {t('This layout could not be saved on this host — it keeps working in this tab, but will not come back after a refresh.')}
         </div>
       ) : null}
-      <AvailableViewsContext.Provider value={availableViews}>
-        <WorkspaceMaximizeContext.Provider value={maximize}>
-          <div
-            ref={cover.ref}
-            data-slot="workspace-stage"
-            data-maximized={cover.covering ? '' : undefined}
-            style={cover.style}
-            className={cn(
-              'relative flex min-h-0 flex-1 flex-col',
-              cover.covering && 'fixed z-40 overflow-hidden bg-background md:rounded-xl md:border md:border-border/70',
-            )}
-          >
-            {!layouts.ready ? (
-              <DeepLinkLoading view={deepLinkView} />
-            ) : layouts.layout ? (
-              keptLayouts.map((layout) => (
-                <KeptLayout
-                  key={layout.name}
-                  layout={layout}
-                  active={layout.name === activeName}
-                  actions={actions}
-                  renderView={renderView}
-                  headerExtras={headerExtras}
-                  onRatioChange={actions.setStackRatio}
+      <div className="flex min-h-0 flex-1">
+        <AvailableViewsContext.Provider value={availableViews}>
+          <WorkspaceMaximizeContext.Provider value={maximize}>
+            <div
+              ref={cover.ref}
+              data-slot="workspace-stage"
+              data-maximized={cover.covering ? '' : undefined}
+              style={cover.style}
+              className={cn(
+                'relative flex min-h-0 flex-1 flex-col',
+                cover.covering && 'fixed z-40 overflow-hidden bg-background md:rounded-xl md:border md:border-border/70',
+              )}
+            >
+              {!layouts.ready ? (
+                <DeepLinkLoading view={deepLinkView} />
+              ) : layouts.layout ? (
+                keptLayouts.map((layout) => (
+                  <KeptLayout
+                    key={layout.name}
+                    layout={layout}
+                    active={layout.name === activeName}
+                    actions={actions}
+                    renderView={renderView}
+                    headerExtras={headerExtras}
+                    onRatioChange={actions.setStackRatio}
+                  />
+                ))
+              ) : (
+                <CenteredState
+                  icon={<LayoutGridIcon />}
+                  tone="neutral"
+                  heading="h2"
+                  title={t('No layouts')}
+                  subtitle={t('You closed every layout of this task. Create a new one, or come back later — the task will open with a Chat layout.')}
+                  actions={
+                    <Button variant="outline" onClick={createLayout}>
+                      {t('New layout')}
+                    </Button>
+                  }
                 />
-              ))
-            ) : (
-              <CenteredState
-                icon={<LayoutGridIcon />}
-                tone="neutral"
-                heading="h2"
-                title={t('No layouts')}
-                subtitle={t('You closed every layout of this task. Create a new one, or come back later — the task will open with a Chat layout.')}
-                actions={
-                  <Button variant="outline" onClick={createLayout}>
-                    {t('New layout')}
-                  </Button>
-                }
-              />
-            )}
-            {draggingView ? (
-              <ViewDropZones view={draggingView} columns={layouts.layout?.columns ?? []} onDrop={dropViewHere} />
-            ) : null}
-            {cover.covering && fixedActive !== null ? (
-              <FullViewExit className="absolute top-2 right-3 z-20 bg-card shadow-sm" />
-            ) : null}
-          </div>
-        </WorkspaceMaximizeContext.Provider>
-      </AvailableViewsContext.Provider>
+              )}
+              {draggingView ? (
+                <ViewDropZones view={draggingView} columns={layouts.layout?.columns ?? []} onDrop={dropViewHere} />
+              ) : null}
+              {cover.covering ? (
+                <FullViewExit className="absolute top-2 right-3 z-20 bg-card shadow-sm" />
+              ) : null}
+            </div>
+          </WorkspaceMaximizeContext.Provider>
+        </AvailableViewsContext.Provider>
+        {railDesktop && !cover.covering ? (
+          <ViewRail
+            layouts={cardLayouts}
+            active={layouts.state.active}
+            fixedViews={fixedViews}
+            fixedActive={fixedActive}
+            onViews={onViews}
+            onSelectFixed={openContextView}
+            onSelect={selectLayout}
+            onClose={closeLayout}
+            saved={savedLayouts.saved}
+            onApplySaved={applySaved}
+            onSaveCurrent={canSaveLayout ? saveCurrentLayout : undefined}
+            onDeleteSaved={deleteSavedLayout}
+            notesHref={`/tasks/${run.id}/notes`}
+            onViewDragStart={startViewDrag}
+            onViewDragEnd={endViewDrag}
+            onOpenBeside={openViewBeside}
+            keyHints={keyHints}
+            showKeyHints={keysHeld}
+          />
+        ) : null}
+      </div>
       <AlertDialog open={pendingView !== null} onOpenChange={(open) => !open && setPendingView(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

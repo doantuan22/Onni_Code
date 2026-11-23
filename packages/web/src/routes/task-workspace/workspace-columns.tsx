@@ -37,7 +37,7 @@ import {
   type ViewId,
   type WorkspaceColumn,
 } from './layout-state'
-import { FullViewExit, WorkspaceMaximizeContext } from './maximize'
+import { WorkspaceMaximizeContext } from './maximize'
 import { VIEW_ICONS, ViewItems, ViewTiles } from './view-picker'
 
 /** Narrower than this and the layout shows one column at a time (spec §5.2, §11). Tailwind's
@@ -298,8 +298,8 @@ export function WorkspaceColumns({
             />
           ) : null}
           {/* Every window wears its bar, a lone one included: it names the view and splits it. The
-              full-view exit sits on the last bar, so the views below are told nothing about full
-              view and none of them draws a second one. */}
+              full-view exit lives on the stage overlay (task-workspace.tsx), not on a bar, so the
+              views below are told nothing about full view and none of them draws a second one. */}
           <ColumnHeader
             index={index}
             column={column}
@@ -308,7 +308,6 @@ export function WorkspaceColumns({
             menu={columns.length > 1 ? columnMenu(index, column) : null}
             onSplit={() => setPendingAt(index + 1)}
             canSplit={canSplit}
-            trailing={index === columns.length - 1 ? <FullViewExit className="ml-1.5" /> : null}
             extras={headerExtras?.(column.view, index)}
           />
           {column.stack ? (
@@ -368,7 +367,6 @@ function ColumnHeader({
   count,
   actions,
   menu,
-  trailing,
   onSplit,
   canSplit = true,
   grip = true,
@@ -386,8 +384,6 @@ function ColumnHeader({
   count: number
   actions: ColumnActions
   menu: ReactNode
-  /** After the close button, at the header's far right — the full-view exit. */
-  trailing?: ReactNode
 }) {
   const [dropTarget, setDropTarget] = useState(false)
   const { t } = useI18n()
@@ -421,6 +417,7 @@ function ColumnHeader({
       }}
       className={cn(
         'group/column flex h-9 shrink-0 items-center gap-0.5 border-b border-border/70 bg-background pl-3 pr-1.5 md:h-header md:pl-4',
+        count === 1 && 'lg:hidden',
         dropTarget && 'bg-muted',
       )}
     >
@@ -439,8 +436,9 @@ function ColumnHeader({
           <GripVerticalIcon aria-hidden="true" className="size-3.5" />
         </span>
       ) : null}
-      {/* The window's name IS its view switcher — except on a lone view, which the tab row above
-          already names and switches: its bar carries only the split. */}
+      {/* The window's name IS its view switcher — except on a lone view: the desktop rail names
+          and switches it (its bar is hidden entirely, `lg:hidden` above), and below `lg` the tab
+          row above names it, so the bar carries only the split. */}
       <div className={count === 1 ? 'md:hidden' : 'contents'}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -513,7 +511,6 @@ function ColumnHeader({
           <XIcon aria-hidden="true" className="size-3.5" />
         </Button>
       ) : null}
-      {trailing}
     </header>
   )
 }

@@ -531,6 +531,7 @@ export const viTasks: Record<string, string> = {
   'Task results': 'Kết quả nhiệm vụ',
   'Task results · No GitHub repositories configured':
     'Kết quả nhiệm vụ · Chưa cấu hình kho GitHub nào',
+  'Task views': 'Các chế độ xem nhiệm vụ',
   'Tasks across projects did not load': 'Không tải được nhiệm vụ từ các dự án',
   'Tasks started by automations are hidden.': 'Các nhiệm vụ do tự động hoá khởi chạy đang bị ẩn.',
   'Temporary provider failure — this task retries automatically at':

@@ -122,8 +122,9 @@ interface RunHeaderProps {
   /** The Session tab's engine picker for the next continuation. Kept out of the three Git tabs:
    *  they share this header but do not own the continuation draft or its pending selection. */
   continuationEngine?: ReactNode
-  /** Replaces the route tab links — the task workspace's layout strip (spec `2026-10-07-task-workspace` §5.2). */
-  tabs?: ReactNode
+  /** Replaces the route tab links — the task workspace's layout strip (spec `2026-10-07-task-workspace` §5.2).
+   *  `false` hides the row entirely: the workspace's desktop rail holds the views instead. */
+  tabs?: ReactNode | false
   /** Icon controls in the title row, just before the collapse button — the workspace's full view. */
   headerActions?: ReactNode
   /** Span the whole window, like the workspace columns under it, instead of the reading measure. */
@@ -294,48 +295,50 @@ function RunHeaderView({
           <DispatchParentLine run={run} />
           <DispatchChildrenLine run={run} />
 
-          <div
-            data-slot="run-tabs"
-            // Up to seven segments (Graph, Notes and Preview included) no longer fit a 320px phone (the narrowest viewport this header
-            // supports) — contained scroll here, not page-wide overflow on `main`.
-            className={cn('mt-1.5 items-end gap-1 overflow-x-auto md:mt-2.5 md:flex md:overflow-x-visible', tabs !== undefined && !detailsOpen ? 'hidden' : 'flex')}
-          >
-            {tabs ?? (
-              <>
-                <TabLink to={`/tasks/${run.id}`} active={tab === 'session'}>
-                  {t('Session')}
-                </TabLink>
-                <TabLink to={`/tasks/${run.id}/changes`} active={tab === 'changes'}>
-                  {t('Changes')}
-                </TabLink>
-                <TabLink to={`/tasks/${run.id}/commits`} active={tab === 'commits'}>
-                  {t('Commits')}
-                </TabLink>
-                <TabLink to={`/tasks/${run.id}/files`} active={tab === 'files'}>
-                  {t('Files')}
-                </TabLink>
-                {/* The live workflow graph (#1322) — every run with a definition: a step list opens as
-                    its graph. */}
-                {run.workflowDef ? (
-                  <TabLink to={`/tasks/${run.id}/graph`} active={tab === 'graph'}>
-                    {t('Graph')}
+          {tabs === false ? null : (
+            <div
+              data-slot="run-tabs"
+              // Up to seven segments (Graph, Notes and Preview included) no longer fit a 320px phone (the narrowest viewport this header
+              // supports) — contained scroll here, not page-wide overflow on `main`.
+              className={cn('mt-1.5 items-end gap-1 overflow-x-auto md:mt-2.5 md:flex md:overflow-x-visible', tabs !== undefined && !detailsOpen ? 'hidden' : 'flex')}
+            >
+              {tabs ?? (
+                <>
+                  <TabLink to={`/tasks/${run.id}`} active={tab === 'session'}>
+                    {t('Session')}
                   </TabLink>
-                ) : null}
-                <TabLink to={`/tasks/${run.id}/notes`} active={tab === 'notes'}>
-                  {t('Notes')}
-                </TabLink>
-                {/* The task's app, with Design Mode (spec 2026-10-09-design-mode). */}
-                <TabLink to={`/tasks/${run.id}/preview`} active={tab === 'preview'}>
-                  {t('Preview')}
-                </TabLink>
-                {health.data?.capabilities?.terminal ? (
-                  <TabLink to={`/tasks/${run.id}/terminal`} active={tab === 'terminal'}>
-                    {t('Terminal')}
+                  <TabLink to={`/tasks/${run.id}/changes`} active={tab === 'changes'}>
+                    {t('Changes')}
                   </TabLink>
-                ) : null}
-              </>
-            )}
-          </div>
+                  <TabLink to={`/tasks/${run.id}/commits`} active={tab === 'commits'}>
+                    {t('Commits')}
+                  </TabLink>
+                  <TabLink to={`/tasks/${run.id}/files`} active={tab === 'files'}>
+                    {t('Files')}
+                  </TabLink>
+                  {/* The live workflow graph (#1322) — every run with a definition: a step list opens as
+                      its graph. */}
+                  {run.workflowDef ? (
+                    <TabLink to={`/tasks/${run.id}/graph`} active={tab === 'graph'}>
+                      {t('Graph')}
+                    </TabLink>
+                  ) : null}
+                  <TabLink to={`/tasks/${run.id}/notes`} active={tab === 'notes'}>
+                    {t('Notes')}
+                  </TabLink>
+                  {/* The task's app, with Design Mode (spec 2026-10-09-design-mode). */}
+                  <TabLink to={`/tasks/${run.id}/preview`} active={tab === 'preview'}>
+                    {t('Preview')}
+                  </TabLink>
+                  {health.data?.capabilities?.terminal ? (
+                    <TabLink to={`/tasks/${run.id}/terminal`} active={tab === 'terminal'}>
+                      {t('Terminal')}
+                    </TabLink>
+                  ) : null}
+                </>
+              )}
+            </div>
+          )}
 
           {run.historyLiveOnly ? (
             <p role="status" aria-label={t('History live-only')} className="py-1 text-xs text-pending-strong">

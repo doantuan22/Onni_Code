@@ -187,7 +187,7 @@ async function pickTile(view: ViewId) {
 }
 
 describe('the task workspace (main)', () => {
-  it('opens fresh tasks on full-width Chat, with the layout strip in place of route tabs', async () => {
+  it('opens fresh tasks on Chat, with the view rail in place of route tabs', async () => {
     stubFetch()
     renderWorkspace()
     await ready()
@@ -487,13 +487,16 @@ describe('the task workspace (main)', () => {
     await waitFor(() => expect(columnViews()).toEqual(['changes', 'terminal']))
   })
 
-  it('keeps the lone view switcher mobile-only and offers split without closing the last view', async () => {
+  it('hides the lone view bar on desktop and offers split without closing the last view', async () => {
     // Existing fixed-view layouts retain their view and controls.
     hostLayouts.r1 = { layouts: [{ name: 'Chat', columns: [{ view: 'session', width: 100 }] }], active: 'Chat' }
     stubFetch()
     renderWorkspace()
     await ready()
     const header = await waitFor(() => document.querySelector<HTMLElement>('[data-slot="workspace-column-header"]')!)
+    // The rail names the lone view on desktop, so its bar hides (lg:hidden) instead of leaving an
+    // empty strip — the split stays reachable there (rail ⌥-click/drag, `\`) and here for tests.
+    expect(header.className).toContain('lg:hidden')
     expect(header.querySelector('[data-action="split-view"]')).not.toBeNull()
     const switcher = header.querySelector('[data-action="change-view"]')!
     expect(switcher).not.toBeNull()
@@ -526,20 +529,17 @@ describe('the task workspace (main)', () => {
     await waitFor(() => expect(screen.queryByTestId('terminal')).toBeNull())
   })
 
-  it('folds tabs until the row stops overflowing, so the Layout menu is never pushed out of the strip', async () => {
-    // jsdom lays nothing out: a 300px row whose content is 100px per card plus its two buttons.
-    vi.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(300)
-    vi.spyOn(Element.prototype, 'scrollWidth', 'get').mockImplementation(function (this: Element) {
-      if (this.getAttribute('data-slot') !== 'layout-cards') return 0
-      return this.querySelectorAll('[data-slot="layout-card"]').length * 100 + 60
-    })
+  it('shows every view in the rail, with the Layout menu at its foot', async () => {
     stubFetch()
     renderWorkspace()
     await ready()
 
-    await waitFor(() => expect(cardNames().length).toBeLessThanOrEqual(2))
+    // The desktop rail lists every view — there is no horizontal row to fold, so nothing hides in a
+    // "more views" menu and the Layout menu is a fixed icon at the rail's bottom.
+    expect(document.querySelector('[data-slot="view-rail"]')).not.toBeNull()
+    expect(cardNames()).toEqual(['Chat', 'Changes', 'Commits', 'Files', 'Preview', 'Terminal'])
     expect(activeCard()).toBe('Custom')
-    expect(screen.getByRole('button', { name: /more views/ })).not.toBeNull()
+    expect(screen.queryByRole('button', { name: /more views/ })).toBeNull()
     expect(screen.getByRole('button', { name: /^Layout/ })).not.toBeNull()
   })
 

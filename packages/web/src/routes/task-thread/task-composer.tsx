@@ -20,6 +20,7 @@ import {
 } from './diff-comments'
 import type { ContinueAction } from './follow-up-engine'
 import { useStopRun } from './run-confirm-dialog'
+import { isParkedPairManager } from './run-actions'
 import { RunEnginePills } from './run-engine'
 import type { Draft } from './thread-draft'
 
@@ -58,7 +59,7 @@ export function TaskComposer({
   // The legacy session-open rule (web/app.js `updateDetail`): the composer can deliver while the
   // engine owns a live session — running queues the message, waiting answers it. A queued run's
   // prompt is still authorable (#472), and a closed run whose session can be reopened continues.
-  const sessionOpen = run.status === 'running' || run.status === 'waiting'
+  const sessionOpen = (run.status === 'running' || run.status === 'waiting') && !isParkedPairManager(run)
   const queued = run.status === 'queued'
   const hasContinuation = !sessionOpen && !queued && continueAction.available
   const continuable = hasContinuation && continueAction.canContinue

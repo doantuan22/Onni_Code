@@ -565,12 +565,18 @@ export function stopForLimit(context: SchedulingContext, runId: string, hit: Lim
   if (!run || isTerminalStatus(run.status)) return;
   const targetId = hit.scope === 'tree' ? (run.dispatch?.rootRunId ?? runId) : runId;
   const message = `stopped — ${describeHit(hit)}. The worktree and session are kept; Continue to raise the ceiling.`;
-  for (const member of tree ? subtreeOfIndexed(tree, targetId) : subtreeOf(context.store.listRuns(), targetId)) {
-    if (isTerminalStatus(member.status)) continue;
+  const members = (tree ? subtreeOfIndexed(tree, targetId) : subtreeOf(context.store.listRuns(), targetId))
+    .filter((member) => !isTerminalStatus(member.status));
+  for (const member of members) {
     context.store.updateRun(member.id, { limitHit: hit, error: describeHit(hit) });
     context.store.appendEvent(member.id, { type: 'lifecycle', message, tone: 'danger' });
   }
   context.cancel(targetId);
+  // Stopping an open pair's manager no longer cascades (the user's Stop only pauses it), but a
+  // ceiling is a spending brake: every member of the tree stops, the worker included.
+  for (const member of members) {
+    if (member.id !== targetId && !isTerminalStatus(context.store.getRun(member.id)?.status ?? 'cancelled')) context.cancel(member.id);
+  }
 }
 
 export function raiseAfterLimit(context: SchedulingContext, run: RunRecord): void {

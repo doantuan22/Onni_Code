@@ -22,6 +22,16 @@ export function lastSessionId(run: RunRecord): string | undefined {
 }
 
 /**
+ * A long-lived One & One manager parked at `user_wait`: its task settled `waiting` and its session
+ * CLOSED (the engine dropped it), waiting for the user's next instruction. Not the ordinary
+ * `waiting` (an open session paused on `ONNI:ASK`) — that is still live. Only the root carries
+ * `dispatch.pair`; the worker settles `done` on handoff, so this cannot misfire on the worker.
+ */
+export function isParkedPairManager(run: Pick<RunRecord, 'status' | 'dispatch'>): boolean {
+  return run.status === 'waiting' && run.dispatch?.pair?.phase === 'user_wait'
+}
+
+/**
  * The session id shapes the backends mint — the mirror of the server's `SAFE_SESSION_ID`
  * (server.ts, #431). Kept in lockstep by hand: the cockpit bundles separately from the
  * server, so it cannot import it. Widen both or neither.
@@ -124,11 +134,14 @@ export interface RunActionFlags {
 }
 
 export function runActionFlags(run: RunRecord): RunActionFlags {
-  const active = isRunActive(run.status)
+  // A parked pair manager is settled, not active: its session has closed, so there is nothing to
+  // cancel or close — but it still has a session to reopen for the next instruction.
+  const parkedPair = isParkedPairManager(run)
+  const active = isRunActive(run.status) && !parkedPair
   const hasSession = lastSessionId(run) !== undefined
   const gated = !!run.worktreeLifecycle?.activeOperationId
   return {
-    finish: !gated && (run.status === 'waiting' || run.status === 'review'),
+    finish: !gated && ((run.status === 'waiting' && !parkedPair) || run.status === 'review'),
     continueRun: !gated && !active && hasSession,
     terminal: !gated && !active && hasSession,
     notes: true,

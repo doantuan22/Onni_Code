@@ -7,7 +7,8 @@ import { compileV1 } from '../graph.ts';
 import { removeAgentTmpDir, sweepAgentTmpDirs } from '../../runs/agent-tmpdir.ts';
 import { recoverPairDeletions } from '../../runs/pair-deletion.ts';
 import { RESTART_CONTINUATION_PROMPT, type PastedContent } from './preparation.ts';
-import { pairPeerRunId, stopPairForCancellation, stopTerminalPair } from './pair-coordinator.ts';
+import { pairPeerRunId, relayPairWorkerFailure, stopPairForCancellation, stopTerminalPair } from './pair-coordinator.ts';
+import { isLivePairRoot } from './pair-runtime.ts';
 import type { LifecycleActiveRun, LifecycleContext } from './internal-types.ts';
 
 const CANCEL_GRACE_MS = 1_000;
@@ -114,7 +115,8 @@ export async function recover(context: LifecycleContext): Promise<void> {
       // that decision on the user's behalf. A monitor handed to the user
       // (`parkMonitorAsWaiting`) carries the same marker for the same reason:
       // the agent said its work was still pending.
-      if (run.askParked || run.attentionRequest) {
+      // An open pair manager keeps its park across a restart (below) instead of stopping the pair.
+      if ((run.askParked || run.attentionRequest) && !isLivePairRoot(run)) {
         const interruptedAt = new Date().toISOString();
         for (const step of run.steps) {
           if (step.status === 'waiting' || step.status === 'running') {
@@ -243,7 +245,15 @@ export function failOwnedContinuation(context: LifecycleContext, runId: string, 
   dropActive(context, runId, state);
 }
 
-function cancelPairPeer(context: LifecycleContext, runId: string): void {
+/**
+ * Stopping ONE side of a pair never ends it: a stopped worker is reported to the manager (who may
+ * start another), and a stopped manager stays resumable. Only `endPair` (stop-all) tears both down.
+ */
+function cancelPairPeer(context: LifecycleContext, runId: string, endPair = false): void {
+  if (!endPair) {
+    relayPairWorkerFailure(context, runId);
+    return;
+  }
   const stopped = stopPairForCancellation(context, runId);
   if (!stopped) return;
   const peerId = pairPeerRunId(stopped, runId);
@@ -252,8 +262,10 @@ function cancelPairPeer(context: LifecycleContext, runId: string): void {
 }
 
 function stopFailedPairAndPeer(context: LifecycleContext, runId: string): void {
+  if (relayPairWorkerFailure(context, runId)) return;
   const stopped = stopTerminalPair(context, runId, false);
-  if (!stopped) return;
+  // A dead worker never takes its manager down with it.
+  if (!stopped || runId !== stopped.managerRunId) return;
   const peerId = pairPeerRunId(stopped, runId);
   const peer = peerId ? context.store.getRun(peerId) : undefined;
   if (peerId && peer && !isTerminalStatus(peer.status)) context.cancelOne(peerId);
@@ -308,8 +320,9 @@ export function dropActive(context: LifecycleContext, runId: string, expectedSta
   const terminal = context.store.getRun(runId);
   const resuming = terminal?.status === 'failed'
     && (terminal.autoResumeAt !== undefined || context.autoResumeTimers.has(runId));
-  const stopped = stopTerminalPair(context, runId, resuming);
-  if (stopped) {
+  const relayed = !resuming && relayPairWorkerFailure(context, runId);
+  const stopped = relayed ? null : stopTerminalPair(context, runId, resuming);
+  if (stopped && runId === stopped.managerRunId) {
     const peerId = pairPeerRunId(stopped, runId);
     const peer = peerId ? context.store.getRun(peerId) : undefined;
     if (peerId && peer && !isTerminalStatus(peer.status)) context.cancelOne(peerId);
@@ -486,7 +499,8 @@ export function cancel(context: LifecycleContext, runId: string): boolean {
   context.abortVerification(runId);
   if (context.lifecycle.isBlocked(runId)) return false;
   const previousStatus = context.store.getRun(runId)?.status;
-  context.cancelDescendants(runId, new Set([runId]));
+  // Stopping an open pair's manager pauses the manager only; its worker keeps its order.
+  if (!isLivePairRoot(context.store.getRun(runId))) context.cancelDescendants(runId, new Set([runId]));
   if (cancelOne(context, runId)) return true;
   return previousStatus !== 'cancelled' && context.store.getRun(runId)?.status === 'cancelled';
 }
@@ -499,14 +513,14 @@ export function cancelAll(context: LifecycleContext): number {
     if (isTerminalStatus(run.status) && !(run.status === 'failed' && run.autoResumeAt !== undefined)) continue;
     if (context.lifecycle.isBlocked(run.id)) continue;
     ids.push(run.id);
-    if (cancelOne(context, run.id)) stopped++;
+    if (cancelOne(context, run.id, true)) stopped++;
   }
   reapLeftoverProcesses(context, ids, LEFTOVER_SETTLE_GRACE_MS, 'stopped by stop-all');
   return stopped;
 }
 
 /** One run's cancellation, with no regard for a hierarchy — what `cancel` has always done. */
-export function cancelOne(context: LifecycleContext, runId: string): boolean {
+export function cancelOne(context: LifecycleContext, runId: string, endPair = false): boolean {
   // Still waiting in the queue: just drop it there.
   const queuedAt = context.queue.indexOf(runId);
   if (queuedAt >= 0) {
@@ -517,7 +531,7 @@ export function cancelOne(context: LifecycleContext, runId: string): boolean {
     context.startNowRequested.delete(runId);
     context.store.updateRun(runId, { status: 'cancelled', finishedAt: new Date().toISOString() });
     context.store.appendEvent(runId, { type: 'lifecycle', message: 'cancelled while queued' });
-    cancelPairPeer(context, runId);
+    cancelPairPeer(context, runId, endPair);
     context.expireUnacceptedManagerDeliveries(runId, 'target-settled');
     // A queued run never entered `active`, so it never reaches `dropActive` — the one terminal
     // transition that misses the settle hook. Without this a parent waiting on a child the user
@@ -537,7 +551,7 @@ export function cancelOne(context: LifecycleContext, runId: string): boolean {
       if (run?.status !== 'failed' || (run.autoResumeAt === undefined && !context.autoResumeTimers.has(runId))) return false;
       const cancelled = context.cancelAutoResume(runId);
       if (cancelled) {
-        cancelPairPeer(context, runId);
+        cancelPairPeer(context, runId, endPair);
         context.clearSoftAsk(runId);
       }
       return cancelled;
@@ -545,7 +559,7 @@ export function cancelOne(context: LifecycleContext, runId: string): boolean {
     context.cancelledStarting.add(runId);
     context.store.updateRun(runId, { status: 'cancelled', finishedAt: new Date().toISOString(), currentStepId: undefined });
     context.store.appendEvent(runId, { type: 'lifecycle', message: 'run cancelled' });
-    cancelPairPeer(context, runId);
+    cancelPairPeer(context, runId, endPair);
     context.expireUnacceptedManagerDeliveries(runId, 'target-settled');
     context.clearSoftAsk(runId);
     return true;
@@ -565,7 +579,7 @@ export function cancelOne(context: LifecycleContext, runId: string): boolean {
   }
   context.store.updateRun(runId, { status: 'cancelled', finishedAt, currentStepId: undefined });
   context.store.appendEvent(runId, { type: 'lifecycle', message: 'run cancelled' });
-  cancelPairPeer(context, runId);
+  cancelPairPeer(context, runId, endPair);
   context.expireUnacceptedManagerDeliveries(runId, 'target-settled');
   context.clearSoftAsk(runId);
   // A startup wedge has no provider session to reap, so release its slot immediately. Once a

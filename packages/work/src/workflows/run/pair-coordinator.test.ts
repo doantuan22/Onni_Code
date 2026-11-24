@@ -8,7 +8,8 @@ import { PairStore } from '../../dispatch/pair-store.ts';
 import { RunStore } from '../../runs/store.ts';
 import { removeTempDir } from '../../test-fixtures/remove-temp-dir.testkit.ts';
 import { handleDispatchTurn } from './manager-state.ts';
-import { finalizePairManager, handlePairWorkerTurn, preparePairContinuation } from './pair-coordinator.ts';
+import { finalizePairManager, finishPairManager, handlePairWorkerTurn, isLivePairParticipant, parkPairManager, preparePairContinuation, relayPairWorkerFailure, stopPair } from './pair-coordinator.ts';
+import { idleClosedFails, settleSuccess, settleUnansweredPark } from './settlement.ts';
 import * as pairRuntime from './pair-runtime.ts';
 import { checkpointPair, initializePair, mirrorPairState, validatePairWorkspace } from './pair-runtime.ts';
 import type { ManagerStateActive, ManagerStateContext } from './internal-types.ts';
@@ -111,6 +112,141 @@ describe('One & One coordinator', () => {
     expect(store.getRun(MANAGER_ID)?.dispatch?.pair?.phase).toBe('complete');
     expect(git(root, 'show', '--format=', '--name-only', 'HEAD')).toBe('final.txt');
     expect((await validatePairWorkspace(root, pairs, MANAGER_ID)).ok).toBe(true);
+  });
+
+  it('reopens a finished pair for the manager when the user writes again, but never for the worker', async () => {
+    await startOrder();
+    const orderId = pairs.readState(MANAGER_ID)!.currentOrderId!;
+    pairs.reportOrder(MANAGER_ID, orderId, 'done');
+    pairs.acceptOrder(MANAGER_ID, { orderId });
+    const finalized = await finalizePairManager({ store, dataDir, repoRoot: root }, MANAGER_ID, []);
+    if (!finalized.ok) throw new Error(finalized.error);
+    expect(pairs.readState(MANAGER_ID)?.phase).toBe('complete');
+
+    expect((await preparePairContinuation({ store, dataDir, repoRoot: root }, WORKER_ID)).ok).toBe(false);
+    expect((await preparePairContinuation({ store, dataDir, repoRoot: root }, MANAGER_ID)).ok).toBe(true);
+    const reopened = pairs.readState(MANAGER_ID)!;
+    expect(reopened.phase).toBe('planning');
+    expect(reopened.completedAt).toBeUndefined();
+    expect(store.getRun(MANAGER_ID)?.dispatch?.pair?.phase).toBe('planning');
+  });
+
+  describe('a failed worker is reported to the manager, not fatal to the pair', () => {
+    function deliveryContext(delivered: PastedContent[][]) {
+      return {
+        store,
+        dataDir,
+        active: new Set<string>(),
+        deliverMessage: (_runId: string, content: PastedContent[]) => { delivered.push(content); return true; },
+        deferMessage: () => false,
+        continueRun: () => ({ ok: true }),
+      };
+    }
+
+    it('turns the failure into a report and keeps the pair open for a revised order', async () => {
+      await startOrder();
+      store.updateRun(MANAGER_ID, { status: 'waiting' });
+      store.updateRun(WORKER_ID, { status: 'failed', error: 'agent crashed' });
+      const delivered: PastedContent[][] = [];
+      expect(relayPairWorkerFailure(deliveryContext(delivered), WORKER_ID)).toBe(true);
+      const state = pairs.readState(MANAGER_ID)!;
+      expect(state.phase).toBe('manager_review');
+      expect(pairs.getOrder(MANAGER_ID, state.currentOrderId!)).toMatchObject({ status: 'reported' });
+      expect(JSON.stringify(delivered[0])).toContain('WORKER FAILED');
+      expect(JSON.stringify(delivered[0])).toContain('agent crashed');
+      expect(store.getRun(MANAGER_ID)?.status).toBe('waiting');
+      // The manager can resume (the user can chat) and revise the order for the same worker.
+      expect((await preparePairContinuation({ store, dataDir, repoRoot: root }, MANAGER_ID)).ok).toBe(true);
+      const revised = pairs.enqueueOrder(MANAGER_ID, { objective: 'Retry the feature' });
+      expect(revised.revision).toBe(2);
+    });
+
+    it('still saves the report when the manager was stopped by the user', async () => {
+      await startOrder();
+      store.updateRun(MANAGER_ID, { status: 'cancelled' });
+      store.updateRun(WORKER_ID, { status: 'failed', error: 'boom' });
+      expect(relayPairWorkerFailure(deliveryContext([]), WORKER_ID)).toBe(true);
+      expect(pairs.readState(MANAGER_ID)?.phase).toBe('manager_review');
+      // A second ask (cancel path then teardown) is a no-op that still reports success.
+      expect(relayPairWorkerFailure(deliveryContext([]), WORKER_ID)).toBe(true);
+    });
+
+    it('keeps the pair open and tells the manager when the worker ends with no order in flight', async () => {
+      await startOrder();
+      const orderId = pairs.readState(MANAGER_ID)!.currentOrderId!;
+      pairs.reportOrder(MANAGER_ID, orderId, 'a normal report');
+      store.updateRun(WORKER_ID, { status: 'failed', error: 'late crash' });
+      expect(relayPairWorkerFailure(deliveryContext([]), WORKER_ID)).toBe(true);
+      expect(pairs.readState(MANAGER_ID)?.phase).toBe('manager_review');
+      expect(JSON.stringify(store.readEvents(MANAGER_ID))).toContain('already reported');
+    });
+
+    it('parks the manager instead of failing the run when the final checkpoint cannot close the task', async () => {
+      await startOrder();
+      store.updateRun(MANAGER_ID, { status: 'waiting' });
+      const owner = {};
+      const ctx = {
+        store, dataDir, repoRoot: root,
+        active: new Map([[MANAGER_ID, owner]]),
+        currentCheckExclusions: async () => [],
+      } as unknown as Parameters<typeof settleSuccess>[0];
+      expect(await settleSuccess(ctx, MANAGER_ID, owner as never)).toBe(true);
+      expect(store.getRun(MANAGER_ID)?.status).toBe('waiting');
+      expect(pairs.readState(MANAGER_ID)?.phase).not.toBe('stopped');
+    });
+
+    it('falls back to stopping the pair when the pair is already stopped', async () => {
+      await startOrder();
+      stopPair({ store, dataDir }, MANAGER_ID, 'stop-all');
+      store.updateRun(WORKER_ID, { status: 'cancelled' });
+      expect(relayPairWorkerFailure(deliveryContext([]), WORKER_ID)).toBe(false);
+    });
+  });
+
+  describe('inactivity never stops an open pair', () => {
+    function settlementContext(owner?: { idleClosed?: boolean }) {
+      return {
+        store,
+        dataDir,
+        repoRoot: root,
+        active: new Map(owner ? [[MANAGER_ID, owner]] : []),
+        reviewGateApplies: async () => false,
+      } as unknown as Parameters<typeof settleSuccess>[0];
+    }
+
+    it('does not treat an idle-closed manager or worker as failed', async () => {
+      await startOrder();
+      const owner = { idleClosed: true };
+      expect(await idleClosedFails(settlementContext(owner), MANAGER_ID, owner as never)).toBe(false);
+      expect(await idleClosedFails(settlementContext(owner), WORKER_ID, owner as never)).toBe(false);
+      expect(isLivePairParticipant({ store, dataDir }, MANAGER_ID)).toBe(true);
+      expect(isLivePairParticipant({ store, dataDir }, WORKER_ID)).toBe(true);
+    });
+
+    it('still fails an idle-closed manager once the pair is stopped', async () => {
+      await startOrder();
+      stopPair({ store, dataDir }, MANAGER_ID, 'test stop');
+      const owner = { idleClosed: true };
+      expect(isLivePairParticipant({ store, dataDir }, MANAGER_ID)).toBe(false);
+      expect(await idleClosedFails(settlementContext(owner), MANAGER_ID, owner as never)).toBe(true);
+    });
+
+    it('parks an unanswered question without stopping the pair', async () => {
+      await startOrder();
+      store.updateRun(MANAGER_ID, { status: 'waiting', askParked: true });
+      settleUnansweredPark(settlementContext(), MANAGER_ID, new Date().toISOString(), false);
+      expect(store.getRun(MANAGER_ID)?.status).toBe('waiting');
+      expect(pairs.readState(MANAGER_ID)?.phase).toBe('worker_working');
+    });
+
+    it('settles an idle-closed manager as a resumable park', async () => {
+      await startOrder();
+      const owner = { idleClosed: true };
+      store.updateRun(MANAGER_ID, { status: 'waiting' });
+      expect(await settleSuccess(settlementContext(owner), MANAGER_ID, owner as never)).toBe(true);
+      expect(store.getRun(MANAGER_ID)?.status).toBe('waiting');
+      expect(pairs.readState(MANAGER_ID)?.phase).toBe('worker_working');
+    });
   });
 
   it('tolerates the worker committing and staging mid-turn when handing off', async () => {
@@ -350,5 +486,107 @@ describe('One & One coordinator', () => {
     state.pairAcceptedTurnSeq = 5;
     const staleAcceptance = handleDispatchTurn(context, MANAGER_ID, 'ONNI:DONE', { state, stepId: 'task', done: true });
     expect(staleAcceptance.doneBlocked).not.toBe(true);
+  });
+
+  describe('long-lived One & One pair park and finish', () => {
+  const pairContext = () => ({
+    store,
+    dataDir,
+    repoRoot: root,
+    active: new Set<string>(),
+    deliverMessage: () => true,
+    deferMessage: () => false,
+    continueRun: () => ({ ok: true }),
+  });
+
+  /** Run one order to acceptance, run final checks, and park the manager at `user_wait`. */
+  async function parkAcceptedOrder(): Promise<void> {
+    await startOrder();
+    writeFileSync(join(root, 'feature.txt'), 'implemented\n', 'utf8');
+    await handlePairWorkerTurn(pairContext(), WORKER_ID, 'Implemented feature.txt.\nONNI:DONE', []);
+    const order = pairs.getOrder(MANAGER_ID, pairs.readState(MANAGER_ID)!.currentOrderId!)!;
+    pairs.acceptOrder(MANAGER_ID, { orderId: order.id });
+    writeFileSync(join(root, 'final.txt'), 'final check\n', 'utf8');
+    const parked = await parkPairManager(pairContext(), MANAGER_ID, []);
+    if (!parked.ok) throw new Error(parked.error);
+  }
+
+  function managerContext(sendMessage: () => boolean): ManagerStateContext {
+    const state: ManagerStateActive = { cancelled: false, session: { open: true, sendMessage } };
+    return {
+      store,
+      dataDir,
+      repoRoot: root,
+      active: new Map([[MANAGER_ID, state]]),
+      softAskTimers: new Map(),
+      maxAutoContinues: 3,
+      dispatchEnabled: () => true,
+      dispatchOf: (id: string) => store.getRun(id)?.dispatch,
+      updateDispatch: (id: string, patch: (dispatch: RunDispatch) => RunDispatch) => {
+        const current = store.getRun(id)?.dispatch;
+        if (current) store.updateRun(id, { dispatch: patch(current) });
+      },
+      makeUiSink: vi.fn(),
+      emitAskRequested: vi.fn(),
+      turnEndMarkerText: (text: string) => text,
+      enforceDispatchBudget: () => false,
+      deliverMessage: () => true,
+      continueRun: () => ({ ok: true }),
+      managerComplexityPolicyEnabled: () => false,
+    } as unknown as ManagerStateContext;
+  }
+
+  it('parks an accepted order at user_wait, checkpointing the final check instead of completing', async () => {
+    await parkAcceptedOrder();
+    expect(pairs.readState(MANAGER_ID)?.phase).toBe('user_wait');
+    expect(store.getRun(MANAGER_ID)?.dispatch?.pair?.phase).toBe('user_wait');
+    expect(git(root, 'show', '--format=', '--name-only', 'HEAD')).toBe('final.txt');
+  });
+
+  it('resumes a parked manager into a fresh task scope', async () => {
+    await parkAcceptedOrder();
+    const prepared = await preparePairContinuation(pairContext(), MANAGER_ID);
+    expect(prepared.ok).toBe(true);
+    const state = pairs.readState(MANAGER_ID)!;
+    expect(state.phase).toBe('planning');
+    expect(state.currentOrderId).toBeUndefined();
+    expect(state.orderRevision).toBe(0);
+    expect(state.workspace.baselineSha).toBe(state.lastCheckpointSha);
+  });
+
+  it('finishes an idle parked pair for good', async () => {
+    await parkAcceptedOrder();
+    const finished = await finishPairManager(pairContext(), MANAGER_ID, []);
+    if (!finished.ok) throw new Error(finished.error);
+    expect(finished.state.phase).toBe('complete');
+    expect(store.getRun(MANAGER_ID)?.dispatch?.pair?.phase).toBe('complete');
+  });
+
+  it('refuses to finish while an order is still in flight', async () => {
+    await startOrder();
+    const finished = await finishPairManager(pairContext(), MANAGER_ID, []);
+    expect(finished).toMatchObject({ ok: false, error: 'One & One cannot finish while an order is still in flight' });
+  });
+
+  it('the finish marker lets an idle manager complete and sticks on its state', async () => {
+    await parkAcceptedOrder();
+    await preparePairContinuation(pairContext(), MANAGER_ID); // → planning, no order in flight
+    const sendMessage = vi.fn(() => true);
+    const context = managerContext(sendMessage);
+    const state = context.active.get(MANAGER_ID)!;
+    const result = handleDispatchTurn(context, MANAGER_ID, 'All done.\nONNI:PAIR:FINISH\nONNI:DONE', { state, stepId: 'task', done: true });
+    expect(result.doneBlocked).not.toBe(true);
+    expect(state.pairFinishRequested).toBe(true);
+  });
+
+  it('the finish marker blocks while an order is in flight', async () => {
+    await startOrder(); // worker_working — an order is in flight
+    const sendMessage = vi.fn(() => true);
+    const context = managerContext(sendMessage);
+    const state = context.active.get(MANAGER_ID)!;
+    const result = handleDispatchTurn(context, MANAGER_ID, 'ONNI:PAIR:FINISH\nONNI:DONE', { state, stepId: 'task', done: true });
+    expect(result.doneBlocked).toBe(true);
+    expect(state.pairFinishRequested).toBe(true);
+  });
   });
 });

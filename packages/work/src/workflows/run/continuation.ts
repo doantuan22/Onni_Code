@@ -153,9 +153,10 @@ export function continueRun(ctx: ContinuationContext,
       ctx.raiseAfterLimit(run);
     }
     // `review` is continuable too — that's the "Send back" path (spec 009). A live pair may reopen
-    // an interactive park for a peer report or owner reply; ordinary Continue still may not.
+    // an interactive park for a peer report or owner reply; a long-lived pair parked at `user_wait`
+    // reopens for the user's next instruction; ordinary Continue still may not.
     const waitingPair = run.status === 'waiting'
-      && opts.resumeWaitingPair === true
+      && (opts.resumeWaitingPair === true || (isPairRoot(run) && run.dispatch?.pair?.phase === 'user_wait'))
       && (isPairRoot(run) || isPairMember(run));
     if (!ctx.helpers.continuableStatuses.includes(run.status) && !waitingPair) {
       return { ok: false, error: `cannot continue a ${run.status} run` };

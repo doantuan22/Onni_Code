@@ -60,6 +60,18 @@ export function stopPair(context: Pick<PairCoordinatorContext, 'store' | 'dataDi
   return stopped;
 }
 
+/**
+ * A run whose pair is still open. Inactivity must never end such a run as `failed`: that would
+ * stop the whole pair and cancel the peer, so the user could not keep chatting with the manager.
+ */
+export function isLivePairParticipant(context: Pick<PairCoordinatorContext, 'store' | 'dataDir'>, runId: string): boolean {
+  const pairId = pairIdForRun(context, runId);
+  if (!pairId) return false;
+  const run = context.store.getRun(runId);
+  const phase = isPairRoot(run) ? run?.dispatch?.pair?.phase : new PairStore(context.dataDir).readState(pairId)?.phase;
+  return phase !== undefined && phase !== 'stopped' && phase !== 'complete';
+}
+
 function pairIdForRun(context: Pick<PairCoordinatorContext, 'store'>, runId: string): string | undefined {
   const dispatch = context.store.getRun(runId)?.dispatch;
   return dispatch?.pair?.pairId ?? dispatch?.pairMember?.pairId;
@@ -84,12 +96,66 @@ export function stopTerminalPair(
 ): PairState | null {
   const run = context.store.getRun(runId);
   if (!run || (run.status !== 'failed' && run.status !== 'cancelled') || resuming) return null;
-  const pairId = pairIdForRun(context, runId);
-  if (!pairId) return null;
-  const state = new PairStore(context.dataDir).readState(pairId);
-  if (!state || state.phase === 'complete') return null;
-  if (state.phase === 'stopped') return state;
-  return stopPair(context, pairId, run.error ?? `${run.status === 'cancelled' ? 'cancelled' : 'failed'} — ${run.id}`);
+  // A failed manager is Continue-able like any manager: leave the pair open for it.
+  // The same holds for a manager the user stopped: only the explicit end of the pair stops it.
+  if (isPairRoot(run)) return null;
+  // A worker that ended is reported to the manager (`relayPairWorkerFailure`), never a reason to
+  // stop the pair: only the explicit stop-all ends it.
+  return null;
+}
+
+const WORKER_ENDED_MARKER = 'WORKER ENDED EARLY';
+
+/**
+ * A failed worker is a failed order, not a failed pair. Record it as the order's report and hand
+ * it to the manager, which keeps its session so the user can keep chatting and the manager can
+ * issue a revised order (that resumes this same worker). Returns false when the pair cannot take
+ * the report (stopped, manager gone, no live order) so the caller falls back to stopping it.
+ */
+export function relayPairWorkerFailure(context: PairDeliveryContext & { dataDir: string }, runId: string): boolean {
+  const run = context.store.getRun(runId);
+  const pairId = run?.dispatch?.pairMember?.pairId;
+  if (!run || (run.status !== 'failed' && run.status !== 'cancelled') || !pairId) return false;
+  const pairs = new PairStore(context.dataDir);
+  const state = pairs.readState(pairId);
+  if (!state || state.phase === 'stopped' || state.phase === 'complete') return false;
+  // A worker the manager already replaced is history; its end must not touch the pair.
+  if (state.workerRunId !== runId) return true;
+  // A manager the user stopped still owns the pair: the report is saved for its next turn.
+  if (!context.store.getRun(state.managerRunId)) return false;
+  const order = state.currentOrderId ? pairs.getOrder(pairId, state.currentOrderId) : null;
+  if (!order) {
+    context.store.appendEvent(state.managerRunId, { type: 'note', message: `One & One worker ${runId.slice(0, 8)} ended (${run.status}) with no order in flight — the pair stays open`, tone: 'danger' });
+    return true;
+  }
+  // Idempotent: the cancel path and the teardown both ask, and the second must not stop the pair.
+  if (order?.status === 'reported' && order.report?.startsWith(WORKER_ENDED_MARKER)) return true;
+  if (order.status !== 'queued' && order.status !== 'working') {
+    context.store.appendEvent(state.managerRunId, { type: 'note', message: `One & One worker ${runId.slice(0, 8)} ended (${run.status}) after its order was already reported — the pair stays open`, tone: 'danger' });
+    return true;
+  }
+  const stopped = run.status === 'cancelled';
+  const reason = context.store.redactRunText(runId, run.error ?? (stopped ? 'the worker was stopped by the user' : 'the worker run failed')).slice(0, 2_000);
+  try {
+    if (order.status === 'queued') pairs.markOrderWorking(pairId, order.id);
+    pairs.reportOrder(pairId, order.id, `${WORKER_ENDED_MARKER} (${stopped ? 'stopped' : 'failed'}) before finishing this order: ${reason}`);
+    const next = mirrorPairState(context.store, pairs.readState(pairId)!);
+    context.store.appendEvent(runId, { type: 'note', message: 'One & One worker failed — reported to the manager; the pair stays open', tone: 'danger' });
+    context.store.appendEvent(next.managerRunId, { type: 'note', message: `One & One worker failed on order ${order.id.slice(0, 8)} — the manager decides how to continue`, tone: 'danger' });
+    // The report is saved in the pair state either way; a delivery hiccup must not stop the pair.
+    try {
+      deliverManagerReport(context, next.managerRunId, [
+        `One & One WORKER ${stopped ? 'STOPPED' : 'FAILED'} — order ${order.id} (revision ${order.revision})`,
+        `Reason: ${reason}`,
+        '',
+        'The worker did not finish this order and nothing was checkpointed. Its partial edits may remain uncommitted in the shared checkout: inspect `git status` and `git diff` read-only.',
+        'Do not accept this order. Either issue a new order with onni task create (Onni starts a fresh worker session), or explain the situation to the user and wait for their instruction.',
+      ].join('\n'));
+    } catch { /* the saved report is still readable with `onni task pair show` */ }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function pairPeerRunId(state: PairState, runId: string): string | undefined {
@@ -112,7 +178,7 @@ export function deliverPairPeerText(context: PairDeliveryContext, peerRunId: str
   });
 }
 
-function deliverManagerReport(context: PairCoordinatorContext, managerRunId: string, text: string): void {
+function deliverManagerReport(context: PairDeliveryContext, managerRunId: string, text: string): void {
   deliverPairPeerText(context, managerRunId, text, 'One & One worker report is saved, but the manager could not be resumed automatically');
 }
 
@@ -129,24 +195,19 @@ export async function handlePairWorkerTurn(
   const state = pairs.readState(membership.pairId);
   const order = state?.currentOrderId ? pairs.getOrder(membership.pairId, state.currentOrderId) : null;
   if (!state || !order || state.workerRunId !== runId || order.status !== 'working') {
-    const error = 'One & One worker has no current working order to report';
-    stopPair(context, membership.pairId, error);
-    return { handled: true, ok: false, error };
+    // The worker run fails and `relayPairWorkerFailure` tells the manager; the pair stays open.
+    return { handled: true, ok: false, error: 'One & One worker has no current working order to report' };
   }
 
   const checkpoint = await checkpointPair(state.workspace.repoRoot, pairs, membership.pairId, `worker order ${order.revision}`, excludedPaths);
-  if (!checkpoint.ok) {
-    stopPair(context, membership.pairId, checkpoint.error ?? 'worker checkpoint failed');
-    return { handled: true, ok: false, error: checkpoint.error };
-  }
+  // A failed handoff fails the worker run, not the pair: `relayPairWorkerFailure` hands the
+  // failure to the manager, who may start a new worker.
+  if (!checkpoint.ok) return { handled: true, ok: false, error: checkpoint.error ?? 'worker checkpoint failed' };
   if (!canReportOrder(pairs, membership.pairId, runId, order.id)) {
     return { handled: true, ok: false, error: 'One & One pair stopped before the worker report could be recorded' };
   }
   const diff = await inspectPairDiff(state.workspace.repoRoot, pairs, membership.pairId);
-  if (!diff.ok) {
-    stopPair(context, membership.pairId, diff.error ?? 'worker diff inspection failed');
-    return { handled: true, ok: false, error: diff.error };
-  }
+  if (!diff.ok) return { handled: true, ok: false, error: diff.error ?? 'worker diff inspection failed' };
   if (!canReportOrder(pairs, membership.pairId, runId, order.id)) {
     return { handled: true, ok: false, error: 'One & One pair stopped before the worker report could be recorded' };
   }
@@ -183,9 +244,7 @@ export async function handlePairWorkerTurn(
     deliverManagerReport(context, next.managerRunId, managerText);
     return { handled: true, ok: true };
   } catch (error) {
-    const message = errorText(error);
-    stopPair(context, membership.pairId, message);
-    return { handled: true, ok: false, error: message };
+    return { handled: true, ok: false, error: errorText(error) };
   }
 }
 
@@ -203,12 +262,13 @@ export async function preparePairContinuation(
   const state = pairs.readState(pairId);
   if (!state) return { ok: false, error: 'One & One pair state is missing' };
   if (state.phase === 'stopped') return { ok: false, error: 'One & One pair is stopped' };
-  if (state.phase === 'complete') return { ok: false, error: 'One & One pair is already complete' };
+  // A finished pair's manager is reopened by the user's next message (below); its worker is not.
+  if (state.phase === 'complete' && pairMember) return { ok: false, error: 'One & One pair is already complete' };
   const valid = await validatePairWorkspace(context.repoRoot, pairs, pairId);
   if (!valid.ok) return valid;
   const current = pairs.readState(pairId);
   if (!current) return { ok: false, error: 'One & One pair state is missing' };
-  if (current.phase === 'stopped' || current.phase === 'complete') {
+  if (current.phase === 'stopped' || (current.phase === 'complete' && pairMember)) {
     return { ok: false, error: `One & One pair is ${current.phase}` };
   }
   if (pairMember) {
@@ -222,6 +282,15 @@ export async function preparePairContinuation(
     try {
       if (order.status === 'queued') pairs.markOrderWorking(pairId, order.id);
       mirrorPairState(context.store, pairs.readState(pairId)!);
+    } catch (error) {
+      return { ok: false, error: errorText(error) };
+    }
+  } else if (current.phase === 'user_wait' || current.phase === 'complete') {
+    // A parked pair manager resumes for the user's next instruction: open a fresh task scope
+    // (its own diff baseline and order revision counter) while keeping both runs' context.
+    try {
+      const opened = pairs.openNextTask(pairId);
+      mirrorPairState(context.store, opened);
     } catch (error) {
       return { ok: false, error: errorText(error) };
     }
@@ -258,6 +327,86 @@ export async function finalizePairManager(
     }
     if (currentOrder?.status !== 'accepted' || !['final_check', 'transitioning'].includes(current.phase)) {
       return { ok: false, error: 'One & One final checks were superseded before completion' };
+    }
+    const completed = pairs.transition(pairId, 'complete', 'manager', { completedAt: new Date().toISOString() });
+    return { ok: true, state: mirrorPairState(context.store, completed) };
+  } catch (error) {
+    return { ok: false, error: error instanceof PairStoreError ? error.message : errorText(error) };
+  }
+}
+
+/**
+ * End one task of a long-lived pair: the same final checkpoint as `finalizePairManager`, but the
+ * pair parks at `user_wait` instead of `complete` so the manager keeps its context and the user
+ * can hand it the next instruction. Only the explicit finish marker closes the pair.
+ */
+export async function parkPairManager(
+  context: Pick<PairCoordinatorContext, 'store' | 'dataDir' | 'repoRoot'>,
+  runId: string,
+  excludedPaths: readonly string[],
+): Promise<{ ok: true; state: PairState } | { ok: false; error: string }> {
+  const run = context.store.getRun(runId);
+  const pairId = run?.dispatch?.pair?.pairId;
+  if (!pairId || !isPairRoot(run)) return { ok: false, error: 'One & One manager state is missing' };
+  const pairs = new PairStore(context.dataDir);
+  const state = pairs.readState(pairId);
+  if (!state) return { ok: false, error: 'One & One pair state is missing' };
+  if (state.phase === 'user_wait') return { ok: true, state };
+  const order = state.currentOrderId ? pairs.getOrder(pairId, state.currentOrderId) : null;
+  if (!order || order.status !== 'accepted' || !['final_check', 'transitioning'].includes(state.phase)) {
+    return { ok: false, error: 'One & One cannot park until the manager accepts the reported order and finishes final checks' };
+  }
+  try {
+    if (state.phase === 'final_check') pairs.transition(pairId, 'transitioning', 'manager');
+    const checkpoint = await checkpointPair(context.repoRoot, pairs, pairId, 'manager final check', excludedPaths);
+    if (!checkpoint.ok) return { ok: false, error: checkpoint.error ?? 'One & One final checkpoint failed' };
+    const current = pairs.readState(pairId);
+    const currentOrder = current?.currentOrderId ? pairs.getOrder(pairId, current.currentOrderId) : null;
+    if (!current || current.phase === 'stopped' || current.phase === 'complete') {
+      return { ok: false, error: `One & One pair is ${current?.phase ?? 'missing'}` };
+    }
+    if (currentOrder?.status !== 'accepted' || !['final_check', 'transitioning'].includes(current.phase)) {
+      return { ok: false, error: 'One & One final checks were superseded before parking' };
+    }
+    const parked = pairs.transition(pairId, 'user_wait', 'manager');
+    return { ok: true, state: mirrorPairState(context.store, parked) };
+  } catch (error) {
+    return { ok: false, error: error instanceof PairStoreError ? error.message : errorText(error) };
+  }
+}
+
+/**
+ * Close a long-lived pair for good. From an accepted order in final checks this is the same
+ * final checkpoint as `finalizePairManager`; from an idle park (`planning`/`user_wait`) there is
+ * no order to accept, so it only checkpoints any coordination edits and completes. A pair with an
+ * order still in flight refuses to finish.
+ */
+export async function finishPairManager(
+  context: Pick<PairCoordinatorContext, 'store' | 'dataDir' | 'repoRoot'>,
+  runId: string,
+  excludedPaths: readonly string[],
+): Promise<{ ok: true; state: PairState } | { ok: false; error: string }> {
+  const run = context.store.getRun(runId);
+  const pairId = run?.dispatch?.pair?.pairId;
+  if (!pairId || !isPairRoot(run)) return { ok: false, error: 'One & One manager state is missing' };
+  const pairs = new PairStore(context.dataDir);
+  const state = pairs.readState(pairId);
+  if (!state) return { ok: false, error: 'One & One pair state is missing' };
+  if (state.phase === 'complete') return { ok: true, state };
+  const order = state.currentOrderId ? pairs.getOrder(pairId, state.currentOrderId) : null;
+  if (order?.status === 'accepted' && ['final_check', 'transitioning'].includes(state.phase)) {
+    return finalizePairManager(context, runId, excludedPaths);
+  }
+  if (state.phase !== 'planning' && state.phase !== 'user_wait') {
+    return { ok: false, error: 'One & One cannot finish while an order is still in flight' };
+  }
+  try {
+    pairs.transition(pairId, 'transitioning', 'manager');
+    const checkpoint = await checkpointPair(context.repoRoot, pairs, pairId, 'manager finish', excludedPaths);
+    if (!checkpoint.ok) return { ok: false, error: checkpoint.error ?? 'One & One final checkpoint failed' };
+    const current = pairs.readState(pairId);
+    if (!current || current.phase === 'stopped' || current.phase === 'complete') {
+      return { ok: false, error: `One & One pair is ${current?.phase ?? 'missing'}` };
     }
     const completed = pairs.transition(pairId, 'complete', 'manager', { completedAt: new Date().toISOString() });
     return { ok: true, state: mirrorPairState(context.store, completed) };

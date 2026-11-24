@@ -508,8 +508,12 @@ describe('graph system nodes', () => {
     // The persisted waiting step becomes visible just before graphAnswer is armed.
     await vi.waitFor(() => expect(manager.sendMessage(id, [{ type: 'text', text: 'Approve' }])).toBe(true));
 
-    const final = await until(id, terminal, 30_000);
-    expect(final.status, final.error).toBe('done');
+    // A long-lived pair parks at user_wait once the graph task ends (no ONNI:PAIR:FINISH), so the
+    // read-only CI wait is allowed to run and produce its output before the pair waits for the
+    // next instruction.
+    const final = await until(id, (r) => r.status === 'waiting' && r.dispatch?.pair?.phase === 'user_wait', 30_000);
+    expect(final.status).toBe('waiting');
+    expect(final.dispatch?.pair?.phase).toBe('user_wait');
     expect(final.steps.map((step) => [step.id, step.status])).toEqual([
       ['gate', 'done'],
       ['ci', 'done'],

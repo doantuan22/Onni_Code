@@ -281,6 +281,26 @@ export class PairStore {
     return this.updateState(pairId, { workerRunId });
   }
 
+  /** Reopen a parked pair for the next user instruction: a fresh task scope with its own diff
+   *  baseline and order revision counter, so the manager keeps its context across tasks. */
+  openNextTask(pairId: string): PairState {
+    return this.mutate(pairId, () => {
+      const current = this.readState(pairId);
+      if (!current) throw new PairStoreError('Pair does not exist');
+      // A finished pair reopens too: the user's next message must never meet a dead manager.
+      if (current.phase !== 'user_wait' && current.phase !== 'complete') throw new PairStoreError('One & One pair is not parked for a new instruction');
+      const baselineSha = current.lastCheckpointSha ?? current.workspace.baselineSha;
+      return this.updateStateUnlocked(pairId, {
+        phase: 'planning',
+        activeRole: 'manager',
+        completedAt: undefined,
+        currentOrderId: undefined,
+        orderRevision: 0,
+        workspace: { ...current.workspace, baselineSha },
+      });
+    });
+  }
+
   transition(pairId: string, phase: PairPhase, activeRole?: PairRole, patch: Partial<PairState> = {}): PairState {
     return this.mutate(pairId, () => this.transitionUnlocked(pairId, phase, activeRole, patch));
   }

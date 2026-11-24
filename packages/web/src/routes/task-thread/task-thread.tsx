@@ -47,7 +47,7 @@ import { SkillsDock } from './skills-dock'
 import { collectSkills, collectSubagents, findSubagent, subagentChildren } from './subagent-dock'
 import { SubagentSheet } from './subagent-sheet'
 import { AcceptCelebration, ReviewPanel } from './review-panel'
-import { queuePosition } from './run-actions'
+import { queuePosition, isParkedPairManager } from './run-actions'
 import { RunHeader } from './run-header'
 import { AskCard } from './ask-card'
 import { useRunRecordReconcile } from './run-reconcile'
@@ -214,7 +214,7 @@ export function ThreadView({
   // show (#474). Derived from the same reduced turns the thread renders — no new subscription.
   // The legacy session-open rule (web/app.js `updateDetail`): the composer can deliver while
   // the engine owns a live session — running queues the message, waiting answers it.
-  const sessionOpen = run.status === 'running' || run.status === 'waiting'
+  const sessionOpen = (run.status === 'running' || run.status === 'waiting') && !isParkedPairManager(run)
   // …and the third state (#472): a queued run has not started, so its prompt is still
   // authorable. "Session closed — Continue to reopen." was wrong on its own terms here —
   // the session is not closed, it was never opened, and Continue means nothing for a run
@@ -537,12 +537,20 @@ export function ThreadView({
               spent: budget.spent.toFixed(2),
               ceiling: budget.ceiling.toFixed(2),
             })}
-            {run.status === 'waiting' ? (
+            {run.status === 'waiting' && !isParkedPairManager(run) ? (
               <>
                 <span aria-hidden="true">·</span>
                 <EndSessionButton runId={run.id} />
               </>
             ) : null}
+          </div>
+        ) : !lifecycleGate && isParkedPairManager(run) ? (
+          <div
+            data-slot="pair-parked-hint"
+            className="flex items-center gap-2 px-1 text-xs text-muted-foreground"
+          >
+            <StatusDot tone="pending" />
+            {t('One & One task complete — pair parked; send the next instruction or finish the pair')}
           </div>
         ) : !lifecycleGate && run.status === 'waiting' ? (
           <div

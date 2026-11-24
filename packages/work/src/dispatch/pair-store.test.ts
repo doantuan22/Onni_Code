@@ -103,6 +103,20 @@ describe('PairStore', () => {
     expect(store.readState(PAIR_ID)?.phase).toBe('final_check');
   });
 
+  it('opens the next task scope from a parked pair, resetting baseline and revision', () => {
+    expect(() => store.openNextTask(PAIR_ID)).toThrow(PairStoreError);
+    const order = store.enqueueOrder(PAIR_ID, { objective: 'first task' });
+    store.markOrderWorking(PAIR_ID, order.id);
+    store.reportOrder(PAIR_ID, order.id, 'done');
+    store.acceptOrder(PAIR_ID, { orderId: order.id });
+    const checkpoint = 'b'.repeat(40);
+    store.transition(PAIR_ID, 'user_wait', 'manager', { lastCheckpointSha: checkpoint });
+    const opened = store.openNextTask(PAIR_ID);
+    expect(opened).toMatchObject({ phase: 'planning', activeRole: 'manager', orderRevision: 0 });
+    expect(opened.currentOrderId).toBeUndefined();
+    expect(opened.workspace.baselineSha).toBe(checkpoint);
+  });
+
   it('stores two-way messages and an auditable proposal decision', () => {
     const order = store.enqueueOrder(PAIR_ID, { objective: 'choose an approach' });
     const question = store.appendMessage(PAIR_ID, 'manager', { kind: 'question', text: 'Which approach?', orderId: order.id });

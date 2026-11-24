@@ -28,7 +28,7 @@ import { stepKind } from '../types.ts';
 import type { RunRecord } from '../../runs/store.ts';
 import type { SettlementActiveRun, SettlementContext } from './internal-types.ts';
 import { isPairMember, isPairRoot } from './pair-runtime.ts';
-import { finalizePairManager, stopPair } from './pair-coordinator.ts';
+import { finalizePairManager, finishPairManager, isLivePairParticipant, parkPairManager } from './pair-coordinator.ts';
 
 export const MAX_LAND_ATTEMPTS = 3;
 
@@ -176,6 +176,19 @@ export function settleUnansweredPark(
   monitorHandoff: boolean,
 ): void {
   const run = ctx.store.getRun(runId);
+  if (isLivePairParticipant(ctx, runId)) {
+    // Same reasoning as `idleClosedFails`: the question stays open and Continue/a message reopens
+    // the session, but the pair itself must not be stopped by an unanswered question.
+    for (const s of run?.steps ?? []) {
+      if (s.status === 'running' || s.status === 'waiting') ctx.store.updateStep(runId, s.id, { status: 'done', finishedAt });
+    }
+    ctx.store.updateRun(runId, { status: 'waiting', activity: undefined, currentStepId: undefined });
+    ctx.store.appendEvent(runId, {
+      type: 'lifecycle',
+      message: 'session closed while waiting — One & One stays open; send a message to resume',
+    });
+    return;
+  }
   const stepsLeft = run?.steps.some((s) => s.status === 'pending') ?? false;
   for (const s of run?.steps ?? []) {
     if (s.status === 'running' || s.status === 'waiting') {
@@ -229,6 +242,16 @@ export async function settleSuccess(
     ctx.active.get(runId) === owner && !owner?.cancelled &&
     (status === 'running' || status === 'waiting');
   if (!canSettle()) return false;
+  // The session closed from inactivity, not because the turn declared anything: keep the pair
+  // exactly as it is and park the run so the next message or peer report resumes it.
+  if (run && owner?.idleClosed === true && (isPairMember(run) || isPairRoot(run)) && isLivePairParticipant(ctx, runId)) {
+    ctx.store.updateRun(runId, { status: 'waiting', activity: undefined, currentStepId: undefined });
+    ctx.store.appendEvent(runId, {
+      type: 'lifecycle',
+      message: 'session closed after inactivity — One & One stays open; send a message to resume',
+    });
+    return true;
+  }
   if (run && isPairMember(run)) {
     const pairs = new PairStore(ctx.dataDir);
     const pairId = run.dispatch?.pairMember?.pairId;
@@ -236,7 +259,7 @@ export async function settleSuccess(
     const order = pairId && state?.currentOrderId ? pairs.getOrder(pairId, state.currentOrderId) : null;
     if (!pairId || !state || state.workerRunId !== run.id || state.phase !== 'manager_review' || order?.status !== 'reported') {
       const error = 'One & One worker stopped before its current order was checkpointed and reported';
-      if (pairId) stopPair(ctx, pairId, error);
+      // Not `stopPair`: `dropActive` relays this failure to the manager, who may start a new worker.
       ctx.store.updateRun(runId, {
         status: 'failed',
         error,
@@ -258,22 +281,41 @@ export async function settleSuccess(
     return true;
   }
   if (run && run.roster && isOneAndOneRoster(run.roster) && isPairRoot(run)) {
-    const pairId = run.dispatch?.pair?.pairId!;
     const excludedPaths = await ctx.currentCheckExclusions(ctx.repoRoot, owner?.autosaveExcludedPaths ?? new Map());
-    const finalized = await finalizePairManager(ctx, runId, excludedPaths);
-    if (!canSettle()) return false;
-    if (!finalized.ok) {
-      const error = finalized.error;
-      stopPair(ctx, pairId, error);
-      ctx.store.updateRun(runId, {
-        status: 'failed',
-        error,
-        finishedAt: new Date().toISOString(),
-        currentStepId: undefined,
+    // A failed final checkpoint never kills the pair: the manager parks with the error on record
+    // and the user's next message resumes it to fix the cause and finish again.
+    const holdForRetry = (error: string): true => {
+      ctx.store.updateRun(runId, { status: 'waiting', activity: undefined, currentStepId: undefined });
+      ctx.store.appendEvent(runId, {
+        type: 'note',
+        message: `One & One could not close the task — ${error}. The pair stays open: fix the cause (or tell the manager) and send a message to retry.`,
+        tone: 'danger',
       });
-      ctx.store.appendEvent(runId, { type: 'lifecycle', message: `run failed — ${error}` });
+      return true;
+    };
+    // Long-lived pair: a task that ends without the finish marker parks at `user_wait` so the
+    // manager keeps its context and the user hands it the next instruction. `ONNI:PAIR:FINISH`
+    // (the manager asked to close) is the one terminal exit, through `finishPairManager`.
+    if (owner && !owner.pairFinishRequested) {
+      const parked = await parkPairManager(ctx, runId, excludedPaths);
+      if (!canSettle()) return false;
+      if (!parked.ok) return holdForRetry(parked.error);
+      ctx.store.updateRun(runId, {
+        status: 'waiting',
+        activity: undefined,
+        currentStepId: undefined,
+        autoResumeAttempts: undefined,
+        autoResumeReason: undefined,
+      });
+      ctx.store.appendEvent(runId, {
+        type: 'lifecycle',
+        message: 'One & One task complete — pair parked; send the next instruction or finish the pair',
+      });
       return true;
     }
+    const finalized = await finishPairManager(ctx, runId, excludedPaths);
+    if (!canSettle()) return false;
+    if (!finalized.ok) return holdForRetry(finalized.error);
     ctx.store.updateRun(runId, {
       status: 'done',
       completionReason: 'completed',
@@ -684,6 +726,9 @@ export async function reviewGateApplies(ctx: SettlementContext, runId: string): 
  */
 export async function idleClosedFails(ctx: SettlementContext, runId: string, state: SettlementActiveRun): Promise<boolean> {
   if (state.idleClosed !== true) return false;
+  // An open pair outlives inactivity: failing a manager or worker would stop the pair (and cancel
+  // its peer) for nothing but a quiet user. `settleSuccess` parks it as resumable instead.
+  if (isLivePairParticipant(ctx, runId)) return false;
   const reviewGate = await ctx.reviewGateApplies(runId);
   // A Finish may land during that git await and clear the inactivity evidence (6a3cecee).
   return state.idleClosed === true && !reviewGate;

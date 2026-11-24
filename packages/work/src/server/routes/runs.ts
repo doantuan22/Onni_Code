@@ -684,7 +684,9 @@ export function createRunsRoutes(deps: RunsRouteDeps) {
         const queued = manager.enqueueMessage(id, content);
         if (queued) return c.json((answered = { queued: true as const, message: queued }));
         if (manager.deferMessage(id, content)) return c.json((answered = { deferred: true as const }));
-        if (currentRun?.status === 'waiting' && isPairRun(currentRun)) {
+        // A pair's manager that was stopped, failed or parked is reopened by the user's message —
+        // the pair stays open, so chatting with the manager never ends with the session.
+        if (currentRun && ['waiting', 'cancelled', 'failed', 'done'].includes(currentRun.status) && isPairRun(currentRun)) {
           const resumed = manager.continueRun(id, {
             text: parsed.data.text,
             images: attachments,
@@ -692,6 +694,7 @@ export function createRunsRoutes(deps: RunsRouteDeps) {
             ...(parsed.data.replyTo !== undefined ? { replyTo: parsed.data.replyTo } : {}),
           });
           if (resumed.ok) return c.json((answered = { delivered: true as const }));
+          if (resumed.error) return c.json({ error: resumed.error }, 409);
         }
         return c.json({ error: 'session closed' }, 409);
       } finally {

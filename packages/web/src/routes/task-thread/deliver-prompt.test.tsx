@@ -6,7 +6,7 @@ import { MESSAGE_RETRY_DELAYS_MS } from '@/api/client'
 import { createQueryClient } from '@/api/query-client'
 import type { ApiRun, RunStatus } from '@onni/api-client'
 
-import { SESSION_GAP_RETRY_DELAYS_MS, deliveryPath, useDeliverPrompt } from './deliver-prompt'
+import { SESSION_GAP_RETRY_DELAYS_MS, deliveryPath, deliveryPathForRun, useDeliverPrompt } from './deliver-prompt'
 import { useContinueAction } from './follow-up-engine'
 
 /**
@@ -116,6 +116,28 @@ describe('deliveryPath', () => {
     for (const status of ['done', 'failed', 'cancelled', 'review'] as const) {
       expect(deliveryPath(status)).toBe('continue')
     }
+  })
+
+  it('a parked pair manager takes Continue even though its status reads waiting', () => {
+    const parked = run('waiting', {
+      dispatch: {
+        rootRunId: 'r1',
+        pair: {
+          pairId: 'pair-1',
+          managerRunId: 'r1',
+          workerRunId: 'w1',
+          phase: 'user_wait',
+          workspace: { repoRoot: '/repos/onni', branch: 'main', baselineSha: 'abc123' },
+          orderRevision: 0,
+          handoffs: 0,
+          createdAt: '2026-11-24T10:00:00.000Z',
+          updatedAt: '2026-11-24T10:00:00.000Z',
+        },
+      },
+    })
+    expect(deliveryPathForRun(parked)).toBe('continue')
+    // An ordinary waiting run (open session) stays on the live path.
+    expect(deliveryPathForRun(run('waiting'))).toBe('live')
   })
 })
 

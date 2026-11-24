@@ -3,6 +3,7 @@ import { autosaveCommit } from '../../git-worktree.ts';
 import { inFlightChildren } from '../../dispatch/engine.ts';
 import { currentCheckExclusions } from './check-steps.ts';
 import { isUnattended } from '../unattended.ts';
+import { isLivePairRoot } from './pair-runtime.ts';
 import { DEFAULT_IDLE_TIMEOUT_MINUTES } from '../../workspace/config.ts';
 import type { AskRequest } from '../../core/ask.ts';
 import type { MonitoringActiveRun, MonitoringContext, DispatchTurnResult } from './internal-types.ts';
@@ -353,6 +354,9 @@ export function armMonitoringLivenessTimer(
   runId: string, state: MonitoringActiveRun, atCap = false): void {
   clearMonitoringLivenessTimer(context, state);
   state.monitoringLivenessAtCap = atCap;
+  // A pair manager waiting for its worker is not hung: the worker's report wakes it, and the
+  // worker run carries its own bounds. Handing it to the user here ended in an idle-close.
+  if (isLivePairRoot(context.store.getRun(runId))) return;
   // With a wake interval configured, a wake-up turn re-parks and resets this timer, so at the
   // interval's maximum (60m) the two would fire together and the liveness hand-off would win —
   // disabling the configured re-checks. Liveness therefore bounds only a park-mode (null) run;

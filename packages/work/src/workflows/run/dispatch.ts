@@ -527,10 +527,11 @@ function dispatchPairOrder(
   const title = input.title ?? input.objective.split('\n')[0]?.slice(0, 120) ?? 'One & One order';
   let pendingOrder: { id: string; previous: typeof state } | undefined;
   try {
-    if (state.workerRunId) {
-      const existing = context.store.getRun(state.workerRunId);
-      if (!existing) return { refused: 'The persistent One & One worker record is missing' };
-      if (existing.status === 'cancelled') return { refused: 'The One & One worker was cancelled; start a new pair to continue' };
+    // A worker that failed or was cancelled (or whose record is gone) is replaced by a fresh
+    // worker session below; the pair itself carries on, so the manager is never stranded.
+    const existingWorker = state.workerRunId ? context.store.getRun(state.workerRunId) : undefined;
+    if (state.workerRunId && existingWorker && existingWorker.status !== 'cancelled' && existingWorker.status !== 'failed') {
+      const existing = existingWorker;
       if (existing.status === 'queued' || existing.status === 'running' || context.active.has(existing.id) || context.starting.has(existing.id)) {
         return { refused: 'The One & One worker is still working on the current order; wait for its report before revising' };
       }
@@ -554,6 +555,9 @@ function dispatchPairOrder(
       return { id: existing.id, pair: { workerRunId: existing.id, orderId: order.id, revision: order.revision } };
     }
 
+    if (state.workerRunId && (context.active.has(state.workerRunId) || context.starting.has(state.workerRunId))) {
+      return { refused: 'The previous One & One worker is still shutting down; try again in a moment' };
+    }
     const budget = carveChildBudget(context.store.getRun(parent.id) ?? parent, runs, input.max_cost);
     if ('refused' in budget) return { refused: budget.refused };
     const previousState = pairs.readState(pair.pairId)!;

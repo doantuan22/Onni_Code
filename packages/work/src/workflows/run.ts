@@ -893,6 +893,9 @@ interface ActiveRun {
   /** Backend-neutral turn identity used to fence same-turn pair acceptance and completion. */
   pairTurnSeq?: number;
   pairAcceptedTurnSeq?: number;
+  /** The manager asked to close the long-lived pair (`ONNI:PAIR:FINISH`): `settleSuccess`
+   *  finalizes instead of parking at `user_wait`. */
+  pairFinishRequested?: boolean;
   /** The complexity-policy warning has fired for this run (once per run). */
   complexityWarned?: boolean;
   /** Release for exclusive execution in the user's repository working tree.
@@ -1734,6 +1737,8 @@ export class RunManager {
       reviveQueuedRun: (run, reason) => this.reviveQueuedRun(run, reason),
       settleSuccess: (runId) => this.settleSuccess(runId),
       continueRun: (runId, options, deferForCapacity) => this.continueRun(runId, options, deferForCapacity),
+      deliverMessage: (runId, content, userAuthored) => this.deliverMessage(runId, content, userAuthored),
+      deferMessage: (runId, content) => this.deferMessage(runId, content),
       reportSettledChildToParent: (runId) => this.reportSettledChildToParent(runId),
       pump: () => this.pump(),
       clearSoftAsk: (runId) => this.clearSoftAsk(runId),

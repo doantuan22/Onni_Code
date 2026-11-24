@@ -7,7 +7,7 @@ import { runQueryOptions, useSendMessage } from '@/api/queries'
 import type { ApiRun, AttachmentEntry, RunStatus } from '@onni/api-client'
 
 import type { ContinueAction } from './follow-up-engine'
-import { lastSessionId } from './run-actions'
+import { isParkedPairManager, lastSessionId } from './run-actions'
 
 /**
  * The composer's one delivery path — and its recovery when the record it aimed by was stale.
@@ -49,6 +49,12 @@ export type DeliveryPath = 'live' | 'continue'
 
 export function deliveryPath(status: RunStatus): DeliveryPath {
   return status === 'running' || status === 'waiting' || status === 'queued' ? 'live' : 'continue'
+}
+
+/** The delivery path as the RECORD decides, not the bare status: a parked pair manager is
+ *  `waiting` on the record but its session has closed, so it takes Continue like any settled run. */
+export function deliveryPathForRun(run: Pick<ApiRun, 'status' | 'dispatch'>): DeliveryPath {
+  return isParkedPairManager(run) ? 'continue' : deliveryPath(run.status)
 }
 
 export type DeliverPrompt = (text: string, images: AttachmentEntry[]) => Promise<unknown>
@@ -108,7 +114,7 @@ export function useDeliverPrompt(
       const deliver = (path: DeliveryPath) =>
         path === 'live' ? sendMessageAsync({ text, images }) : continueWith(text, images, continueKey)
       const refetch = () => queryClient.fetchQuery({ ...runQueryOptions(run.id), staleTime: 0 })
-      const attempted = deliveryPath(run.status)
+      const attempted = deliveryPathForRun(run)
       let firstError: unknown
       try {
         return await deliver(attempted)
@@ -123,7 +129,7 @@ export function useDeliverPrompt(
         if (delayMs === undefined) throw firstError
         await wait(delayMs)
         const fresh = await refetch().catch(() => undefined)
-        if (!fresh || deliveryPath(fresh.status) !== 'continue' || continuations(fresh) !== knownContinuations) {
+        if (!fresh || deliveryPathForRun(fresh) !== 'continue' || continuations(fresh) !== knownContinuations) {
           throw firstError
         }
         try {
@@ -143,7 +149,7 @@ export function useDeliverPrompt(
           // gets the server's own words about the send they made.
           throw explained(refusal)
         }
-        const path = deliveryPath(fresh.status)
+        const path = deliveryPathForRun(fresh)
         if (path === attempted) {
           // Only a transitional refusal is worth the wait; any other agreeing 409 is the server's
           // considered answer.

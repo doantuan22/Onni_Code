@@ -32,6 +32,8 @@ export const viTasks: Record<string, string> = {
   'None yet': 'Chưa có',
   'Note': 'Ghi chú',
   'One & One status': 'Trạng thái One & One',
+  'One & One task complete — pair parked; send the next instruction or finish the pair':
+    'One & One đã xong nhiệm vụ — cặp đã tạm dừng; gửi chỉ dẫn tiếp theo hoặc kết thúc cặp',
   'Option': 'Phương án',
   'Options': 'Phương án',
   'Order': 'Yêu cầu',

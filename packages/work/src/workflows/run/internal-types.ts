@@ -286,6 +286,7 @@ export interface ManagerStateActive {
   dispatchedThisTurn?: boolean;
   pairTurnSeq?: number;
   pairAcceptedTurnSeq?: number;
+  pairFinishRequested?: boolean;
   complexityWarned?: boolean;
   autoContinues?: number;
   session?: {
@@ -391,6 +392,8 @@ export interface LifecycleContext {
   reviveQueuedRun(run: RunRecord, reason: string): Promise<void>;
   settleSuccess(runId: string): Promise<boolean>;
   continueRun(runId: string, options: LifecycleContinueOptions, deferForCapacity?: boolean): { ok: boolean; error?: string };
+  deliverMessage(runId: string, content: PastedContent[], userAuthored: boolean): boolean;
+  deferMessage(runId: string, content: PastedContent[]): boolean;
   reportSettledChildToParent(runId: string): Promise<void>;
   pump(): Promise<void>;
   clearSoftAsk(runId: string): void;
@@ -727,6 +730,7 @@ export interface ContinuationActiveRun {
   finishedAtWait?: boolean;
   acceptReviewOnDrop?: boolean;
   turnSettled?: boolean;
+  pairFinishRequested?: boolean;
   continueOnDrop?: { opts: ContinuationOptions; deferForCapacity: boolean };
   monitoringWakeTimer?: NodeJS.Timeout;
   monitoringWakeIntervalMinutes?: number;

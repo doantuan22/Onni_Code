@@ -159,7 +159,7 @@ describe('One & One startup', () => {
     expect(context.active.get(workerId)).toBeUndefined();
   }
 
-  it('refuses to admit a pair while unrelated checkout changes are uncommitted', async () => {
+  it('admits a pair on a dirty checkout by committing the pending changes as its baseline', async () => {
     manager.dispose();
     manager = new RunManager(store, root, {
       semaphore: new WorkspaceSemaphore({ initial: { maxParallel: 1 } }),
@@ -169,8 +169,12 @@ describe('One & One startup', () => {
     try {
       writeFileSync(join(root, 'unrelated.txt'), 'user work\n', 'utf8');
       const record = manager.startRun(workflow, { task: 'Coordinate one implementation', roster });
-      await vi.waitFor(() => expect(store.getRun(record.id)?.status).toBe('failed'), { timeout: 10_000 });
-      expect(store.getRun(record.id)?.error).toContain('clean');
+      await vi.waitFor(() => {
+        const pair = store.getRun(record.id)?.dispatch?.pair;
+        expect(pair).toBeDefined();
+        expect(execFileSync('git', ['show', '--format=', '--name-only', pair!.workspace.baselineSha], { cwd: root, encoding: 'utf8' })).toContain('unrelated.txt');
+      }, { timeout: 10_000 });
+      expect(store.getRun(record.id)?.error ?? '').not.toContain('clean');
       expect(record.worktree).toBe(false);
     } finally {
       if (saved === undefined) delete process.env.ONNI_DRY_RUN;

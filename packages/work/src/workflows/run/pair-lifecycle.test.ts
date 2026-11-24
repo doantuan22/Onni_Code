@@ -105,49 +105,55 @@ describe('One & One terminal lifecycle', () => {
     (manager as unknown as { dropActive(id: string, expected: object): void }).dropActive(runId, state);
   }
 
-  it('stops the pair and cancels the monitoring manager when the worker fails', () => {
+  it('keeps the pair and the manager alive when the worker fails, handing the failure to the manager', () => {
     store.updateRun(WORKER_ID, { status: 'failed', error: 'engine crashed', finishedAt: new Date().toISOString() });
     store.updateStep(WORKER_ID, 'task', { status: 'failed' });
     drop(WORKER_ID);
 
-    expect(pairs.readState(MANAGER_ID)?.phase).toBe('stopped');
+    expect(pairs.readState(MANAGER_ID)?.phase).toBe('manager_review');
     expect(store.getRun(WORKER_ID)?.status).toBe('failed');
-    expect(store.getRun(MANAGER_ID)?.status).toBe('cancelled');
-    expect(active.has(MANAGER_ID)).toBe(false);
+    expect(store.getRun(MANAGER_ID)?.status).toBe('running');
+    expect(active.has(MANAGER_ID)).toBe(true);
   });
 
-  it('stops both sides when the persistent worker is cancelled', () => {
+  it('reports a stopped worker to the manager instead of ending the pair', () => {
     expect(manager.cancel(WORKER_ID)).toBe(true);
 
-    expect(pairs.readState(MANAGER_ID)?.phase).toBe('stopped');
+    expect(pairs.readState(MANAGER_ID)?.phase).toBe('manager_review');
     expect(store.getRun(WORKER_ID)?.status).toBe('cancelled');
-    expect(store.getRun(MANAGER_ID)?.status).toBe('cancelled');
+    expect(store.getRun(MANAGER_ID)?.status).toBe('running');
+    expect(active.has(MANAGER_ID)).toBe(true);
   });
 
-  it('stops the persistent worker when the manager is cancelled', () => {
+  it('pauses only the manager when it is stopped: the pair stays open and the worker keeps going', () => {
     const managerInterrupt = active.get(MANAGER_ID)!.interrupt;
     const workerInterrupt = active.get(WORKER_ID)!.interrupt;
 
     expect(manager.cancel(MANAGER_ID)).toBe(true);
 
-    expect(pairs.readState(MANAGER_ID)?.phase).toBe('stopped');
+    expect(pairs.readState(MANAGER_ID)?.phase).toBe('worker_working');
     expect(store.getRun(MANAGER_ID)?.status).toBe('cancelled');
-    expect(store.getRun(WORKER_ID)?.status).toBe('cancelled');
+    expect(store.getRun(WORKER_ID)?.status).toBe('running');
     expect(managerInterrupt).toHaveBeenCalledOnce();
-    expect(workerInterrupt).toHaveBeenCalledOnce();
-    expect(active.has(MANAGER_ID)).toBe(false);
-    expect(active.has(WORKER_ID)).toBe(false);
+    expect(workerInterrupt).not.toHaveBeenCalled();
+    expect(active.has(WORKER_ID)).toBe(true);
   });
 
-  it('makes repeated manager cancellation harmless after the peer is stopped', () => {
+  it('stops the worker too when a spending ceiling is hit', () => {
+    store.updateRun(MANAGER_ID, { limits: { mode: 'capped', maxCostUsd: 1 }, costUsd: 5 });
+    manager.sweepLimits();
+
+    expect(store.getRun(MANAGER_ID)?.limitHit).toMatchObject({ kind: 'cost' });
+    expect(store.getRun(MANAGER_ID)?.status).toBe('cancelled');
+    expect(store.getRun(WORKER_ID)?.status).toBe('cancelled');
+  });
+
+  it('ends both sides only on an explicit stop-all', () => {
     const workerInterrupt = active.get(WORKER_ID)!.interrupt;
-    manager.cancel(MANAGER_ID);
-    const stopped = JSON.stringify(pairs.readState(MANAGER_ID));
+    manager.cancelAll();
 
-    expect(manager.cancel(MANAGER_ID)).toBe(false);
-
-    expect(JSON.stringify(pairs.readState(MANAGER_ID))).toBe(stopped);
     expect(pairs.readState(MANAGER_ID)?.phase).toBe('stopped');
+    expect(store.getRun(MANAGER_ID)?.status).toBe('cancelled');
     expect(store.getRun(WORKER_ID)?.status).toBe('cancelled');
     expect(workerInterrupt).toHaveBeenCalledOnce();
   });
@@ -201,14 +207,28 @@ describe('One & One terminal lifecycle', () => {
     expect(store.listRuns().filter((run) => run.dispatch?.pairMember?.pairId === MANAGER_ID)).toHaveLength(1);
   });
 
-  it('stops the worker when the manager fails', () => {
+  it('starts a fresh worker session when the previous worker failed', async () => {
+    vi.stubEnv('ONNI_DISPATCH', '1');
+    store.updateRun(WORKER_ID, { status: 'failed', error: 'engine crashed', finishedAt: new Date().toISOString() });
+    drop(WORKER_ID);
+    expect(pairs.readState(MANAGER_ID)?.phase).toBe('manager_review');
+
+    const outcome = await manager.dispatchFromAgent(MANAGER_ID, { objective: 'Try the implementation again' });
+
+    if (!('id' in outcome)) throw new Error(`expected a new worker, got ${JSON.stringify(outcome)}`);
+    expect(outcome.id).not.toBe(WORKER_ID);
+    expect(pairs.readState(MANAGER_ID)).toMatchObject({ workerRunId: outcome.id, phase: 'worker_queued' });
+    expect(store.getRun(outcome.id)?.dispatch?.pairMember).toMatchObject({ pairId: MANAGER_ID, role: 'worker' });
+  });
+
+  it('leaves the pair open for Continue when the manager fails', () => {
     store.updateRun(MANAGER_ID, { status: 'failed', error: 'manager crashed', finishedAt: new Date().toISOString() });
     store.updateStep(MANAGER_ID, 'task', { status: 'failed' });
     drop(MANAGER_ID);
 
-    expect(pairs.readState(MANAGER_ID)?.phase).toBe('stopped');
+    expect(pairs.readState(MANAGER_ID)?.phase).toBe('worker_working');
     expect(store.getRun(MANAGER_ID)?.status).toBe('failed');
-    expect(store.getRun(WORKER_ID)?.status).toBe('cancelled');
+    expect(store.getRun(WORKER_ID)?.status).toBe('running');
   });
 
   it('keeps a usage-limit resume pending without stopping the pair', () => {
@@ -333,12 +353,12 @@ describe('One & One terminal lifecycle', () => {
     expect(store.getRun(MANAGER_ID)?.activity).toBe('monitoring');
   });
 
-  it('stops the peer when restart recovery cannot resume the worker', async () => {
+  it('reports to the manager instead of stopping it when restart recovery cannot resume the worker', async () => {
     const context = recoveryContext(vi.fn(() => ({ ok: false, error: 'no session' })));
     await recover(context);
 
-    expect(pairs.readState(MANAGER_ID)?.phase).toBe('stopped');
-    expect(context.cancelOne).toHaveBeenCalledWith(MANAGER_ID);
+    expect(pairs.readState(MANAGER_ID)?.phase).toBe('manager_review');
+    expect(context.cancelOne).not.toHaveBeenCalledWith(MANAGER_ID);
   });
 
   it('keeps a reported pair waiting for review across restart instead of settling it', async () => {

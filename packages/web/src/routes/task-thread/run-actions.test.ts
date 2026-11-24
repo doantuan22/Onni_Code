@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import type { RunRecord, RunStatus, StepState } from '@onni/api-client'
+import type { PairPhase, RunRecord, RunStatus, StepState } from '@onni/api-client'
 
 import { isUnread } from '@/lib/read-state'
 
 import {
   cliTargetResumes,
   finishTitle,
+  isParkedPairManager,
   isRunActive,
   lastSessionId,
   queuePosition,
@@ -82,6 +83,39 @@ describe('runActionFlags — the visibility matrix, all 7 statuses × archived',
     expect(flags.continueRun).toBe(false)
     expect(flags.terminal).toBe(false)
     expect(flags.deleteRun).toBe(true)
+  })
+})
+
+describe('isParkedPairManager — a long-lived One & One manager parked at user_wait', () => {
+  const pairState = (phase: PairPhase) => ({
+    pairId: 'pair-1',
+    managerRunId: 'r1',
+    workerRunId: 'w1',
+    phase,
+    workspace: { repoRoot: '/repos/onni', branch: 'main', baselineSha: 'abc123' },
+    orderRevision: 0,
+    handoffs: 0,
+    createdAt: '2026-11-24T10:00:00.000Z',
+    updatedAt: '2026-11-24T10:00:00.000Z',
+  })
+
+  it('is true only for a waiting manager whose pair is at user_wait', () => {
+    const parked = run('waiting', { dispatch: { rootRunId: 'r1', pair: pairState('user_wait') } })
+    expect(isParkedPairManager(parked)).toBe(true)
+    expect(isParkedPairManager(run('waiting'))).toBe(false)
+    // A manager paused on ONNI:ASK keeps an OPEN session even at another pair phase.
+    expect(isParkedPairManager(run('waiting', { dispatch: { rootRunId: 'r1', pair: pairState('planning') } }))).toBe(false)
+    // A settled manager is not a parked pair, whatever the phase.
+    expect(isParkedPairManager(run('done', { dispatch: { rootRunId: 'r1', pair: pairState('user_wait') } }))).toBe(false)
+  })
+
+  it('a parked pair manager is settled, not active: it continues but never closes', () => {
+    const flags = runActionFlags(run('waiting', { dispatch: { rootRunId: 'r1', pair: pairState('user_wait') } }))
+    expect(flags.finish).toBe(false)
+    expect(flags.continueRun).toBe(true)
+    expect(flags.cancel).toBe(false)
+    expect(flags.archive).toBe(true)
+    expect(flags.terminal).toBe(true)
   })
 })
 

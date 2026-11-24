@@ -120,6 +120,11 @@ export function isPairRoot(run: { id: string; dispatch?: { pair?: PairState; roo
   return Boolean(run?.dispatch?.pair && run.dispatch.rootRunId === run.id);
 }
 
+export function isLivePairRoot(run: { id: string; dispatch?: { pair?: PairState; rootRunId?: string } } | null | undefined): boolean {
+  const phase = run?.dispatch?.pair?.phase;
+  return isPairRoot(run) && phase !== undefined && phase !== 'stopped' && phase !== 'complete';
+}
+
 export function isPairMember(run: { dispatch?: { pairMember?: unknown } } | null | undefined): boolean {
   return run?.dispatch?.pairMember !== undefined;
 }
@@ -138,8 +143,9 @@ export async function initializePair(
 ): Promise<{ ok: true; state: PairState } | { ok: false; error: string }> {
   const run = store.getRun(runId);
   const pairId = run?.dispatch?.pair?.pairId ?? runId;
+  let preexistingChanges = false;
   try {
-    return await pairs.serialize<{ ok: true; state: PairState } | { ok: false; error: string }>(pairId, async (lease) => {
+    const started = await pairs.serialize<{ ok: true; state: PairState } | { ok: false; error: string }>(pairId, async (lease) => {
       const existing = pairs.readState(pairId);
       if (existing) {
         if (existing.managerRunId !== runId) return { ok: false, error: 'One & One pair belongs to another manager' };
@@ -160,10 +166,9 @@ export async function initializePair(
       }
       const status = await readStatus(root);
       lease?.assertValid();
-      if (status.length > 0) {
-        return { ok: false, error: 'One & One requires a clean checkout so its checkpoints cannot include unrelated changes; commit or stash existing work first' };
-      }
-      if (existsSync(join(root, '.git', 'index.lock'))) return { ok: false, error: 'One & One cannot start while the Git index is locked' };
+      // A dirty checkout never kills the task: the pre-existing changes are committed below as the
+      // pair's baseline (or, if that is impossible, the pair starts anyway with a warning).
+      preexistingChanges = status.some((entry) => !reserved(entry.path, []));
       const now = new Date().toISOString();
       const state = pairs.create({
         pairId: runId,
@@ -179,6 +184,26 @@ export async function initializePair(
       store.updateRun(runId, { dispatch: { ...(run?.dispatch ?? { rootRunId: runId }), pair: state } });
       return { ok: true, state };
     }, root);
+    if (!started.ok || !preexistingChanges) return started;
+    // Outside the pair lock: `checkpointPair` takes it itself. This is the "manager commits the
+    // user's pending work" step, so every later checkpoint holds only the pair's own edits.
+    const checkpoint = await checkpointPair(root, pairs, started.state.pairId, 'pre-existing changes');
+    if (!checkpoint.ok || !checkpoint.sha) {
+      store.appendEvent(runId, {
+        type: 'note',
+        message: `One & One could not commit the checkout's uncommitted changes (${checkpoint.error ?? 'unknown error'}) — continuing; its checkpoints may include them. Commit them yourself to keep the pair's history clean.`,
+        tone: 'danger',
+      });
+      return started;
+    }
+    const rebased = pairs.updateState(started.state.pairId, {
+      workspace: { ...started.state.workspace, baselineSha: checkpoint.sha },
+    });
+    store.appendEvent(runId, {
+      type: 'note',
+      message: `The checkout had uncommitted changes — Onni committed them as the One & One baseline (${checkpoint.sha.slice(0, 8)}) before starting`,
+    });
+    return { ok: true, state: mirrorPairState(store, rebased) };
   } catch (error) {
     return { ok: false, error: failure(error) };
   }

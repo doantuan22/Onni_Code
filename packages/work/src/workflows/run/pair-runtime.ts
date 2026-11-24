@@ -84,6 +84,7 @@ async function validateWorkspace(
   state: PairState,
   allowStaged = false,
   lease?: RepositoryLease | null,
+  allowHeadDrift = false,
 ): Promise<{ head: string; status: StatusEntry[] }> {
   const repo = await getRepoInfo(root);
   lease?.assertValid();
@@ -98,7 +99,11 @@ async function validateWorkspace(
   const head = await getHeadCommit(root);
   lease?.assertValid();
   if (!head) throw new Error('One & One could not read HEAD');
-  if (head !== (state.lastCheckpointSha ?? state.workspace.baselineSha)) {
+  // The active peer's own commits move HEAD between checkpoints (agents commit even
+  // though the prompt asks them not to). That drift is the peer's own work, so the
+  // checkpoint re-bases onto it instead of failing the pair; only the branch pin,
+  // conflicts and the index lock stay fail-closed.
+  if (!allowHeadDrift && head !== (state.lastCheckpointSha ?? state.workspace.baselineSha)) {
     throw new Error('One & One detected an unexpected HEAD change; restore the pair checkpoint before continuing');
   }
   const status = await readStatus(root);
@@ -141,7 +146,7 @@ export async function initializePair(
         if (existing.phase === 'stopped' || existing.phase === 'complete') {
           return { ok: false, error: `One & One pair is already ${existing.phase}` };
         }
-        await validateWorkspace(root, existing, false, lease);
+        await validateWorkspace(root, existing, true, lease, true);
         return { ok: true, state: mirrorPairState(store, existing) };
       }
       const repo = await getRepoInfo(root);
@@ -184,7 +189,7 @@ export async function validatePairWorkspace(root: string, pairs: PairStore, pair
     return await pairs.serialize<{ ok: true; head: string } | { ok: false; error: string }>(pairId, async (lease) => {
       const state = pairs.readState(pairId);
       if (!state) return { ok: false, error: 'One & One pair state is missing' };
-      const { head } = await validateWorkspace(root, state, false, lease);
+      const { head } = await validateWorkspace(root, state, true, lease, true);
       return { ok: true, head };
     }, root);
   } catch (error) {
@@ -208,7 +213,7 @@ export async function checkpointPair(
       }
       let addedPaths: string[] | undefined;
       try {
-        const { status } = await validateWorkspace(root, state, false, lease);
+        const { status } = await validateWorkspace(root, state, true, lease, true);
         const validatedState = pairs.readState(pairId);
         if (!validatedState) return { ok: false, error: 'One & One pair disappeared during checkpoint' };
         if (validatedState.phase === 'stopped' || validatedState.phase === 'complete') {
@@ -229,7 +234,7 @@ export async function checkpointPair(
         lease?.assertValid();
         const current = pairs.readState(pairId);
         if (!current) return { ok: false, error: 'One & One pair state disappeared during checkpoint' };
-        await validateWorkspace(root, current, true, lease);
+        await validateWorkspace(root, current, true, lease, true);
         const beforeCommit = pairs.readState(pairId);
         if (!beforeCommit) return { ok: false, error: 'One & One pair state disappeared during checkpoint' };
         if (beforeCommit.phase === 'stopped' || beforeCommit.phase === 'complete') {
@@ -272,7 +277,7 @@ export async function inspectPairDiff(root: string, pairs: PairStore, pairId: st
       if (!state) return { ok: false, stat: '', nameStatus: '', diff: '', truncated: false, error: 'One & One pair state is missing' };
       const scratch = await mkdtemp(join(tmpdir(), 'onni-pair-diff-'));
       try {
-        await validateWorkspace(root, state, false, lease);
+        await validateWorkspace(root, state, true, lease, true);
         const env = { ...process.env, GIT_INDEX_FILE: join(scratch, 'index'), GIT_OPTIONAL_LOCKS: '0' };
         await git(root, ['read-tree', 'HEAD'], env);
         lease?.assertValid();

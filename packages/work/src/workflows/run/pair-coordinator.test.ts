@@ -113,6 +113,29 @@ describe('One & One coordinator', () => {
     expect((await validatePairWorkspace(root, pairs, MANAGER_ID)).ok).toBe(true);
   });
 
+  it('tolerates the worker committing and staging mid-turn when handing off', async () => {
+    await startOrder();
+    writeFileSync(join(root, 'committed.txt'), 'committed\n', 'utf8');
+    git(root, 'add', 'committed.txt');
+    git(root, 'commit', '-m', 'worker committed mid-order');
+    writeFileSync(join(root, 'staged.txt'), 'staged\n', 'utf8');
+    git(root, 'add', 'staged.txt');
+    const delivered: PastedContent[][] = [];
+    const context = {
+      store,
+      dataDir,
+      repoRoot: root,
+      active: new Set<string>(),
+      deliverMessage: (_runId: string, content: PastedContent[]) => { delivered.push(content); return true; },
+      deferMessage: () => false,
+      continueRun: () => ({ ok: true }),
+    };
+    const handedOff = await handlePairWorkerTurn(context, WORKER_ID, 'Implemented, committed, and staged.\nONNI:DONE', []);
+    expect(handedOff).toEqual({ handled: true, ok: true });
+    expect(pairs.readState(MANAGER_ID)?.phase).toBe('manager_review');
+    expect(git(root, 'show', '--format=', '--name-only', 'HEAD')).toContain('staged.txt');
+  });
+
   it('resumes the same worker for a revised order and mirrors worker_working', async () => {
     await startOrder();
     const first = pairs.getOrder(MANAGER_ID, pairs.readState(MANAGER_ID)!.currentOrderId!)!;

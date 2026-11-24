@@ -84,4 +84,31 @@ describe('One & One runtime repository locking', () => {
     expect(diff.nameStatus).toContain('feature.txt');
     expect(diff.diff).toContain('+feature');
   });
+
+  it('tolerates the worker committing and staging mid-turn instead of failing the pair', async () => {
+    const { root, pairs, baselineSha } = setup();
+    // The worker commits one file and stages another before its turn hands off.
+    writeFileSync(join(root, 'committed.txt'), 'committed\n');
+    git(root, 'add', 'committed.txt');
+    git(root, 'commit', '-m', 'worker commit');
+    writeFileSync(join(root, 'staged.txt'), 'staged\n');
+    git(root, 'add', 'staged.txt');
+    const driftedHead = git(root, 'rev-parse', 'HEAD');
+    expect(driftedHead).not.toBe(baselineSha);
+
+    const valid = await validatePairWorkspace(root, pairs, PAIR_ID);
+    expect(valid.ok).toBe(true);
+
+    const checkpoint = await checkpointPair(root, pairs, PAIR_ID, 'worker handoff');
+    expect(checkpoint.ok).toBe(true);
+    // The staged file is folded into the checkpoint commit on top of the worker's own commit.
+    expect(pairs.readState(PAIR_ID)?.lastCheckpointSha).toBe(checkpoint.sha);
+    expect(git(root, 'rev-parse', 'HEAD')).toBe(checkpoint.sha);
+    expect(git(root, 'show', '--format=', '--name-only', 'HEAD')).toContain('staged.txt');
+
+    const diff = await inspectPairDiff(root, pairs, PAIR_ID);
+    expect(diff.ok).toBe(true);
+    expect(diff.nameStatus).toContain('committed.txt');
+    expect(diff.nameStatus).toContain('staged.txt');
+  });
 });

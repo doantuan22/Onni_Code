@@ -354,22 +354,23 @@ export function ThreadView({
         continuationEngine={continuable ? continueAction.pills : undefined}
       />}
 
-      {/* One & One status: pinned in the empty right margin on wide screens (fixed, scrolls with
-          nothing); on narrow screens it is a plain block above the thread, never after it. */}
-      {pair.data !== undefined ? (
-        <div
-          data-slot="pair-panel"
-          className="mx-auto w-full max-w-[var(--chat-measure)] px-3 pt-3 md:px-6 xl:fixed xl:right-4 xl:top-24 xl:z-10 xl:mx-0 xl:max-h-[calc(100vh-8rem)] xl:w-80 xl:max-w-none xl:overflow-y-auto xl:p-0"
-        >
-          <PairCard snapshot={pair.data} />
-        </div>
-      ) : null}
+      {/* One & One status: sticky in the right margin on wide screens (beside the lane, below the
+          header — never over it); on narrow screens it is a plain block above the thread. */}
+      <div className="flex flex-1 flex-col xl:flex-row xl:justify-center xl:gap-4 xl:px-4">
+        {pair.data !== undefined ? (
+          <div
+            data-slot="pair-panel"
+            className="order-first mx-auto w-full max-w-[var(--chat-measure)] px-3 pt-3 md:px-6 xl:order-last xl:sticky xl:top-28 xl:mx-0 xl:max-h-[calc(100vh-9rem)] xl:w-80 xl:max-w-none xl:shrink-0 xl:self-start xl:overflow-y-auto xl:p-0 xl:pt-4"
+          >
+            <PairCard snapshot={pair.data} />
+          </div>
+        ) : null}
 
       {/* Row spacing lives on each thread row (pb-2.5, both render modes measure alike);
           this gap only separates the sections — rows, empty state, footer, review panel. */}
       <div
         data-slot="thread-reading-lane"
-        className="scene-reading-panel mx-auto flex w-full max-w-[var(--chat-measure)] flex-1 flex-col gap-2 px-3 py-3 md:gap-3 md:px-6 md:py-4"
+        className="scene-reading-panel mx-auto flex w-full max-w-[var(--chat-measure)] min-w-0 flex-1 flex-col gap-2 px-3 py-3 md:gap-3 md:px-6 md:py-4"
       >
         {run.worktreeLifecycle ? <TaskLifecycleCard worktreeId={run.worktreeLifecycle.worktreeId} operationId={run.worktreeLifecycle.activeOperationId} worktreePath={run.worktreePath} taskTitle={run.title ?? run.task} /> : null}
         {history ? (
@@ -487,6 +488,7 @@ export function ThreadView({
         {run.status === 'review' && !lifecycleGate && run.worktree !== false ? (
           <ReviewPanel run={run} diffComments={diffComments} />
         ) : null}
+      </div>
       </div>
 
       <AcceptCelebration status={run.status} />

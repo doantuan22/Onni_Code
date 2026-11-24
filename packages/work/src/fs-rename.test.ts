@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { readFileWithRetry, renameSyncWithRetry, renameWithRetry } from './fs-rename.ts';
+import { readFileSyncWithRetry, readFileWithRetry, renameSyncWithRetry, renameWithRetry } from './fs-rename.ts';
 
 function errno(code: string): NodeJS.ErrnoException {
   return Object.assign(new Error(`${code}: operation not permitted, rename`), { code });
@@ -70,6 +70,33 @@ describe('renameSyncWithRetry', () => {
     writeFileSync(join(dir, 'x'), 'old');
     renameSyncWithRetry(join(dir, 'x.tmp'), join(dir, 'x'));
     expect(readFileSync(join(dir, 'x'), 'utf8')).toBe('new');
+  });
+});
+
+describe('readFileSyncWithRetry', () => {
+  it('retries a Windows sharing violation on read, so a caller never sees a busy file as absent', () => {
+    const calls: string[] = [];
+    const failures = ['EBUSY', 'EPERM'];
+    const readFile = (path: string) => {
+      calls.push(path);
+      const code = failures.shift();
+      if (code) throw errno(code);
+      return 'content';
+    };
+    const slept: number[] = [];
+    const text = readFileSyncWithRetry('x', { platform: 'win32', readFile, sleep: (ms) => slept.push(ms) });
+    expect(text).toBe('content');
+    expect(calls).toEqual(['x', 'x', 'x']);
+    expect(slept).toEqual([10, 20]);
+  });
+
+  it('does not retry ENOENT, nor anything on POSIX', () => {
+    expect(() =>
+      readFileSyncWithRetry('x', { platform: 'win32', readFile: () => { throw errno('ENOENT'); }, sleep: () => {} }),
+    ).toThrow(/ENOENT/);
+    expect(() =>
+      readFileSyncWithRetry('x', { platform: 'linux', readFile: () => { throw errno('EBUSY'); } }),
+    ).toThrow(/EBUSY/);
   });
 });
 

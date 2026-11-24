@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { existsSync, lstatSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync, rmSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { z } from 'zod';
 import {
@@ -42,6 +42,7 @@ import {
   type RepositoryLease,
 } from '../git-repository-lock.ts';
 import { atomicWriteJsonSync } from '../workspace/config.ts';
+import { readFileSyncWithRetry } from '../fs-rename.ts';
 import { safeRunIdSchema } from '../runs/store.ts';
 
 const PAIR_ID_RE = /^[A-Za-z0-9._-]{1,120}$/;
@@ -67,7 +68,7 @@ function contained(parent: string, child: string): boolean {
 
 function parseStored<T>(schema: { parse: (value: unknown) => T }, path: string, fallback: T): T {
   try {
-    return schema.parse(JSON.parse(readFileSync(path, 'utf8')));
+    return schema.parse(JSON.parse(readFileSyncWithRetry(path)));
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return fallback;
     return fallback;
@@ -174,10 +175,10 @@ export class PairStore {
 
   private readDeletionState(pairId: string): { state: PairState; intent: PairDeletionIntent | null } {
     try {
-      const state = pairStateSchema.parse(JSON.parse(readFileSync(this.path(pairId, 'state.json'), 'utf8')));
+      const state = pairStateSchema.parse(JSON.parse(readFileSyncWithRetry(this.path(pairId, 'state.json'))));
       const deletionPath = this.path(pairId, 'deletion.json');
       const intent = existsSync(deletionPath)
-        ? pairDeletionIntentSchema.parse(JSON.parse(readFileSync(deletionPath, 'utf8')))
+        ? pairDeletionIntentSchema.parse(JSON.parse(readFileSyncWithRetry(deletionPath)))
         : null;
       if (intent) this.validateDeletionIntent(state, intent);
       return { state, intent };
@@ -252,7 +253,7 @@ export class PairStore {
       try {
         const deletionPath = this.path(pairId, 'deletion.json');
         if (!existsSync(deletionPath)) continue;
-        const intent = pairDeletionIntentSchema.parse(JSON.parse(readFileSync(deletionPath, 'utf8')));
+        const intent = pairDeletionIntentSchema.parse(JSON.parse(readFileSyncWithRetry(deletionPath)));
         await this.serialize(pairId, async (lease) => {
           if (!lease) throw new PairStoreError('One & One deletion requires a repository lease');
           lease.assertValid();

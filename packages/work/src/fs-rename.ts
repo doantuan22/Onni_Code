@@ -1,4 +1,4 @@
-import { promises as fsp, renameSync } from 'node:fs';
+import { promises as fsp, readFileSync, renameSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import { decodeText } from './text-decode.ts';
 
@@ -63,6 +63,30 @@ export interface ReadRetryOptions {
   platform?: NodeJS.Platform;
   readFile?: (path: string) => Promise<string>;
   sleep?: (ms: number) => Promise<unknown>;
+}
+
+export interface ReadSyncRetryOptions {
+  platform?: NodeJS.Platform;
+  readFile?: (path: string) => string;
+  sleep?: (ms: number) => void;
+}
+
+/** Sync twin of `readFileWithRetry` for callers that read on-disk state in a synchronous path
+ *  (the pair store). The same scanner handle that blocks a rename blocks a read, and a caller
+ *  that reads "unreadable" as "absent" then stops the pair on real state. */
+export function readFileSyncWithRetry(path: string, options: ReadSyncRetryOptions = {}): string {
+  const read = options.readFile ?? ((p: string) => decodeText(readFileSync(p)));
+  if ((options.platform ?? process.platform) !== 'win32') return read(path);
+  const sleep = options.sleep ?? sleepSync;
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return read(path);
+    } catch (error) {
+      const ms = retryDelay(error, attempt);
+      if (ms === undefined) throw error;
+      sleep(ms);
+    }
+  }
 }
 
 /** UTF-8 `readFile` under the same policy: the scanner handle that blocks a rename blocks an

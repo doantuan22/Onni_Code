@@ -154,7 +154,7 @@ import { deleteUpload, writeUpload } from '../uploads.ts';
 import { diskHealth } from './disk-health.ts';
 import { branchesCheckedOutElsewhere, removeWorktree } from '../git-worktree.ts';
 import { protectedByLiveTree } from '../runs/retention.ts';
-import { pairRunMutationRefusal } from '../runs/pair-mutation.ts';
+import { deleteHistoricalPair, pairDeletionCandidate } from '../runs/pair-deletion.ts';
 import { worktreeLifecycleRoutes } from './worktree-lifecycle.ts';
 import { readLifecycleConfigOrDefault } from '../worktree-lifecycle/config.ts';
 import { getRepoInfo } from './git.ts';
@@ -1953,13 +1953,31 @@ export function createApp(deps: ServerDeps) {
   const deleteRunFully = async (
     project: ProjectContext,
     id: string,
-  ): Promise<{ ok: true } | { ok: false; status: 404 | 409; error: string } | { ok: false; status: 'lifecycle'; error: unknown }> => {
+  ): Promise<{ ok: true; deleted: number } | { ok: false; status: 404 | 409; error: string } | { ok: false; status: 'lifecycle'; error: unknown; deleted: number }> => {
     const { root: repoRoot, store, manager, dataDir } = project;
     if (manager.isActive(id)) return { ok: false, status: 409, error: 'run is active — cancel it first' };
     const run = store.getRun(id);
     if (!run) return { ok: false, status: 404, error: 'not found' };
-    const pairRefusal = pairRunMutationRefusal(run);
-    if (pairRefusal) return { ok: false, status: 409, error: pairRefusal };
+    if (run.dispatch?.pair !== undefined || run.dispatch?.pairMember !== undefined) {
+      const pairManager = {
+        hasPendingWork: (runId: string) => manager.hasPendingWork(runId),
+        forgetSoftAsk: (runId: string) => manager.forgetSoftAsk(runId),
+        stopTaskProcesses,
+      };
+      const lookup = pairDeletionCandidate(store, pairManager, dataDir, repoRoot, id);
+      if (!lookup.ok) return lookup;
+      try {
+        await deleteHistoricalPair(store, pairManager, dataDir, lookup.candidate);
+        return { ok: true, deleted: lookup.candidate.runIds.length };
+      } catch (error) {
+        return {
+          ok: false,
+          status: 'lifecycle',
+          error,
+          deleted: lookup.candidate.runIds.filter((runId) => !store.getRun(runId)).length,
+        };
+      }
+    }
     if (protectedByLiveTree(run, store.listRuns())) return { ok: false, status: 409, error: 'this worker belongs to a task tree that is still running — its manager may still be integrating the branch; try again when the tree has finished' };
     try {
       return await legacyWorktreeMutation(project, id, async () => {
@@ -1972,10 +1990,10 @@ export function createApp(deps: ServerDeps) {
         const deleted = store.deleteRun(id);
         // The run's `refs/onni/pr/<n>` goes with the last run that needed it (Phase 3).
         if (deleted && run.prHead) await manager.sweepPrHeadRefs();
-        return deleted ? ({ ok: true } as const) : ({ ok: false, status: 404, error: 'not found' } as const);
+        return deleted ? ({ ok: true, deleted: 1 } as const) : ({ ok: false, status: 404, error: 'not found' } as const);
       });
     } catch (error) {
-      return { ok: false, status: 'lifecycle', error };
+      return { ok: false, status: 'lifecycle', error, deleted: 0 };
     }
   };
 

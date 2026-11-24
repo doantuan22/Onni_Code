@@ -29,7 +29,7 @@ import {
   useReferenceProjectId,
   useRuns,
 } from '@/api/queries'
-import type { ApiRun, OpenTarget } from '@onni/api-client'
+import type { ApiRun, OpenTarget, PairOrder, PairState } from '@onni/api-client'
 import { RunLimitMeter } from '@/components/run-limit-meter'
 import { DiffStatLabel } from '@/components/diff-stat'
 import { TitleEditInput, useTitleEditor, type TitleEditor } from '@/components/editable-title'
@@ -1001,20 +1001,36 @@ function RunUsage({
 
 /** Current One & One state, outside the metadata disclosure because it describes live work. */
 function PairStatusLine({ run }: { run: ApiRun }) {
-  const { t } = useI18n()
   const rootPair = run.dispatch?.pair
-  const pairId = rootPair?.pairId ?? run.dispatch?.pairMember?.pairId ?? ''
-  const pair = useRunPair(run.id, pairId)
-  const state = rootPair ?? pair.data?.state
-  if (state === undefined) return null
+  if (rootPair !== undefined) return <PairStatusContent state={rootPair} />
+
+  const pairId = run.dispatch?.pairMember?.pairId
+  if (pairId === undefined) return null
+  return <PairWorkerStatusLine runId={run.id} pairId={pairId} />
+}
+
+function PairWorkerStatusLine({ runId, pairId }: { runId: string; pairId: string }) {
+  const pair = useRunPair(runId, pairId)
+  if (pair.data === undefined) return null
+  return <PairStatusContent state={pair.data.state} orders={pair.data.orders} />
+}
+
+function PairStatusContent({
+  state,
+  orders = [],
+}: {
+  state: PairState
+  orders?: readonly PairOrder[]
+}) {
+  const { t } = useI18n()
   const currentOrder = state.currentOrderId === undefined
     ? undefined
-    : pair.data?.orders.find((order) => order.id === state.currentOrderId)
+    : orders.find((order) => order.id === state.currentOrderId)
   const checkpoint = state.lastCheckpointSha
   return (
     <div
       data-slot="pair-status-line"
-      data-pair-id={pairId}
+      data-pair-id={state.pairId}
       className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"
     >
       <Pill className="shrink-0">{t('One & One')}</Pill>

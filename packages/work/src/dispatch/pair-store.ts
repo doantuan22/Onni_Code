@@ -1,9 +1,13 @@
 import { randomUUID } from 'node:crypto';
-import { existsSync, lstatSync, readFileSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { z } from 'zod';
 import {
+  ONE_AND_ONE_MAX_DECISIONS,
   ONE_AND_ONE_MAX_HANDOFFS,
+  ONE_AND_ONE_MAX_MESSAGES,
   ONE_AND_ONE_MAX_ORDER_REVISIONS,
+  ONE_AND_ONE_MAX_PROPOSALS,
   pairAcceptInputSchema,
   pairDecisionInputSchema,
   pairDecisionSchema,
@@ -30,10 +34,29 @@ import {
   type PairSnapshot,
   type PairState,
 } from '@onni/contract';
+import {
+  RepositoryLockError,
+  withRepositoryLock,
+  withRepositoryLockSync,
+  withRequiredRepositoryLock,
+  type RepositoryLease,
+} from '../git-repository-lock.ts';
 import { atomicWriteJsonSync } from '../workspace/config.ts';
+import { safeRunIdSchema } from '../runs/store.ts';
 
 const PAIR_ID_RE = /^[A-Za-z0-9._-]{1,120}$/;
 const pairMutationTails = new Map<string, Promise<void>>();
+const pairDeletionIntentSchema = z.strictObject({
+  pairId: z.string().min(1).max(120),
+  managerRunId: safeRunIdSchema,
+  workerRunId: safeRunIdSchema.optional(),
+  repoRoot: z.string().min(1).max(4096),
+  createdAt: z.string().min(1).max(40),
+});
+
+type PairDeletionIntent = z.infer<typeof pairDeletionIntentSchema>;
+type PairDeletionCallback = (intent: PairDeletionIntent) => void | Promise<void>;
+type PairDeletionAdmission = (intent: PairDeletionIntent) => void;
 
 export class PairStoreError extends Error {}
 
@@ -81,8 +104,13 @@ export class PairStore {
     return join(this.dir(pairId), file);
   }
 
-  /** Serialize HTTP read-modify-write sequences without blocking the single Node event loop. */
-  async serialize<T>(pairId: string, operation: () => T | Promise<T>): Promise<T> {
+  /** Keep the per-pair scheduling queue, then hold the repository lease across the operation. */
+  async serialize<T>(
+    pairId: string,
+    operation: (lease: RepositoryLease | null) => T | Promise<T>,
+    repositoryRoot?: string,
+    requireRepositoryLease = false,
+  ): Promise<T> {
     const key = this.dir(pairId);
     const previous = pairMutationTails.get(key) ?? Promise.resolve();
     let release!: () => void;
@@ -90,10 +118,30 @@ export class PairStore {
     pairMutationTails.set(key, current);
     await previous;
     try {
-      return await operation();
+      const root = repositoryRoot ?? this.readState(pairId)?.workspace.repoRoot;
+      if (!root) return await operation(null);
+      try {
+        return requireRepositoryLease
+          ? await withRequiredRepositoryLock(root, (lease) => operation(lease))
+          : await withRepositoryLock(root, operation);
+      } catch (error) {
+        if (error instanceof RepositoryLockError) throw new PairStoreError(error.message);
+        throw error;
+      }
     } finally {
       release();
       if (pairMutationTails.get(key) === current) pairMutationTails.delete(key);
+    }
+  }
+
+  private mutate<T>(pairId: string, operation: (lease: RepositoryLease | null) => T): T {
+    const root = this.readState(pairId)?.workspace.repoRoot;
+    if (!root) return operation(null);
+    try {
+      return withRepositoryLockSync(root, operation);
+    } catch (error) {
+      if (error instanceof RepositoryLockError) throw new PairStoreError(error.message);
+      throw error;
     }
   }
 
@@ -108,15 +156,121 @@ export class PairStore {
   }
 
   create(state: PairState): PairState {
-    if (existsSync(this.path(state.pairId, 'state.json'))) throw new PairStoreError('Pair already exists');
-    return this.write(pairStateSchema, state.pairId, 'state.json', state);
+    const parsed = pairStateSchema.parse(state);
+    try {
+      return withRepositoryLockSync(parsed.workspace.repoRoot, () => {
+        if (existsSync(this.path(parsed.pairId, 'state.json'))) throw new PairStoreError('Pair already exists');
+        return this.write(pairStateSchema, parsed.pairId, 'state.json', parsed);
+      });
+    } catch (error) {
+      if (error instanceof RepositoryLockError) throw new PairStoreError(error.message);
+      throw error;
+    }
   }
 
   readState(pairId: string): PairState | null {
     return this.read(pairStateSchema, pairId, 'state.json', null as unknown as PairState) as PairState | null;
   }
 
+  private readDeletionState(pairId: string): { state: PairState; intent: PairDeletionIntent | null } {
+    try {
+      const state = pairStateSchema.parse(JSON.parse(readFileSync(this.path(pairId, 'state.json'), 'utf8')));
+      const deletionPath = this.path(pairId, 'deletion.json');
+      const intent = existsSync(deletionPath)
+        ? pairDeletionIntentSchema.parse(JSON.parse(readFileSync(deletionPath, 'utf8')))
+        : null;
+      if (intent) this.validateDeletionIntent(state, intent);
+      return { state, intent };
+    } catch (error) {
+      if (error instanceof PairStoreError) throw error;
+      throw new PairStoreError(`Pair deletion state is missing or corrupt: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private validateDeletionIntent(state: PairState, intent: PairDeletionIntent): void {
+    if (state.phase !== 'complete' && state.phase !== 'stopped') throw new PairStoreError('Only a completed or stopped pair can be deleted');
+    if (
+      intent.pairId !== state.pairId
+      || intent.managerRunId !== state.managerRunId
+      || intent.workerRunId !== state.workerRunId
+      || resolve(intent.repoRoot) !== resolve(state.workspace.repoRoot)
+    ) throw new PairStoreError('Pair deletion intent does not match pair state');
+  }
+
+  private async finishDeletion(
+    pairId: string,
+    intent: PairDeletionIntent,
+    remove: PairDeletionCallback,
+    lease: RepositoryLease,
+  ): Promise<void> {
+    const current = this.readDeletionState(pairId);
+    this.validateDeletionIntent(current.state, intent);
+    lease.assertValid();
+    await remove(intent);
+    lease.assertValid();
+    rmSync(this.dir(pairId), { recursive: true, force: true });
+  }
+
+  async delete(
+    pairId: string,
+    expected: { managerRunId: string; workerRunId?: string; repoRoot: string },
+    remove: PairDeletionCallback,
+    admit?: PairDeletionAdmission,
+  ): Promise<void> {
+    return this.serialize(pairId, async (lease) => {
+      if (!lease) throw new PairStoreError('One & One deletion requires a repository lease');
+      const current = this.readDeletionState(pairId);
+      if (
+        current.state.managerRunId !== expected.managerRunId
+        || current.state.workerRunId !== expected.workerRunId
+        || resolve(current.state.workspace.repoRoot) !== resolve(expected.repoRoot)
+      ) throw new PairStoreError('Pair deletion identity does not match pair state');
+      if (current.state.phase !== 'complete' && current.state.phase !== 'stopped') {
+        throw new PairStoreError('Only a completed or stopped pair can be deleted');
+      }
+      const intent = current.intent ?? pairDeletionIntentSchema.parse({
+        pairId,
+        managerRunId: current.state.managerRunId,
+        ...(current.state.workerRunId !== undefined ? { workerRunId: current.state.workerRunId } : {}),
+        repoRoot: current.state.workspace.repoRoot,
+        createdAt: new Date().toISOString(),
+      });
+      lease.assertValid();
+      admit?.(intent);
+      lease.assertValid();
+      if (!current.intent) atomicWriteJsonSync(this.path(pairId, 'deletion.json'), intent);
+      await this.finishDeletion(pairId, intent, remove, lease);
+    }, expected.repoRoot, true);
+  }
+
+  async recoverDeletions(remove: PairDeletionCallback, admit?: PairDeletionAdmission): Promise<void> {
+    const base = resolve(this.directory);
+    if (!existsSync(base)) return;
+    for (const entry of readdirSync(base, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const pairId = entry.name;
+      try {
+        const deletionPath = this.path(pairId, 'deletion.json');
+        if (!existsSync(deletionPath)) continue;
+        const intent = pairDeletionIntentSchema.parse(JSON.parse(readFileSync(deletionPath, 'utf8')));
+        await this.serialize(pairId, async (lease) => {
+          if (!lease) throw new PairStoreError('One & One deletion requires a repository lease');
+          lease.assertValid();
+          admit?.(intent);
+          lease.assertValid();
+          await this.finishDeletion(pairId, intent, remove, lease);
+        }, intent.repoRoot, true);
+      } catch (error) {
+        console.warn(`[onni] could not recover One & One deletion ${pairId}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  }
+
   updateState(pairId: string, patch: Partial<PairState>): PairState {
+    return this.mutate(pairId, () => this.updateStateUnlocked(pairId, patch));
+  }
+
+  private updateStateUnlocked(pairId: string, patch: Partial<PairState>): PairState {
     const current = this.readState(pairId);
     if (!current) throw new PairStoreError('Pair does not exist');
     return this.write(pairStateSchema, pairId, 'state.json', { ...current, ...patch, updatedAt: new Date().toISOString() });
@@ -127,11 +281,15 @@ export class PairStore {
   }
 
   transition(pairId: string, phase: PairPhase, activeRole?: PairRole, patch: Partial<PairState> = {}): PairState {
+    return this.mutate(pairId, () => this.transitionUnlocked(pairId, phase, activeRole, patch));
+  }
+
+  private transitionUnlocked(pairId: string, phase: PairPhase, activeRole?: PairRole, patch: Partial<PairState> = {}): PairState {
     const current = this.readState(pairId);
     if (!current) throw new PairStoreError('Pair does not exist');
     const nextHandoffs = activeRole && current.activeRole && activeRole !== current.activeRole ? current.handoffs + 1 : current.handoffs;
     if (nextHandoffs > ONE_AND_ONE_MAX_HANDOFFS) throw new PairStoreError('One & One handoff limit reached');
-    return this.updateState(pairId, { ...patch, phase, ...(activeRole ? { activeRole } : {}), handoffs: nextHandoffs });
+    return this.updateStateUnlocked(pairId, { ...patch, phase, ...(activeRole ? { activeRole } : {}), handoffs: nextHandoffs });
   }
 
   listOrders(pairId: string): PairOrder[] {
@@ -143,6 +301,10 @@ export class PairStore {
   }
 
   enqueueOrder(pairId: string, input: DispatchInput): PairOrder {
+    return this.mutate(pairId, () => this.enqueueOrderUnlocked(pairId, input));
+  }
+
+  private enqueueOrderUnlocked(pairId: string, input: DispatchInput): PairOrder {
     const state = this.readState(pairId);
     if (!state) throw new PairStoreError('Pair does not exist');
     const revision = state.orderRevision + 1;
@@ -165,7 +327,7 @@ export class PairStore {
         : entry,
     );
     this.write(pairOrderSchema.array(), pairId, 'orders.json', [...orders, order]);
-    this.updateState(pairId, {
+    this.updateStateUnlocked(pairId, {
       phase: 'worker_queued',
       activeRole: 'worker',
       currentOrderId: order.id,
@@ -175,11 +337,15 @@ export class PairStore {
   }
 
   discardQueuedOrder(pairId: string, orderId: string, previous: PairState): PairOrder {
+    return this.mutate(pairId, () => this.discardQueuedOrderUnlocked(pairId, orderId, previous));
+  }
+
+  private discardQueuedOrderUnlocked(pairId: string, orderId: string, previous: PairState): PairOrder {
     const order = this.requireOrder(pairId, orderId);
     if (order.status !== 'queued') throw new PairStoreError('Only a queued order can be discarded');
     const updated = { ...order, status: 'rejected' as const, updatedAt: new Date().toISOString() };
-    this.replaceOrder(pairId, updated);
-    this.updateState(pairId, {
+    this.replaceOrderUnlocked(pairId, updated);
+    this.updateStateUnlocked(pairId, {
       phase: previous.phase,
       activeRole: previous.activeRole,
       currentOrderId: previous.currentOrderId,
@@ -191,30 +357,42 @@ export class PairStore {
   }
 
   markOrderWorking(pairId: string, orderId: string): PairOrder {
+    return this.mutate(pairId, () => this.markOrderWorkingUnlocked(pairId, orderId));
+  }
+
+  private markOrderWorkingUnlocked(pairId: string, orderId: string): PairOrder {
     const order = this.requireOrder(pairId, orderId);
     if (order.status !== 'queued') throw new PairStoreError('Order is not queued');
     const updated = { ...order, status: 'working' as const, updatedAt: new Date().toISOString() };
-    this.replaceOrder(pairId, updated);
-    this.transition(pairId, 'worker_working', 'worker', { currentOrderId: orderId });
+    this.replaceOrderUnlocked(pairId, updated);
+    this.transitionUnlocked(pairId, 'worker_working', 'worker', { currentOrderId: orderId });
     return updated;
   }
 
   reportOrder(pairId: string, orderId: string, report: string): PairOrder {
+    return this.mutate(pairId, () => this.reportOrderUnlocked(pairId, orderId, report));
+  }
+
+  private reportOrderUnlocked(pairId: string, orderId: string, report: string): PairOrder {
     const order = this.requireOrder(pairId, orderId);
     if (order.status !== 'working') throw new PairStoreError('Order is not being worked');
     const updated = pairOrderSchema.parse({ ...order, status: 'reported', report, updatedAt: new Date().toISOString() });
-    this.replaceOrder(pairId, updated);
-    this.transition(pairId, 'manager_review', 'manager', { currentOrderId: orderId });
+    this.replaceOrderUnlocked(pairId, updated);
+    this.transitionUnlocked(pairId, 'manager_review', 'manager', { currentOrderId: orderId });
     return updated;
   }
 
   acceptOrder(pairId: string, input: PairAcceptInput): PairOrder {
-    pairAcceptInputSchema.parse(input);
+    const parsed = pairAcceptInputSchema.parse(input);
+    return this.mutate(pairId, () => this.acceptOrderUnlocked(pairId, parsed));
+  }
+
+  private acceptOrderUnlocked(pairId: string, input: PairAcceptInput): PairOrder {
     const order = this.requireOrder(pairId, input.orderId);
     if (order.status !== 'reported') throw new PairStoreError('Only a reported order can be accepted');
     const updated = { ...order, status: 'accepted' as const, updatedAt: new Date().toISOString() };
-    this.replaceOrder(pairId, updated);
-    this.transition(pairId, 'final_check', 'manager', { currentOrderId: order.id });
+    this.replaceOrderUnlocked(pairId, updated);
+    this.transitionUnlocked(pairId, 'final_check', 'manager', { currentOrderId: order.id });
     return updated;
   }
 
@@ -224,6 +402,10 @@ export class PairStore {
 
   appendMessage(pairId: string, from: PairRole, input: PairMessageInput): PairMessage {
     const parsed = pairMessageInputSchema.parse(input);
+    return this.mutate(pairId, () => this.appendMessageUnlocked(pairId, from, parsed));
+  }
+
+  private appendMessageUnlocked(pairId: string, from: PairRole, parsed: PairMessageInput): PairMessage {
     const state = this.readState(pairId);
     if (!state) throw new PairStoreError('Pair does not exist');
     if (parsed.orderId && !this.getOrder(pairId, parsed.orderId)) throw new PairStoreError('Unknown order');
@@ -239,8 +421,8 @@ export class PairStore {
       ...(parsed.replyTo !== undefined ? { replyTo: parsed.replyTo } : {}),
       createdAt: new Date().toISOString(),
     });
-    this.write(pairMessageSchema.array(), pairId, 'messages.json', [...this.listMessages(pairId), message]);
-    this.updateState(pairId, {});
+    this.write(pairMessageSchema.array(), pairId, 'messages.json', [...this.listMessages(pairId), message].slice(-ONE_AND_ONE_MAX_MESSAGES));
+    this.updateStateUnlocked(pairId, {});
     return message;
   }
 
@@ -249,27 +431,34 @@ export class PairStore {
   }
 
   appendProposal(pairId: string, from: PairRole, input: PairProposalInput): PairProposal {
-    pairProposalInputSchema.parse(input);
+    const parsed = pairProposalInputSchema.parse(input);
+    return this.mutate(pairId, () => this.appendProposalUnlocked(pairId, from, parsed));
+  }
+
+  private appendProposalUnlocked(pairId: string, from: PairRole, parsed: PairProposalInput): PairProposal {
     const state = this.readState(pairId);
     if (!state) throw new PairStoreError('Pair does not exist');
-    if (input.orderId && !this.getOrder(pairId, input.orderId)) throw new PairStoreError('Unknown order');
+    if (parsed.orderId && !this.getOrder(pairId, parsed.orderId)) throw new PairStoreError('Unknown order');
     const now = new Date().toISOString();
     const proposal = pairProposalSchema.parse({
       id: randomUUID(),
       pairId,
       from,
-      ...(input.orderId !== undefined ? { orderId: input.orderId } : {}),
-      question: input.question,
-      options: input.options,
-      ...(input.recommendation !== undefined ? { recommendation: input.recommendation } : {}),
+      ...(parsed.orderId !== undefined ? { orderId: parsed.orderId } : {}),
+      question: parsed.question,
+      options: parsed.options,
+      ...(parsed.recommendation !== undefined ? { recommendation: parsed.recommendation } : {}),
       status: 'open',
       createdAt: now,
     });
     const proposals = this.listProposals(pairId).map((entry) =>
       entry.status === 'open' ? { ...entry, status: 'superseded' as const } : entry,
     );
-    this.write(pairProposalSchema.array(), pairId, 'proposals.json', [...proposals, proposal]);
-    this.updateState(pairId, {});
+    const boundedProposals = [...proposals, proposal].slice(-ONE_AND_ONE_MAX_PROPOSALS);
+    const retainedProposalIds = new Set(boundedProposals.map((entry) => entry.id));
+    this.write(pairProposalSchema.array(), pairId, 'proposals.json', boundedProposals);
+    this.write(pairDecisionSchema.array(), pairId, 'decisions.json', this.listDecisions(pairId).filter((entry) => retainedProposalIds.has(entry.proposalId)));
+    this.updateStateUnlocked(pairId, {});
     return proposal;
   }
 
@@ -278,11 +467,15 @@ export class PairStore {
   }
 
   decide(pairId: string, decidedBy: PairRole, input: PairDecisionInput): PairDecision {
-    pairDecisionInputSchema.parse(input);
+    const parsed = pairDecisionInputSchema.parse(input);
+    return this.mutate(pairId, () => this.decideUnlocked(pairId, decidedBy, parsed));
+  }
+
+  private decideUnlocked(pairId: string, decidedBy: PairRole, parsed: PairDecisionInput): PairDecision {
     const proposals = this.listProposals(pairId);
-    const proposal = proposals.find((entry) => entry.id === input.proposalId);
+    const proposal = proposals.find((entry) => entry.id === parsed.proposalId);
     if (!proposal || proposal.status !== 'open') throw new PairStoreError('Proposal is not open');
-    if (input.outcome === 'chosen' && !proposal.options.some((option) => option.id === input.optionId)) {
+    if (parsed.outcome === 'chosen' && !proposal.options.some((option) => option.id === parsed.optionId)) {
       throw new PairStoreError('Chosen option does not belong to the proposal');
     }
     const decision = pairDecisionSchema.parse({
@@ -290,16 +483,16 @@ export class PairStore {
       pairId,
       proposalId: proposal.id,
       decidedBy,
-      outcome: input.outcome,
-      ...(input.optionId !== undefined ? { optionId: input.optionId } : {}),
-      ...(input.note !== undefined ? { note: input.note } : {}),
+      outcome: parsed.outcome,
+      ...(parsed.optionId !== undefined ? { optionId: parsed.optionId } : {}),
+      ...(parsed.note !== undefined ? { note: parsed.note } : {}),
       createdAt: new Date().toISOString(),
     });
-    this.write(pairDecisionSchema.array(), pairId, 'decisions.json', [...this.listDecisions(pairId), decision]);
+    this.write(pairDecisionSchema.array(), pairId, 'decisions.json', [...this.listDecisions(pairId), decision].slice(-ONE_AND_ONE_MAX_DECISIONS));
     this.write(pairProposalSchema.array(), pairId, 'proposals.json', proposals.map((entry) =>
-      entry.id === proposal.id ? { ...entry, status: input.outcome === 'chosen' ? 'chosen' as const : 'declined' as const } : entry,
+      entry.id === proposal.id ? { ...entry, status: parsed.outcome === 'chosen' ? 'chosen' as const : 'declined' as const } : entry,
     ));
-    this.updateState(pairId, {});
+    this.updateStateUnlocked(pairId, {});
     return decision;
   }
 
@@ -329,7 +522,7 @@ export class PairStore {
     return order;
   }
 
-  private replaceOrder(pairId: string, updated: PairOrder): void {
+  private replaceOrderUnlocked(pairId: string, updated: PairOrder): void {
     const orders = this.listOrders(pairId);
     if (!orders.some((order) => order.id === updated.id)) throw new PairStoreError('Unknown order');
     this.write(pairOrderSchema.array(), pairId, 'orders.json', orders.map((order) => order.id === updated.id ? updated : order));

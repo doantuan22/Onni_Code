@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,8 +7,10 @@ import type { Roster } from '@onni/contract';
 import { PairStore } from '../../dispatch/pair-store.ts';
 import { RunStore } from '../../runs/store.ts';
 import { removeTempDir } from '../../test-fixtures/remove-temp-dir.testkit.ts';
+import { WorkspaceSemaphore } from '../../workspace/semaphore.ts';
 import { RunManager } from '../run.ts';
 import { initializePair, mirrorPairState } from './pair-runtime.ts';
+import { deliverPairPeerText } from './pair-coordinator.ts';
 import { recover } from './lifecycle.ts';
 import type { LifecycleContext } from './internal-types.ts';
 
@@ -51,7 +53,9 @@ describe('One & One terminal lifecycle', () => {
     git(root, 'commit', '-m', 'base');
     store = RunStore.open(dataDir);
     pairs = new PairStore(dataDir);
-    manager = new RunManager(store, root);
+    manager = new RunManager(store, root, {
+      semaphore: new WorkspaceSemaphore({ initial: { maxParallel: 0 } }),
+    });
     active = (manager as unknown as { active: typeof active }).active;
     store.createRun({
       id: MANAGER_ID,
@@ -59,6 +63,7 @@ describe('One & One terminal lifecycle', () => {
       workflow: '(one-and-one)',
       task: 'Coordinate',
       steps: [{ id: 'task', name: 'Task', kind: 'agent' }],
+      worktree: false,
     });
     store.createRun({
       id: WORKER_ID,
@@ -90,6 +95,7 @@ describe('One & One terminal lifecycle', () => {
   afterEach(async () => {
     manager.dispose();
     store.flush();
+    vi.unstubAllEnvs();
     await removeTempDir(root);
   });
 
@@ -116,6 +122,83 @@ describe('One & One terminal lifecycle', () => {
     expect(pairs.readState(MANAGER_ID)?.phase).toBe('stopped');
     expect(store.getRun(WORKER_ID)?.status).toBe('cancelled');
     expect(store.getRun(MANAGER_ID)?.status).toBe('cancelled');
+  });
+
+  it('stops the persistent worker when the manager is cancelled', () => {
+    const managerInterrupt = active.get(MANAGER_ID)!.interrupt;
+    const workerInterrupt = active.get(WORKER_ID)!.interrupt;
+
+    expect(manager.cancel(MANAGER_ID)).toBe(true);
+
+    expect(pairs.readState(MANAGER_ID)?.phase).toBe('stopped');
+    expect(store.getRun(MANAGER_ID)?.status).toBe('cancelled');
+    expect(store.getRun(WORKER_ID)?.status).toBe('cancelled');
+    expect(managerInterrupt).toHaveBeenCalledOnce();
+    expect(workerInterrupt).toHaveBeenCalledOnce();
+    expect(active.has(MANAGER_ID)).toBe(false);
+    expect(active.has(WORKER_ID)).toBe(false);
+  });
+
+  it('makes repeated manager cancellation harmless after the peer is stopped', () => {
+    const workerInterrupt = active.get(WORKER_ID)!.interrupt;
+    manager.cancel(MANAGER_ID);
+    const stopped = JSON.stringify(pairs.readState(MANAGER_ID));
+
+    expect(manager.cancel(MANAGER_ID)).toBe(false);
+
+    expect(JSON.stringify(pairs.readState(MANAGER_ID))).toBe(stopped);
+    expect(pairs.readState(MANAGER_ID)?.phase).toBe('stopped');
+    expect(store.getRun(WORKER_ID)?.status).toBe('cancelled');
+    expect(workerInterrupt).toHaveBeenCalledOnce();
+  });
+
+  it('reuses the persistent worker session, provider, account and binding for a revised order', async () => {
+    vi.stubEnv('ONNI_DISPATCH', '1');
+    const first = pairs.getOrder(MANAGER_ID, pairs.readState(MANAGER_ID)!.currentOrderId!)!;
+    pairs.reportOrder(MANAGER_ID, first.id, 'First attempt');
+    mirrorPairState(store, pairs.readState(MANAGER_ID)!);
+    active.delete(WORKER_ID);
+    const deferredBinding = {
+      revision: 'binding-1',
+      runner: 'codex',
+      accounts: [{ runner: 'codex', id: 'account-a', path: '/accounts/a', identity: 'worker@example.test' }],
+    };
+    store.updateRun(WORKER_ID, {
+      status: 'done',
+      runner: 'codex',
+      model: 'gpt-5',
+      modelIdentity: 'openai/gpt-5',
+      agentProfile: 'account-a',
+      deferredBinding,
+    });
+    store.updateStep(WORKER_ID, 'task', {
+      status: 'done',
+      sessionId: 'worker-session',
+      backend: 'codex',
+      profileId: 'account-a',
+      modelIdentity: 'openai/gpt-5',
+    });
+    const originalStep = { ...store.getRun(WORKER_ID)!.steps.find((step) => step.id === 'task')! };
+
+    const outcome = await manager.dispatchFromAgent(MANAGER_ID, { objective: 'Revise the implementation' });
+
+    expect(outcome).toMatchObject({ id: WORKER_ID, pair: { workerRunId: WORKER_ID, revision: 2 } });
+    const pending = (manager as unknown as {
+      pendingContinuations: Map<string, { stepId: string; sessionId: string | undefined; backend: string }>;
+    }).pendingContinuations.get(WORKER_ID);
+    expect(pending).toMatchObject({ stepId: 'continue-1', sessionId: 'worker-session', backend: 'codex' });
+    const worker = store.getRun(WORKER_ID)!;
+    expect(worker).toMatchObject({
+      id: WORKER_ID,
+      runner: 'codex',
+      model: 'gpt-5',
+      modelIdentity: 'openai/gpt-5',
+      agentProfile: 'account-a',
+      deferredBinding,
+    });
+    expect(worker.steps.find((step) => step.id === 'task')).toEqual(originalStep);
+    expect(worker.steps.filter((step) => step.id.startsWith('continue-'))).toHaveLength(1);
+    expect(store.listRuns().filter((run) => run.dispatch?.pairMember?.pairId === MANAGER_ID)).toHaveLength(1);
   });
 
   it('stops the worker when the manager fails', () => {
@@ -180,12 +263,58 @@ describe('One & One terminal lifecycle', () => {
       recoverSoftAsks: vi.fn(),
       expireLostManagerDeliveriesAfterRestart: vi.fn(),
       continueRun,
+      settleSuccess: vi.fn(async () => {}),
       reconcileAutoResumes: vi.fn(),
       pump: vi.fn(),
       cancelOne: vi.fn(() => true),
+      hasPendingWork: vi.fn(() => false),
       reportSettledChildToParent: vi.fn(async () => {}),
     } as unknown as LifecycleContext;
   }
+
+  it('counts starting continuations and durable worktree operations as pending work', () => {
+    active.delete(MANAGER_ID);
+    const starting = (manager as unknown as { starting: Set<string> }).starting;
+    starting.add(MANAGER_ID);
+    expect(manager.hasPendingWork(MANAGER_ID)).toBe(true);
+    starting.delete(MANAGER_ID);
+
+    store.updateRun(MANAGER_ID, {
+      status: 'done',
+      worktreeLifecycle: {
+        worktreeId: '33333333-3333-3333-3333-333333333333',
+        generation: 1,
+        activeOperationId: '44444444-4444-4444-4444-444444444444',
+        needsAttention: false,
+      },
+    });
+    expect(manager.hasPendingWork(MANAGER_ID)).toBe(true);
+  });
+
+  it('uses the full pending-work predicate before recovering a pair deletion', async () => {
+    active.clear();
+    const state = pairs.transition(MANAGER_ID, 'complete', 'manager', { completedAt: new Date().toISOString() });
+    mirrorPairState(store, state);
+    store.updateRun(MANAGER_ID, { status: 'done' });
+    store.updateRun(WORKER_ID, { status: 'done' });
+    writeFileSync(join(dataDir, 'pairs', MANAGER_ID, 'deletion.json'), JSON.stringify({
+      pairId: MANAGER_ID,
+      managerRunId: MANAGER_ID,
+      workerRunId: WORKER_ID,
+      repoRoot: root,
+      createdAt: new Date().toISOString(),
+    }));
+    const context = recoveryContext();
+    context.hasPendingWork = vi.fn((runId: string) => runId === MANAGER_ID);
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await recover(context);
+
+    expect(context.hasPendingWork).toHaveBeenCalledWith(MANAGER_ID);
+    expect(store.getRun(MANAGER_ID)).toBeDefined();
+    expect(store.getRun(WORKER_ID)).toBeDefined();
+    expect(existsSync(join(dataDir, 'pairs', MANAGER_ID, 'deletion.json'))).toBe(true);
+  });
 
   it('recovers the worker before its manager and leaves the manager parked for the report', async () => {
     expect(store.getRun(MANAGER_ID)?.dispatch?.pair?.phase).toBe('worker_working');
@@ -210,5 +339,52 @@ describe('One & One terminal lifecycle', () => {
 
     expect(pairs.readState(MANAGER_ID)?.phase).toBe('stopped');
     expect(context.cancelOne).toHaveBeenCalledWith(MANAGER_ID);
+  });
+
+  it('keeps a reported pair waiting for review across restart instead of settling it', async () => {
+    const order = pairs.getOrder(MANAGER_ID, pairs.readState(MANAGER_ID)!.currentOrderId!)!;
+    pairs.reportOrder(MANAGER_ID, order.id, 'Implemented and verified');
+    mirrorPairState(store, pairs.readState(MANAGER_ID)!);
+    store.updateRun(MANAGER_ID, { status: 'waiting' });
+    store.updateStep(MANAGER_ID, 'task', { status: 'waiting', sessionId: 'manager-session' });
+    store.updateRun(WORKER_ID, { status: 'done' });
+    store.updateStep(WORKER_ID, 'task', { status: 'done', sessionId: 'worker-session' });
+    active.clear();
+    const context = recoveryContext();
+
+    await recover(context);
+
+    expect(context.settleSuccess).not.toHaveBeenCalled();
+    expect(context.continueRun).not.toHaveBeenCalled();
+    expect(store.getRun(MANAGER_ID)?.status).toBe('waiting');
+    expect(store.getRun(MANAGER_ID)?.steps.find((step) => step.id === 'task')?.status).toBe('done');
+    expect(pairs.readState(MANAGER_ID)?.phase).toBe('manager_review');
+  });
+
+  it('resumes an inactive waiting manager for an engine-authored peer report', () => {
+    active.delete(MANAGER_ID);
+    store.updateRun(MANAGER_ID, { status: 'waiting' });
+    store.updateStep(MANAGER_ID, 'task', { status: 'waiting', sessionId: 'manager-session' });
+    expect(manager.continueRun(MANAGER_ID, { text: 'ordinary continue' })).toEqual({
+      ok: false,
+      error: 'cannot continue a waiting run',
+    });
+
+    deliverPairPeerText({
+      store,
+      active,
+      deliverMessage: () => false,
+      deferMessage: () => false,
+      continueRun: (id, options, deferForCapacity) => manager.continueRun(id, options, deferForCapacity),
+    }, MANAGER_ID, 'One & One worker report', 'peer delivery failed');
+
+    expect(store.getRun(MANAGER_ID)?.status).toBe('queued');
+    expect((manager as unknown as {
+      pendingContinuations: Map<string, { stepId: string; sessionId: string | undefined; prompt: string }>;
+    }).pendingContinuations.get(MANAGER_ID)).toMatchObject({
+      stepId: 'continue-1',
+      sessionId: 'manager-session',
+      prompt: 'One & One worker report',
+    });
   });
 });

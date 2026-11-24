@@ -29,6 +29,7 @@ import { drainSkillDeliveries } from './messages.ts';
 import { UNATTENDED_DENIED_TOOLS } from '../push-guard.ts';
 import { describeHit, raiseLimits } from '../limits.ts';
 import { DEFAULT_ALLOWED_TOOLS, stepKind } from '../types.ts';
+import { withRequiredRepositoryLock } from '../../git-repository-lock.ts';
 import { currentCheckExclusions } from './check-steps.ts';
 import { isPairMember, isPairRoot } from './pair-runtime.ts';
 import { preparePairContinuation } from './pair-coordinator.ts';
@@ -151,8 +152,12 @@ export function continueRun(ctx: ContinuationContext,
       }
       ctx.raiseAfterLimit(run);
     }
-    // `review` is continuable too — that's the "Send back" path (spec 009).
-    if (!ctx.helpers.continuableStatuses.includes(run.status)) {
+    // `review` is continuable too — that's the "Send back" path (spec 009). A live pair may reopen
+    // an interactive park for a peer report or owner reply; ordinary Continue still may not.
+    const waitingPair = run.status === 'waiting'
+      && opts.resumeWaitingPair === true
+      && (isPairRoot(run) || isPairMember(run));
+    if (!ctx.helpers.continuableStatuses.includes(run.status) && !waitingPair) {
       return { ok: false, error: `cannot continue a ${run.status} run` };
     }
     const sessionStep = [...run.steps].reverse().find((s) => s.sessionId);
@@ -434,22 +439,6 @@ export async function runContinuation(ctx: ContinuationContext,
         }
       }
     }
-    if (pairRun) {
-      const prepared = await preparePairContinuation(ctx, runId);
-      if (!prepared.ok || state.cancelled) {
-        const message = prepared.ok ? 'run cancelled' : prepared.error;
-        ctx.store.updateRun(runId, {
-          status: prepared.ok ? 'cancelled' : 'failed',
-          error: prepared.ok ? undefined : message,
-          finishedAt: new Date().toISOString(),
-          currentStepId: undefined,
-        });
-        ctx.store.appendEvent(runId, { type: 'lifecycle', message: `One & One continuation stopped — ${message}` });
-        ctx.dropActive(runId, state);
-        return;
-      }
-    }
-    ctx.armAutosave(runId, state);
     if (record) seedHandoffFile(ctx.dataDir, record); // idempotent — normally already there
     // Registry snapshot for `/skill` expansion. `execute` loads this for the workflow's own
     // sessions; a continuation builds its OWN ContinuationActiveRun, and without this the resumed session
@@ -470,37 +459,45 @@ export async function runContinuation(ctx: ContinuationContext,
       return;
     }
 
-    ctx.store.updateRun(runId, {
-      status: 'running',
-      error: undefined,
-      finishedAt: undefined,
-      currentStepId: stepId,
-      activity: undefined, // resuming a monitoring run — it's actively working again (#490)
-    });
-    ctx.store.updateStep(runId, stepId, {
-      status: 'running',
-      iterations: 1,
-      startedAt: new Date().toISOString(),
-      sessionId: spawnSessionId,
-      backend,
-    });
-    ctx.store.appendEvent(runId, { type: 'step-start', stepId, name: 'Continue', kind: 'agent', iteration: 1 });
-    // Attachments pasted into the follow-up composer, on the same terms as a live-session
-    // message (#357): persisted to the run's own attachment store so the thread renders the
-    // bubble's images rather than a bare count, and handed to the agent as absolute paths
-    // appended to the prompt (so it can operate on them — and because codex/opencode drop image
-    // blocks before they reach the model). An image ALSO rides along as a base64 block so the
-    // model can view it; a file (#950) has nothing to view and travels as its path alone.
-    const freshAttachments = ctx.persistPastedAttachments(runId, images);
-    const openingImages = [...contentBlocksOf(images), ...persistedImages];
-    const attachments = [...freshAttachments, ...persistedAttachments];
-    ctx.store.appendEvent(runId, {
-      type: 'user-message',
-      stepId,
-      text: prompt,
-      imageCount: openingImages.filter((b) => b.type === 'image').length,
-      ...(attachments.length ? { images: attachments.map((saved) => saved.url) } : {}),
-    });
+    const beginContinuation = () => {
+      ctx.armAutosave(runId, state);
+      ctx.store.updateRun(runId, {
+        status: 'running',
+        error: undefined,
+        finishedAt: undefined,
+        currentStepId: stepId,
+        activity: undefined, // resuming a monitoring run — it's actively working again (#490)
+      });
+      ctx.store.updateStep(runId, stepId, {
+        status: 'running',
+        iterations: 1,
+        startedAt: new Date().toISOString(),
+        sessionId: spawnSessionId,
+        backend,
+      });
+      ctx.store.appendEvent(runId, { type: 'step-start', stepId, name: 'Continue', kind: 'agent', iteration: 1 });
+      // Attachments pasted into the follow-up composer, on the same terms as a live-session
+      // message (#357): persisted to the run's own attachment store so the thread renders the
+      // bubble's images rather than a bare count, and handed to the agent as absolute paths
+      // appended to the prompt (so it can operate on them — and because codex/opencode drop image
+      // blocks before they reach the model). An image ALSO rides along as a base64 block so the
+      // model can view it; a file (#950) has nothing to view and travels as its path alone.
+      const freshAttachments = ctx.persistPastedAttachments(runId, images);
+      const openingImages = [...contentBlocksOf(images), ...persistedImages];
+      const attachments = [...freshAttachments, ...persistedAttachments];
+      ctx.store.appendEvent(runId, {
+        type: 'user-message',
+        stepId,
+        text: prompt,
+        imageCount: openingImages.filter((b) => b.type === 'image').length,
+        ...(attachments.length ? { images: attachments.map((saved) => saved.url) } : {}),
+      });
+      if (pairRun) ctx.store.flush({ throwOnError: true });
+      return { attachments, openingImages };
+    };
+    let opened: { attachments: PersistedAttachment[]; openingImages: ContentBlock[] } = pairRun
+      ? { attachments: [], openingImages: [] }
+      : beginContinuation();
 
     let stepCost = 0;
     let turnText = '';
@@ -848,10 +845,10 @@ export async function runContinuation(ctx: ContinuationContext,
             record?.systemPrompt,
             generateFollowups ? HANDOFF_INSTRUCTIONS : HANDOFF_ONLY_INSTRUCTIONS,
           ),
-          userPrompt: attachments.length
-            ? `${contextualOpeningPrompt}\n\n${pastedAttachmentsText(attachments, ctx.attachmentLibraryHint(attachments, state.grantedAttachmentLibrary))}`
+          userPrompt: opened.attachments.length
+            ? `${contextualOpeningPrompt}\n\n${pastedAttachmentsText(opened.attachments, ctx.attachmentLibraryHint(opened.attachments, state.grantedAttachmentLibrary))}`
             : contextualOpeningPrompt,
-          ...(openingImages.length ? { images: openingImages } : {}),
+          ...(opened.openingImages.length ? { images: opened.openingImages } : {}),
           cwd: state.cwd,
           allowedTools: state.readOnly ? READ_ONLY_TOOLS : toolsStep?.allowedTools ?? DEFAULT_ALLOWED_TOOLS,
           bashAllowlist: state.readOnly ? undefined : toolsStep?.bashAllowlist,
@@ -886,7 +883,32 @@ export async function runContinuation(ctx: ContinuationContext,
       if (started.pid !== undefined) registerRunProcess(runId, started.pid);
       return started;
     };
-    let session = launch(spawnSessionId, sessionId !== undefined, portableContext);
+    let session: AgentSession;
+    if (pairRun) {
+      try {
+        // Deletion and stop must not slip between pair admission and the agent spawn.
+        session = await withRequiredRepositoryLock(ctx.repoRoot, async () => {
+          const prepared = await preparePairContinuation(ctx, runId);
+          if (!prepared.ok || state.cancelled) throw new Error(prepared.ok ? 'run cancelled' : prepared.error);
+          opened = beginContinuation();
+          return launch(spawnSessionId, sessionId !== undefined, portableContext);
+        });
+      } catch (error) {
+        const cancelled = state.cancelled;
+        const message = cancelled ? 'run cancelled' : error instanceof Error ? error.message : String(error);
+        ctx.store.updateRun(runId, {
+          status: cancelled ? 'cancelled' : 'failed',
+          error: cancelled ? undefined : message,
+          finishedAt: new Date().toISOString(),
+          currentStepId: undefined,
+        });
+        ctx.store.appendEvent(runId, { type: 'lifecycle', message: `One & One continuation stopped — ${message}` });
+        ctx.dropActive(runId, state);
+        return;
+      }
+    } else {
+      session = launch(spawnSessionId, sessionId !== undefined, portableContext);
+    }
 
     const finishedAt = () => new Date().toISOString();
     try {
@@ -908,7 +930,13 @@ export async function runContinuation(ctx: ContinuationContext,
           ctx.store.readEvents(runId).filter((event) => event.stepId !== stepId),
           ctx.attachmentsDir(runId),
         );
-        session = launch(freshId, false, context);
+        session = pairRun
+          ? await withRequiredRepositoryLock(ctx.repoRoot, async () => {
+              const prepared = await preparePairContinuation(ctx, runId);
+              if (!prepared.ok || state.cancelled) throw new Error(prepared.ok ? 'run cancelled' : prepared.error);
+              return launch(freshId, false, context);
+            })
+          : launch(freshId, false, context);
         for (const content of replay) session.sendMessage(content);
         await session.result;
         if (sessionError) throw new Error(sessionError);

@@ -15,19 +15,19 @@
 
 ## Xác minh bắt buộc còn nợ
 
-- [ ] Chạy lại `npm run typecheck` sau thay đổi cuối của `edit-workers-button.tsx`.
-- [ ] Chạy toàn bộ `npm test`.
-- [ ] Chạy toàn bộ `npm run test:unit`.
-- [ ] Chạy `npm run build`.
-- [ ] Chạy `npm run test:package`.
+- [x] Chạy lại `npm run typecheck` sau thay đổi cuối của `edit-workers-button.tsx`.
+- [x] Chạy `npm run build` (tsc → dist, vite → web/dist, check:pack).
+- [x] Chạy `npm run test:package` (5 test, gồm tarball install + dry-run CLI).
+- [ ] Chạy toàn bộ `npm test` — tạm hoãn theo yêu cầu; các test cần thiết đã chạy riêng và xanh (~891 test).
+- [ ] Chạy toàn bộ `npm run test:unit` — 1 test fail ngoài phạm vi One & One (`test-env-launcher.test.ts`, nohup fallback exit 127, do môi trường Windows).
 - [ ] Chạy `npm run test:e2e`; nếu provider trình duyệt không được cấp thì ghi `skipped`, không ghi `passed`.
 
 ## Test tích hợp còn nợ
 
-- [ ] Test worker từ chối khởi động khi membership hoặc worker identity không khớp persistent pair.
-- [ ] Test route chứng minh thao tác Git toàn repository chỉ bị chặn khi còn pair live, không chặn pair lịch sử.
-- [ ] Chạy focused test cho `PairCard` và các fixture mới.
-- [ ] Chạy toàn bộ contract parity, route parity và typed-body tests.
+- [x] Test từ chối cross-pair / identity mismatch trước khi mutation (pair-api.test.ts, pair-controls.ts `authorizePairCaller`).
+- [x] Test thao tác Git toàn repository chỉ bị chặn khi pair live, được phép sau khi `complete`/`stopped` (pair-api.test.ts).
+- [x] Chạy focused test cho `PairCard` và fixture mới (`pair-card.test.tsx`, 3 test).
+- [x] Chạy toàn bộ contract parity, route parity và typed-body tests (33 test xanh).
 - [ ] Kiểm tra toàn bộ API/CLI One & One trên instance chạy thật.
 - [ ] Kiểm tra hồi phục sau restart với worker rồi manager.
 - [ ] Kiểm tra hủy/lỗi một peer luôn dừng peer còn lại.
@@ -52,12 +52,12 @@
 
 ## Rủi ro/khoảng trống kỹ thuật còn mở
 
-- [ ] Chưa có khóa repository xuyên process; hiện chỉ có lease trong process.
-- [ ] Chưa có cơ chế phủ nhận lệnh Git-write cho mọi backend; hiện dựa vào prompt và fail-closed validation.
-- [ ] Chưa quyết định các graph node ghi GitHub khác ngoài fork/commit/PR/push/sync-base có nên bị chặn.
-- [ ] Chưa chốt semantics xóa/làm sạch lịch sử pair; pair completed/stopped hiện không thể bị xóa qua flow thông thường.
-- [ ] Chưa đặt cap lưu trữ riêng cho messages/decisions; UI mới chỉ giới hạn số phần tử render.
-- [ ] `PairStatusLine` vẫn gọi `useRunPair()` kể cả khi root đã có `dispatch.pair`; có thể tối ưu sau.
+- [x] Khóa repository xuyên process — `git-repository-lock.ts` (proper-lockfile, khóa theo git-common-dir), kèm `git-repository-lock.test.ts`, `pair-store-lock.test.ts`, `pair-runtime-lock.test.ts`.
+- [ ] Chưa có cơ chế phủ nhận lệnh Git-write cho mọi backend; hiện dựa vào prompt và fail-closed validation. (giới hạn thiết kế còn mở, cần quyết định của owner)
+- [x] Đã chốt: `PAIR_FORBIDDEN_SYSTEM_NODES` chặn mọi node ghi Git/GitHub/network (`git.commit`, `github.draft-pr`/`pr-comment`/`pr-update`/`issue-comment`, `git.push`, `git.sync-base`, `notify.webhook`, `dispatch`, `workflow`).
+- [x] Đã chốt semantics xóa pair — `pair-deletion.ts` (chỉ xóa pair `complete`/`stopped`, intent bền vững + phục hồi sau restart), kèm `pair-deletion.test.ts`.
+- [x] Cap lưu trữ — `ONE_AND_ONE_MAX_MESSAGES`/`PROPOSALS`/`DECISIONS`/`ORDER_REVISIONS`/`HANDOFFS` trong `pair-store.ts`.
+- [x] `PairStatusLine` short-circuit khi root đã có `dispatch.pair`, không gọi `useRunPair()`.
 
 ## Ghi chú thực thi
 

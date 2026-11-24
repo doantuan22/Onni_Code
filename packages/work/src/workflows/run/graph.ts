@@ -15,7 +15,7 @@ import { isOfflineSkillClosure, provisionSkills } from '../../skills-provision.t
 import { getTeamSkillsCached, materializeSkillDir, waitForTeamSkills } from '../../skills-remote.ts';
 import { chainStepNote } from '../types.ts';
 import type { WorkflowDef, WorkflowStepDef } from '../types.ts';
-import { advance, compareValues, enterGraph, globMatch, loopBodyIds, edgeFrom, forkShape, isFailurePort, isTerminalAgent, nodeToStep, parseVerdict, renderNodeRefs, stripVerdictMarker, verdictInstruction, isExecutableNode } from '../graph.ts';
+import { advance, compareValues, enterGraph, globMatch, loopBodyIds, edgeFrom, forkShape, isFailurePort, isTerminalAgent, nodeToStep, parseVerdict, renderNodeRefs, stripVerdictMarker, verdictInstruction, isExecutableNode, PAIR_FORBIDDEN_SYSTEM_NODES } from '../graph.ts';
 import type { Condition, ExecutableNode, ForkShape, GraphNode, GraphStepResult, GraphTransition, WorkflowGraph } from '../graph.ts';
 import { loadWorkflows } from '../load.ts';
 import { pushRefusal } from '../push-guard.ts';
@@ -27,7 +27,6 @@ import type { StartRunInput } from '../run.ts';
 const GRAPH_TAKEN_CAP = 500;
 const NODE_SUMMARY_CAP = 4_000;
 const TEAM_SKILLS_WAIT_MS = 10_000;
-const PAIR_FORBIDDEN_SYSTEM_NODES = new Set(['dispatch', 'workflow', 'git.commit', 'github.draft-pr', 'git.push', 'git.sync-base']);
 
 type GraphParkOutcome =
   | { kind: 'answer'; text: string }

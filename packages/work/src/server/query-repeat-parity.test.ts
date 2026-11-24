@@ -2,6 +2,7 @@ import { mkdtempSync, mkdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { RunnerModelCatalog } from '../core/runner-model-catalog.ts'
 import { RunStore } from '../runs/store.ts'
 import type { RunManager } from '../workflows/run.ts'
 import { createApp } from './server.ts'
@@ -27,17 +28,25 @@ import { removeTempDir } from '../test-fixtures/remove-temp-dir.testkit.ts';
  */
 describe('a repeated query key stays 200 (c.req.query took the first value)', () => {
   let repoRoot: string
+  let store: RunStore
   let app: ReturnType<typeof createApp>
   beforeEach(() => {
     repoRoot = mkdtempSync(join(tmpdir(), 'onni-rq-'))
     mkdirSync(join(repoRoot, '.ai/onni'), { recursive: true })
+    store = RunStore.open(join(repoRoot, '.ai/onni'))
     app = createApp({
-      repoRoot, store: RunStore.open(join(repoRoot, '.ai/onni')),
+      repoRoot, store,
       manager: {} as RunManager, version: '0.0.0-test',
       providerAuth: connectedProviderAuth(),
+      modelCatalog: new RunnerModelCatalog({
+        adapters: { codex: { discover: async () => [] } },
+      }),
     })
   })
-  afterEach(async () => await removeTempDir(repoRoot))
+  afterEach(async () => {
+    store.flush()
+    await removeTempDir(repoRoot)
+  })
 
   it.each([
     ['/api/v1/models?runner=codex&runner=codex'],

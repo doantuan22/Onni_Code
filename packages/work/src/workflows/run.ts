@@ -767,6 +767,8 @@ interface ContinueRunOptions {
   /** Open a FRESH session seeded with the compacted context (the conversation outgrew the model's
    *  window) instead of resuming the too-large session. Internal — the usage-limit scheduler sets it. */
   compact?: boolean;
+  /** Pair peer or owner delivery may reopen a live session parked at waiting; ordinary Continue may not. */
+  resumeWaitingPair?: boolean;
 }
 
 interface ActiveRun {
@@ -1747,6 +1749,7 @@ export class RunManager {
       cancelDescendants: (runId, seen) => this.cancelDescendants(runId, seen),
       cancel: (runId) => this.cancel(runId),
       cancelOne: (runId) => this.cancelOne(runId),
+      hasPendingWork: (runId) => this.hasPendingWork(runId),
       isQueued: (runId) => this.isQueued(runId),
       enqueueMessage: (runId, content, deliveryId) => this.enqueueMessage(runId, content, deliveryId),
       recordManagerDeliveryTransition: (runId, deliveryId, state, reason) =>
@@ -2698,6 +2701,22 @@ export class RunManager {
 
   isActive(runId: string): boolean {
     return lifecycleIsActive(this.lifecycleContext(), runId);
+  }
+
+  hasPendingWork(runId: string): boolean {
+    const run = this.store.getRun(runId);
+    return this.isActive(runId)
+      || this.pendingJobs.has(runId)
+      || this.pendingContinuations.has(runId)
+      || this.pendingBranchNames.has(runId)
+      || this.deferredMessages.has(runId)
+      || this.continuationManagerDeliveryIds.has(runId)
+      || this.autoResumeTimers.has(runId)
+      || this.softAskTimers.has(runId)
+      || this.verifying.has(runId)
+      || this.memoryPausing.has(runId)
+      || run?.autoResumeAt !== undefined
+      || run?.worktreeLifecycle?.activeOperationId !== undefined;
   }
 
   private messageContext(): MessageContext {

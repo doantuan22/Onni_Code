@@ -1,6 +1,7 @@
 import { appendFileSync, chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { threadId } from 'node:worker_threads';
+import type { PairState } from '@onni/contract';
 import { hostname, tmpdir, uptime } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -2743,6 +2744,33 @@ describe('RunStore — pruning spares live runs (telemetry 73c6e796)', () => {
     expect(store.getRun(stale.id)).toBeUndefined();
     // The dispatch path's next write after creating a child: it threw `unknown run` before.
     expect(() => store.appendEvent(parent.id, { type: 'note', message: 'dispatched' })).not.toThrow();
+  });
+
+  it('never prunes one historical One & One peer without the other', () => {
+    process.env.ONNI_RUNS_KEEP = '1';
+    try {
+      const store = RunStore.open(dataDir);
+      const manager = store.createRun({ title: 'pair manager', workflow: '(one-and-one)', task: 'manage', steps: [], worktree: false });
+      const worker = store.createRun({ title: 'pair worker', workflow: '(one-and-one)', task: 'work', steps: [], worktree: false });
+      const now = new Date().toISOString();
+      const pair: PairState = {
+        pairId: 'historical-pair', managerRunId: manager.id, workerRunId: worker.id,
+        phase: 'complete', activeRole: 'manager',
+        workspace: { repoRoot: 'C:/repo', branch: 'dev', baselineSha: 'a'.repeat(40) },
+        orderRevision: 1, handoffs: 2, createdAt: now, updatedAt: now,
+      };
+      store.updateRun(manager.id, { status: 'done', dispatch: { rootRunId: manager.id, pair } });
+      store.updateRun(worker.id, {
+        status: 'done',
+        dispatch: { rootRunId: manager.id, parentRunId: manager.id, pairMember: { pairId: pair.pairId, role: 'worker', peerRunId: manager.id } },
+      });
+      store.createRun({ title: 'newer task', workflow: 'quick-task', task: 'newer', steps: [] });
+
+      expect(store.getRun(manager.id)).toBeDefined();
+      expect(store.getRun(worker.id)).toBeDefined();
+    } finally {
+      delete process.env.ONNI_RUNS_KEEP;
+    }
   });
 
   it('ONNI_RUNS_KEEP lowers how many settled runs the index keeps', () => {

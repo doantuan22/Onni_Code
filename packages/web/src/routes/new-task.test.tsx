@@ -2848,6 +2848,7 @@ describe('Task settings panel on /new', () => {
   }
   const ROSTER = {
     manager: { runner: 'claude' as const },
+    mode: 'fanout' as const,
     workers: [{ runner: 'codex' as const, role: '', maxConcurrent: 1 }],
   }
   const ROSTER_WORKSPACE: WorkspaceConfigResponse = {

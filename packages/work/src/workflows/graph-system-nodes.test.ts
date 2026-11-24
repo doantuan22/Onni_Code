@@ -6,8 +6,9 @@ import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Roster } from '@onni/contract';
 import { childSettleReport } from '../dispatch/engine.ts';
+import { PairStore } from '../dispatch/pair-store.ts';
 import { RunStore, type RunRecord } from '../runs/store.ts';
-import { graphIssues, graphRailSteps, graphToSteps, type WorkflowGraph } from './graph.ts';
+import { graphIssues, graphRailSteps, graphToSteps, PAIR_FORBIDDEN_SYSTEM_NODES, type GraphNode, type WorkflowGraph } from './graph.ts';
 import { WorkspaceSemaphore } from '../workspace/semaphore.ts';
 import { RunManager } from './run.ts';
 import { QUICK_TASK_WORKFLOW, type WorkflowDef } from './types.ts';
@@ -426,6 +427,94 @@ describe('graph system nodes', () => {
     expect(final.status).toBe('failed');
     expect(final.error).toContain('One & One owns this shared checkout');
     expect(store.listRuns().filter((run) => run.dispatch?.parentRunId === id)).toEqual([]);
+  }, 40_000);
+
+  const pairForbiddenWrites = [
+    { id: 'write', type: 'github.draft-pr' },
+    { id: 'write', type: 'github.pr-comment', body: 'must not comment' },
+    { id: 'write', type: 'github.pr-update', ready: true },
+    { id: 'write', type: 'github.issue-comment', issue: 7, body: 'must not comment' },
+    { id: 'write', type: 'notify.webhook', url: 'https://example.invalid/hook', body: 'must not POST' },
+  ] satisfies readonly GraphNode[];
+
+  it('One & One keeps the forbidden system-node set exact', () => {
+    expect([...PAIR_FORBIDDEN_SYSTEM_NODES].sort()).toEqual([
+      'dispatch',
+      'git.commit',
+      'git.push',
+      'git.sync-base',
+      'github.draft-pr',
+      'github.issue-comment',
+      'github.pr-comment',
+      'github.pr-update',
+      'notify.webhook',
+      'workflow',
+    ].sort());
+    expect(PAIR_FORBIDDEN_SYSTEM_NODES.has('github.wait-ci')).toBe(false);
+  });
+
+  it.each(pairForbiddenWrites)('One & One refuses $type before it can write', async (node) => {
+    vi.stubEnv('ONNI_WORKFLOW_WEBHOOKS', '1');
+    const graph: WorkflowGraph = {
+      nodes: [
+        { id: 'start', type: 'start' },
+        node,
+        { id: 'after', type: 'check', command: 'echo should-not-run > pair-write.txt' },
+      ],
+      edges: [
+        { from: 'start', to: 'write' },
+        { from: 'write', to: 'after' },
+      ],
+    };
+    const id = manager.startRun(def(graph), { task: 'x', roster: PAIR_ROSTER, worktree: false }).id;
+    const final = await until(id, terminal, 30_000);
+    expect(final.status, final.error).toBe('failed');
+    expect(final.steps.map((step) => [step.id, step.status])).toEqual([
+      ['write', 'failed'],
+      ['after', 'pending'],
+    ]);
+    expect(store.readEvents(id).some((event) =>
+      event.type === 'note' && typeof event.message === 'string' && event.message.includes('One & One owns this shared checkout'),
+    )).toBe(true);
+    expect(existsSync(join(repoRoot, 'pair-write.txt'))).toBe(false);
+  }, 40_000);
+
+  it('One & One keeps the read-only CI wait available', async () => {
+    const graph: WorkflowGraph = {
+      nodes: [
+        { id: 'start', type: 'start' },
+        { id: 'gate', type: 'gate.human', message: 'Check CI?' },
+        { id: 'ci', type: 'github.wait-ci', timeoutMs: 60_000, pollMs: 10_000 },
+        { id: 'ok', type: 'end', status: 'success' },
+      ],
+      edges: [
+        { from: 'start', to: 'gate' },
+        { from: 'gate.approve', to: 'ci' },
+        { from: 'ci.green', to: 'ok' },
+      ],
+    };
+    const id = manager.startRun(def(graph), { task: 'x', roster: PAIR_ROSTER, worktree: false }).id;
+    await until(id, parkedAt('gate'));
+    // The graph may settle only after the pair's own accept/final-check fence is satisfied.
+    const run = store.getRun(id)!;
+    const pairId = run.dispatch!.pair!.pairId;
+    const pairs = new PairStore(join(repoRoot, '.ai', 'onni'));
+    const order = pairs.enqueueOrder(pairId, { objective: 'Verify CI readiness' });
+    pairs.markOrderWorking(pairId, order.id);
+    pairs.reportOrder(pairId, order.id, 'CI readiness verified');
+    pairs.acceptOrder(pairId, { orderId: order.id });
+    store.updateRun(id, { dispatch: { ...run.dispatch!, pair: pairs.readState(pairId)! } });
+    store.updateRun(id, { pullRequestUrl: 'https://github.com/open-mercato/demo/pull/777' });
+    // The persisted waiting step becomes visible just before graphAnswer is armed.
+    await vi.waitFor(() => expect(manager.sendMessage(id, [{ type: 'text', text: 'Approve' }])).toBe(true));
+
+    const final = await until(id, terminal, 30_000);
+    expect(final.status, final.error).toBe('done');
+    expect(final.steps.map((step) => [step.id, step.status])).toEqual([
+      ['gate', 'done'],
+      ['ci', 'done'],
+    ]);
+    expect(final.graphState?.outputs?.ci).toEqual({ status: 'passing' });
   }, 40_000);
 
   it("fork commits the task's work first, so the branches fork from it", async () => {

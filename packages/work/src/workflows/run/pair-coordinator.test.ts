@@ -9,7 +9,8 @@ import { RunStore } from '../../runs/store.ts';
 import { removeTempDir } from '../../test-fixtures/remove-temp-dir.testkit.ts';
 import { handleDispatchTurn } from './manager-state.ts';
 import { finalizePairManager, handlePairWorkerTurn, preparePairContinuation } from './pair-coordinator.ts';
-import { checkpointPair, initializePair, validatePairWorkspace } from './pair-runtime.ts';
+import * as pairRuntime from './pair-runtime.ts';
+import { checkpointPair, initializePair, mirrorPairState, validatePairWorkspace } from './pair-runtime.ts';
 import type { ManagerStateActive, ManagerStateContext } from './internal-types.ts';
 import type { PastedContent } from './preparation.ts';
 
@@ -18,6 +19,12 @@ const WORKER_ID = '22222222-2222-2222-2222-222222222222';
 
 function git(root: string, ...args: string[]): string {
   return execFileSync('git', args, { cwd: root, encoding: 'utf8', windowsHide: true }).trim();
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => { resolve = done; });
+  return { promise, resolve };
 }
 
 const roster: Roster = {
@@ -50,6 +57,7 @@ describe('One & One coordinator', () => {
   });
 
   afterEach(async () => {
+    vi.restoreAllMocks();
     store.flush();
     await removeTempDir(root);
     await removeTempDir(dataDir);
@@ -159,6 +167,83 @@ describe('One & One coordinator', () => {
     expect(git(root, 'status', '--porcelain')).toContain('feature.txt');
     const prepared = await preparePairContinuation({ store, dataDir, repoRoot: root }, WORKER_ID);
     expect(prepared).toEqual({ ok: false, error: 'One & One pair is stopped' });
+  });
+
+  it('does not record a worker report when stop wins after the async checkpoint', async () => {
+    await startOrder();
+    writeFileSync(join(root, 'feature.txt'), 'implemented\n', 'utf8');
+    const checkpointFinished = deferred<void>();
+    const releaseCheckpoint = deferred<void>();
+    const original = pairRuntime.checkpointPair;
+    vi.spyOn(pairRuntime, 'checkpointPair').mockImplementation(async (...args: Parameters<typeof original>) => {
+      const result = await original(...args);
+      checkpointFinished.resolve();
+      await releaseCheckpoint.promise;
+      return result;
+    });
+    const delivered: PastedContent[][] = [];
+    const context = {
+      store, dataDir, repoRoot: root, active: new Set<string>(),
+      deliverMessage: (_runId: string, content: PastedContent[]) => { delivered.push(content); return true; },
+      deferMessage: () => false,
+      continueRun: () => ({ ok: true }),
+    };
+
+    const pending = handlePairWorkerTurn(context, WORKER_ID, 'Implemented the feature.\nONNI:DONE', []);
+    await checkpointFinished.promise;
+    mirrorPairState(store, pairs.transition(MANAGER_ID, 'stopped', 'manager'));
+    releaseCheckpoint.resolve();
+
+    await expect(pending).resolves.toEqual({
+      handled: true,
+      ok: false,
+      error: 'One & One pair stopped before the worker report could be recorded',
+    });
+    const state = pairs.readState(MANAGER_ID)!;
+    const order = pairs.getOrder(MANAGER_ID, state.currentOrderId!)!;
+    expect(state.phase).toBe('stopped');
+    expect(order).toMatchObject({ status: 'working' });
+    expect(order.report).toBeUndefined();
+    expect(store.getRun(MANAGER_ID)?.dispatch?.pair?.phase).toBe('stopped');
+    expect(delivered).toEqual([]);
+  });
+
+  it('does not record a worker report when stop wins during async diff inspection', async () => {
+    await startOrder();
+    writeFileSync(join(root, 'feature.txt'), 'implemented\n', 'utf8');
+    const diffFinished = deferred<void>();
+    const releaseDiff = deferred<void>();
+    const original = pairRuntime.inspectPairDiff;
+    vi.spyOn(pairRuntime, 'inspectPairDiff').mockImplementation(async (...args: Parameters<typeof original>) => {
+      const result = await original(...args);
+      diffFinished.resolve();
+      await releaseDiff.promise;
+      return result;
+    });
+    const delivered: PastedContent[][] = [];
+    const context = {
+      store, dataDir, repoRoot: root, active: new Set<string>(),
+      deliverMessage: (_runId: string, content: PastedContent[]) => { delivered.push(content); return true; },
+      deferMessage: () => false,
+      continueRun: () => ({ ok: true }),
+    };
+
+    const pending = handlePairWorkerTurn(context, WORKER_ID, 'Implemented the feature.\nONNI:DONE', []);
+    await diffFinished.promise;
+    mirrorPairState(store, pairs.transition(MANAGER_ID, 'stopped', 'manager'));
+    releaseDiff.resolve();
+
+    await expect(pending).resolves.toEqual({
+      handled: true,
+      ok: false,
+      error: 'One & One pair stopped before the worker report could be recorded',
+    });
+    const state = pairs.readState(MANAGER_ID)!;
+    const order = pairs.getOrder(MANAGER_ID, state.currentOrderId!)!;
+    expect(state.phase).toBe('stopped');
+    expect(order).toMatchObject({ status: 'working' });
+    expect(order.report).toBeUndefined();
+    expect(delivered).toEqual([]);
   });
 
   it('blocks manager completion on the acceptance turn and allows it after final checks', async () => {

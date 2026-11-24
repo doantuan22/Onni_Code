@@ -406,6 +406,7 @@ export interface LifecycleContext {
   cancelDescendants(runId: string, seen: Set<string>): void;
   cancel(runId: string): boolean;
   cancelOne(runId: string): boolean;
+  hasPendingWork(runId: string): boolean;
   isQueued(runId: string): boolean;
   enqueueMessage(runId: string, content: PastedContent[], managerDeliveryId?: string): QueuedMessage | null;
   recordManagerDeliveryTransition(
@@ -702,6 +703,8 @@ export interface ContinuationOptions {
   /** Open a FRESH session seeded with the compacted context (the conversation outgrew the model's
    *  window) instead of resuming the too-large session. Internal — the usage-limit scheduler sets it. */
   compact?: boolean;
+  /** Pair peer or owner delivery may reopen a live session parked at waiting; ordinary Continue may not. */
+  resumeWaitingPair?: boolean;
 }
 
 /** Active-run fields used by continuation and finish flows. */

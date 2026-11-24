@@ -5,6 +5,7 @@ import { isTerminalStatus } from '../../dispatch/engine.ts';
 import { continuePromptRefusal, messageText, queuedStackRefusal } from '../queued-bounds.ts';
 import { compileV1 } from '../graph.ts';
 import { removeAgentTmpDir, sweepAgentTmpDirs } from '../../runs/agent-tmpdir.ts';
+import { recoverPairDeletions } from '../../runs/pair-deletion.ts';
 import { RESTART_CONTINUATION_PROMPT, type PastedContent } from './preparation.ts';
 import { pairPeerRunId, stopPairForCancellation, stopTerminalPair } from './pair-coordinator.ts';
 import type { LifecycleActiveRun, LifecycleContext } from './internal-types.ts';
@@ -16,6 +17,10 @@ const DEFERRED_MARKER_SUFFIX = '.deferred-messages';
 /** Reconcile durable state after a process restart, then resume scheduling. */
 export async function recover(context: LifecycleContext): Promise<void> {
   await context.lifecycle.reconcile();
+  await recoverPairDeletions(context.store, {
+    hasPendingWork: (runId) => context.hasPendingWork(runId),
+    forgetSoftAsk: (runId) => context.clearSoftAsk(runId),
+  }, context.dataDir);
   // Repair durable manager redirects before ordinary recovery can settle their sources or pump
   // a dependent whose predecessor is cancelled.
   await context.recoverRedirectOperations();
@@ -134,10 +139,21 @@ export async function recover(context: LifecycleContext): Promise<void> {
         await context.reportSettledChildToParent(run.id);
         continue;
       }
+      const parkedPairManager = pair?.managerRunId === run.id && pair.phase !== 'stopped' && pair.phase !== 'complete';
       for (const step of run.steps) {
         if (step.status === 'waiting' || step.status === 'running') {
           context.store.updateStep(run.id, step.id, { status: 'done', finishedAt: new Date().toISOString() });
         }
+      }
+      if (parkedPairManager) {
+        // A pair manager still owes review, acceptance or final checks. Restart is not manager
+        // approval, so preserve the durable park until a peer report or user message resumes it.
+        context.store.updateRun(run.id, { status: 'waiting', currentStepId: undefined, activity: 'monitoring' });
+        context.store.appendEvent(run.id, {
+          type: 'lifecycle',
+          message: 'onni restarted — One & One remains parked for manager review or final checks',
+        });
+        continue;
       }
       context.store.appendEvent(run.id, {
         type: 'lifecycle',
@@ -469,8 +485,10 @@ function reapLeftoverProcesses(context: LifecycleContext, runIds: string[], grac
 export function cancel(context: LifecycleContext, runId: string): boolean {
   context.abortVerification(runId);
   if (context.lifecycle.isBlocked(runId)) return false;
+  const previousStatus = context.store.getRun(runId)?.status;
   context.cancelDescendants(runId, new Set([runId]));
-  return cancelOne(context, runId);
+  if (cancelOne(context, runId)) return true;
+  return previousStatus !== 'cancelled' && context.store.getRun(runId)?.status === 'cancelled';
 }
 
 /** Emergency stop: cancel every queued, live, or scheduled run, then reap leftover processes. */

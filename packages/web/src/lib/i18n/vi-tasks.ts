@@ -235,8 +235,10 @@ export const viTasks: Record<string, string> = {
   'Dashboard PDF report': 'Báo cáo PDF của bảng điều khiển',
   declined: 'đã từ chối',
   Declined: 'Đã từ chối',
+  'Delete pair': 'Xoá cặp',
   'Delete saved layout {name}': 'Xoá bố cục đã lưu {name}',
   'Delete the task, its worktree and its branch': 'Xoá nhiệm vụ, worktree và branch của nó',
+  'Delete this One & One pair?': 'Xoá cặp One & One này?',
   'Delete this task?': 'Xoá nhiệm vụ này?',
   'Denied by the “{level}” level: the agent cannot ask for approval when Onni runs it, so it is refused outright.':
     'Bị từ chối bởi mức “{level}”: agent không thể xin phê duyệt khi Onni chạy nó, nên bị từ chối thẳng.',
@@ -634,6 +636,8 @@ export const viTasks: Record<string, string> = {
   'This is the last column showing them.': 'Đây là cột cuối cùng hiển thị chúng.',
   'This layout could not be saved on this host — it keeps working in this tab, but will not come back after a refresh.':
     'Không lưu được bố cục này trên máy này — nó vẫn dùng được trong tab này, nhưng sẽ mất sau khi tải lại trang.',
+  'This removes both One & One tasks and their local pair and dispatch history. The shared checkout and checkpoint commits stay. There is no undo.':
+    'Thao tác này xoá cả hai nhiệm vụ One & One cùng lịch sử cặp và dispatch cục bộ. Checkout dùng chung và các checkpoint commit vẫn được giữ lại. Không thể hoàn tác.',
   'This removes the run, its transcript, its worktree and its branch. There is no undo.':
     'Thao tác này xoá lượt chạy, bản ghi phiên, worktree và branch của nó. Không thể hoàn tác.',
   'This run needed {provider} account “{account}” to be signed in':

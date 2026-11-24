@@ -2,6 +2,9 @@ import { z } from 'zod';
 
 export const ONE_AND_ONE_MAX_ORDER_REVISIONS = 20;
 export const ONE_AND_ONE_MAX_HANDOFFS = 100;
+export const ONE_AND_ONE_MAX_MESSAGES = 200;
+export const ONE_AND_ONE_MAX_PROPOSALS = 200;
+export const ONE_AND_ONE_MAX_DECISIONS = 200;
 
 export const pairRoleSchema = z.enum(['manager', 'worker']);
 export type PairRole = z.infer<typeof pairRoleSchema>;

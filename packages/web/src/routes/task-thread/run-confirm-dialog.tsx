@@ -37,17 +37,20 @@ export function RunConfirmDialog({
   onConfirm: (kind: RunConfirmKind) => void
 }) {
   const { t } = useI18n()
+  const oneAndOne = run.dispatch?.pair !== undefined || run.dispatch?.pairMember !== undefined
   return (
     <AlertDialog open={confirming !== null} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{confirming === 'delete' ? t('Delete this task?') : t('Stop this task?')}</AlertDialogTitle>
+          <AlertDialogTitle>{confirming === 'delete' ? t(oneAndOne ? 'Delete this One & One pair?' : 'Delete this task?') : t('Stop this task?')}</AlertDialogTitle>
           <AlertDialogDescription>
             {confirming === 'delete' ? (
               <>
-                {lifecycleDelete
-                  ? t('Cleanup runs before the task, transcript, worktree, and branch are removed. If cleanup needs attention, the task and worktree are retained for your decision.')
-                  : t('This removes the run, its transcript, its worktree and its branch. There is no undo.')}
+                {oneAndOne
+                  ? t('This removes both One & One tasks and their local pair and dispatch history. The shared checkout and checkpoint commits stay. There is no undo.')
+                  : lifecycleDelete
+                    ? t('Cleanup runs before the task, transcript, worktree, and branch are removed. If cleanup needs attention, the task and worktree are retained for your decision.')
+                    : t('This removes the run, its transcript, its worktree and its branch. There is no undo.')}
                 <span className="mt-1 block truncate font-medium text-foreground" title={runTitle(run)}>
                   {runTitle(run)}
                 </span>
@@ -69,7 +72,7 @@ export function RunConfirmDialog({
               onOpenChange(false)
             }}
           >
-            {confirming === 'delete' ? t('Delete') : t('Stop the run')}
+            {confirming === 'delete' ? t(oneAndOne ? 'Delete pair' : 'Delete') : t('Stop the run')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

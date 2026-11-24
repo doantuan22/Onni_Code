@@ -171,6 +171,20 @@ export type GraphEdge = z.infer<typeof graphEdgeSchema>;
 export type WorkflowGraph = z.infer<typeof workflowGraphSchema>;
 export type WorkflowGraphFile = z.infer<typeof workflowGraphFileSchema>;
 
+/** One & One shares a checkout, so its runs cannot directly mutate Git, GitHub or the network. */
+export const PAIR_FORBIDDEN_SYSTEM_NODES: ReadonlySet<GraphNodeType> = new Set<GraphNodeType>([
+  'dispatch',
+  'workflow',
+  'git.commit',
+  'github.draft-pr',
+  'github.pr-comment',
+  'github.pr-update',
+  'github.issue-comment',
+  'git.push',
+  'git.sync-base',
+  'notify.webhook',
+]);
+
 /** Output ports per node type; the first is the default a bare `from: <node>` means. */
 export const NODE_PORTS: Record<GraphNodeType, readonly string[]> = {
   start: ['next'],

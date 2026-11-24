@@ -246,6 +246,16 @@ export async function settleSuccess(
       ctx.store.appendEvent(runId, { type: 'lifecycle', message: `run failed — ${error}` });
       return true;
     }
+    ctx.store.updateRun(runId, {
+      status: 'done',
+      completionReason: 'completed',
+      finishedAt: new Date().toISOString(),
+      currentStepId: undefined,
+      autoResumeAttempts: undefined,
+      autoResumeReason: undefined,
+    });
+    ctx.store.appendEvent(runId, { type: 'lifecycle', message: 'One & One worker handed off — waiting for manager review' });
+    return true;
   }
   if (run && run.roster && isOneAndOneRoster(run.roster) && isPairRoot(run)) {
     const pairId = run.dispatch?.pair?.pairId!;

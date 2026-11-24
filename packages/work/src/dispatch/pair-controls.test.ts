@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -130,9 +130,9 @@ describe('One & One pair controls', () => {
     expect(snapshot.decisions[0]).toMatchObject({ id: decision.id, outcome: 'chosen' });
   });
 
-  it('redacts pair text and delivers a persisted message to the peer session', async () => {
+  it('redacts every occurrence from pair responses, persisted files, events and peer delivery', async () => {
     assignWorker();
-    const secret = 'sk-pair-secret-1234';
+    const secret = 'pair-secret-value-1234567890';
     store.registerRunSecrets(MANAGER_ID, [secret]);
     const deliverMessage = vi.fn(() => true);
     context.deliverMessage = deliverMessage;
@@ -140,8 +140,43 @@ describe('One & One pair controls', () => {
     context.continueRun = vi.fn(() => ({ ok: true }));
     context.active = { has: () => true };
 
-    const message = await value(pairMessageFor(context, MANAGER_ID, { kind: 'question', text: `Use ${secret}?` }));
-    expect(message.text).not.toContain(secret);
+    const message = await value(pairMessageFor(context, MANAGER_ID, {
+      kind: 'question', text: `Start ${secret} / ${secret} / ${secret} end`,
+    }));
+    expect(message.text).toBe('Start [REDACTED] / [REDACTED] / [REDACTED] end');
+    const proposal = await value(pairProposalFor(context, MANAGER_ID, {
+      question: `Choose ${secret}`,
+      options: [
+        { id: 'small', title: `Small ${secret}`, detail: `Keep ${secret} and ${secret}` },
+        { id: 'wide', title: 'Wide refactor', detail: 'More churn' },
+      ],
+      recommendation: 'small',
+    }));
+    const decision = await value(pairDecisionFor(context, MANAGER_ID, {
+      proposalId: proposal.id, outcome: 'chosen', optionId: 'small', note: `Use ${secret} twice: ${secret}`,
+    }));
+    const order = pairs.enqueueOrder(PAIR_ID, { objective: 'Implement the feature' });
+    pairs.markOrderWorking(PAIR_ID, order.id);
+    pairs.reportOrder(PAIR_ID, order.id, 'Implemented and tested');
+    const accepted = await value(pairAcceptFor(context, MANAGER_ID, { orderId: order.id, note: `Verified with ${secret}` }));
+
+    expect(proposal.question).not.toContain(secret);
+    expect(proposal.options[0]).toMatchObject({ title: 'Small [REDACTED]', detail: 'Keep [REDACTED] and [REDACTED]' });
+    expect(decision.note).toBe('Use [REDACTED] twice: [REDACTED]');
+    expect(accepted.status).toBe('accepted');
+    expect(store.readEvents(MANAGER_ID).find((event) => event.type === 'pair-order-accepted')?.note)
+      .toBe('Verified with [REDACTED]');
+    const snapshot = await value(pairSnapshotFor(context, MANAGER_ID));
+    expect(snapshot.messages[0]?.text).toBe(message.text);
+    expect(JSON.stringify(snapshot)).not.toContain(secret);
+    const pairDirectory = join(pairs.directory, PAIR_ID);
+    const persisted = readdirSync(pairDirectory)
+      .filter((file) => file.endsWith('.json'))
+      .map((file) => readFileSync(join(pairDirectory, file), 'utf8'))
+      .join('\n');
+    expect(persisted).not.toContain(secret);
+    expect(JSON.stringify(store.readEvents(MANAGER_ID))).not.toContain(secret);
+    expect(JSON.stringify(deliverMessage.mock.calls)).not.toContain(secret);
     expect(deliverMessage).toHaveBeenCalledWith(WORKER_ID, [{ type: 'text', text: expect.stringContaining(message.text) }], false);
   });
 

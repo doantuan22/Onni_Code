@@ -44,7 +44,7 @@ import {
 import { checkoutGitStatus } from '../../workflows/landing.ts';
 import { removeWorktree, worktreeDiff } from '../../git-worktree.ts';
 import { protectedByLiveTree } from '../../runs/retention.ts';
-import { pairRunMutationRefusal } from '../../runs/pair-mutation.ts';
+import { isPairRun, pairRunMutationRefusal } from '../../runs/pair-mutation.ts';
 import { lifecycleError } from '../worktree-lifecycle.ts';
 import { getRepoInfo } from '../git.ts';
 import {
@@ -261,9 +261,9 @@ const prPublishes = new Map<string, Promise<{ outcome: DraftPrOutcome; branch: s
 
 type ProjectApiEnv = { Variables: { project: ProjectContext } };
 type DeleteRunResult =
-  | { ok: true }
+  | { ok: true; deleted: number }
   | { ok: false; status: 404 | 409; error: string }
-  | { ok: false; status: 'lifecycle'; error: unknown };
+  | { ok: false; status: 'lifecycle'; error: unknown; deleted: number };
 type RunsRouteDeps = {
   FILE_FORMATS: readonly string[];
   FILE_TYPES: Record<string, string>;
@@ -684,6 +684,15 @@ export function createRunsRoutes(deps: RunsRouteDeps) {
         const queued = manager.enqueueMessage(id, content);
         if (queued) return c.json((answered = { queued: true as const, message: queued }));
         if (manager.deferMessage(id, content)) return c.json((answered = { deferred: true as const }));
+        if (currentRun?.status === 'waiting' && isPairRun(currentRun)) {
+          const resumed = manager.continueRun(id, {
+            text: parsed.data.text,
+            images: attachments,
+            resumeWaitingPair: true,
+            ...(parsed.data.replyTo !== undefined ? { replyTo: parsed.data.replyTo } : {}),
+          });
+          if (resumed.ok) return c.json((answered = { delivered: true as const }));
+        }
         return c.json({ error: 'session closed' }, 409);
       } finally {
         if (receipt && 'settle' in receipt) receipt.settle(answered);
@@ -1402,8 +1411,6 @@ export function createRunsRoutes(deps: RunsRouteDeps) {
       const project = c.get('project');
       const run = project.store.getRun(c.req.param('id'));
       if (!run) return c.json({ error: 'not found' }, 404);
-      const refusal = pairRunMutationRefusal(run);
-      if (refusal) return c.json({ error: refusal }, 409);
       const outcome = await deleteRunFully(project, run.id);
       if (outcome.ok) return c.json({ deleted: true as const });
       if (outcome.status === 'lifecycle') return lifecycleError(c, outcome.error);
@@ -1429,8 +1436,13 @@ export function createRunsRoutes(deps: RunsRouteDeps) {
           continue;
         }
         const outcome = await deleteRunFully(project, run.id);
-        if (outcome.ok) deleted += 1;
-        else skipped.push({ id: run.id, title: run.title, reason: outcome.status === 'lifecycle' ? String(outcome.error instanceof Error ? outcome.error.message : outcome.error) : outcome.error });
+        if (outcome.ok) deleted += outcome.deleted;
+        else {
+          if (outcome.status === 'lifecycle') deleted += outcome.deleted;
+          if (outcome.status !== 'lifecycle' || outcome.deleted === 0 || project.store.getRun(run.id)) {
+            skipped.push({ id: run.id, title: run.title, reason: outcome.status === 'lifecycle' ? String(outcome.error instanceof Error ? outcome.error.message : outcome.error) : outcome.error });
+          }
+        }
       }
       return c.json({ deleted, skipped } satisfies ClearProjectDataResult);
     });

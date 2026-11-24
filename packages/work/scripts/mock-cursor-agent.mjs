@@ -12,6 +12,7 @@ if (process.env.ONNI_MOCK_ARGS_FILE) {
 }
 
 const emit = (obj) => process.stdout.write(`${JSON.stringify(obj)}\n`);
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const sessionId = 'mock-cursor-session';
 // The prompt is always the final positional arg (see buildCursorArgs).
 const prompt = process.argv.at(-1) ?? '';
@@ -26,11 +27,15 @@ emit({
   permissionMode: 'default',
 });
 
+const pairWorker = prompt.includes('You are the persistent worker in a One & One pair');
+const mutableControls = /mutable controls/i.test(prompt);
+if (pairWorker && prompt.includes('mock:slow')) await sleep(30_000);
+const answer = `mock: cursor dry-run completed the task.${mutableControls ? ' mutable controls.' : ''}${pairWorker ? '\n\nONNI:DONE' : ''}`;
 emit({
   type: 'assistant',
   message: {
     role: 'assistant',
-    content: [{ type: 'text', text: 'mock: cursor dry-run completed the task.' }],
+    content: [{ type: 'text', text: answer }],
   },
   session_id: sessionId,
 });

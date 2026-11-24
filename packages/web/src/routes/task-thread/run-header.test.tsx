@@ -7,7 +7,7 @@ import type { ReactNode } from 'react'
 import { ProjectScopeProvider } from '@/api/project-scope-context'
 import { queryKeys } from '@/api/queries'
 import { createQueryClient } from '@/api/query-client'
-import type { ApiRun, RunStatus, StepState } from '@onni/api-client'
+import type { ApiRun, PairState, RunStatus, StepState } from '@onni/api-client'
 import { Toaster, resetToasts } from '@/components/ui/toaster'
 
 import { RunHeader, type RunTab } from './run-header'
@@ -2471,15 +2471,34 @@ describe('lifecycle-aware task deletion', () => {
 })
 
 describe('One & One header status', () => {
-  it('renders the manager pair immediately and enriches its current order from the snapshot', () => {
-    stubFetch()
-    const snapshot = pairSnapshot()
+  const pairTree = (record: ApiRun, client: QueryClient) => (
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={[`/tasks/${record.id}`]}>
+        <Routes>
+          <Route path="/tasks/:id" element={<RunHeader run={record} />} />
+          <Route path="/" element={<div data-slot="home-probe" />} />
+        </Routes>
+        <Toaster />
+      </MemoryRouter>
+    </QueryClientProvider>
+  )
+  const managerRun = (state: PairState) => run('running', {
+    id: 'manager-r1',
+    dispatch: { rootRunId: 'manager-r1', pair: state },
+  })
+  const workerRun = () => run('running', {
+    id: 'worker-r1',
+    dispatch: {
+      rootRunId: 'manager-r1',
+      pairMember: { pairId: 'pair-1', role: 'worker', peerRunId: 'manager-r1' },
+    },
+  })
+  const pairRequests = (sent: SentRequest[]) => sent.filter((request) => request.path.endsWith('/pair'))
+
+  it('renders the manager pair without fetching a snapshot and follows realtime run updates', async () => {
+    const sent = stubFetch()
     const client = createQueryClient()
-    client.setQueryData(queryKeys.runs.pair('pair-1'), snapshot)
-    renderHeader(run('running', {
-      id: 'manager-r1',
-      dispatch: { rootRunId: 'manager-r1', pair: snapshot.state },
-    }), undefined, undefined, undefined, undefined, client)
+    const view = render(pairTree(managerRun(pairSnapshot().state), client))
 
     const line = document.querySelector('[data-slot="pair-status-line"]')
     expect(line?.getAttribute('data-pair-id')).toBe('pair-1')
@@ -2487,49 +2506,61 @@ describe('One & One header status', () => {
     expect(line?.querySelector('[data-slot="pair-phase"]')?.textContent).toBe('Manager review')
     expect(line?.querySelector('[data-slot="pair-active-role"]')?.textContent).toBe('Active: Worker')
     expect(line?.querySelector('[data-slot="pair-order"]')?.textContent).toContain('Order 2')
-    expect(line?.querySelector('[data-order-status="reported"]')?.textContent).toBe('Reported')
+    // The embedded root state carries the revision, not the snapshot's order collection.
+    expect(line?.querySelector('[data-order-status]')).toBeNull()
     expect(line?.textContent).toContain('onni/pair-1')
     expect(line?.querySelector('[data-checkpoint]')?.getAttribute('data-checkpoint')).toBe('123456abcdef0')
+    expect(client.getQueryState(queryKeys.runs.pair('pair-1'))).toBeUndefined()
+
+    const updated = pairSnapshot({
+      phase: 'discussion',
+      activeRole: 'manager',
+      orderRevision: 3,
+      lastCheckpointSha: 'abcdef012345',
+    }).state
+    view.rerender(pairTree(managerRun(updated), client))
+    expect(line?.querySelector('[data-slot="pair-phase"]')?.textContent).toBe('Discussion')
+    expect(line?.querySelector('[data-slot="pair-active-role"]')?.textContent).toBe('Active: Manager')
+    expect(line?.querySelector('[data-slot="pair-order"]')?.textContent).toContain('Order 3')
+    expect(line?.querySelector('[data-checkpoint]')?.getAttribute('data-checkpoint')).toBe('abcdef012345')
+
+    await act(async () => {})
+    expect(pairRequests(sent)).toEqual([])
   })
 
-  it('renders a persistent worker from the shared pair snapshot', () => {
-    stubFetch()
-    const snapshot = pairSnapshot()
+  it('fetches a persistent worker snapshot and keeps it live through query invalidation', async () => {
+    let snapshot = pairSnapshot()
+    const sent = stubFetch({ '/api/v1/runs/worker-r1/pair': () => jsonResponse(snapshot) })
     const client = createQueryClient()
-    client.setQueryData(queryKeys.runs.pair('pair-1'), snapshot)
-    renderHeader(run('running', {
-      id: 'worker-r1',
-      dispatch: {
-        rootRunId: 'manager-r1',
-        pairMember: { pairId: 'pair-1', role: 'worker', peerRunId: 'manager-r1' },
-      },
-    }), undefined, undefined, undefined, undefined, client)
+    render(pairTree(workerRun(), client))
 
-    const line = document.querySelector('[data-slot="pair-status-line"]')
-    expect(line?.querySelector('[data-slot="pair-phase"]')?.textContent).toBe('Manager review')
-    expect(line?.querySelector('[data-slot="pair-active-role"]')?.textContent).toBe('Active: Worker')
-    expect(line?.querySelector('[data-order-status="reported"]')?.textContent).toBe('Reported')
+    await waitFor(() =>
+      expect(document.querySelector('[data-slot="pair-phase"]')?.textContent).toBe('Manager review'),
+    )
+    expect(pairRequests(sent)).toHaveLength(1)
+    expect(document.querySelector('[data-slot="pair-active-role"]')?.textContent).toBe('Active: Worker')
+    expect(document.querySelector('[data-order-status="reported"]')?.textContent).toBe('Reported')
+
+    snapshot = pairSnapshot({ phase: 'discussion', activeRole: 'manager' })
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.runs.pair('pair-1') })
+    })
+    await waitFor(() =>
+      expect(document.querySelector('[data-slot="pair-phase"]')?.textContent).toBe('Discussion'),
+    )
+    expect(document.querySelector('[data-slot="pair-active-role"]')?.textContent).toBe('Active: Manager')
+    expect(pairRequests(sent)).toHaveLength(2)
   })
 
-  it('keeps the root revision visible before its snapshot arrives and leaves ordinary runs alone', () => {
-    const state = pairSnapshot().state
-    const sent = stubFetch({ '/api/v1/runs/r1/pair': () => jsonResponse(pairSnapshot()) })
-    const view = renderHeader(run('running', { dispatch: { rootRunId: 'r1', pair: state } }))
-    expect(document.querySelector('[data-slot="pair-order"]')?.textContent).toContain('Order 2')
-    expect(document.querySelector('[data-slot="pair-status-line"] [data-order-status]')).toBeNull()
+  it('leaves ordinary runs alone and removes a root line without fetching', async () => {
+    const sent = stubFetch()
+    const client = createQueryClient()
+    const view = render(pairTree(managerRun(pairSnapshot().state), client))
+    expect(document.querySelector('[data-slot="pair-status-line"]')).not.toBeNull()
 
-    view.rerender(
-      <QueryClientProvider client={createQueryClient()}>
-        <MemoryRouter initialEntries={['/tasks/r1']}>
-          <Routes>
-            <Route path="/tasks/:id" element={<RunHeader run={run('running')} />} />
-            <Route path="/" element={<div data-slot="home-probe" />} />
-          </Routes>
-          <Toaster />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    )
+    view.rerender(pairTree(run('running'), client))
     expect(document.querySelector('[data-slot="pair-status-line"]')).toBeNull()
-    expect(sent.some((request) => request.path === '/api/v1/runs/r1/pair')).toBe(true)
+    await act(async () => {})
+    expect(pairRequests(sent)).toEqual([])
   })
 })

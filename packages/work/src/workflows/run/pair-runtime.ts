@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import type { PairState } from '@onni/contract';
 import { PairStore } from '../../dispatch/pair-store.ts';
+import type { RepositoryLease } from '../../git-repository-lock.ts';
 import { gitHasIdentity } from '../../git-worktree.ts';
 import { getHeadCommit, getRepoInfo } from '../../server/git.ts';
 import type { RunStore } from '../../runs/store.ts';
@@ -78,20 +79,30 @@ async function readStatus(root: string): Promise<StatusEntry[]> {
   return statusEntries(await git(root, ['status', '--porcelain=v1', '--untracked-files=all', '-z']));
 }
 
-async function validateWorkspace(root: string, state: PairState, allowStaged = false): Promise<{ head: string; status: StatusEntry[] }> {
+async function validateWorkspace(
+  root: string,
+  state: PairState,
+  allowStaged = false,
+  lease?: RepositoryLease | null,
+): Promise<{ head: string; status: StatusEntry[] }> {
   const repo = await getRepoInfo(root);
-  if (!repo || await realpath(root) !== await realpath(repo.root) || repo.branch === 'HEAD') {
+  lease?.assertValid();
+  const sameCheckout = repo ? await realpath(root) === await realpath(repo.root) : false;
+  lease?.assertValid();
+  if (!repo || !sameCheckout || repo.branch === 'HEAD') {
     throw new Error('One & One requires a named branch in the repository checkout');
   }
   if (repo.branch !== state.workspace.branch) {
     throw new Error(`One & One is pinned to branch "${state.workspace.branch}", but the checkout is on "${repo.branch}"`);
   }
   const head = await getHeadCommit(root);
+  lease?.assertValid();
   if (!head) throw new Error('One & One could not read HEAD');
   if (head !== (state.lastCheckpointSha ?? state.workspace.baselineSha)) {
     throw new Error('One & One detected an unexpected HEAD change; restore the pair checkpoint before continuing');
   }
   const status = await readStatus(root);
+  lease?.assertValid();
   const conflict = status.find((entry) => entry.code.includes('U'));
   if (conflict) throw new Error(`One & One detected unresolved conflicts in ${conflict.path}`);
   const staged = status.find((entry) => entry.code !== '??' && entry.code[0] !== ' ');
@@ -122,54 +133,60 @@ export async function initializePair(
 ): Promise<{ ok: true; state: PairState } | { ok: false; error: string }> {
   const run = store.getRun(runId);
   const pairId = run?.dispatch?.pair?.pairId ?? runId;
-  const existing = pairs.readState(pairId);
-  if (existing) {
-    if (existing.managerRunId !== runId) return { ok: false, error: 'One & One pair belongs to another manager' };
-    if (existing.phase === 'stopped' || existing.phase === 'complete') {
-      return { ok: false, error: `One & One pair is already ${existing.phase}` };
-    }
-    try {
-      await validateWorkspace(root, existing);
-    } catch (error) {
-      return { ok: false, error: failure(error) };
-    }
-    return { ok: true, state: mirrorPairState(store, existing) };
-  }
   try {
-    const repo = await getRepoInfo(root);
-    const head = await getHeadCommit(root);
-    if (!repo || await realpath(root) !== await realpath(repo.root) || repo.branch === 'HEAD' || !head) {
-      return { ok: false, error: 'One & One requires a repository with a named branch and at least one commit' };
-    }
-    const status = await readStatus(root);
-    if (status.length > 0) {
-      return { ok: false, error: 'One & One requires a clean checkout so its checkpoints cannot include unrelated changes; commit or stash existing work first' };
-    }
-    if (existsSync(join(root, '.git', 'index.lock'))) return { ok: false, error: 'One & One cannot start while the Git index is locked' };
-    const now = new Date().toISOString();
-    const state = pairs.create({
-      pairId: runId,
-      managerRunId: runId,
-      phase: 'planning',
-      workspace: { repoRoot: root, branch: repo.branch, baselineSha: head },
-      orderRevision: 0,
-      handoffs: 0,
-      createdAt: now,
-      updatedAt: now,
-    });
-    store.updateRun(runId, { dispatch: { ...(run?.dispatch ?? { rootRunId: runId }), pair: state } });
-    return { ok: true, state };
+    return await pairs.serialize<{ ok: true; state: PairState } | { ok: false; error: string }>(pairId, async (lease) => {
+      const existing = pairs.readState(pairId);
+      if (existing) {
+        if (existing.managerRunId !== runId) return { ok: false, error: 'One & One pair belongs to another manager' };
+        if (existing.phase === 'stopped' || existing.phase === 'complete') {
+          return { ok: false, error: `One & One pair is already ${existing.phase}` };
+        }
+        await validateWorkspace(root, existing, false, lease);
+        return { ok: true, state: mirrorPairState(store, existing) };
+      }
+      const repo = await getRepoInfo(root);
+      lease?.assertValid();
+      const head = await getHeadCommit(root);
+      lease?.assertValid();
+      const sameCheckout = repo ? await realpath(root) === await realpath(repo.root) : false;
+      lease?.assertValid();
+      if (!repo || !sameCheckout || repo.branch === 'HEAD' || !head) {
+        return { ok: false, error: 'One & One requires a repository with a named branch and at least one commit' };
+      }
+      const status = await readStatus(root);
+      lease?.assertValid();
+      if (status.length > 0) {
+        return { ok: false, error: 'One & One requires a clean checkout so its checkpoints cannot include unrelated changes; commit or stash existing work first' };
+      }
+      if (existsSync(join(root, '.git', 'index.lock'))) return { ok: false, error: 'One & One cannot start while the Git index is locked' };
+      const now = new Date().toISOString();
+      const state = pairs.create({
+        pairId: runId,
+        managerRunId: runId,
+        phase: 'planning',
+        workspace: { repoRoot: root, branch: repo.branch, baselineSha: head },
+        orderRevision: 0,
+        handoffs: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+      lease?.assertValid();
+      store.updateRun(runId, { dispatch: { ...(run?.dispatch ?? { rootRunId: runId }), pair: state } });
+      return { ok: true, state };
+    }, root);
   } catch (error) {
     return { ok: false, error: failure(error) };
   }
 }
 
 export async function validatePairWorkspace(root: string, pairs: PairStore, pairId: string): Promise<{ ok: true; head: string } | { ok: false; error: string }> {
-  const state = pairs.readState(pairId);
-  if (!state) return { ok: false, error: 'One & One pair state is missing' };
   try {
-    const { head } = await validateWorkspace(root, state);
-    return { ok: true, head };
+    return await pairs.serialize<{ ok: true; head: string } | { ok: false; error: string }>(pairId, async (lease) => {
+      const state = pairs.readState(pairId);
+      if (!state) return { ok: false, error: 'One & One pair state is missing' };
+      const { head } = await validateWorkspace(root, state, false, lease);
+      return { ok: true, head };
+    }, root);
   } catch (error) {
     return { ok: false, error: failure(error) };
   }
@@ -182,78 +199,103 @@ export async function checkpointPair(
   reason: string,
   excludedPaths: readonly string[] = [],
 ): Promise<PairCheckpointResult> {
-  const state = pairs.readState(pairId);
-  if (!state) return { ok: false, error: 'One & One pair state is missing' };
-  if (state.phase === 'stopped' || state.phase === 'complete') {
-    return { ok: false, error: `One & One pair is ${state.phase}` };
-  }
-  let addedPaths: string[] | undefined;
   try {
-    const { status } = await validateWorkspace(root, state);
-    const validatedState = pairs.readState(pairId);
-    if (!validatedState) return { ok: false, error: 'One & One pair disappeared during checkpoint' };
-    if (validatedState.phase === 'stopped' || validatedState.phase === 'complete') {
-      return { ok: false, error: `One & One pair is ${validatedState.phase}` };
-    }
-    const paths = [...new Set(status.flatMap((entry) => entry.source ? [entry.source, entry.path] : [entry.path]))]
-      .filter((path) => !reserved(path, excludedPaths));
-    if (paths.length === 0) {
-      const sha = await getHeadCommit(root);
-      if (!sha) return { ok: false, error: 'One & One could not read HEAD' };
-      pairs.updateState(pairId, { lastCheckpointSha: sha });
-      return { ok: true, sha };
-    }
-    const env = { ...process.env, GIT_LITERAL_PATHSPECS: '1' };
-    await git(root, ['add', '--', ...paths], env);
-    addedPaths = paths;
-    const current = pairs.readState(pairId);
-    if (!current) return { ok: false, error: 'One & One pair state disappeared during checkpoint' };
-    await validateWorkspace(root, current, true);
-    const beforeCommit = pairs.readState(pairId);
-    if (!beforeCommit) return { ok: false, error: 'One & One pair disappeared during checkpoint' };
-    if (beforeCommit.phase === 'stopped' || beforeCommit.phase === 'complete') {
-      return { ok: false, error: `One & One pair is ${beforeCommit.phase}` };
-    }
-    const staged = await git(root, ['diff', '--cached', '--quiet']).then(() => false, () => true);
-    if (!staged) return { ok: true, sha: current.lastCheckpointSha ?? current.workspace.baselineSha };
-    const identity = await gitHasIdentity(root) ? [] : ['-c', 'user.name=onni', '-c', 'user.email=onni@local'];
-    await git(root, [...identity, 'commit', '-m', `onni: One & One checkpoint (${reason})`]);
-    const sha = await getHeadCommit(root);
-    if (!sha) return { ok: false, error: 'One & One checkpoint committed but HEAD could not be read' };
-    pairs.updateState(pairId, { lastCheckpointSha: sha });
-    return { ok: true, sha };
+    return await pairs.serialize<PairCheckpointResult>(pairId, async (lease) => {
+      const state = pairs.readState(pairId);
+      if (!state) return { ok: false, error: 'One & One pair state is missing' };
+      if (state.phase === 'stopped' || state.phase === 'complete') {
+        return { ok: false, error: `One & One pair is ${state.phase}` };
+      }
+      let addedPaths: string[] | undefined;
+      try {
+        const { status } = await validateWorkspace(root, state, false, lease);
+        const validatedState = pairs.readState(pairId);
+        if (!validatedState) return { ok: false, error: 'One & One pair disappeared during checkpoint' };
+        if (validatedState.phase === 'stopped' || validatedState.phase === 'complete') {
+          return { ok: false, error: `One & One pair is ${validatedState.phase}` };
+        }
+        const paths = [...new Set(status.flatMap((entry) => entry.source ? [entry.source, entry.path] : [entry.path]))]
+          .filter((path) => !reserved(path, excludedPaths));
+        if (paths.length === 0) {
+          const sha = await getHeadCommit(root);
+          lease?.assertValid();
+          if (!sha) return { ok: false, error: 'One & One could not read HEAD' };
+          pairs.updateState(pairId, { lastCheckpointSha: sha });
+          return { ok: true, sha };
+        }
+        const env = { ...process.env, GIT_LITERAL_PATHSPECS: '1' };
+        await git(root, ['add', '--', ...paths], env);
+        addedPaths = paths;
+        lease?.assertValid();
+        const current = pairs.readState(pairId);
+        if (!current) return { ok: false, error: 'One & One pair state disappeared during checkpoint' };
+        await validateWorkspace(root, current, true, lease);
+        const beforeCommit = pairs.readState(pairId);
+        if (!beforeCommit) return { ok: false, error: 'One & One pair state disappeared during checkpoint' };
+        if (beforeCommit.phase === 'stopped' || beforeCommit.phase === 'complete') {
+          return { ok: false, error: `One & One pair is ${beforeCommit.phase}` };
+        }
+        const staged = await git(root, ['diff', '--cached', '--quiet']).then(() => false, () => true);
+        lease?.assertValid();
+        if (!staged) return { ok: true, sha: current.lastCheckpointSha ?? current.workspace.baselineSha };
+        const identity = await gitHasIdentity(root) ? [] : ['-c', 'user.name=onni', '-c', 'user.email=onni@local'];
+        lease?.assertValid();
+        await git(root, [...identity, 'commit', '-m', `onni: One & One checkpoint (${reason})`]);
+        lease?.assertValid();
+        const sha = await getHeadCommit(root);
+        lease?.assertValid();
+        if (!sha) return { ok: false, error: 'One & One checkpoint committed but HEAD could not be read' };
+        pairs.updateState(pairId, { lastCheckpointSha: sha });
+        return { ok: true, sha };
+      } catch (error) {
+        if (addedPaths) {
+          try {
+            lease?.assertValid();
+          } catch {
+            // A replacement owner may already be staging or resetting these paths.
+            return { ok: false, error: failure(error) };
+          }
+          await git(root, ['reset', '--quiet', '--', ...addedPaths], { ...process.env, GIT_LITERAL_PATHSPECS: '1' }).catch(() => undefined);
+        }
+        return { ok: false, error: failure(error) };
+      }
+    }, root);
   } catch (error) {
-    if (addedPaths) {
-      await git(root, ['reset', '--quiet', '--', ...addedPaths], { ...process.env, GIT_LITERAL_PATHSPECS: '1' }).catch(() => undefined);
-    }
     return { ok: false, error: failure(error) };
   }
 }
 
 export async function inspectPairDiff(root: string, pairs: PairStore, pairId: string): Promise<PairDiffResult> {
-  const state = pairs.readState(pairId);
-  if (!state) return { ok: false, stat: '', nameStatus: '', diff: '', truncated: false, error: 'One & One pair state is missing' };
-  const scratch = await mkdtemp(join(tmpdir(), 'onni-pair-diff-'));
   try {
-    await validateWorkspace(root, state);
-    const env = { ...process.env, GIT_INDEX_FILE: join(scratch, 'index'), GIT_OPTIONAL_LOCKS: '0' };
-    await git(root, ['read-tree', 'HEAD'], env);
-    await git(root, ['add', '--intent-to-add', '--', '.'], env);
-    const [stat, nameStatus, diff] = await Promise.all([
-      git(root, ['diff', '--stat', state.workspace.baselineSha], env),
-      git(root, ['diff', '--name-status', state.workspace.baselineSha], env),
-      git(root, ['diff', '--no-ext-diff', '--unified=3', state.workspace.baselineSha], env),
-    ]);
-    return {
-      ok: true,
-      stat: stat.trim(),
-      nameStatus: nameStatus.trim(),
-      diff: diff.slice(0, 200_000),
-      truncated: diff.length > 200_000,
-    };
+    return await pairs.serialize<PairDiffResult>(pairId, async (lease) => {
+      const state = pairs.readState(pairId);
+      if (!state) return { ok: false, stat: '', nameStatus: '', diff: '', truncated: false, error: 'One & One pair state is missing' };
+      const scratch = await mkdtemp(join(tmpdir(), 'onni-pair-diff-'));
+      try {
+        await validateWorkspace(root, state, false, lease);
+        const env = { ...process.env, GIT_INDEX_FILE: join(scratch, 'index'), GIT_OPTIONAL_LOCKS: '0' };
+        await git(root, ['read-tree', 'HEAD'], env);
+        lease?.assertValid();
+        await git(root, ['add', '--intent-to-add', '--', '.'], env);
+        lease?.assertValid();
+        const [stat, nameStatus, diff] = await Promise.all([
+          git(root, ['diff', '--stat', state.workspace.baselineSha], env),
+          git(root, ['diff', '--name-status', state.workspace.baselineSha], env),
+          git(root, ['diff', '--no-ext-diff', '--unified=3', state.workspace.baselineSha], env),
+        ]);
+        lease?.assertValid();
+        return {
+          ok: true,
+          stat: stat.trim(),
+          nameStatus: nameStatus.trim(),
+          diff: diff.slice(0, 200_000),
+          truncated: diff.length > 200_000,
+        };
+      } finally {
+        await rm(scratch, { recursive: true, force: true });
+      }
+    }, root);
   } catch (error) {
     return { ok: false, stat: '', nameStatus: '', diff: '', truncated: false, error: failure(error) };
-  } finally {
-    await rm(scratch, { recursive: true, force: true });
   }
 }

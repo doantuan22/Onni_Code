@@ -553,6 +553,20 @@ async function respond(userText, imageCount) {
     return;
   }
 
+  if (process.argv.join(' ').includes('You are the manager in a One & One pair') || userText.includes('One & One')) {
+    const text = /mutable controls/i.test(userText) && userText.includes('One & One worker report')
+      ? 'Review noted. Keep the pair open for message, proposal, decision and revision checks. (dry-run mock)'
+      : userText.includes('One & One worker report')
+      ? 'ONNI:PAIR:ACCEPT\nONNI:DONE'
+      : userText.includes('Order accepted.') || /final verification/i.test(userText)
+        ? 'One & One final checks passed. (dry-run mock)\nONNI:DONE'
+        : 'One & One planning is ready. Dispatch one focused order to the persistent worker. (dry-run mock)' + doneMarker + monitoringMarker + askMarker;
+    emit({ type: 'assistant', message: { role: 'assistant', content: [{ type: 'text', text }] } });
+    await pace(150);
+    emit({ type: 'result', subtype: 'success', result: text, usage: { input_tokens: 200, output_tokens: 40 }, total_cost_usd: 0 });
+    return;
+  }
+
   if (turn === 1) {
     // Leave a visible trace in the cwd (the task worktree under spec 006) so
     // the Diff view has something real to show in dry runs. Exactly one line

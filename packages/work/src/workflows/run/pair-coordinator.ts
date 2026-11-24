@@ -17,7 +17,7 @@ export interface PairDeliveryContext {
   active: { has(runId: string): boolean };
   deliverMessage(runId: string, content: PastedContent[], userAuthored: boolean): boolean;
   deferMessage(runId: string, content: PastedContent[]): boolean;
-  continueRun(runId: string, options: { text: string }, deferForCapacity?: boolean): { ok: boolean; error?: string };
+  continueRun(runId: string, options: { text: string; resumeWaitingPair?: boolean }, deferForCapacity?: boolean): { ok: boolean; error?: string };
 }
 
 export interface PairCoordinatorContext extends PairDeliveryContext {
@@ -102,7 +102,7 @@ export function deliverPairPeerText(context: PairDeliveryContext, peerRunId: str
   if (context.deferMessage(peerRunId, blocks)) return;
   const peer = context.store.getRun(peerRunId);
   if (peer && peer.status !== 'cancelled' && peer.status !== 'failed' && !context.active.has(peerRunId)) {
-    const resumed = context.continueRun(peerRunId, { text }, true);
+    const resumed = context.continueRun(peerRunId, { text, resumeWaitingPair: true }, true);
     if (resumed.ok) return;
   }
   context.store.appendEvent(peerRunId, {

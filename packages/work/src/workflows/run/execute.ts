@@ -25,12 +25,19 @@ import {
 import type { ExecuteActiveRun, ExecuteContext } from './internal-types.ts';
 import type { StartRunInput } from '../run.ts';
 import type { WorkflowDef } from '../types.ts';
-import { initializePair, isPairMember, mirrorPairState, validatePairWorkspace } from './pair-runtime.ts';
+import { initializePair, isPairMember, isPairRoot, mirrorPairState, validatePairWorkspace } from './pair-runtime.ts';
 
 export async function executeRun(ctx: ExecuteContext, runId: string, workflow: WorkflowDef, input: StartRunInput, ownerToken?: symbol): Promise<void> {
     const original = ctx.store.getRun(runId);
-    const pairRoot = original?.roster !== undefined && isOneAndOneRoster(original.roster);
-    const pairMember = isPairMember(original);
+    const pairRoot = isPairRoot(original) || (original?.roster !== undefined && isOneAndOneRoster(original.roster));
+    const pairRootRunId = original?.dispatch?.rootRunId;
+    const pairManager = pairRootRunId && pairRootRunId !== runId ? ctx.store.getRun(pairRootRunId) : undefined;
+    const pairMember = isPairMember(original) || Boolean(
+      pairManager && (
+        pairManager.dispatch?.pair !== undefined
+        || (pairManager.roster !== undefined && isOneAndOneRoster(pairManager.roster))
+      ),
+    );
     // Only a job queued as a usage-limit resume re-enters its interrupted agent (#1300); the
     // step/session checkpoint survives missing optional attempt accounting.
     const resumeStep = input.usageLimitResume && original ? ctx.interruptedWorkflowStep(original) : undefined;
@@ -305,11 +312,12 @@ export async function executeRun(ctx: ExecuteContext, runId: string, workflow: W
       const valid = pairState ? await validatePairWorkspace(ctx.repoRoot, pairs, membership!.pairId) : { ok: false as const, error: 'pair state is missing' };
       const current = membership ? pairs.readState(membership.pairId) : null;
       const currentOrder = current?.currentOrderId ? pairs.getOrder(membership!.pairId, current.currentOrderId) : null;
-      const membershipMismatch = !current || !membership
-        || membership.role !== 'worker'
+      const membershipMismatch = !membership || (current !== null && (
+        membership.role !== 'worker'
         || membership.peerRunId !== current.managerRunId
         || original?.dispatch?.rootRunId !== current.managerRunId
-        || (current.workerRunId !== undefined && current.workerRunId !== runId);
+        || current.workerRunId !== runId
+      ));
       if (
         !valid.ok
         || !current
@@ -320,12 +328,12 @@ export async function executeRun(ctx: ExecuteContext, runId: string, workflow: W
         || (currentOrder.status !== 'queued' && currentOrder.status !== 'working')
       ) {
         const error = `One & One worker could not start: ${
-          !valid.ok
-            ? valid.error
-            : !current || current.phase === 'stopped' || current.phase === 'complete'
-              ? `pair is ${current?.phase ?? 'missing'}`
-              : membershipMismatch
-                ? 'worker membership does not match the persistent pair worker'
+          membershipMismatch
+            ? 'worker membership does not match the persistent pair worker'
+            : !valid.ok
+              ? valid.error
+              : !current || current.phase === 'stopped' || current.phase === 'complete'
+                ? `pair is ${current?.phase ?? 'missing'}`
                 : 'the current order is not runnable'
         }`;
         ctx.store.updateRun(runId, { status: 'failed', error, finishedAt: new Date().toISOString(), currentStepId: undefined });

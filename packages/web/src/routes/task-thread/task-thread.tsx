@@ -1,4 +1,5 @@
 import { queueWaitLabel } from '@/lib/queue-wait-label'
+import { PairCard } from './pair-card'
 import { MessageSquareTextIcon, SearchXIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useParams } from 'react-router'
@@ -305,12 +306,9 @@ export function ThreadView({
   const sections = useMemo(() => mainTranscriptSections(run, thread), [run, thread])
   const pairId = run.dispatch?.pair?.pairId ?? run.dispatch?.pairMember?.pairId ?? ''
   const pair = useRunPair(run.id, pairId)
-  const rows = useMemo(() => {
-    const transcriptRows = buildTranscriptRows(sections, run.id)
-    return pair.data === undefined
-      ? transcriptRows
-      : [...transcriptRows, { key: `pair:${pairId}`, scope: `pair:${pairId}`, content: { kind: 'pair' as const, snapshot: pair.data } }]
-  }, [sections, run.id, pair.data, pairId])
+  // The pair status is NOT a transcript row: as the last row it scrolled down with every new
+  // message. It lives in a fixed side panel (see the render) instead.
+  const rows = useMemo(() => buildTranscriptRows(sections, run.id), [sections, run.id])
   const renderAsk = useCallback((ask: ThreadAsk) => <AskCard ask={ask} run={run} />, [run])
   const messageActions = useMemo<Readonly<Record<string, TranscriptMessageActions>> | undefined>(() => {
     if (edit === undefined) return undefined
@@ -355,6 +353,17 @@ export function ThreadView({
         // exactly what the next composer submission sends — no second, drifting engine state.
         continuationEngine={continuable ? continueAction.pills : undefined}
       />}
+
+      {/* One & One status: pinned in the empty right margin on wide screens (fixed, scrolls with
+          nothing); on narrow screens it is a plain block above the thread, never after it. */}
+      {pair.data !== undefined ? (
+        <div
+          data-slot="pair-panel"
+          className="mx-auto w-full max-w-[var(--chat-measure)] px-3 pt-3 md:px-6 xl:fixed xl:right-4 xl:top-24 xl:z-10 xl:mx-0 xl:max-h-[calc(100vh-8rem)] xl:w-80 xl:max-w-none xl:overflow-y-auto xl:p-0"
+        >
+          <PairCard snapshot={pair.data} />
+        </div>
+      ) : null}
 
       {/* Row spacing lives on each thread row (pb-2.5, both render modes measure alike);
           this gap only separates the sections — rows, empty state, footer, review panel. */}

@@ -115,7 +115,7 @@ const transcriptRows = (fixture: ApiRun, thread = reduceThread(EVENTS)) =>
   buildTranscriptRows(mainTranscriptSections(fixture, thread), fixture.id)
 
 describe('ThreadView', () => {
-  it('appends one stable pair row after the timeline and updates it without inventing a timestamp', async () => {
+  it('shows the pair status in a side panel, not as a transcript row, and updates it in place', async () => {
     const snapshot = pairSnapshot()
     const manager = run('running', {
       id: 'manager-r1',
@@ -129,20 +129,18 @@ describe('ThreadView', () => {
     )
 
     await waitFor(() => expect(view.queryClient.getQueryData(queryKeys.runs.pair('pair-1'))).toEqual(snapshot))
-    const keys = [...document.querySelectorAll('[data-slot="thread-row"]')].map((row) => row.getAttribute('data-row-key'))
-    expect(keys.at(-1)).toBe('pair:pair-1')
-    expect(keys.filter((key) => key === 'pair:pair-1')).toHaveLength(1)
-    const row = document.querySelector('[data-row-key="pair:pair-1"]')
-    expect(row?.querySelector('[data-slot="pair-card"]')?.getAttribute('data-phase')).toBe('manager_review')
-    expect(row?.querySelector('time')).toBeNull()
+    await waitFor(() => expect(document.querySelectorAll('[data-slot="pair-card"]')).toHaveLength(1))
+    expect(document.querySelector('[data-row-key^="pair:"]')).toBeNull()
+    const panel = document.querySelector('[data-slot="pair-panel"]')
+    expect(panel?.querySelector('[data-slot="pair-card"]')?.getAttribute('data-phase')).toBe('manager_review')
 
     act(() => view.queryClient.setQueryData(queryKeys.runs.pair('pair-1'), pairSnapshot({ phase: 'complete' })))
-    await waitFor(() => expect(row?.querySelector('[data-slot="pair-card"]')?.getAttribute('data-phase')).toBe('complete'))
-    expect(document.querySelector('[data-row-key="pair:pair-1"]')).toBe(row)
+    await waitFor(() => expect(panel?.querySelector('[data-slot="pair-card"]')?.getAttribute('data-phase')).toBe('complete'))
+    expect(document.querySelector('[data-slot="pair-panel"]')).toBe(panel)
     expect(document.querySelectorAll('[data-slot="pair-card"]')).toHaveLength(1)
   })
 
-  it('loads a worker pair through its membership and appends the same single row', async () => {
+  it('loads a worker pair through its membership into the same single panel', async () => {
     const snapshot = pairSnapshot()
     const worker = run('running', {
       id: 'worker-r1',
@@ -159,7 +157,7 @@ describe('ThreadView', () => {
     )
 
     await waitFor(() => expect(document.querySelectorAll('[data-slot="pair-card"]')).toHaveLength(1))
-    expect(document.querySelectorAll('[data-row-key="pair:pair-1"]')).toHaveLength(1)
+    expect(document.querySelectorAll('[data-slot="pair-panel"]')).toHaveLength(1)
     expect(view.queryClient.getQueryData(queryKeys.runs.pair('pair-1'))).toEqual(snapshot)
     const pairReads = vi.mocked(fetch).mock.calls.filter(([input]) => String(input).endsWith('/pair'))
     expect(pairReads).toHaveLength(1)

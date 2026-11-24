@@ -29,7 +29,7 @@ import { freshContinuationContext } from '../continuation-context.ts';
 import { agentDirectories, ATTACHMENT_ONLY_TASK, composeSystemPrompt, dispatchPromptPart, pastedAttachmentsText } from './preparation.ts';
 import { withWorkerRepoMap } from '../../dispatch/worker-context.ts';
 import { applyTemplate, currentCheckExclusions, expandRegistrySlashSkillText, leadingSlashSkillName, skillSystemPrompt } from './check-steps.ts';
-import { isPairMember } from './pair-runtime.ts';
+import { isPairWorkerHandoffTurn } from './pair-coordinator.ts';
 import type { AgentStepActiveRun, AgentStepContext, PairWorkerTurnResult } from './internal-types.ts';
 import type { PersistedAttachment } from './preparation.ts';
 import type { StartRunInput } from '../run.ts';
@@ -206,7 +206,7 @@ export async function runAgentStep(
       const compacted = event.reason === 'context-compaction';
         const markerless = compacted && ctx.markerlessTurn(turnText);
       if (!compacted) state.compactionContinues = 0;
-      if (!compacted && ctx.endsWithDoneMarker(turnText) && isPairMember(ctx.store.getRun(runId))) {
+      if (!compacted && isPairWorkerHandoffTurn(ctx.store.getRun(runId), turnText, ctx.endsWithDoneMarker(turnText))) {
         if (graphHooks?.lastTurn) graphHooks.lastTurn.text = turnText;
         const pairReportText = turnText;
         pairTurn ??= (async () => {

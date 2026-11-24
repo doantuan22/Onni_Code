@@ -8,7 +8,7 @@ import { PairStore } from '../../dispatch/pair-store.ts';
 import { RunStore } from '../../runs/store.ts';
 import { removeTempDir } from '../../test-fixtures/remove-temp-dir.testkit.ts';
 import { handleDispatchTurn } from './manager-state.ts';
-import { finalizePairManager, finishPairManager, handlePairWorkerTurn, isLivePairParticipant, parkPairManager, preparePairContinuation, relayPairWorkerFailure, stopPair } from './pair-coordinator.ts';
+import { finalizePairManager, finishPairManager, handlePairWorkerTurn, isLivePairParticipant, isPairWorkerHandoffTurn, parkPairManager, preparePairContinuation, relayPairWorkerFailure, stopPair } from './pair-coordinator.ts';
 import { idleClosedFails, settleSuccess, settleUnansweredPark } from './settlement.ts';
 import * as pairRuntime from './pair-runtime.ts';
 import { checkpointPair, initializePair, mirrorPairState, validatePairWorkspace } from './pair-runtime.ts';
@@ -588,5 +588,22 @@ describe('One & One coordinator', () => {
     expect(result.doneBlocked).toBe(true);
     expect(state.pairFinishRequested).toBe(true);
   });
+  });
+});
+
+describe('isPairWorkerHandoffTurn', () => {
+  const member = (runner: string) => ({ runner, dispatch: { pairMember: { pairId: 'p' } } });
+  it('accepts the DONE marker for any backend', () => {
+    expect(isPairWorkerHandoffTurn(member('claude'), 'done', true)).toBe(true);
+  });
+  it('lets an antigravity worker hand off without the marker', () => {
+    expect(isPairWorkerHandoffTurn(member('antigravity'), 'summary of work', false)).toBe(true);
+  });
+  it('keeps asks, monitoring, empty turns and other backends out of the fallback', () => {
+    expect(isPairWorkerHandoffTurn(member('antigravity'), 'q\nONNI:ASK', false)).toBe(false);
+    expect(isPairWorkerHandoffTurn(member('antigravity'), 'ONNI:MONITORING', false)).toBe(false);
+    expect(isPairWorkerHandoffTurn(member('antigravity'), '  ', false)).toBe(false);
+    expect(isPairWorkerHandoffTurn(member('claude'), 'summary', false)).toBe(false);
+    expect(isPairWorkerHandoffTurn({ runner: 'antigravity' }, 'summary', false)).toBe(false);
   });
 });

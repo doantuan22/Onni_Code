@@ -29,6 +29,24 @@ function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/**
+ * Does this turn hand the order to the manager? `ONNI:DONE` is the contract, but `agy` ends in a
+ * plain text summary and often omits it — without this fallback the order is never reported and
+ * the worker fails as "stopped before its current order was checkpointed". Asks and monitoring
+ * markers still win, and an empty turn is not a handoff.
+ */
+export function isPairWorkerHandoffTurn(
+  run: { runner?: string; dispatch?: { pairMember?: unknown } } | null | undefined,
+  turnText: string,
+  endsWithDone: boolean,
+): boolean {
+  if (!isPairMember(run)) return false;
+  if (endsWithDone) return true;
+  return run?.runner === 'antigravity'
+    && turnText.trim() !== ''
+    && !/ONNI:(ASK|MONITORING)/.test(turnText);
+}
+
 function canReportOrder(pairs: PairStore, pairId: string, workerRunId: string, orderId: string): boolean {
   const state = pairs.readState(pairId);
   const order = state?.currentOrderId === orderId ? pairs.getOrder(pairId, orderId) : null;

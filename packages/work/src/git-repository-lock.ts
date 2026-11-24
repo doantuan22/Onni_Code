@@ -179,15 +179,28 @@ function lockError(error: unknown): RepositoryLockError {
   return new RepositoryLockError(`One & One repository lock unavailable: ${message}`, code);
 }
 
+const LEASE_CHECK_ATTEMPTS = 5;
+const LEASE_CHECK_DELAY_MS = 40;
+
+function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function leaseHeld(lease: RepositoryLease, ownership: LockOwnership): boolean {
+  return Boolean(ownership.directoryIdentity)
+    && directoryIdentity(lease.lockPath) === ownership.directoryIdentity
+    && ownerToken(ownership) === ownership.token;
+}
+
+/** A stat/read can fail briefly on Windows (antivirus, indexer, git holding a handle); only a persistent mismatch means the lease is gone. */
 function assertLease(lease: RepositoryLease, ownership: LockOwnership): void {
-  if (
-    ownership.compromised
-    || !ownership.directoryIdentity
-    || directoryIdentity(lease.lockPath) !== ownership.directoryIdentity
-    || ownerToken(ownership) !== ownership.token
-  ) {
-    throw new RepositoryLockError('One & One repository lease was lost', 'ECOMPROMISED');
+  if (ownership.compromised) throw new RepositoryLockError('One & One repository lease was lost', 'ECOMPROMISED');
+  for (let attempt = 0; attempt < LEASE_CHECK_ATTEMPTS; attempt += 1) {
+    if (leaseHeld(lease, ownership)) return;
+    if (ownership.compromised) break;
+    if (attempt < LEASE_CHECK_ATTEMPTS - 1) sleepSync(LEASE_CHECK_DELAY_MS);
   }
+  throw new RepositoryLockError('One & One repository lease was lost', 'ECOMPROMISED');
 }
 
 function beginOwnership(path: string): LockOwnership {

@@ -32,7 +32,7 @@ import { DEFAULT_ALLOWED_TOOLS, stepKind } from '../types.ts';
 import { withRequiredRepositoryLock } from '../../git-repository-lock.ts';
 import { currentCheckExclusions } from './check-steps.ts';
 import { isPairMember, isPairRoot } from './pair-runtime.ts';
-import { preparePairContinuation } from './pair-coordinator.ts';
+import { isPairWorkerHandoffTurn, preparePairContinuation } from './pair-coordinator.ts';
 import { agentDirectories, composeSystemPrompt, contentBlocksOf, dispatchPromptPart, pastedAttachmentsText } from './preparation.ts';
 import type { PersistedAttachment, PastedContent } from './preparation.ts';
 import type { ContinuationActiveRun, ContinuationContext, ContinuationOptions, PairWorkerTurnResult } from './internal-types.ts';
@@ -572,7 +572,7 @@ export async function runContinuation(ctx: ContinuationContext,
         // working again, so the anti-spin budget is restored. Before the early returns below,
         // because a turn that finished or dispatched is progress too.
         if (!compacted) state.compactionContinues = 0;
-        if (!compacted && ctx.helpers.endsWithDoneMarker(turnText) && isPairMember(ctx.store.getRun(runId))) {
+        if (!compacted && isPairWorkerHandoffTurn(ctx.store.getRun(runId), turnText, ctx.helpers.endsWithDoneMarker(turnText))) {
           const pairReportText = turnText;
           pairTurn ??= (async () => {
             try {

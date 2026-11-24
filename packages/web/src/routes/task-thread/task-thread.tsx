@@ -354,15 +354,18 @@ export function ThreadView({
         continuationEngine={continuable ? continueAction.pills : undefined}
       />}
 
-      {/* One & One status: sticky in the right margin on wide screens (beside the lane, below the
-          header — never over it); on narrow screens it is a plain block above the thread. */}
-      <div className="flex flex-1 flex-col xl:flex-row xl:justify-center xl:gap-4 xl:px-4">
+      {/* One & One status: the lane keeps its centered layout. When the pane is wide enough for
+          the empty right margin (container query, so the sidebar is accounted for) the panel sits
+          in that margin, sticky; otherwise it is a plain block above the thread. */}
+      <div className="@container relative flex flex-1 flex-col">
         {pair.data !== undefined ? (
           <div
             data-slot="pair-panel"
-            className="order-first mx-auto w-full max-w-[var(--chat-measure)] px-3 pt-3 md:px-6 xl:order-last xl:sticky xl:top-28 xl:mx-0 xl:max-h-[calc(100vh-9rem)] xl:w-80 xl:max-w-none xl:shrink-0 xl:self-start xl:overflow-y-auto xl:p-0 xl:pt-4"
+            className="order-first mx-auto w-full max-w-[var(--chat-measure)] px-3 pt-3 md:px-6 @min-[1480px]:pointer-events-none @min-[1480px]:absolute @min-[1480px]:inset-y-0 @min-[1480px]:left-[calc(50%+var(--chat-measure)/2+1rem)] @min-[1480px]:order-none @min-[1480px]:m-0 @min-[1480px]:w-64 @min-[1480px]:max-w-none @min-[1480px]:p-0"
           >
-            <PairCard snapshot={pair.data} />
+            <div className="@min-[1480px]:pointer-events-auto @min-[1480px]:sticky @min-[1480px]:top-28 @min-[1480px]:max-h-[calc(100vh-9rem)] @min-[1480px]:overflow-y-auto @min-[1480px]:pt-4">
+              <PairCard snapshot={pair.data} />
+            </div>
           </div>
         ) : null}
 

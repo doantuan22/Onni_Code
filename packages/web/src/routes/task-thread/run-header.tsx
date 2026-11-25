@@ -166,6 +166,10 @@ function RunHeaderView({
   const budget = budgetStop(run)
   const canTerminal = useCanOpenTerminal(run)
   const hint = resumeHint(run)
+  // The resume line is absent while the run is active and back when it stops. Without a reserved
+  // slot the whole thread jumps ~36px on every start/stop, which reads as stutter in a chat that
+  // keeps changing state (nudges, wake-ups, pair turns). Measured: header 156px <-> 120px.
+  const reservedHint = hint === undefined ? resumeHint({ ...run, status: 'done', worktreeLifecycle: undefined }) : undefined
   const actions = useRunActions(run, { onMarkedUnread })
   // The Session tab's composer carries Continue (its send button) and ■ Stop, so the header only
   // repeats them on the tabs that have no composer of their own to hold them.
@@ -360,9 +364,14 @@ function RunHeaderView({
             </div>
           ) : null}
 
-          {hint ? (
+          {hint !== undefined || reservedHint !== undefined ? (
             <div className={cn(!detailsOpen && 'hidden md:block', collapsed && 'md:hidden')}>
-              <ResumeHintLine hint={hint} />
+              {hint !== undefined ? (
+                <ResumeHintLine hint={hint} />
+              ) : (
+                // Same footprint as the collapsed ResumeHintLine (min-h-7 summary + mb-2), with none of its content.
+                <div data-slot="resume-hint-spacer" aria-hidden="true" className="mb-2 h-7" />
+              )}
             </div>
           ) : null}
         </div>

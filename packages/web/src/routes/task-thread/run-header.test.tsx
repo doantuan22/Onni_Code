@@ -386,6 +386,18 @@ describe('action bar visibility per status (the legacy rules, rendered)', () => 
     },
   )
 
+  it('keeps the space of the resume line while the run is active, without exposing the command', () => {
+    stubFetch()
+    const { unmount } = renderHeader(run('done'))
+    expect(document.querySelector('[data-slot="resume-command-details"]')).not.toBeNull()
+    expect(document.querySelector('[data-slot="resume-hint-spacer"]')).toBeNull()
+    unmount()
+    renderHeader(run('running'))
+    expect(document.querySelector('[data-slot="resume-command-details"]')).toBeNull()
+    expect(document.querySelector('[data-slot="resume-hint"]')).toBeNull()
+    expect(document.querySelector('[data-slot="resume-hint-spacer"]')).not.toBeNull()
+  })
+
   it('the action icons sit next to the tabs, after the labelled Open in…; the title row has none', () => {
     stubFetch()
     renderHeader(run('done'))

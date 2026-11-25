@@ -41,27 +41,11 @@ describe('readDrawerState', () => {
     expect(readDrawerState('run-1')).toEqual(defaultDrawerState())
   })
 
-  it('restores an open drawer for the FIRST task of a page load — that is the refresh', () => {
+  it('never restores an open drawer — not on a refresh, not on a navigation', () => {
     writeDrawerState('run-1', { open: true, height: 320 })
-    expect(readDrawerState('run-1')).toEqual({ open: true, height: 320 })
-  })
-
-  it('hides it for every later task of the same page load — that is a navigation', () => {
-    writeDrawerState('run-1', { open: true, height: 320 })
-    writeDrawerState('run-2', { open: true, height: 200 })
-    readDrawerState('run-1')
-    // Spec §6: "Switching to another task hides this task's terminal … Returning to the task
-    // keeps it hidden with the same sessions." The height still comes back.
-    expect(readDrawerState('run-2')).toEqual({ open: false, height: 200 })
     expect(readDrawerState('run-1')).toEqual({ open: false, height: 320 })
-  })
-
-  it('restores again after a reload', () => {
-    writeDrawerState('run-1', { open: true, height: 320 })
-    readDrawerState('run-1')
-    expect(readDrawerState('run-1').open).toBe(false)
     resetPageLoadForTest() // the page reloaded
-    expect(readDrawerState('run-1').open).toBe(true)
+    expect(readDrawerState('run-1')).toEqual({ open: false, height: 320 })
   })
 
   it('recovers from junk rather than throwing', () => {
@@ -71,7 +55,7 @@ describe('readDrawerState', () => {
 
   it('repairs an impossible stored height', () => {
     localStorage.setItem(drawerStorageKey('run-1'), JSON.stringify({ open: true, height: -5 }))
-    expect(readDrawerState('run-1')).toEqual({ open: true, height: MIN_DRAWER_HEIGHT })
+    expect(readDrawerState('run-1')).toEqual({ open: false, height: MIN_DRAWER_HEIGHT })
   })
 
   it('keeps two tasks apart', () => {
@@ -83,7 +67,7 @@ describe('readDrawerState', () => {
 describe('writeDrawerState', () => {
   it('round-trips through storage', () => {
     writeDrawerState('run-1', { open: true, height: 400 })
-    expect(readDrawerState('run-1')).toEqual({ open: true, height: 400 })
+    expect(readDrawerState('run-1')).toEqual({ open: false, height: 400 })
   })
 
   it('never writes a height the drawer could not paint', () => {

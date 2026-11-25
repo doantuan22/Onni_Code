@@ -441,7 +441,7 @@ describe('the task workspace (main)', () => {
 
     // ⌥-click is the way to put it beside a view.
     fireEvent.click(document.querySelector<HTMLElement>('[data-fixed="session"]')!)
-    await waitFor(() => expect(activeCard()).toBe('Chat'))
+    await waitFor(() => expect(columnViews()).toEqual(['session']))
     fireEvent.click(terminalTab()!, { altKey: true })
     await waitFor(() => expect(columnViews()).toEqual(['session', 'terminal']))
 

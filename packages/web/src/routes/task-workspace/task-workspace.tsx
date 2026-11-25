@@ -234,6 +234,8 @@ function WorkspaceView({
   // The deep-link hop, and Back undoing it (§5.3) — as on brutus, gated on `ready` so a card is
   // never built on the stand-in state before the host has answered.
   const navigationType = useNavigationType()
+  /** The view a click navigated to, until the route reports it (`{ view: undefined }` is the bare task route). */
+  const pendingRoute = useRef<{ view: ViewId | undefined; at: number } | null>(null)
   const beforeDeepLink = useRef<{ runId: string; name: string } | null>(null)
   const hops = useRef<Map<ViewId, string>>(new Map())
   const hopsRun = useRef(run.id)
@@ -245,6 +247,17 @@ function WorkspaceView({
 
   useEffect(() => {
     if (!layouts.ready) return
+    // A rail click already chose the view; the route is still catching up (router updates land a
+    // tick late). Applying the OLD route here would flash the previous view — the terminal, when
+    // that was it — and a fast second click could end on a view the URL no longer names.
+    const pending = pendingRoute.current
+    if (pending) {
+      pendingRoute.current = null
+      if (pending.view !== deepLinkView && Date.now() - pending.at < 1500) {
+        pendingRoute.current = pending
+        return
+      }
+    }
     if (deepLinkView) {
       if (beforeDeepLink.current?.runId !== run.id) {
         beforeDeepLink.current = { runId: run.id, name: layouts.state.active }
@@ -302,13 +315,17 @@ function WorkspaceView({
   const workspace = useWorkspaceState(projectId ?? '')
   const navigateContextView = useCallback(
     (next: ViewId) => {
-      navigateTaskWorkspace(navigate, {
-        route: { runId: run.id, view: deepLinkView },
+      // Compared against the route a previous click is still navigating to, not the stale one on screen.
+      const pending = pendingRoute.current && Date.now() - pendingRoute.current.at < 1500 ? pendingRoute.current : null
+      const routeView = pending ? pending.view : deepLinkView
+      const action = navigateTaskWorkspace(navigate, {
+        route: { runId: run.id, ...(routeView === undefined ? {} : { view: routeView }) },
         effective: { runId: run.id, view: next },
         // The routed run is becoming active in the parent effect; include it here so an early
         // first click is still a local view replacement rather than an ignored route admission.
         openRunIds: [run.id, ...workspace.state.threads.filter((pane) => pane.kind === 'run').map((pane) => pane.runId)],
       })
+      pendingRoute.current = action === 'none' ? null : { view: next, at: Date.now() }
     },
     [deepLinkView, navigate, run.id, workspace.state.threads],
   )

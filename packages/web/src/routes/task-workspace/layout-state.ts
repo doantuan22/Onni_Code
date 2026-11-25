@@ -858,6 +858,12 @@ export function openDeepLink(state: WorkspaceState, view: ViewId): WorkspaceStat
     (layout) => isViewName(layout.name, view) && layout.columns.length === 1 && layout.columns[0]?.view === view,
   )
   if (born) return selectLayout(state, born.name)
+  // The task's own opening layout (`Custom`) shows one view too: coming back to it selects it, rather than
+  // minting a second card — which would mount a second Chat transcript beside the first.
+  const opening = state.layouts.find(
+    (layout) => layout.name === WORKING_LAYOUT_NAME && layout.columns.length === 1 && layout.columns[0]?.view === view,
+  )
+  if (opening) return selectLayout(state, opening.name)
   const current = activeLayout(state)
   // A terminal route may be reached from a custom arrangement without a fixed Terminal card.
   // Keep that arrangement selected when it already owns the run's terminal surface.

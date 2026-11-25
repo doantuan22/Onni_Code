@@ -1058,3 +1058,12 @@ describe('taskStripViews', () => {
     expect(taskStripViews({ dispatch: { pairMember: {} } }, false)).not.toContain('terminal')
   })
 })
+
+describe('openDeepLink and the opening layout', () => {
+  it('returns to the opening Chat layout instead of minting a second Chat card', () => {
+    const away = openDeepLink(freshDefaultState(), 'changes')
+    const back = openDeepLink(away, 'session')
+    expect(back.active).toBe(WORKING_LAYOUT_NAME)
+    expect(back.layouts.filter((layout) => layout.columns[0]?.view === 'session')).toHaveLength(1)
+  })
+})

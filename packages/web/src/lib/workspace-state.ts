@@ -362,11 +362,18 @@ interface WorkspaceStore {
 
 const stores = new Map<string, WorkspaceStore>()
 
+/** A reload never reopens the Context sheet on its own, nor lands on a Terminal view: a shell that
+ *  appears over the task unasked reads as a bug. Applied once, when a store is first created. */
+function withoutAutoOpenedContext(state: WorkspaceState): WorkspaceState {
+  const { view, ...context } = state.context
+  return { ...state, context: { ...context, open: false, ...(view !== undefined && view !== 'terminal' ? { view } : {}) } }
+}
+
 function workspaceStore(projectId: string): WorkspaceStore {
   const cached = stores.get(projectId)
   if (cached) return cached
 
-  let state = readWorkspaceState(projectId)
+  let state = withoutAutoOpenedContext(readWorkspaceState(projectId))
   const listeners = new Set<Listener>()
   const store: WorkspaceStore = {
     getSnapshot: () => state,

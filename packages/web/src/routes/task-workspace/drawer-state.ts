@@ -70,7 +70,6 @@ export function resetPageLoadForTest(): void {
  * shell you did not ask for on this visit.
  */
 export function readDrawerState(taskId: string): DrawerState {
-  const firstOfPageLoad = !pageLoadConsumed
   pageLoadConsumed = true
 
   let raw: string | null = null
@@ -90,7 +89,9 @@ export function readDrawerState(taskId: string): DrawerState {
   if (typeof parsed !== 'object' || parsed === null) return defaultDrawerState()
   const source = parsed as { open?: unknown; height?: unknown }
   return {
-    open: firstOfPageLoad && source.open === true,
+    // Never restored open, not even on a refresh: a shell that appears by itself, over whatever the
+    // task was showing, reads as a bug. The ` key and the Terminal view open it on purpose.
+    open: false,
     height: clampDrawerHeight(source.height),
   }
 }

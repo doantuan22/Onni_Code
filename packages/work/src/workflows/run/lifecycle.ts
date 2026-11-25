@@ -8,7 +8,7 @@ import { removeAgentTmpDir, sweepAgentTmpDirs } from '../../runs/agent-tmpdir.ts
 import { recoverPairDeletions } from '../../runs/pair-deletion.ts';
 import { RESTART_CONTINUATION_PROMPT, type PastedContent } from './preparation.ts';
 import { pairPeerRunId, relayPairWorkerFailure, stopPairForCancellation, stopTerminalPair } from './pair-coordinator.ts';
-import { isLivePairRoot } from './pair-runtime.ts';
+import { isLivePairRoot, isPairMember, isPairRoot } from './pair-runtime.ts';
 import type { LifecycleActiveRun, LifecycleContext } from './internal-types.ts';
 
 const CANCEL_GRACE_MS = 1_000;
@@ -505,6 +505,33 @@ export function cancel(context: LifecycleContext, runId: string): boolean {
   return previousStatus !== 'cancelled' && context.store.getRun(runId)?.status === 'cancelled';
 }
 
+/**
+ * A pair's open phase and its runs' statuses are separate records, and everything that ends a pair
+ * (Stop, stop-all, delete) keys off a LIVE run. When both peers already ended (failed, done, or a
+ * `waiting` park whose session is gone) nothing is left to cancel, so the pair stayed open forever:
+ * stop-all found "nothing running" and delete refused "only a stopped pair". This closes such a pair
+ * and settles its ghost runs. A peer that is genuinely live is left alone. Returns whether it acted.
+ */
+export function settleIdlePair(context: LifecycleContext, runId: string): boolean {
+  const run = context.store.getRun(runId);
+  const rootId = isPairRoot(run) ? runId : run?.dispatch?.pairMember?.peerRunId;
+  const root = rootId ? context.store.getRun(rootId) : undefined;
+  if (!root || !isLivePairRoot(root)) return false;
+  const peerIds = [root.id, ...(root.dispatch?.pair?.workerRunId ? [root.dispatch.pair.workerRunId] : [])];
+  const live = (id: string) => context.active.has(id) || context.starting.has(id) || context.queue.includes(id) || context.hasPendingWork(id);
+  if (peerIds.some(live)) return false;
+  stopPairForCancellation(context, root.id);
+  const finishedAt = new Date().toISOString();
+  for (const id of peerIds) {
+    const peer = context.store.getRun(id);
+    if (!peer || isTerminalStatus(peer.status)) continue;
+    // No session owns this run any more: a `waiting`/`running` record here is a ghost.
+    context.store.updateRun(id, { status: 'cancelled', finishedAt, currentStepId: undefined });
+    context.store.appendEvent(id, { type: 'lifecycle', message: 'run settled — its One & One pair ended with no live session' });
+  }
+  return true;
+}
+
 /** Emergency stop: cancel every queued, live, or scheduled run, then reap leftover processes. */
 export function cancelAll(context: LifecycleContext): number {
   let stopped = 0;
@@ -514,6 +541,10 @@ export function cancelAll(context: LifecycleContext): number {
     if (context.lifecycle.isBlocked(run.id)) continue;
     ids.push(run.id);
     if (cancelOne(context, run.id, true)) stopped++;
+  }
+  // Pairs whose runs already ended: nothing above could cancel them, yet the pair is still open.
+  for (const run of context.store.listRuns()) {
+    if ((isPairRoot(run) || isPairMember(run)) && settleIdlePair(context, run.id)) stopped++;
   }
   reapLeftoverProcesses(context, ids, LEFTOVER_SETTLE_GRACE_MS, 'stopped by stop-all');
   return stopped;

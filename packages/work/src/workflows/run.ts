@@ -62,6 +62,7 @@ import {
   abandonCancelledStart as lifecycleAbandonCancelledStart,
   cancel as lifecycleCancel,
   cancelAll as lifecycleCancelAll,
+  settleIdlePair as lifecycleSettleIdlePair,
   cancelAndWait as lifecycleCancelAndWait,
   cancelOne as lifecycleCancelOne,
   dropActive as lifecycleDropActive,
@@ -2686,6 +2687,11 @@ export class RunManager {
    */
   cancel(runId: string): boolean {
     return lifecycleCancel(this.lifecycleContext(), runId);
+  }
+
+  /** Close a One & One pair whose runs already ended, so it can be deleted; see `settleIdlePair`. */
+  settleIdlePair(runId: string): boolean {
+    return lifecycleSettleIdlePair(this.lifecycleContext(), runId);
   }
 
   cancelAll(): number {

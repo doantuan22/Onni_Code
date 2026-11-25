@@ -1959,6 +1959,8 @@ export function createApp(deps: ServerDeps) {
     const run = store.getRun(id);
     if (!run) return { ok: false, status: 404, error: 'not found' };
     if (run.dispatch?.pair !== undefined || run.dispatch?.pairMember !== undefined) {
+      // A pair whose runs all ended is still "open" to the pair store; close it so it can go.
+      manager.settleIdlePair(id);
       const pairManager = {
         hasPendingWork: (runId: string) => manager.hasPendingWork(runId),
         forgetSoftAsk: (runId: string) => manager.forgetSoftAsk(runId),

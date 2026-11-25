@@ -1440,7 +1440,10 @@ export function createRunsRoutes(deps: RunsRouteDeps) {
       const skipped: ClearProjectDataResult['skipped'] = [];
       for (const run of runs) {
         if (!project.store.getRun(run.id)) continue;
-        if (project.manager.isActive(run.id) || run.status === 'running' || run.status === 'queued' || run.status === 'waiting') {
+        // A One & One run with no live session is settled by the delete itself (`settleIdlePair`),
+        // so its stale `waiting`/`running` record is not a reason to refuse.
+        const idlePairRun = (run.dispatch?.pair !== undefined || run.dispatch?.pairMember !== undefined) && !project.manager.isActive(run.id);
+        if (project.manager.isActive(run.id) || (!idlePairRun && (run.status === 'running' || run.status === 'queued' || run.status === 'waiting'))) {
           skipped.push({ id: run.id, title: run.title, reason: 'still running — stop it first' });
           continue;
         }

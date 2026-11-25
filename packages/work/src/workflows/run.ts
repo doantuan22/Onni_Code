@@ -131,6 +131,7 @@ import {
   finishPairManager,
   handlePairWorkerTurn as handlePairWorkerTurnTask,
 } from './run/pair-coordinator.ts';
+import { createPairReconcileMemory, reconcileOpenPairs } from './run/pair-reconcile.ts';
 import {
   pairAcceptFor as controlPairAcceptFor,
   pairDecisionFor as controlPairDecisionFor,
@@ -1406,7 +1407,7 @@ export class RunManager {
     this.offUsage = onUsage((snapshot) => void this.enforceMemoryLimit(snapshot));
     this.queueWatchdog = setInterval(() => void this.rescueStalledQueue(), QUEUE_WATCHDOG_MS);
     this.queueWatchdog.unref?.();
-    this.limitSweepTimer = setInterval(() => this.sweepLimits(), LIMIT_SWEEP_MS);
+    this.limitSweepTimer = setInterval(() => { this.sweepLimits(); this.reconcilePairs(); }, LIMIT_SWEEP_MS);
     this.limitSweepTimer.unref?.();
   }
 
@@ -2652,6 +2653,18 @@ export class RunManager {
    */
   sweepLimits(now: number = Date.now()): void {
     return schedulingSweepLimits(this.schedulingContext(), now);
+  }
+
+  private readonly pairReconcileMemory = createPairReconcileMemory();
+
+  /** Self-heal an open One & One pair whose worker ended or vanished without the manager hearing of it. */
+  reconcilePairs(now: number = Date.now()): void {
+    try {
+      reconcileOpenPairs({
+        ...this.lifecycleContext(),
+        isLive: (runId) => this.active.has(runId) || this.starting.has(runId) || this.queue.includes(runId),
+      }, this.pairReconcileMemory, now);
+    } catch { /* the sweep must never take the manager down */ }
   }
 
   private stopForLimit(runId: string, hit: LimitHit): void {

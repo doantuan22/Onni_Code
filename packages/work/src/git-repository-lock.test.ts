@@ -6,6 +6,8 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   acquireRepositoryLockSync,
+  isTransientLockError,
+  retryTransientLock,
   repositoryLockfilePath,
   resolveRepositoryIdentitySync,
   withRepositoryLock,
@@ -225,5 +227,43 @@ describe('Git repository lock', () => {
       }, 50));
     });
     await expect(later).resolves.toBe(true);
+  });
+
+  it('waits out another process briefly holding the lock on the synchronous path', () => {
+    const root = repository();
+    const lockPath = repositoryLockfilePath(root)!;
+    mkdirSync(lockPath);
+    // A separate process drops the lock shortly after; this thread blocks in the sync retry.
+    const remover = spawn(process.execPath, ['-e', `setTimeout(()=>require('fs').rmdirSync(${JSON.stringify(lockPath)}),200)`], { stdio: 'ignore', windowsHide: true });
+    try {
+      expect(withRepositoryLockSync(root, () => 'ok')).toBe('ok');
+    } finally {
+      remover.kill();
+    }
+  });
+
+  it('does not wait on a holder in its own process, which cannot progress while we block', () => {
+    const root = repository();
+    const lease = acquireRepositoryLockSync(root)!;
+    leases.push(lease);
+    const started = Date.now();
+    expect(() => withRepositoryLockSync(root, () => 'never')).toThrow(/already locked in this process/);
+    expect(Date.now() - started).toBeLessThan(500);
+  });
+
+  it('retries a transient lock failure in place and surfaces anything else at once', async () => {
+    let calls = 0;
+    await expect(retryTransientLock(() => {
+      calls += 1;
+      if (calls < 3) throw new Error('One & One repository lease was lost');
+      return 'healed';
+    }, [1, 1, 1])).resolves.toBe('healed');
+    expect(calls).toBe(3);
+
+    let other = 0;
+    await expect(retryTransientLock(() => { other += 1; throw new Error('disk exploded'); }, [1, 1])).rejects.toThrow('disk exploded');
+    expect(other).toBe(1);
+    expect(isTransientLockError(new Error('One & One repository lock unavailable: x'))).toBe(true);
+    expect(isTransientLockError(new Error('nope'))).toBe(false);
   });
 });

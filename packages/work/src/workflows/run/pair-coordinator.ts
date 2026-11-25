@@ -1,5 +1,6 @@
 import type { PairState } from '@onni/contract';
 import { PairStore, PairStoreError } from '../../dispatch/pair-store.ts';
+import { isTransientLockError, retryTransientLock } from '../../git-repository-lock.ts';
 import type { RunStore } from '../../runs/store.ts';
 import type { PastedContent } from './preparation.ts';
 import type { PairWorkerTurnResult } from './internal-types.ts';
@@ -130,7 +131,21 @@ const WORKER_ENDED_MARKER = 'WORKER ENDED EARLY';
  * issue a revised order (that resumes this same worker). Returns false when the pair cannot take
  * the report (stopped, manager gone, no live order) so the caller falls back to stopping it.
  */
-export function relayPairWorkerFailure(context: PairDeliveryContext & { dataDir: string }, runId: string): boolean {
+const RELAY_RETRY_DELAYS_MS = [1_000, 3_000, 10_000] as const;
+
+/** The relay is idempotent, so a lock hiccup is retried in the background rather than left to the user. */
+function scheduleRelayRetry(context: PairDeliveryContext & { dataDir: string }, runId: string, attempt: number): void {
+  const delay = RELAY_RETRY_DELAYS_MS[attempt];
+  if (delay === undefined) return;
+  const timer = setTimeout(() => {
+    try {
+      relayPairWorkerFailure(context, runId, attempt + 1);
+    } catch { /* the store may be gone; the saved note already told the manager */ }
+  }, delay);
+  timer.unref?.();
+}
+
+export function relayPairWorkerFailure(context: PairDeliveryContext & { dataDir: string }, runId: string, retryAttempt = 0): boolean {
   const run = context.store.getRun(runId);
   const pairId = run?.dispatch?.pairMember?.pairId;
   if (!run || (run.status !== 'failed' && run.status !== 'cancelled') || !pairId) return false;
@@ -179,6 +194,7 @@ export function relayPairWorkerFailure(context: PairDeliveryContext & { dataDir:
       message: `One & One worker ${runId.slice(0, 8)} ended (${run.status}) but the pair could not record it — ${errorText(error)}`,
       tone: 'danger',
     });
+    if (isTransientLockError(error)) scheduleRelayRetry(context, runId, retryAttempt);
     return false;
   }
 }
@@ -240,7 +256,13 @@ export async function handlePairWorkerTurn(
   const report = context.store.redactRunText(runId, turnText).trim().slice(0, 20_000)
     || 'Worker completed the order without a written report.';
   try {
-    pairs.reportOrder(membership.pairId, order.id, report);
+    // Self-heal a lock hiccup instead of failing the worker: re-check first, since a lease lost
+    // after the write leaves the report already recorded.
+    await retryTransientLock(() => {
+      const current = pairs.getOrder(membership.pairId, order.id);
+      if (current?.status === 'reported' && current.report === report) return;
+      pairs.reportOrder(membership.pairId, order.id, report);
+    });
     const next = mirrorPairState(context.store, pairs.readState(membership.pairId)!);
     context.store.appendEvent(runId, {
       type: 'note',

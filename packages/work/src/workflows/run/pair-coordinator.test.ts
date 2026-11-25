@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Roster, RunDispatch } from '@onni/contract';
-import { PairStore } from '../../dispatch/pair-store.ts';
+import { PairStore, PairStoreError } from '../../dispatch/pair-store.ts';
 import { acquireRepositoryLockSync } from '../../git-repository-lock.ts';
 import { RunStore } from '../../runs/store.ts';
 import { removeTempDir } from '../../test-fixtures/remove-temp-dir.testkit.ts';
@@ -74,6 +74,31 @@ describe('One & One coordinator', () => {
     const state = pairs.readState(MANAGER_ID)!;
     store.updateRun(MANAGER_ID, { dispatch: { rootRunId: MANAGER_ID, pair: state } });
   }
+
+  it('heals a transient lock failure while recording the worker report instead of failing the worker', async () => {
+    await startOrder();
+    writeFileSync(join(root, 'feature.txt'), 'implemented\n', 'utf8');
+    const original = PairStore.prototype.reportOrder;
+    let failures = 2;
+    vi.spyOn(PairStore.prototype, 'reportOrder').mockImplementation(function (this: PairStore, ...args: Parameters<PairStore['reportOrder']>) {
+      if (failures > 0) {
+        failures -= 1;
+        throw new PairStoreError('One & One repository lease was lost');
+      }
+      return original.apply(this, args);
+    });
+    const context = {
+      store, dataDir, repoRoot: root,
+      active: new Set<string>(),
+      deliverMessage: () => true,
+      deferMessage: () => false,
+      continueRun: () => ({ ok: true }),
+    };
+    const handedOff = await handlePairWorkerTurn(context, WORKER_ID, 'Implemented feature.txt.\nONNI:DONE', []);
+    expect(handedOff).toEqual({ handled: true, ok: true });
+    expect(failures).toBe(0);
+    expect(pairs.readState(MANAGER_ID)?.phase).toBe('manager_review');
+  });
 
   it('checkpoints explicit worker paths, reports to the manager, and completes only after acceptance', async () => {
     await startOrder();

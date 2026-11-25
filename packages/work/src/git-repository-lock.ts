@@ -11,6 +11,11 @@ const LOCK_STALE_MS = 30_000;
 const LOCK_UPDATE_MS = 1_000;
 const LOCK_RETRIES = { retries: 100, minTimeout: 20, maxTimeout: 100 } as const;
 const LOCK_DIRECTORY = 'onni-repository.lock';
+const IN_PROCESS_LOCKED_MESSAGE = 'One & One repository is already locked in this process';
+/** Cross-process contention on the synchronous path (no event loop to wait on): a short bounded wait. */
+const SYNC_ACQUIRE_BUDGET_MS = 1_500;
+/** In-place self-heal for an async caller: waits between attempts after a transient lock failure. */
+const TRANSIENT_RETRY_DELAYS_MS = [150, 500, 1_500] as const;
 
 export interface RepositoryLease {
   readonly lockPath: string;
@@ -175,6 +180,33 @@ function lockFilesystem(ownership: LockOwnership): typeof fs {
   } as typeof fs;
 }
 
+/** A lock failure that a short wait can cure: contention, a lapsed lease, a replaced lock. */
+export function isTransientLockError(error: unknown): boolean {
+  if (error instanceof RepositoryLockError) return true;
+  const message = error instanceof Error ? error.message : '';
+  return /^One & One repository (?:lock unavailable|lease was (?:lost|replaced)|is already locked)/.test(message);
+}
+
+/**
+ * Self-heal a transient lock failure in place instead of failing the caller. Only for operations
+ * that are safe to run again: the operation must re-check its own state, since a failure after
+ * the write (lease lost at the end) leaves the effect already applied.
+ */
+export async function retryTransientLock<T>(
+  operation: () => T | Promise<T>,
+  delaysMs: readonly number[] = TRANSIENT_RETRY_DELAYS_MS,
+): Promise<T> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      const delay = delaysMs[attempt];
+      if (delay === undefined || !isTransientLockError(error)) throw error;
+      await new Promise<void>((done) => setTimeout(done, delay));
+    }
+  }
+}
+
 function lockError(error: unknown): RepositoryLockError {
   if (error instanceof RepositoryLockError) return error;
   const value = error as { message?: unknown; code?: unknown };
@@ -248,7 +280,7 @@ function assertAcquiredDirectory(path: string, ownership: LockOwnership): void {
 function acquireRepositoryLockAtIdentitySync(identity: string): RepositoryLease {
   const path = join(identity, LOCK_DIRECTORY);
   if (lockOwners.has(path)) {
-    throw new RepositoryLockError('One & One repository is already locked in this process');
+    throw new RepositoryLockError(IN_PROCESS_LOCKED_MESSAGE);
   }
   const ownership = beginOwnership(path);
   let releaseLock: (() => void) | undefined;
@@ -286,6 +318,22 @@ function acquireRepositoryLockAtIdentitySync(identity: string): RepositoryLease 
   return lease;
 }
 
+/** Another process holding the lock for a moment is not a failure; a holder in this process is (it cannot progress while we block). */
+function acquireWithRetrySync(identity: string): RepositoryLease {
+  const deadline = Date.now() + SYNC_ACQUIRE_BUDGET_MS;
+  for (let delay = 20; ; delay = Math.min(delay * 2, 200)) {
+    try {
+      return acquireRepositoryLockAtIdentitySync(identity);
+    } catch (error) {
+      const contended = error instanceof RepositoryLockError
+        && error.code === 'ELOCKED'
+        && error.message !== IN_PROCESS_LOCKED_MESSAGE;
+      if (!contended || Date.now() + delay > deadline) throw error;
+      sleepSync(delay);
+    }
+  }
+}
+
 export function acquireRepositoryLockSync(root: string): RepositoryLease | null {
   const identity = resolveRepositoryIdentitySync(root);
   return identity ? acquireRepositoryLockAtIdentitySync(identity) : null;
@@ -294,7 +342,7 @@ export function acquireRepositoryLockSync(root: string): RepositoryLease | null 
 async function acquireRepositoryLockAtIdentity(identity: string): Promise<RepositoryLease> {
   const path = join(identity, LOCK_DIRECTORY);
   if (lockOwners.has(path)) {
-    throw new RepositoryLockError('One & One repository is already locked in this process');
+    throw new RepositoryLockError(IN_PROCESS_LOCKED_MESSAGE);
   }
   const ownership = beginOwnership(path);
   let releaseLock: (() => Promise<void>) | undefined;
@@ -387,7 +435,7 @@ function withRepositoryLockAtIdentitySync<T>(
     held.assertValid();
     return operation(held);
   }
-  const lease = acquireRepositoryLockAtIdentitySync(identity);
+  const lease = acquireWithRetrySync(identity);
   return leaseContext.run(new Map([[path, lease]]), () => {
     try {
       const result = operation(lease);

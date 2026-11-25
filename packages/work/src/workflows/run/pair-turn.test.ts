@@ -14,7 +14,9 @@ import { preparePairContinuation } from './pair-coordinator.ts';
 import type { AgentStepActiveRun, AgentStepContext, ContinuationActiveRun, ContinuationContext } from './internal-types.ts';
 
 vi.mock('../../core/runner-factory.ts', () => ({ createRunner: vi.fn() }));
-vi.mock('./pair-coordinator.ts', () => ({
+vi.mock('./pair-coordinator.ts', async (importOriginal) => ({
+  // The handoff predicate is pure; only the pair-store-touching preparation is stubbed.
+  ...(await importOriginal<typeof import('./pair-coordinator.ts')>()),
   preparePairContinuation: vi.fn(async () => ({ ok: true })),
 }));
 

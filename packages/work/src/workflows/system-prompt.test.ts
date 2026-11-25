@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AUTOMATIONS_PROMPT } from '../automations/prompts.ts';
-import { composeDispatchPrompt } from '../dispatch/prompts.ts';
+import { AUTOMATIONS_POINTER } from '../automations/prompts.ts';
+import { composeDispatchPrompt, DISPATCH_POINTER } from '../dispatch/prompts.ts';
 import { HANDOFF_INSTRUCTIONS, HANDOFF_ONLY_INSTRUCTIONS } from '../handoff.ts';
 import { RunStore } from '../runs/store.ts';
 import { WorkspaceSemaphore } from '../workspace/semaphore.ts';
@@ -266,7 +266,7 @@ describe('systemPrompt end-to-end (dry run)', () => {
     return prompt.endsWith(suffix) ? prompt.slice(0, -suffix.length) : prompt;
   }
 
-  it('dispatch on (the default): every task is taught the onni task CLI ahead of the base prompt', async () => {
+  it('dispatch on (the default): an ordinary task gets the short pointer, not the full CLI brief', async () => {
     delete process.env.ONNI_DISPATCH;
     // The flag alone is not enough — the prompt needs the TRANSPORT the cockpit publishes (spec
     // 2026-09-10-dispatch A2). `serveCommand` sets this; these suites have no server.
@@ -278,7 +278,8 @@ describe('systemPrompt end-to-end (dry run)', () => {
       delete process.env.ONNI_API_URL;
     }
     const prompt = capturedSystemPrompt();
-    expect(prompt).toContain('onni task create');
+    expect(prompt).toContain(DISPATCH_POINTER);
+    expect(prompt).not.toContain('onni task create');
     expect(prompt).toContain(CONFIG_PROMPT);
   });
 
@@ -301,7 +302,7 @@ describe('systemPrompt end-to-end (dry run)', () => {
   // The automations twin of the two dispatch cases above (spec 2026-09-13-automations-from-prompt):
   // the part rides only when the flag is on AND the cockpit is reachable, at the same session
   // sites as the dispatch prompt — so a Continue keeps it too.
-  it('automations on and reachable: every task is taught the onni automation CLI', async () => {
+  it('automations on and reachable: an ordinary task gets the short pointer to the automation CLI', async () => {
     process.env.ONNI_AUTOMATIONS = '1';
     process.env.ONNI_API_URL = 'http://127.0.0.1:4321';
     try {
@@ -311,11 +312,11 @@ describe('systemPrompt end-to-end (dry run)', () => {
       delete process.env.ONNI_API_URL;
     }
     const prompt = capturedSystemPrompt();
-    expect(prompt).toContain('node "$ONNI_BIN" automation');
+    expect(prompt).toContain('node "$ONNI_BIN" automation --help');
     expect(prompt).toContain(CONFIG_PROMPT);
     // Dispatch is off in this suite, so the automations part is the only cockpit part composed —
     // ahead of the extra prompt, which may amend it.
-    expect(prompt).toBe(composeSystemPrompt(AUTOMATIONS_PROMPT, CONFIG_PROMPT, HANDOFF_INSTRUCTIONS));
+    expect(prompt).toBe(composeSystemPrompt(AUTOMATIONS_POINTER, CONFIG_PROMPT, HANDOFF_INSTRUCTIONS));
   });
 
   it('automations on but unreachable (headless), or opted out: no task is taught the CLI', async () => {

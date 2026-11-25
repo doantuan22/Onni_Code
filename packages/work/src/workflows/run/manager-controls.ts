@@ -46,7 +46,7 @@ import { parseUsageLimit } from '../../core/usage-limit.ts';
 import { oneAndOneManagerPrompt, oneAndOneWorkerPrompt } from '../../dispatch/pair-prompts.ts';
 import { PairStore } from '../../dispatch/pair-store.ts';
 import { resolveCapabilities } from '../../server/capabilities.ts';
-import { composeDispatchPrompt } from '../../dispatch/prompts.ts';
+import { composeDispatchPrompt, DISPATCH_POINTER } from '../../dispatch/prompts.ts';
 import { formatBudgetLine, toDispatchBudget } from '../../dispatch/budget-format.ts';
 import { orderPeekCandidates, peekTail, quietMinutesOf } from '../../dispatch/peek.ts';
 import { capOverlaps, findOverlaps, outsideScope, parseScope, scopeOf } from '../../dispatch/conflicts.ts';
@@ -356,7 +356,10 @@ export function prepareDispatchSession(ctx: ManagerControlContext, runId: string
       return;
     }
     // The intent block belongs to the ROOT the user started; a child reads its order instead.
-    state.dispatchPrompt = composeDispatchPrompt(dispatch?.kind, dispatch?.parentRunId ? undefined : dispatch?.intent);
+    // A task in no tree and without the Dispatch toggle gets the pointer, not the 6 KB brief.
+    state.dispatchPrompt = dispatch
+      ? composeDispatchPrompt(dispatch.kind, dispatch.parentRunId ? undefined : dispatch.intent)
+      : DISPATCH_POINTER;
   }
 
   /** What is left of the root's ceilings and of the tree's structural caps, for the manager brief. */

@@ -1,5 +1,6 @@
 import { rosterWorkerKey, type AgentPermissionLevel, type Roster, type RosterWorker } from '@onni/contract';
 import { PLAN_PROMPT_MAX_PARTS, RUNNERS_WITHOUT_COST, RUNNERS_WITHOUT_TOKENS, type TreePlan, type TreePlanPart } from '@onni/contract';
+import { MANAGER_INTENT_GATE } from '../dispatch/intent-gate.ts';
 import { REVIEW_PROMPT } from '../dispatch/prompts.ts';
 import { managerCommandsBlock, workerCommandsBlock } from '../dispatch/commands.ts';
 import { formatBudgetLine, toDispatchBudget } from '../dispatch/budget-format.ts';
@@ -270,6 +271,8 @@ export function managerPrompt(
   }).join('\n');
   const manager = describeWorker(roster.manager);
   return `Manager mode. The user chose you (${manager}) to MANAGE this task: you plan, hand independent parts to workers, review what they return and integrate it. You are not one of the workers.
+
+${MANAGER_INTENT_GATE}
 
 Your workers. You may give tasks ONLY to these — the server refuses any other backend or model with a 409 that lists the allowed ones (a fence for orchestration, not a security boundary; do not try to get around it):
 ${workers}

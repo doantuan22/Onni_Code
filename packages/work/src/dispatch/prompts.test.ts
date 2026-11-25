@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RUNNER_IDS } from '../core/agent-runner.ts';
-import { DISPATCH_PROMPT, REVIEW_PROMPT, composeDispatchPrompt, dispatchIntentPrompt } from './prompts.ts';
+import { DISPATCH_POINTER, DISPATCH_PROMPT, REVIEW_PROMPT, composeDispatchPrompt, dispatchIntentPrompt } from './prompts.ts';
 
 function containsRunnerToken(text: string, runner: string): boolean {
   return new RegExp(`(?:^|[^A-Za-z0-9_-])${runner}(?=$|[^A-Za-z0-9_-])`).test(text);
@@ -92,5 +92,14 @@ describe('the dispatch prompt', () => {
       expect(bare).not.toContain('Limits set by the user');
       expect(bare).not.toContain('Subtasks run with');
     });
+  });
+});
+
+describe('the dispatch pointer for an ordinary task', () => {
+  it('names the capability and where the rules are, without carrying them', () => {
+    expect(DISPATCH_POINTER).toContain('node "$ONNI_BIN" task --help');
+    expect(DISPATCH_POINTER).toMatch(/only when the user asks/);
+    expect(DISPATCH_POINTER).toMatch(/never on your own initiative/);
+    expect(DISPATCH_POINTER.length).toBeLessThan(DISPATCH_PROMPT.length / 10);
   });
 });

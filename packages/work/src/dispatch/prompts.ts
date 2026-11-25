@@ -44,6 +44,13 @@ The Guard. Before anything irreversible, financial, or outside the scope you wer
 export const REVIEW_PROMPT = `Your KIND is review. You did not write the work you were given — you judge it. Read the diff of every branch or run named in your order's "Review of" line (git diff <fork point>..<branch>; the task's report.md and notes.md in the tree directory tell you what it claimed). Run the repository's tests and checks against that branch yourself and read the output. Judge the work against a checklist you try to FALSIFY: does the diff do what the order asked, does every claim in the report match the diff and the test output, does anything touch files outside the stated scope, is anything untested or destructive. Then report with --verdict: approve when the work does what its order asked and the evidence holds; changes with the exact findings (file and line) when it is close; reject when it is wrong or unsafe. You edit nothing on the reviewed branch and commit nothing of your own beyond your notes — a reviewer that fixes the code is no longer a reviewer. The verdict is required.`;
 
 /** The prompt part one task runs under: the dispatch instructions, plus the review addendum. */
+/**
+ * What an ordinary task (no tree, no Dispatch toggle) is told: the capability exists, the full
+ * brief is one --help away. Keeps ~6 KB of rules out of every plain task's system prompt, and
+ * stops the agent from fanning out the user's request on its own initiative.
+ */
+export const DISPATCH_POINTER = `Dispatching. onni can run other onni tasks as parallel subtasks, but only when the user asks you to split or delegate work — never on your own initiative. If asked, run node "$ONNI_BIN" task --help first for the commands and rules, plan the parts, then create them.`;
+
 export function composeDispatchPrompt(kind: DispatchKind | undefined, intent?: DispatchIntent): string {
   const base = kind === 'review' ? `${DISPATCH_PROMPT}\n\n${REVIEW_PROMPT}` : DISPATCH_PROMPT;
   return intent ? `${base}\n\n${dispatchIntentPrompt(intent)}` : base;

@@ -320,7 +320,7 @@ import {
 import type { AgentEvent, AgentRunResult, ContentBlock } from '../core/agent-runner.ts';
 import { discoverSkills, type Skill } from '../skills.ts';
 import { automationsReachable } from '../automations/builtin-skill.ts';
-import { AUTOMATIONS_PROMPT } from '../automations/prompts.ts';
+import { AUTOMATIONS_POINTER } from '../automations/prompts.ts';
 import { getTeamSkillsCached, materializeSkillDir, waitForTeamSkills } from '../skills-remote.ts';
 import { provisionSkills } from '../skills-provision.ts';
 import { seedAgentConfigLocalLayer } from '../agent-config/seed.ts';
@@ -2177,7 +2177,7 @@ export class RunManager {
   }
 
   private prepareAutomationsSession(state: ActiveRun): void {
-    state.automationsPrompt = automationsReachable() ? AUTOMATIONS_PROMPT : undefined;
+    state.automationsPrompt = automationsReachable() ? AUTOMATIONS_POINTER : undefined;
   }
 
   private flushInbox(runId: string): string | undefined {

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { RUNNER_IDS } from '../core/agent-runner.ts';
 import { automationDefinitionObjectSchema, automationDefinitionSchema, automationEventSchema } from './types.ts';
 import {
+  AUTOMATIONS_POINTER,
   AUTOMATIONS_PROMPT,
   AUTOMATION_SCHEMA_REFERENCE,
   CREATE_AUTOMATION_SKILL_BODY,
@@ -142,4 +143,13 @@ it('gives one consistent tracker CLI path and a valid tracker example', () => {
   const end = AUTOMATION_SCHEMA_REFERENCE.indexOf('\n}', marker) + 2;
   const example = JSON.parse(AUTOMATION_SCHEMA_REFERENCE.slice(start, end));
   expect(automationDefinitionSchema.safeParse({ ...example, id: 'tracker-example', revision: 1, createdAt: '2026-09-19T00:00:00.000Z', updatedAt: '2026-09-19T00:00:00.000Z' }).success).toBe(true);
+});
+
+describe('the automations pointer for an ordinary task', () => {
+  it('points at the CLI help instead of carrying the full brief', () => {
+    expect(AUTOMATIONS_POINTER).toContain('node "$ONNI_BIN" automation --help');
+    expect(AUTOMATIONS_POINTER).toContain('node "$ONNI_BIN" automation schema');
+    expect(AUTOMATIONS_POINTER).toMatch(/only then/i);
+    expect(AUTOMATIONS_POINTER.length).toBeLessThan(AUTOMATIONS_PROMPT.length / 5);
+  });
 });

@@ -1,4 +1,5 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { oneAndOneManagerPrompt } from '../dispatch/pair-prompts.ts';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -42,6 +43,13 @@ describe('managerPrompt', () => {
     expect(prompt).toContain('Submit the ready orders in the same turn');
     expect(prompt).toContain('do not end the turn with ONNI:DONE while any worker you dispatched has not reported');
     expect(prompt).toContain('server refuses any other backend or model with a 409');
+  });
+  it('keeps a manager from dispatching when the user only asks about the plan', () => {
+    for (const text of [prompt, oneAndOneManagerPrompt({ runner: 'codex', model: 'gpt-5' } as never)]) {
+      expect(text).toContain('ONLY when the user has asked for work to be done');
+      expect(text).toContain('answer in plain text and stop');
+    }
+    expect(prompt.indexOf('ONLY when the user has asked')).toBeLessThan(prompt.indexOf('Dispatch EVERY independent part first'));
   });
   it('includes manager message, cancel and redirect commands within the dedicated command budget', () => {
     const commands = managerCommandsBlock();
@@ -322,6 +330,17 @@ describe('which prompt each session of a roster tree gets', () => {
     store.updateRun(run.id, patch);
     return run;
   };
+
+  it('an ordinary task gets the dispatch pointer; a task already in a tree keeps the full brief', () => {
+    const plain = make({});
+    expect(prepare(plain.id)).toContain('only when the user asks you to split or delegate work');
+    expect(prepare(plain.id)).not.toContain('--verdict');
+    const root = make({});
+    store.updateRun(root.id, { dispatch: { rootRunId: root.id } });
+    const child = make({ dispatch: { rootRunId: root.id, parentRunId: root.id } });
+    expect(prepare(child.id)).toContain('onni task report');
+    expect(prepare(root.id)).toContain('onni task create');
+  });
 
   it('the root gets the manager brief with live numbers; a worker gets the report-only brief', () => {
     const root = make({ roster, limits: { mode: 'capped', maxCostUsd: 10 } });

@@ -767,11 +767,17 @@ export function createRunsRoutes(deps: RunsRouteDeps) {
     })
 
     // "Finish": gracefully close a waiting session — the run completes as done.
-    .post('/runs/:id/finish', (c) => {
+    .post('/runs/:id/finish', async (c) => {
       const { store, manager } = c.get('project');
       const id = c.req.param('id');
       const before = store.getRun(id);
       if (!before) return c.json({ error: 'not found' }, 404);
+      // A One & One pair root closes only through this user action, never by a manager marker.
+      if (before.status === 'waiting' && before.dispatch?.pair !== undefined && before.dispatch.rootRunId === id) {
+        const closed = await manager.finishPair(id);
+        if ('error' in closed) return c.json({ error: closed.error }, 409);
+        return c.json({ finished: true });
+      }
       const refusal = pairRunMutationRefusal(before);
       if (refusal) return c.json({ error: refusal }, 409);
       const finished = manager.finish(id);

@@ -386,24 +386,16 @@ export function handleDispatchTurn(
     }
     const current = pairs.readState(pairId);
     const currentOrder = current?.currentOrderId ? pairs.getOrder(pairId, current.currentOrderId) : null;
-    const finishRequested = /^ONNI:PAIR:FINISH\s*$/m.test(turnText);
-    if (finishRequested) {
-      ctx.state.pairFinishRequested = true;
-      note('One & One finish requested — the pair will complete when this turn settles');
-    }
     const mayComplete = !dispatched && !acceptedNow && (
       (currentOrder?.status === 'accepted'
         && (current?.phase === 'final_check' || current?.phase === 'transitioning' || current?.phase === 'complete'))
-      || (finishRequested && (current?.phase === 'planning' || current?.phase === 'user_wait' || current?.phase === 'complete'))
     );
     if (ctx.done && !mayComplete) {
       const message = acceptedNow
         ? 'Order accepted. Run the final checks now, then emit ONNI:DONE in a later turn. Do not merge, push, or open a PR.'
         : dispatched
           ? 'You dispatched the One & One worker and cannot complete this turn. Wait for its report, review the diff, and accept or revise the order.'
-          : finishRequested
-            ? 'One & One cannot finish while an order is still in flight; wait for the worker report, or cancel the pair.'
-            : 'One & One cannot complete until the worker reports, you review the actual diff, and you accept the current order with ONNI:PAIR:ACCEPT.';
+          : 'One & One cannot complete until the worker reports, you review the actual diff, and you accept the current order with ONNI:PAIR:ACCEPT.';
       const rePrompted = ctx.state.session?.open === true && ctx.state.session.sendMessage([{ type: 'text', text: message }]) === true;
       return { hasDispatch: true, dispatched, overBudget: false, rePrompted, doneBlocked: true };
     }

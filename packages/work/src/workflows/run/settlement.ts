@@ -294,8 +294,8 @@ export async function settleSuccess(
       return true;
     };
     // Long-lived pair: a task that ends without the finish marker parks at `user_wait` so the
-    // manager keeps its context and the user hands it the next instruction. `ONNI:PAIR:FINISH`
-    // (the manager asked to close) is the one terminal exit, through `finishPairManager`.
+    // manager keeps its context and the user hands it the next instruction. The user's Finish
+    // button (`pairFinishRequested`) is the one terminal exit, through `finishPairManager`.
     if (owner && !owner.pairFinishRequested) {
       const parked = await parkPairManager(ctx, runId, excludedPaths);
       if (!canSettle()) return false;
@@ -306,10 +306,6 @@ export async function settleSuccess(
         currentStepId: undefined,
         autoResumeAttempts: undefined,
         autoResumeReason: undefined,
-      });
-      ctx.store.appendEvent(runId, {
-        type: 'lifecycle',
-        message: 'One & One task complete — pair parked; send the next instruction or finish the pair',
       });
       return true;
     }

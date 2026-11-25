@@ -568,25 +568,14 @@ describe('One & One coordinator', () => {
     expect(finished).toMatchObject({ ok: false, error: 'One & One cannot finish while an order is still in flight' });
   });
 
-  it('the finish marker lets an idle manager complete and sticks on its state', async () => {
+  it('a manager FINISH marker no longer completes an idle pair — only the user Finish does', async () => {
     await parkAcceptedOrder();
     await preparePairContinuation(pairContext(), MANAGER_ID); // → planning, no order in flight
     const sendMessage = vi.fn(() => true);
     const context = managerContext(sendMessage);
     const state = context.active.get(MANAGER_ID)!;
     const result = handleDispatchTurn(context, MANAGER_ID, 'All done.\nONNI:PAIR:FINISH\nONNI:DONE', { state, stepId: 'task', done: true });
-    expect(result.doneBlocked).not.toBe(true);
-    expect(state.pairFinishRequested).toBe(true);
-  });
-
-  it('the finish marker blocks while an order is in flight', async () => {
-    await startOrder(); // worker_working — an order is in flight
-    const sendMessage = vi.fn(() => true);
-    const context = managerContext(sendMessage);
-    const state = context.active.get(MANAGER_ID)!;
-    const result = handleDispatchTurn(context, MANAGER_ID, 'ONNI:PAIR:FINISH\nONNI:DONE', { state, stepId: 'task', done: true });
     expect(result.doneBlocked).toBe(true);
-    expect(state.pairFinishRequested).toBe(true);
   });
   });
 });

@@ -286,7 +286,6 @@ export interface ManagerStateActive {
   dispatchedThisTurn?: boolean;
   pairTurnSeq?: number;
   pairAcceptedTurnSeq?: number;
-  pairFinishRequested?: boolean;
   complexityWarned?: boolean;
   autoContinues?: number;
   session?: {

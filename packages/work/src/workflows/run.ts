@@ -125,8 +125,10 @@ import {
   fileInAttachmentLibrary as settlementFileInAttachmentLibrary,
 } from './run/settlement.ts';
 import type { SettlementContext } from './run/internal-types.ts';
+import { isPairRoot } from './run/pair-runtime.ts';
 import {
   finalizePairManager,
+  finishPairManager,
   handlePairWorkerTurn as handlePairWorkerTurnTask,
 } from './run/pair-coordinator.ts';
 import {
@@ -893,7 +895,7 @@ interface ActiveRun {
   /** Backend-neutral turn identity used to fence same-turn pair acceptance and completion. */
   pairTurnSeq?: number;
   pairAcceptedTurnSeq?: number;
-  /** The manager asked to close the long-lived pair (`ONNI:PAIR:FINISH`): `settleSuccess`
+  /** The USER pressed Finish on the long-lived pair (`finishPair`; the manager has no marker for it): `settleSuccess`
    *  finalizes instead of parking at `user_wait`. */
   pairFinishRequested?: boolean;
   /** The complexity-policy warning has fired for this run (once per run). */
@@ -2950,6 +2952,43 @@ export class RunManager {
   finish(runId: string): boolean {
     if (pairRunMutationRefusal(this.store.getRun(runId))) return false;
     return finishContinuation(this.continuationContext(), runId);
+  }
+
+  /**
+   * The user's "Finish" on a One & One pair: the ONLY way to close a long-lived pair (the manager
+   * can no longer emit a marker for it). A live manager session is ended with the finish flag so
+   * settlement runs `finishPairManager`; a parked pair with no open session is closed directly.
+   */
+  async finishPair(runId: string): Promise<{ ok: true } | { error: string }> {
+    const run = this.store.getRun(runId);
+    if (!run || !isPairRoot(run)) return { error: 'not a One & One pair' };
+    if (run.status !== 'waiting') return { error: 'One & One can be finished only while it waits for you' };
+    const phase = run.dispatch?.pair?.phase;
+    if (phase !== 'planning' && phase !== 'user_wait') {
+      return { error: 'One & One cannot finish while an order is still in flight' };
+    }
+    const active = this.active.get(runId);
+    this.store.appendEvent(runId, { type: 'lifecycle', message: 'One & One finish requested by user' });
+    if (active?.session?.open) {
+      this.clearIdleTimer(active);
+      active.idleClosed = undefined;
+      active.pairFinishRequested = true;
+      active.finishRequested = true;
+      active.session.end();
+      return { ok: true };
+    }
+    const excludedPaths = await currentCheckExclusions(this.repoRoot, new Map());
+    const finalized = await finishPairManager(this.managerControlContext(), runId, excludedPaths);
+    if (!finalized.ok) return { error: finalized.error };
+    this.store.updateRun(runId, {
+      status: 'done',
+      completionReason: 'completed',
+      finishedAt: new Date().toISOString(),
+      activity: undefined,
+      currentStepId: undefined,
+    });
+    this.store.appendEvent(runId, { type: 'lifecycle', message: 'One & One complete — accepted work is checkpointed on the shared branch' });
+    return { ok: true };
   }
 
   /**

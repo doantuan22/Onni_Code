@@ -14,6 +14,8 @@ const LOCK_DIRECTORY = 'onni-repository.lock';
 
 export interface RepositoryLease {
   readonly lockPath: string;
+  /** True once released; a context that outlives the lock (async callbacks) must not reuse it. */
+  readonly released: boolean;
   assertValid(): void;
   release(): void | Promise<void>;
 }
@@ -107,12 +109,14 @@ function directoryIdentity(path: string): string | null {
   }
 }
 
-/** proper-lockfile removes by path; never let a stale owner's release remove its replacement. */
+/** proper-lockfile removes by path; never let a stale owner's release remove its replacement.
+ *  A compromised heartbeat (system suspend, an AV mtime bump) does not change who owns the
+ *  directory, so the directory identity and the owner token — not the `compromised` flag — decide
+ *  whether removal is safe. */
 function mayRemoveLock(path: string): boolean {
   const ownership = lockOwners.get(path);
   return Boolean(
     ownership
-    && !ownership.compromised
     && (!ownership.directoryIdentity || directoryIdentity(path) === ownership.directoryIdentity)
     && (!ownership.metadataWritten || ownerToken(ownership) === ownership.token),
   );
@@ -192,12 +196,12 @@ function leaseHeld(lease: RepositoryLease, ownership: LockOwnership): boolean {
     && ownerToken(ownership) === ownership.token;
 }
 
-/** A stat/read can fail briefly on Windows (antivirus, indexer, git holding a handle); only a persistent mismatch means the lease is gone. */
+/** A lapsed heartbeat (system suspend), a transient read failure, or a sync tool bumping the
+ *  lock directory's mtime does not prove the lease is gone — only the directory identity and the
+ *  owner token do, so re-check those briefly; a genuinely removed or replaced lock fails closed. */
 function assertLease(lease: RepositoryLease, ownership: LockOwnership): void {
-  if (ownership.compromised) throw new RepositoryLockError('One & One repository lease was lost', 'ECOMPROMISED');
   for (let attempt = 0; attempt < LEASE_CHECK_ATTEMPTS; attempt += 1) {
     if (leaseHeld(lease, ownership)) return;
-    if (ownership.compromised) break;
     if (attempt < LEASE_CHECK_ATTEMPTS - 1) sleepSync(LEASE_CHECK_DELAY_MS);
   }
   throw new RepositoryLockError('One & One repository lease was lost', 'ECOMPROMISED');
@@ -261,6 +265,7 @@ function acquireRepositoryLockAtIdentitySync(identity: string): RepositoryLease 
   let released = false;
   const lease: RepositoryLease = {
     lockPath: path,
+    get released() { return released; },
     assertValid: () => assertLease(lease, ownership),
     release: () => {
       if (released) return;
@@ -270,6 +275,10 @@ function acquireRepositoryLockAtIdentitySync(identity: string): RepositoryLease 
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'ERELEASED') throw error;
       } finally {
+        // A compromised heartbeat short-circuits proper-lockfile's release (ERELEASED) and leaves
+        // the directory behind; remove it while it is still ours so the next acquisition is not
+        // blocked by a fresh-mtime orphan.
+        if (ownership.compromised) removeLockSync(path);
         finishOwnership(path, ownership);
       }
     },
@@ -302,6 +311,7 @@ async function acquireRepositoryLockAtIdentity(identity: string): Promise<Reposi
   let released = false;
   const lease: RepositoryLease = {
     lockPath: path,
+    get released() { return released; },
     assertValid: () => assertLease(lease, ownership),
     release: async () => {
       if (released) return;
@@ -311,6 +321,7 @@ async function acquireRepositoryLockAtIdentity(identity: string): Promise<Reposi
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'ERELEASED') throw error;
       } finally {
+        if (ownership.compromised) removeLockSync(path);
         finishOwnership(path, ownership);
       }
     },
@@ -328,8 +339,10 @@ async function withRepositoryLockAtIdentity<T>(
   operation: (lease: RepositoryLease) => T | Promise<T>,
 ): Promise<T> {
   const path = join(identity, LOCK_DIRECTORY);
+  // AsyncLocalStorage outlives the lock: callbacks spawned while it was held (an agent's event
+  // stream, a turn-end handler) still see the lease after release and must take a fresh one.
   const held = leaseContext.getStore()?.get(path);
-  if (held) {
+  if (held && !held.released) {
     held.assertValid();
     return operation(held);
   }
@@ -367,8 +380,10 @@ function withRepositoryLockAtIdentitySync<T>(
   operation: (lease: RepositoryLease) => T,
 ): T {
   const path = join(identity, LOCK_DIRECTORY);
+  // AsyncLocalStorage outlives the lock: callbacks spawned while it was held (an agent's event
+  // stream, a turn-end handler) still see the lease after release and must take a fresh one.
   const held = leaseContext.getStore()?.get(path);
-  if (held) {
+  if (held && !held.released) {
     held.assertValid();
     return operation(held);
   }

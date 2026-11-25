@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Roster, RunDispatch } from '@onni/contract';
 import { PairStore } from '../../dispatch/pair-store.ts';
+import { acquireRepositoryLockSync } from '../../git-repository-lock.ts';
 import { RunStore } from '../../runs/store.ts';
 import { removeTempDir } from '../../test-fixtures/remove-temp-dir.testkit.ts';
 import { handleDispatchTurn } from './manager-state.ts';
@@ -200,6 +201,20 @@ describe('One & One coordinator', () => {
       stopPair({ store, dataDir }, MANAGER_ID, 'stop-all');
       store.updateRun(WORKER_ID, { status: 'cancelled' });
       expect(relayPairWorkerFailure(deliveryContext([]), WORKER_ID)).toBe(false);
+    });
+
+    it('still tells the manager when the pair state cannot be updated', async () => {
+      await startOrder();
+      store.updateRun(WORKER_ID, { status: 'failed', error: 'One & One repository lease was lost' });
+      // Hold the repository lease so the relay's pair mutation cannot acquire it.
+      const blocker = acquireRepositoryLockSync(root)!;
+      try {
+        expect(relayPairWorkerFailure(deliveryContext([]), WORKER_ID)).toBe(false);
+      } finally {
+        blocker.release();
+      }
+      expect(JSON.stringify(store.readEvents(MANAGER_ID))).toContain('ended (failed) but the pair could not record it');
+      expect(pairs.readState(MANAGER_ID)?.phase).toBe('worker_working');
     });
   });
 

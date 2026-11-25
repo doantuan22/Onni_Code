@@ -1,5 +1,6 @@
 import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +9,7 @@ import {
   repositoryLockfilePath,
   resolveRepositoryIdentitySync,
   withRepositoryLock,
+  withRepositoryLockSync,
   withRequiredRepositoryLock,
   type RepositoryLease,
 } from './git-repository-lock.ts';
@@ -32,6 +34,26 @@ function repository(): string {
   git(root, 'add', 'README.md');
   git(root, 'commit', '-m', 'base');
   return root;
+}
+
+interface InternalLockRecord {
+  updateTimeout: NodeJS.Timeout | null;
+  released: boolean;
+  options: { onCompromised: (err: unknown) => void };
+}
+
+/** Mirrors proper-lockfile's setLockAsCompromised — the state a system suspend or an external
+ *  mtime bump leaves the heartbeat in — while the directory and owner token stay intact. */
+function compromiseHeartbeat(lockPath: string): void {
+  const internal = createRequire(import.meta.url)('proper-lockfile/lib/lockfile.js') as {
+    getLocks(): Record<string, InternalLockRecord>;
+  };
+  const record = internal.getLocks()[lockPath];
+  if (!record) throw new Error(`internal lock record not found for ${lockPath}`);
+  if (record.updateTimeout) clearTimeout(record.updateTimeout);
+  record.updateTimeout = null;
+  record.released = true;
+  record.options.onCompromised(Object.assign(new Error('Unable to update lock within the stale threshold'), { code: 'ECOMPROMISED' }));
 }
 
 function startChild(code: string, env: Record<string, string>) {
@@ -160,5 +182,48 @@ describe('Git repository lock', () => {
     leases.splice(leases.indexOf(replacement), 1);
     expect(existsSync(lockPath)).toBe(false);
     expect(existsSync(`${lockPath}.owner`)).toBe(false);
+  });
+
+  it('recovers when the heartbeat is compromised but the lock is still owned', async () => {
+    const root = repository();
+    const lease = acquireRepositoryLockSync(root)!;
+    leases.push(lease);
+
+    compromiseHeartbeat(lease.lockPath);
+
+    expect(() => lease.assertValid()).not.toThrow();
+  });
+
+  it('fails closed when the lock directory is actually removed', () => {
+    const root = repository();
+    const lease = acquireRepositoryLockSync(root)!;
+    leases.push(lease);
+    rmSync(lease.lockPath, { recursive: true, force: true });
+    expect(() => lease.assertValid()).toThrow(/lease was lost/);
+  });
+
+  it('removes the lock directory left behind by a compromised release', () => {
+    const root = repository();
+    const lease = acquireRepositoryLockSync(root)!;
+    leases.push(lease);
+
+    compromiseHeartbeat(lease.lockPath);
+
+    lease.release();
+
+    expect(existsSync(lease.lockPath)).toBe(false);
+    expect(existsSync(`${lease.lockPath}.owner`)).toBe(false);
+  });
+
+  it('does not reuse a released lease from an async callback that outlived the lock', async () => {
+    const root = repository();
+    let later!: Promise<boolean>;
+    await withRequiredRepositoryLock(root, () => {
+      // Spawned while the lock is held, like an agent stream handler: it inherits the lease context.
+      later = new Promise((resolve) => setTimeout(() => {
+        try { withRepositoryLockSync(root, () => resolve(true)); } catch { resolve(false); }
+      }, 50));
+    });
+    await expect(later).resolves.toBe(true);
   });
 });

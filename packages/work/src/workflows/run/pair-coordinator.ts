@@ -171,7 +171,14 @@ export function relayPairWorkerFailure(context: PairDeliveryContext & { dataDir:
       ].join('\n'));
     } catch { /* the saved report is still readable with `onni task pair show` */ }
     return true;
-  } catch {
+  } catch (error) {
+    // The pair state could not be updated (e.g. the repository lease is still held); the manager
+    // must still be told the worker ended, so record a note that survives the failed mutation.
+    context.store.appendEvent(state.managerRunId, {
+      type: 'note',
+      message: `One & One worker ${runId.slice(0, 8)} ended (${run.status}) but the pair could not record it — ${errorText(error)}`,
+      tone: 'danger',
+    });
     return false;
   }
 }

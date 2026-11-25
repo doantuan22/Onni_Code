@@ -115,53 +115,17 @@ const transcriptRows = (fixture: ApiRun, thread = reduceThread(EVENTS)) =>
   buildTranscriptRows(mainTranscriptSections(fixture, thread), fixture.id)
 
 describe('ThreadView', () => {
-  it('shows the pair status in a side panel, not as a transcript row, and updates it in place', async () => {
+  it('keeps the pair status off the thread — it has its own page', async () => {
     const snapshot = pairSnapshot()
     const manager = run('running', {
       id: 'manager-r1',
       dispatch: { rootRunId: 'manager-r1', pair: snapshot.state },
     })
-    const view = renderView(
-      <ThreadView run={manager} thread={reduceThread([])} />,
-      undefined,
-      undefined,
-      snapshot,
-    )
+    renderView(<ThreadView run={manager} thread={reduceThread([])} />, undefined, undefined, snapshot)
 
-    await waitFor(() => expect(view.queryClient.getQueryData(queryKeys.runs.pair('pair-1'))).toEqual(snapshot))
-    await waitFor(() => expect(document.querySelectorAll('[data-slot="pair-card"]')).toHaveLength(1))
+    expect(document.querySelector('[data-slot="pair-panel"]')).toBeNull()
+    expect(document.querySelector('[data-slot="pair-card"]')).toBeNull()
     expect(document.querySelector('[data-row-key^="pair:"]')).toBeNull()
-    const panel = document.querySelector('[data-slot="pair-panel"]')
-    expect(panel?.querySelector('[data-slot="pair-card"]')?.getAttribute('data-phase')).toBe('manager_review')
-
-    act(() => view.queryClient.setQueryData(queryKeys.runs.pair('pair-1'), pairSnapshot({ phase: 'complete' })))
-    await waitFor(() => expect(panel?.querySelector('[data-slot="pair-card"]')?.getAttribute('data-phase')).toBe('complete'))
-    expect(document.querySelector('[data-slot="pair-panel"]')).toBe(panel)
-    expect(document.querySelectorAll('[data-slot="pair-card"]')).toHaveLength(1)
-  })
-
-  it('loads a worker pair through its membership into the same single panel', async () => {
-    const snapshot = pairSnapshot()
-    const worker = run('running', {
-      id: 'worker-r1',
-      dispatch: {
-        rootRunId: 'manager-r1',
-        pairMember: { pairId: 'pair-1', role: 'worker', peerRunId: 'manager-r1' },
-      },
-    })
-    const view = renderView(
-      <ThreadView run={worker} thread={reduceThread([])} />,
-      undefined,
-      undefined,
-      snapshot,
-    )
-
-    await waitFor(() => expect(document.querySelectorAll('[data-slot="pair-card"]')).toHaveLength(1))
-    expect(document.querySelectorAll('[data-slot="pair-panel"]')).toHaveLength(1)
-    expect(view.queryClient.getQueryData(queryKeys.runs.pair('pair-1'))).toEqual(snapshot)
-    const pairReads = vi.mocked(fetch).mock.calls.filter(([input]) => String(input).endsWith('/pair'))
-    expect(pairReads).toHaveLength(1)
-    expect(String(pairReads[0]?.[0])).toBe('/api/v1/runs/worker-r1/pair')
   })
 
   it('adds no pair row or pair read to an ordinary task', () => {

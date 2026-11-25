@@ -1,5 +1,4 @@
 import { queueWaitLabel } from '@/lib/queue-wait-label'
-import { PairCard } from './pair-card'
 import { MessageSquareTextIcon, SearchXIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useParams } from 'react-router'
@@ -13,7 +12,6 @@ import {
   usePatchRun,
   useRemoveQueuedMessage,
   useRun,
-  useRunPair,
   useProjectRepoBase,
   useRuns,
 } from '@/api/queries'
@@ -304,10 +302,7 @@ export function ThreadView({
   )
 
   const sections = useMemo(() => mainTranscriptSections(run, thread), [run, thread])
-  const pairId = run.dispatch?.pair?.pairId ?? run.dispatch?.pairMember?.pairId ?? ''
-  const pair = useRunPair(run.id, pairId)
-  // The pair status is NOT a transcript row: as the last row it scrolled down with every new
-  // message. It lives in a fixed side panel (see the render) instead.
+  // The pair status is NOT a transcript row: it has its own page (`/tasks/:id/one-and-one`).
   const rows = useMemo(() => buildTranscriptRows(sections, run.id), [sections, run.id])
   const renderAsk = useCallback((ask: ThreadAsk) => <AskCard ask={ask} run={run} />, [run])
   const messageActions = useMemo<Readonly<Record<string, TranscriptMessageActions>> | undefined>(() => {
@@ -354,20 +349,7 @@ export function ThreadView({
         continuationEngine={continuable ? continueAction.pills : undefined}
       />}
 
-      {/* One & One status: the lane keeps its centered layout. When the pane is wide enough for
-          the empty right margin (container query, so the sidebar is accounted for) the panel sits
-          in that margin, sticky; otherwise it is a plain block above the thread. */}
       <div className="@container relative flex flex-1 flex-col">
-        {pair.data !== undefined ? (
-          <div
-            data-slot="pair-panel"
-            className="order-first mx-auto w-full max-w-[var(--chat-measure)] px-3 pt-3 md:px-6 @min-[1480px]:pointer-events-none @min-[1480px]:absolute @min-[1480px]:inset-y-0 @min-[1480px]:left-[calc(50%+var(--chat-measure)/2+1rem)] @min-[1480px]:order-none @min-[1480px]:m-0 @min-[1480px]:w-64 @min-[1480px]:max-w-none @min-[1480px]:p-0"
-          >
-            <div className="@min-[1480px]:pointer-events-auto @min-[1480px]:sticky @min-[1480px]:top-28 @min-[1480px]:max-h-[calc(100vh-9rem)] @min-[1480px]:overflow-y-auto @min-[1480px]:pt-4">
-              <PairCard snapshot={pair.data} />
-            </div>
-          </div>
-        ) : null}
 
       {/* Row spacing lives on each thread row (pb-2.5, both render modes measure alike);
           this gap only separates the sections — rows, empty state, footer, review panel. */}
@@ -563,8 +545,7 @@ export function ThreadView({
             data-slot="pair-parked-hint"
             className="flex items-center gap-2 px-1 text-xs text-muted-foreground"
           >
-            <StatusDot tone="pending" />
-            {t('One & One task complete — pair parked; send the next instruction or finish the pair')}
+            <FinishPairButton runId={run.id} />
           </div>
         ) : !lifecycleGate && run.status === 'waiting' ? (
           <div
@@ -689,6 +670,24 @@ function EndSessionButton({ runId }: { runId: string }) {
       className="rounded-sm font-medium text-foreground underline-offset-2 hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-60"
     >
       {t('End session')}
+    </button>
+  )
+}
+
+/** The only way to close a One & One pair (`POST /finish`): the manager has no marker for it. */
+function FinishPairButton({ runId }: { runId: string }) {
+  const { t } = useI18n()
+  const finish = useFinishRun(runId)
+  return (
+    <button
+      type="button"
+      data-slot="finish-pair"
+      title={t('Close the One & One pair — both agent sessions end and the accepted work stays on the branch')}
+      disabled={finish.isPending}
+      onClick={() => finish.mutate()}
+      className="rounded-sm font-medium text-foreground underline-offset-2 hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-60"
+    >
+      {t('Finish One & One')}
     </button>
   )
 }

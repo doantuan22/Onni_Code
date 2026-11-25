@@ -22,6 +22,8 @@ export const workspaceViewSchema = z.enum([
   'browser',
   'tree',
   'graph',
+  'notes',
+  'pair',
   'terminal',
 ]);
 export type WorkspaceView = z.infer<typeof workspaceViewSchema>;

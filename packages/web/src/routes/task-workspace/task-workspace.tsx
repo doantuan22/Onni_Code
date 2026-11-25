@@ -52,6 +52,8 @@ import { TaskEditor } from '../task-git/task-editor'
 import { TaskFilesTree } from '../task-git/task-files-tree'
 import { useTaskOpenFiles } from '@/lib/task-open-files'
 import { TaskTreePane } from '../task-tree/task-tree-pane'
+import { NotesColumn } from '../task-thread/notes-column'
+import { PairColumn } from '../task-thread/pair-column'
 import { RunHeader, type RunTab } from '../task-thread/run-header'
 import { useRunRecordReconcile } from '../task-thread/run-reconcile'
 import { ThreadView } from '../task-thread/task-thread'
@@ -61,7 +63,7 @@ import { readDrawerState, writeDrawerState, type DrawerState } from './drawer-st
 import { LayoutCards } from './layout-cards'
 import {
   emptyBrowserState,
-  FIXED_VIEW_ORDER,
+  taskStripViews,
   fixedViewOf,
   layoutDisplayName,
   MAX_COLUMNS,
@@ -176,6 +178,8 @@ function DeepLinkLoading({ view }: { view?: ViewId }) {
   if (view === 'files') return <GitTabLoading tab="files" />
   if (view === 'terminal') return <GitTabLoading tab="terminal" />
   if (view === 'browser') return <GitTabLoading tab="preview" />
+  if (view === 'notes') return <GitTabLoading tab="notes" />
+  if (view === 'pair') return <GitTabLoading tab="pair" />
   if (view === 'changes' || view === 'commits' || view === 'graph') return <GitTabLoading tab="changes" />
   return <ThreadLoading />
 }
@@ -213,9 +217,10 @@ function WorkspaceView({
 
   // Policy, read from the one place that knows it: no shell here means no Terminal anywhere.
   const terminalAllowed = useHealth().data?.capabilities?.terminal === true
+  const isPair = Boolean(run.dispatch?.pair || run.dispatch?.pairMember)
   const availableViews = useMemo(
-    () => VIEW_IDS.filter((view) => view !== 'terminal' || terminalAllowed),
-    [terminalAllowed],
+    () => VIEW_IDS.filter((view) => (view !== 'terminal' || terminalAllowed) && (view !== 'pair' || isPair)),
+    [terminalAllowed, isPair],
   )
 
   // The roster lives on the tree ROOT; a worker run's own `roster` is undefined, so the workers
@@ -274,10 +279,8 @@ function WorkspaceView({
 
   const fixedViews = useMemo<readonly ViewId[]>(
     () =>
-      FIXED_VIEW_ORDER.filter(
-        (view) => availableViews.includes(view) && (view !== 'graph' || Boolean(run.workflowDef)),
-      ),
-    [availableViews, run.workflowDef],
+      taskStripViews(run, terminalAllowed).filter((view) => availableViews.includes(view)),
+    [availableViews, run, terminalAllowed],
   )
   const fixedActive: ViewId | null = !layouts.ready
     ? null
@@ -290,7 +293,7 @@ function WorkspaceView({
   )
   const createLayout = useCallback(() => addLayout(), [addLayout])
 
-  // The numbered tabs — views with Notes among them (`strip.ts`) — and, while ⌘ is held on its own, each
+  // The numbered tabs (`strip.ts`) and, while ⌘ is held on its own, each
   // tab's number (spec 2026-10-17-task-palette). Saved layouts are not numbered.
   const strip = useMemo(() => stripEntries(fixedViews), [fixedViews])
   const { hints: keyHints, show: keysHeld } = useStripKeyHints(strip)
@@ -439,7 +442,6 @@ function WorkspaceView({
         onApplySaved={applySaved}
         onSaveCurrent={canSaveLayout ? saveCurrentLayout : undefined}
         onDeleteSaved={deleteSavedLayout}
-        notesHref={`/tasks/${run.id}/notes`}
         onViewDragStart={startViewDrag}
         onViewDragEnd={endViewDrag}
         onOpenBeside={openViewBeside}
@@ -512,11 +514,9 @@ function WorkspaceView({
   // is the number the tab wears. `[` `]` still step through every card, layouts included.
   const numbered = useMemo(
     () => [
-      ...stripTabs(fixedViews).map((tab) =>
-        tab === 'notes' ? () => navigate(`/tasks/${run.id}/notes`) : () => openContextView(tab),
-      ),
+      ...stripTabs(fixedViews).map((tab) => () => openContextView(tab)),
     ],
-    [fixedViews, openContextView, navigate, run.id],
+    [fixedViews, openContextView],
   )
   const keys = useRef({ stripOrder, numbered, toggleMaximized, terminalAllowed, toggleDrawer })
   keys.current = { stripOrder, numbered, toggleMaximized, terminalAllowed, toggleDrawer }
@@ -725,6 +725,10 @@ function WorkspaceView({
               <GraphColumn run={run} embedded />
             </Suspense>
           )
+        case 'notes':
+          return <NotesColumn runId={run.id} />
+        case 'pair':
+          return <PairColumn run={run} />
         case 'terminal':
           return terminalAllowed ? (
             <Suspense fallback={<ColumnLoading title="Loading terminal…" />}>
@@ -909,7 +913,6 @@ function WorkspaceView({
             onApplySaved={applySaved}
             onSaveCurrent={canSaveLayout ? saveCurrentLayout : undefined}
             onDeleteSaved={deleteSavedLayout}
-            notesHref={`/tasks/${run.id}/notes`}
             onViewDragStart={startViewDrag}
             onViewDragEnd={endViewDrag}
             onOpenBeside={openViewBeside}

@@ -165,18 +165,17 @@ describe('views', () => {
     changes?.performBeside?.()
     expect(bridge.openViewBeside).toHaveBeenCalledWith('changes')
     expect(byId.get('view:session')?.pressed).toBe(true)
-    // Notes is numbered after the views; saved layouts are not numbered at all.
-    expect(byId.get('view:notes')?.shortcut).toBe('5')
+    // Saved layouts are not numbered at all.
     expect(byId.get('layout:Review')?.shortcut).toBeUndefined()
-    expect(byId.get('tab:5')?.label).toBe('Tab 5: Notes')
-    expect(byId.has('tab:6')).toBe(false)
+    expect(byId.get('tab:4')?.label).toBe('Tab 4: Files')
+    expect(byId.has('tab:5')).toBe(false)
   })
 
-  it('⌘N works off the workspace too (the Notes page): tab:N navigates to the view', () => {
+  it('⌘N works off the workspace too: tab:N navigates to the view', () => {
     const { byId, on } = build(run('done'))
     byId.get('tab:2')?.perform()
     expect(on.navigate).toHaveBeenCalledWith('/tasks/r1/changes')
-    // Notes sits before Preview on the row, so it is the fifth tab.
+    // Notes is a view like the rest, before Preview on the row.
     byId.get('tab:5')?.perform()
     expect(on.navigate).toHaveBeenCalledWith('/tasks/r1/notes')
     byId.get('tab:6')?.perform()

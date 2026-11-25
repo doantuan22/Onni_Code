@@ -36,6 +36,7 @@ import {
   setStackRatio,
   splitCards,
   uniqueName,
+  taskStripViews,
   VIEW_IDS,
   WORKBENCH_LAYOUT_PRESET,
   viewLabel,
@@ -58,7 +59,7 @@ const views = (state: WorkspaceState) => activeLayout(state)?.columns.map((colum
 const names = (state: WorkspaceState) => state.layouts.map((layout) => layout.name)
 /** Old persisted shape used to exercise transitions that are independent of the fresh-task seed. */
 const defaultState = (): WorkspaceState => ({
-  layouts: VIEW_IDS.filter((view) => !['terminal', 'files-tree', 'editor', 'tree'].includes(view)).map((view) => ({ name: viewLabel(view), columns: [{ view, width: 100 }] })),
+  layouts: VIEW_IDS.filter((view) => !['terminal', 'files-tree', 'editor', 'tree', 'notes', 'pair'].includes(view)).map((view) => ({ name: viewLabel(view), columns: [{ view, width: 100 }] })),
   active: 'Chat',
 })
 const chatState = () => selectLayout(defaultState(), 'Chat')
@@ -1045,5 +1046,15 @@ describe('setStackRatio', () => {
     const updated = setStackRatio(state, 'Workbench', 1, 70)
     expect(updated).not.toBe(state)
     expect(findLayout(updated, 'Workbench')?.columns[1]?.stackRatio).toBe(70)
+  })
+})
+
+describe('taskStripViews', () => {
+  it('offers Notes to every task and One & One only to a pair', () => {
+    const plain = taskStripViews({}, true)
+    expect(plain).toContain('notes')
+    expect(plain).not.toContain('pair')
+    expect(taskStripViews({ dispatch: { pair: {} } }, true)).toContain('pair')
+    expect(taskStripViews({ dispatch: { pairMember: {} } }, false)).not.toContain('terminal')
   })
 })

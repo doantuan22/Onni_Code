@@ -37,6 +37,8 @@ export type ViewId =
   | 'browser'
   | 'tree'
   | 'graph'
+  | 'notes'
+  | 'pair'
   | 'terminal'
 
 export const VIEW_IDS: readonly ViewId[] = [
@@ -49,6 +51,8 @@ export const VIEW_IDS: readonly ViewId[] = [
   'browser',
   'tree',
   'graph',
+  'notes',
+  'pair',
   'terminal',
 ]
 
@@ -56,11 +60,24 @@ export const VIEW_IDS: readonly ViewId[] = [
 export type DeepLinkViewId = Exclude<ViewId, 'files-tree' | 'editor' | 'tree'>
 
 /** The view tabs, left to right: Chat is home and Changes is what a task is reviewed by; the
- *  rarely opened Graph sits near the end, and Notes (its own page) lands before Preview
- *  (`strip.ts`). Terminal is last; the ` key docks it as a drawer instead. */
-export const FIXED_VIEW_ORDER: readonly DeepLinkViewId[] = ['session', 'changes', 'commits', 'files', 'graph', 'browser', 'terminal']
+ *  rarely opened Graph sits near the end, Notes and One & One land before Preview. Terminal is
+ *  last; the ` key docks it as a drawer instead. */
+export const FIXED_VIEW_ORDER: readonly DeepLinkViewId[] = ['session', 'changes', 'commits', 'files', 'graph', 'notes', 'pair', 'browser', 'terminal']
 
-/** The route each view tab deep-links to, for pages that are not the workspace (Notes). */
+/** The views a task's tab row offers: Graph needs a stored workflow, One & One a pair, Terminal a shell. */
+export function taskStripViews(
+  run: { workflowDef?: unknown; dispatch?: { pair?: unknown; pairMember?: unknown } | undefined },
+  terminalAllowed: boolean,
+): DeepLinkViewId[] {
+  return FIXED_VIEW_ORDER.filter(
+    (view) =>
+      (view !== 'graph' || Boolean(run.workflowDef)) &&
+      (view !== 'pair' || Boolean(run.dispatch?.pair || run.dispatch?.pairMember)) &&
+      (view !== 'terminal' || terminalAllowed),
+  )
+}
+
+/** The route each view tab deep-links to. */
 export const VIEW_PATHS: Record<DeepLinkViewId, string> = {
   session: 'chat',
   changes: 'changes',
@@ -68,6 +85,8 @@ export const VIEW_PATHS: Record<DeepLinkViewId, string> = {
   files: 'files',
   browser: 'preview',
   graph: 'graph',
+  notes: 'notes',
+  pair: 'one-and-one',
   terminal: 'terminal',
 }
 
@@ -89,6 +108,8 @@ const VIEW_LABELS: Record<ViewId, string> = {
   browser: 'Preview',
   tree: 'Task tree',
   graph: 'Graph',
+  notes: 'Notes',
+  pair: 'One & One',
   terminal: 'Terminal',
 }
 

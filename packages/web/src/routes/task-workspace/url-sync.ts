@@ -32,7 +32,7 @@ export function decideUrlSync({ route, effective, openRunIds }: UrlSyncInput): U
 }
 
 export function taskWorkspacePath({ runId, view }: TaskRouteSelection): string {
-  const suffix = view === undefined ? '' : view === 'session' ? '/chat' : view === 'browser' ? '/preview' : `/${view}`
+  const suffix = view === undefined ? '' : view === 'session' ? '/chat' : view === 'browser' ? '/preview' : view === 'pair' ? '/one-and-one' : `/${view}`
   return `/tasks/${encodeURIComponent(runId)}${suffix}`
 }
 

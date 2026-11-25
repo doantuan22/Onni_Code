@@ -8,6 +8,8 @@ import {
   GlobeIcon,
   MessageSquareTextIcon,
   TerminalIcon,
+  NotebookTextIcon,
+  UsersIcon,
   WorkflowIcon,
 } from 'lucide-react'
 import { createContext, useContext, type ComponentType, type ReactNode } from 'react'
@@ -45,6 +47,8 @@ export const VIEW_ICONS: Record<ViewId, ComponentType<{ className?: string }>> =
   tree: GitForkIcon,
   // The same icon the standalone graph route uses, so the tile and the surface agree.
   graph: WorkflowIcon,
+  notes: NotebookTextIcon,
+  pair: UsersIcon,
   terminal: TerminalIcon,
 }
 
@@ -162,6 +166,8 @@ const TILE_ORDER: readonly ViewId[] = [
   'editor',
   'browser',
   'tree',
+  'notes',
+  'pair',
   'terminal',
 ]
 
@@ -176,6 +182,8 @@ const VIEW_HINTS: Record<ViewId, string> = {
   editor: 'Open and read worktree files',
   browser: "The task's app, with Design Mode",
   tree: 'The task and subagent hierarchy',
+  notes: 'What the agent did and what is left',
+  pair: 'The One & One pair: orders, messages, decisions',
   terminal: 'A shell in the task worktree',
 }
 

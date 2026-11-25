@@ -56,9 +56,6 @@ const TaskCommitsRoute = lazyRoute(() =>
 const ProjectTerminalRoute = lazy(() =>
   import('./routes/terminal/project-terminal').then((m) => ({ default: m.ProjectTerminalRoute })),
 )
-const TaskNotesRoute = lazy(() =>
-  import('./routes/task-thread/task-notes').then((m) => ({ default: m.TaskNotesRoute })),
-)
 /** The task workspace (spec `.ai/specs/2026-10-07-task-workspace.md`): `/tasks/:id` and its
  *  view deep links all render it, with `view` naming the card a link opens. */
 const TaskWorkspaceRoute = lazyRoute(() =>
@@ -419,7 +416,15 @@ export const AppRoutes = memo(function AppRoutes() {
           path="tasks/:id/notes"
           element={
             <Suspense fallback={<GitTabLoading tab="notes" />}>
-              <TaskNotesRoute />
+              <TaskWorkspaceProjectRoute view="notes" />
+            </Suspense>
+          }
+        />
+        <Route
+          path="tasks/:id/one-and-one"
+          element={
+            <Suspense fallback={<GitTabLoading tab="pair" />}>
+              <TaskWorkspaceProjectRoute view="pair" />
             </Suspense>
           }
         />

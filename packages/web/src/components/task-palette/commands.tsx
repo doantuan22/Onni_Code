@@ -27,7 +27,7 @@ import type { GitAction, GitActionId } from '@/lib/git-actions'
 import type { TaskWorkspaceBridge } from '@/lib/task-workspace-bridge'
 import { isRunActive, resumeHint, runActionFlags } from '@/routes/task-thread/run-actions'
 import { GIT_ACTION_ICONS, GIT_ACTION_PENDING_LABELS } from '@/routes/task-git/git-toolbar'
-import { FIXED_VIEW_ORDER, isDeepLinkViewId, VIEW_PATHS, viewLabel, type ViewId } from '@/routes/task-workspace/layout-state'
+import { isDeepLinkViewId, taskStripViews, VIEW_PATHS, viewLabel, type ViewId } from '@/routes/task-workspace/layout-state'
 import { stripEntries, stripTabs, type StripEntry } from '@/routes/task-workspace/strip'
 import { VIEW_ICONS } from '@/routes/task-workspace/view-picker'
 
@@ -259,9 +259,9 @@ function gitCommands({ git, gitPending, prUrl }: TaskCommandInput, on: TaskComma
 function viewCommands({ run, workspace, terminalAvailable }: TaskCommandInput, on: TaskCommandHandlers): TaskCommand[] {
   const base = `/tasks/${run.id}`
   const views = stripViews(run, workspace, terminalAvailable)
-  // A tab's number is its place on the row, Notes included (`stripTabs`).
+  // A tab's number is its place on the row (`stripTabs`).
   const tabs = stripTabs(views)
-  const shortcutOf = (tab: ViewId | 'notes') => {
+  const shortcutOf = (tab: ViewId) => {
     const at = tabs.indexOf(tab)
     return workspace && at < 9 ? { shortcut: String(at + 1) } : {}
   }
@@ -280,27 +280,15 @@ function viewCommands({ run, workspace, terminalAvailable }: TaskCommandInput, o
       ...(workspace ? { performBeside: () => workspace.openViewBeside(view) } : {}),
     }
   })
-  commands.push({
-    id: 'view:notes',
-    group: 'views',
-    label: 'Notes',
-    icon: icon(NotebookTextIcon),
-    keywords: ['view', 'handoff'],
-    ...shortcutOf('notes'),
-    perform: () => on.navigate(`${base}/notes`),
-  })
   return commands
 }
 
-/** The views on a task's tab row: the workspace's, or — off it (Notes) — the same fixed set. */
+/** The views on a task's tab row: the workspace's, or — for another task — the same fixed set. */
 function stripViews(run: ApiRun, workspace: TaskWorkspaceBridge | null, terminalAvailable: boolean): readonly ViewId[] {
-  return (
-    workspace?.views ??
-    FIXED_VIEW_ORDER.filter((view) => (view !== 'graph' || Boolean(run.workflowDef)) && (view !== 'terminal' || terminalAvailable))
-  )
+  return workspace?.views ?? taskStripViews(run, terminalAvailable)
 }
 
-/** `tab:N` — the tab row's Nth numbered tab (`stripEntries`: views, then Notes), like a browser's
+/** `tab:N` — the tab row's Nth numbered tab (`stripEntries`: views), like a browser's
  *  ⌘N. Positional, so they are shortcut targets rather than palette rows; each runs the command of
  *  the tab it lands on — on any page of the task, Notes included. */
 function tabCommands(entries: readonly StripEntry[], commands: readonly TaskCommand[]): TaskCommand[] {

@@ -193,7 +193,7 @@ describe('the task workspace (main)', () => {
     await ready()
 
     // Changes second; Terminal last, as a tab that toggles the drawer.
-    expect(cardNames()).toEqual(['Chat', 'Changes', 'Commits', 'Files', 'Preview', 'Terminal'])
+    expect(cardNames()).toEqual(['Chat', 'Changes', 'Commits', 'Files', 'Notes', 'Preview', 'Terminal'])
     expect(activeCard()).toBe('Custom')
     expect(columnViews()).toEqual(['session'])
     expect(columnWidths()).toEqual([100])
@@ -537,7 +537,7 @@ describe('the task workspace (main)', () => {
     // The desktop rail lists every view — there is no horizontal row to fold, so nothing hides in a
     // "more views" menu and the Layout menu is a fixed icon at the rail's bottom.
     expect(document.querySelector('[data-slot="view-rail"]')).not.toBeNull()
-    expect(cardNames()).toEqual(['Chat', 'Changes', 'Commits', 'Files', 'Preview', 'Terminal'])
+    expect(cardNames()).toEqual(['Chat', 'Changes', 'Commits', 'Files', 'Notes', 'Preview', 'Terminal'])
     expect(activeCard()).toBe('Custom')
     expect(screen.queryByRole('button', { name: /more views/ })).toBeNull()
     expect(screen.getByRole('button', { name: /^Layout/ })).not.toBeNull()

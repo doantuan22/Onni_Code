@@ -32,8 +32,6 @@ export const viTasks: Record<string, string> = {
   'None yet': 'Chưa có',
   'Note': 'Ghi chú',
   'One & One status': 'Trạng thái One & One',
-  'One & One task complete — pair parked; send the next instruction or finish the pair':
-    'One & One đã xong nhiệm vụ — cặp đã tạm dừng; gửi chỉ dẫn tiếp theo hoặc kết thúc cặp',
   'Option': 'Phương án',
   'Options': 'Phương án',
   'Order': 'Yêu cầu',
@@ -268,6 +266,11 @@ export const viTasks: Record<string, string> = {
   'Edit instructions (added)': 'Sửa hướng dẫn (đã thêm)',
   'Edit the message': 'Sửa tin nhắn',
   'End session': 'Kết thúc phiên',
+  'Loading One & One…': 'Đang tải One & One…',
+  'This task is not a One & One pair.': 'Nhiệm vụ này không phải cặp One & One.',
+  'Finish One & One': 'Hoàn thành One & One',
+  'Close the One & One pair — both agent sessions end and the accepted work stays on the branch':
+    'Đóng cặp One & One — cả hai phiên agent kết thúc và phần việc đã chấp nhận được giữ trên nhánh',
   'Every variant must finish before you can pick': 'Mọi biến thể phải xong trước khi bạn chọn',
   'Exit full view': 'Thoát chế độ xem đầy đủ',
   'Exit full view (Esc)': 'Thoát chế độ xem đầy đủ (Esc)',

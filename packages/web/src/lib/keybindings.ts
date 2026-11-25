@@ -255,6 +255,7 @@ export const BINDABLE_COMMANDS: readonly { id: string; label: string; group: str
   { id: 'view:files', label: 'Files', group: 'Go to view' },
   { id: 'view:graph', label: 'Graph', group: 'Go to view' },
   { id: 'view:notes', label: 'Notes', group: 'Go to view' },
+  { id: 'view:pair', label: 'One & One', group: 'Go to view' },
   { id: 'view:browser', label: 'Preview', group: 'Go to view' },
   { id: 'view:terminal', label: 'Terminal', group: 'Go to view' },
   { id: 'full-view', label: 'Full view', group: 'Layout' },

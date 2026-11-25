@@ -101,7 +101,7 @@ import { writeClipboard } from '@/lib/clipboard'
  */
 /** Which run-detail tab this header instance sits above — drives the active underline.
  *  A prop rather than a route match so the header stays testable with a bare render. */
-export type RunTab = 'session' | 'changes' | 'commits' | 'files' | 'graph' | 'notes' | 'terminal' | 'preview'
+export type RunTab = 'session' | 'changes' | 'commits' | 'files' | 'graph' | 'notes' | 'pair' | 'terminal' | 'preview'
 
 /** Which runs the reader has expanded the phone-width meta row for (#765). A module-level map for
  *  the same reason `WorkflowSteps` keeps one (`openByRun` in step-rail.tsx) — and it has to be BOTH
@@ -329,6 +329,11 @@ function RunHeaderView({
                   <TabLink to={`/tasks/${run.id}/notes`} active={tab === 'notes'}>
                     {t('Notes')}
                   </TabLink>
+                  {run.dispatch?.pair || run.dispatch?.pairMember ? (
+                    <TabLink to={`/tasks/${run.id}/one-and-one`} active={tab === 'pair'}>
+                      {t('One & One')}
+                    </TabLink>
+                  ) : null}
                   {/* The task's app, with Design Mode (spec 2026-10-09-design-mode). */}
                   <TabLink to={`/tasks/${run.id}/preview`} active={tab === 'preview'}>
                     {t('Preview')}

@@ -6,13 +6,12 @@ import { useModifierHeld } from '@/lib/use-modifier-held'
 
 import { viewLabel, type ViewId } from './layout-state'
 
-/** A tab of the row: a view, or Notes — its own page, painted among the views. */
-export type StripTab = ViewId | 'notes'
+/** A tab of the row: every one is a workspace view (Notes and One & One included). */
+export type StripTab = ViewId
 
-/** The row's order: the views, with Notes placed before Preview (or Terminal, or at the end). */
+/** The row's order — `FIXED_VIEW_ORDER` filtered for the task. */
 export function stripTabs(views: readonly ViewId[]): StripTab[] {
-  const at = views.findIndex((view) => view === 'browser' || view === 'terminal')
-  return at < 0 ? [...views, 'notes'] : [...views.slice(0, at), 'notes', ...views.slice(at)]
+  return [...views]
 }
 
 /**
@@ -27,9 +26,7 @@ export interface StripEntry {
 }
 
 export function stripEntries(views: readonly ViewId[]): StripEntry[] {
-  return stripTabs(views).map((tab) =>
-    tab === 'notes' ? { id: 'view:notes', label: 'Notes' } : { id: `view:${tab}`, label: viewLabel(tab) },
-  )
+  return stripTabs(views).map((tab) => ({ id: `view:${tab}`, label: viewLabel(tab) }))
 }
 
 /** Each tab's shortcut badge (its positional ⌘N, else a chord bound to it by id), and whether to

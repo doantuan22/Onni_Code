@@ -1,12 +1,11 @@
 import { QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { createQueryClient } from '@/api/query-client'
 import type { ApiRun } from '@onni/api-client'
 
-import { TaskNotesRoute } from './task-notes'
+import { NotesColumn } from './notes-column'
 
 afterEach(() => {
   cleanup()
@@ -48,17 +47,13 @@ function stubFetch(handoff: () => Response): string[] {
 function renderNotesRoute() {
   render(
     <QueryClientProvider client={createQueryClient()}>
-      <MemoryRouter initialEntries={['/tasks/r1/notes']}>
-        <Routes>
-          <Route path="/tasks/:id/notes" element={<TaskNotesRoute />} />
-        </Routes>
-      </MemoryRouter>
+      <NotesColumn runId="r1" />
     </QueryClientProvider>,
   )
 }
 
-describe('the Notes tab route', () => {
-  it('renders the header with Notes active and the handoff as markdown', async () => {
+describe('the Notes view', () => {
+  it('renders the handoff as markdown', async () => {
     stubFetch(
       () =>
         new Response('# Handoff notes\n\nStill **todo**: the composer.', {
@@ -69,9 +64,6 @@ describe('the Notes tab route', () => {
     renderNotesRoute()
 
     await screen.findByText('Handoff notes')
-    expect(
-      document.querySelector('[data-slot="run-tabs"] a[aria-current="page"]')?.textContent,
-    ).toBe('Notes')
     // Rendered markdown, not echoed source.
     expect(document.querySelector('[data-slot="notes-panel"]')?.textContent).not.toContain('#')
   })

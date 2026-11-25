@@ -1,4 +1,4 @@
-import { CheckIcon, ChevronDownIcon, LayoutGridIcon, MoreHorizontalIcon, NotebookTextIcon, SaveIcon, XIcon } from 'lucide-react'
+import { CheckIcon, ChevronDownIcon, LayoutGridIcon, MoreHorizontalIcon, SaveIcon, XIcon } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -15,7 +15,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { useI18n } from '@/lib/i18n'
-import { Link } from '@/lib/project-router'
 import { cn } from '@/lib/utils'
 
 import {
@@ -49,7 +48,7 @@ const COLUMN_DRAG_TYPE = 'text/onni-column'
  * The task's tab row (spec `2026-10-07-task-workspace` §5.2) — the row that REPLACES the header's
  * Session | Changes | Commits | Files tabs, in two parts:
  *
- *  - left, one underline tab per VIEW plus Notes (its own page, placed by `stripTabs`). A tab opens that view
+ *  - left, one underline tab per VIEW. A tab opens that view
  *    alone; dragged onto the workspace it splits the screen, and ⌥-click opens it beside what is
  *    showing. `onViews` lights a tab whose view is live elsewhere (the terminal drawer);
  *  - right, the LAYOUT menu: one compact button naming the layout that shows. Its menu opens the
@@ -72,8 +71,6 @@ export function LayoutCards({
   fixedActive = null,
   onViews = NO_VIEWS,
   onSelectFixed,
-  notesHref,
-  notesActive = false,
   showLayouts = true,
   onViewDragStart,
   onViewDragEnd,
@@ -100,10 +97,7 @@ export function LayoutCards({
   /** Save what is on screen under a name; absent where there is nothing to save. */
   onSaveCurrent?: (name: string) => void
   onDeleteSaved?: (name: string) => void
-  /** The Notes page, a link among the view tabs. */
-  notesHref?: string
-  notesActive?: boolean
-  /** False on a page that is not the workspace (Notes): the view tabs only. */
+  /** False on a page that is not the workspace: the view tabs only. */
   showLayouts?: boolean
   onViewDragStart?: (view: ViewId) => void
   onViewDragEnd?: () => void
@@ -111,7 +105,7 @@ export function LayoutCards({
   onOpenBeside?: (view: ViewId) => void
   /** A column header dropped on the row. Absent where the columns cannot be edited. */
   onColumnDropClose?: (index: number) => void
-  /** The shortcut that opens each tab, by tab id (`view:<id>`, `view:notes` — `strip.ts`) — `1`
+  /** The shortcut that opens each tab, by tab id (`view:<id>` — `strip.ts`) — `1`
    *  for ⌘1. Printed on the tabs while `showKeyHints` (⌘ held), and always in the `…` menu. */
   keyHints?: ReadonlyMap<string, string>
   showKeyHints?: boolean
@@ -124,8 +118,8 @@ export function LayoutCards({
    * Two passes, both before paint: with `fit` unknown every tab is rendered (the row clips, so
    * nothing shows) and measured; the count is then stored and the row re-rendered with it.
    */
-  const items: StripTab[] = notesHref ? stripTabs(fixedViews) : [...fixedViews]
-  const isActive = (tab: StripTab) => (tab === 'notes' ? notesActive : fixedActive === tab)
+  const items: StripTab[] = stripTabs(fixedViews)
+  const isActive = (tab: StripTab) => fixedActive === tab
 
   const rootRef = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
@@ -242,27 +236,6 @@ export function LayoutCards({
       }}
     >
       {visible.map((view) => {
-        if (view === 'notes') {
-          return (
-            <Link
-              key="notes"
-              to={notesHref!}
-              data-strip-item=""
-              aria-current={notesActive ? 'page' : undefined}
-              className={cn(
-                'relative -mb-px flex h-9 shrink-0 items-center gap-1.5 border-b-2 px-2.5 text-[13px] font-medium',
-                notesActive
-                  ? 'border-foreground text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground',
-              )}
-            >
-              <TabIcon hint={showKeyHints ? keyHints.get('view:notes') : undefined}>
-                <NotebookTextIcon aria-hidden="true" className="size-3.5 shrink-0" />
-              </TabIcon>
-              {t('Notes')}
-            </Link>
-          )
-        }
         // The digit that selects this tab from the keyboard — its place on the whole row.
         const position = items.indexOf(view) + 1
         const Icon = VIEW_ICONS[view]
@@ -334,17 +307,6 @@ export function LayoutCards({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="max-h-72 w-56 overflow-y-auto">
             {overflow.map((view) => {
-              if (view === 'notes') {
-                return (
-                  <DropdownMenuItem key="notes" asChild>
-                    <Link to={notesHref!}>
-                      <NotebookTextIcon aria-hidden="true" />
-                      <span className="truncate">{t('Notes')}</span>
-                      {keyHints.get('view:notes') ? <DropdownMenuShortcut>{keyHints.get('view:notes')}</DropdownMenuShortcut> : null}
-                    </Link>
-                  </DropdownMenuItem>
-                )
-              }
               const Icon = VIEW_ICONS[view]
               const hint = keyHints.get(`view:${view}`)
               return (

@@ -15,6 +15,7 @@ const LOADING_TITLE: Record<Exclude<RunTab, 'session'>, string> = {
   files: 'Loading files…',
   graph: 'Loading the graph…',
   notes: 'Loading notes…',
+  pair: 'Loading One & One…',
   terminal: 'Loading the terminal…',
   preview: 'Loading the preview…',
 }

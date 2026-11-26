@@ -31,10 +31,10 @@ function errorText(error: unknown): string {
 }
 
 /**
- * Does this turn hand the order to the manager? `ONNI:DONE` is the contract, but `agy` ends in a
- * plain text summary and often omits it — without this fallback the order is never reported and
- * the worker fails as "stopped before its current order was checkpointed". Asks and monitoring
- * markers still win, and an empty turn is not a handoff.
+ * A One & One worker owns one order per turn. `ONNI:DONE` is the handoff contract. Antigravity is
+ * the exception: it ends with plain text and has no completion marker, so only its non-empty,
+ * non-blocked final turn uses the fallback. Do not infer completion for other backends, whose
+ * ordinary turn boundaries can be progress updates rather than a finished order.
  */
 export function isPairWorkerHandoffTurn(
   run: { runner?: string; dispatch?: { pairMember?: unknown } } | null | undefined,
@@ -124,6 +124,8 @@ export function stopTerminalPair(
 }
 
 const WORKER_ENDED_MARKER = 'WORKER ENDED EARLY';
+export const PAIR_WORKER_HANDOFF_INCOMPLETE_ERROR =
+  'One & One worker stopped before its current order was checkpointed and reported';
 
 /**
  * A failed worker is a failed order, not a failed pair. Record it as the order's report and hand
@@ -259,8 +261,7 @@ export async function handlePairWorkerTurn(
     // Self-heal a lock hiccup instead of failing the worker: re-check first, since a lease lost
     // after the write leaves the report already recorded.
     await retryTransientLock(() => {
-      const current = pairs.getOrder(membership.pairId, order.id);
-      if (current?.status === 'reported' && current.report === report) return;
+      // PairStore also repairs its phase when this exact report already reached orders.json.
       pairs.reportOrder(membership.pairId, order.id, report);
     });
     const next = mirrorPairState(context.store, pairs.readState(membership.pairId)!);

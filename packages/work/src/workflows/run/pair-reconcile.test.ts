@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, utimesSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -91,6 +91,27 @@ describe('One & One pair reconciliation', () => {
     const events = store.readEvents(MANAGER_ID).length;
     reconcileOpenPairs(context(), memory);
     expect(store.readEvents(MANAGER_ID).length).toBe(events);
+  });
+
+  it('recovers a persisted report when the pair phase write was interrupted', () => {
+    const state = pairs.readState(MANAGER_ID)!;
+    const order = pairs.getOrder(MANAGER_ID, state.currentOrderId!)!;
+    const report = 'Implemented and verified';
+    const ordersPath = join(dataDir, 'pairs', MANAGER_ID, 'orders.json');
+    const orders = JSON.parse(readFileSync(ordersPath, 'utf8')) as Array<Record<string, unknown>>;
+    writeFileSync(ordersPath, JSON.stringify(orders.map((entry) => ({
+      ...entry,
+      ...(entry.id === order.id ? { status: 'reported', report } : {}),
+    }))));
+    store.updateRun(WORKER_ID, { status: 'running' });
+
+    reconcileOpenPairs(context(), createPairReconcileMemory());
+
+    expect(pairs.readState(MANAGER_ID)).toMatchObject({ phase: 'manager_review', currentOrderId: order.id });
+    expect(store.getRun(MANAGER_ID)?.dispatch?.pair?.phase).toBe('manager_review');
+    expect(pairs.getOrder(MANAGER_ID, order.id)).toMatchObject({ status: 'reported', report });
+    expect(store.getRun(WORKER_ID)).toMatchObject({ status: 'done', completionReason: 'completed' });
+    expect(delivered.join('')).toContain(report);
   });
 
   it('leaves a failed worker alone while a provider retry is scheduled for it', () => {

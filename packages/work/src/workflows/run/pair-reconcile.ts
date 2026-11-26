@@ -1,7 +1,13 @@
 import { statSync } from 'node:fs';
 import { PairStore } from '../../dispatch/pair-store.ts';
 import { resolveRunEventsPath } from '../../runs/store.ts';
-import { relayPairWorkerFailure, type PairDeliveryContext } from './pair-coordinator.ts';
+import {
+  deliverPairPeerText,
+  PAIR_WORKER_HANDOFF_INCOMPLETE_ERROR,
+  relayPairWorkerFailure,
+  type PairDeliveryContext,
+} from './pair-coordinator.ts';
+import { mirrorPairState } from './pair-runtime.ts';
 
 /** A worker that has had no live owner for this long (two sweeps) is a ghost, not a start race. */
 const GHOST_GRACE_MS = 30_000;
@@ -38,7 +44,7 @@ function lastActivityMs(dataDir: string, runId: string): number | undefined {
  * relay can miss (a swallowed error, a restart, a run that stopped owning its session), so this
  * sweep checks the invariant itself: an open pair whose current order is in flight must have a
  * worker that is either alive or already reported. Idempotent, and cheap: it only touches pairs
- * whose order is queued or working.
+ * whose order is queued, working, or was reported just before a process interruption.
  */
 export function reconcileOpenPairs(context: PairReconcileContext, memory: PairReconcileMemory, now = Date.now()): void {
   const pairs = new PairStore(context.dataDir);
@@ -66,10 +72,62 @@ function reconcileWorker(
   const state = pairs.readState(pairId);
   if (!state || state.phase === 'stopped' || state.phase === 'complete' || !state.workerRunId || !state.currentOrderId) return;
   const order = pairs.getOrder(pairId, state.currentOrderId);
-  if (!order || (order.status !== 'queued' && order.status !== 'working')) return;
   const workerId = state.workerRunId;
   const worker = context.store.getRun(workerId);
   if (!worker) return;
+
+  if (order?.status === 'reported') {
+    if (state.phase !== 'worker_working' || !order.report || context.isLive(workerId)) return;
+    // Recover the crash window where orders.json was written but state.json still says
+    // worker_working. reportOrder is idempotent and completes this transition under the pair lock.
+    const repairedOrder = pairs.reportOrder(pairId, order.id, order.report);
+    const repairedState = pairs.readState(pairId);
+    if (
+      !repairedState
+      || repairedState.workerRunId !== workerId
+      || repairedState.currentOrderId !== order.id
+      || repairedState.phase !== 'manager_review'
+    ) return;
+    const next = mirrorPairState(context.store, repairedState);
+    const recoveredAt = new Date().toISOString();
+    const failedOnlyByGuard = worker.status === 'failed' && worker.error === PAIR_WORKER_HANDOFF_INCOMPLETE_ERROR;
+    if (worker.status === 'running' || failedOnlyByGuard) {
+      for (const step of worker.steps) {
+        if (step.status === 'running' || step.status === 'waiting' || (failedOnlyByGuard && step.error === PAIR_WORKER_HANDOFF_INCOMPLETE_ERROR)) {
+          context.store.updateStep(workerId, step.id, { status: 'done', error: undefined, finishedAt: recoveredAt });
+        }
+      }
+      context.store.updateRun(workerId, {
+        status: 'done',
+        completionReason: 'completed',
+        error: undefined,
+        finishedAt: worker.finishedAt ?? recoveredAt,
+        currentStepId: undefined,
+      });
+      context.store.appendEvent(workerId, {
+        type: 'lifecycle',
+        message: 'One & One recovered the persisted worker report after an interrupted handoff',
+      });
+    }
+    context.store.appendEvent(next.managerRunId, {
+      type: 'note',
+      message: `One & One recovered the persisted worker report for order ${order.id.slice(0, 8)}`,
+    });
+    deliverPairPeerText(context, next.managerRunId, [
+      `One & One worker report — order ${repairedOrder.id} (revision ${repairedOrder.revision})`,
+      `Checkpoint: ${next.lastCheckpointSha ?? 'HEAD'}`,
+      `Baseline: ${next.workspace.baselineSha}`,
+      '',
+      repairedOrder.report ?? '',
+      '',
+      `Inspect the actual diff read-only with: git diff ${next.workspace.baselineSha}..HEAD`,
+      'Review the report and diff, then accept or revise the current order.',
+    ].join('\n'), 'One & One worker report is saved, but the manager could not be resumed automatically');
+    seen.add(workerId);
+    return;
+  }
+
+  if (!order || (order.status !== 'queued' && order.status !== 'working')) return;
   seen.add(workerId);
 
   if (worker.status === 'failed' || worker.status === 'cancelled') {

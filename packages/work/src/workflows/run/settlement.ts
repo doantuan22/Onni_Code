@@ -28,7 +28,13 @@ import { stepKind } from '../types.ts';
 import type { RunRecord } from '../../runs/store.ts';
 import type { SettlementActiveRun, SettlementContext } from './internal-types.ts';
 import { isPairMember, isPairRoot } from './pair-runtime.ts';
-import { finalizePairManager, finishPairManager, isLivePairParticipant, parkPairManager } from './pair-coordinator.ts';
+import {
+  finalizePairManager,
+  finishPairManager,
+  isLivePairParticipant,
+  PAIR_WORKER_HANDOFF_INCOMPLETE_ERROR,
+  parkPairManager,
+} from './pair-coordinator.ts';
 
 export const MAX_LAND_ATTEMPTS = 3;
 
@@ -258,7 +264,7 @@ export async function settleSuccess(
     const state = pairId ? pairs.readState(pairId) : null;
     const order = pairId && state?.currentOrderId ? pairs.getOrder(pairId, state.currentOrderId) : null;
     if (!pairId || !state || state.workerRunId !== run.id || state.phase !== 'manager_review' || order?.status !== 'reported') {
-      const error = 'One & One worker stopped before its current order was checkpointed and reported';
+      const error = PAIR_WORKER_HANDOFF_INCOMPLETE_ERROR;
       // Not `stopPair`: `dropActive` relays this failure to the manager, who may start a new worker.
       ctx.store.updateRun(runId, {
         status: 'failed',

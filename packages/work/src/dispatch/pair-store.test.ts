@@ -103,6 +103,27 @@ describe('PairStore', () => {
     expect(store.readState(PAIR_ID)?.phase).toBe('final_check');
   });
 
+  it('repairs the pair phase when retrying a report persisted before the phase update', () => {
+    store.setWorker(PAIR_ID, WORKER_ID);
+    const order = store.enqueueOrder(PAIR_ID, { objective: 'implement' });
+    store.markOrderWorking(PAIR_ID, order.id);
+    const report = 'Implemented and tested';
+    const ordersPath = join(dataDir, 'pairs', PAIR_ID, 'orders.json');
+    const orders = JSON.parse(readFileSync(ordersPath, 'utf8')) as Array<Record<string, unknown>>;
+    writeFileSync(ordersPath, JSON.stringify(orders.map((entry) => ({
+      ...entry,
+      ...(entry.id === order.id ? { status: 'reported', report } : {}),
+    }))));
+
+    expect(store.readState(PAIR_ID)?.phase).toBe('worker_working');
+    expect(store.reportOrder(PAIR_ID, order.id, report)).toMatchObject({ status: 'reported', report });
+    expect(store.readState(PAIR_ID)).toMatchObject({
+      phase: 'manager_review',
+      activeRole: 'manager',
+      currentOrderId: order.id,
+    });
+  });
+
   it('opens the next task scope from a parked pair, resetting baseline and revision', () => {
     expect(() => store.openNextTask(PAIR_ID)).toThrow(PairStoreError);
     const order = store.enqueueOrder(PAIR_ID, { objective: 'first task' });

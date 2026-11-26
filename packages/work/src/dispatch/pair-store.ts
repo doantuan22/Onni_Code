@@ -395,7 +395,22 @@ export class PairStore {
   }
 
   private reportOrderUnlocked(pairId: string, orderId: string, report: string): PairOrder {
+    const state = this.readState(pairId);
+    if (!state) throw new PairStoreError('Pair does not exist');
     const order = this.requireOrder(pairId, orderId);
+    if (state.currentOrderId !== orderId) throw new PairStoreError('Only the current One & One order can be reported');
+    // The order and pair phase are separate atomic files. If a lease is lost after the order
+    // write, retrying the same report must finish the phase transition instead of accepting a
+    // half-written handoff as complete.
+    if (order.status === 'reported' && order.report === report) {
+      if (state.phase === 'worker_working') {
+        this.transitionUnlocked(pairId, 'manager_review', 'manager', { currentOrderId: orderId });
+      } else if (state.phase !== 'manager_review') {
+        throw new PairStoreError('The reported One & One order is no longer awaiting manager review');
+      }
+      return order;
+    }
+    if (state.phase !== 'worker_working') throw new PairStoreError('The current One & One order is not being worked');
     if (order.status !== 'working') throw new PairStoreError('Order is not being worked');
     const updated = pairOrderSchema.parse({ ...order, status: 'reported', report, updatedAt: new Date().toISOString() });
     this.replaceOrderUnlocked(pairId, updated);

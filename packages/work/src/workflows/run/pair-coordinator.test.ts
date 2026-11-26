@@ -100,6 +100,33 @@ describe('One & One coordinator', () => {
     expect(pairs.readState(MANAGER_ID)?.phase).toBe('manager_review');
   });
 
+  it('repairs the pair phase when the report write succeeds but its lock is then lost', async () => {
+    await startOrder();
+    writeFileSync(join(root, 'feature.txt'), 'implemented\n', 'utf8');
+    const original = PairStore.prototype.reportOrder;
+    let lostAfterWrite = true;
+    vi.spyOn(PairStore.prototype, 'reportOrder').mockImplementation(function (this: PairStore, ...args: Parameters<PairStore['reportOrder']>) {
+      const result = original.apply(this, args);
+      if (lostAfterWrite) {
+        lostAfterWrite = false;
+        throw new PairStoreError('One & One repository lease was lost');
+      }
+      return result;
+    });
+    const context = {
+      store, dataDir, repoRoot: root,
+      active: new Set<string>(),
+      deliverMessage: () => true,
+      deferMessage: () => false,
+      continueRun: () => ({ ok: true }),
+    };
+
+    await expect(handlePairWorkerTurn(context, WORKER_ID, 'Implemented feature.txt.\nONNI:DONE', []))
+      .resolves.toEqual({ handled: true, ok: true });
+    expect(pairs.readState(MANAGER_ID)?.phase).toBe('manager_review');
+    expect(pairs.getOrder(MANAGER_ID, pairs.readState(MANAGER_ID)!.currentOrderId!)?.status).toBe('reported');
+  });
+
   it('checkpoints explicit worker paths, reports to the manager, and completes only after acceptance', async () => {
     await startOrder();
     writeFileSync(join(root, 'feature.txt'), 'implemented\n', 'utf8');
@@ -625,7 +652,7 @@ describe('isPairWorkerHandoffTurn', () => {
   it('accepts the DONE marker for any backend', () => {
     expect(isPairWorkerHandoffTurn(member('claude'), 'done', true)).toBe(true);
   });
-  it('lets an antigravity worker hand off without the marker', () => {
+  it('lets an Antigravity worker hand off after a normal non-empty turn without the marker', () => {
     expect(isPairWorkerHandoffTurn(member('antigravity'), 'summary of work', false)).toBe(true);
   });
   it('keeps asks, monitoring, empty turns and other backends out of the fallback', () => {
@@ -633,6 +660,7 @@ describe('isPairWorkerHandoffTurn', () => {
     expect(isPairWorkerHandoffTurn(member('antigravity'), 'ONNI:MONITORING', false)).toBe(false);
     expect(isPairWorkerHandoffTurn(member('antigravity'), '  ', false)).toBe(false);
     expect(isPairWorkerHandoffTurn(member('claude'), 'summary', false)).toBe(false);
+    expect(isPairWorkerHandoffTurn(member('codex'), 'summary', false)).toBe(false);
     expect(isPairWorkerHandoffTurn({ runner: 'antigravity' }, 'summary', false)).toBe(false);
   });
 });

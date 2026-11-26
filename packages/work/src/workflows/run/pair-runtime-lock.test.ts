@@ -55,6 +55,40 @@ afterEach(async () => {
 });
 
 describe('One & One runtime repository locking', () => {
+  it('retries short in-process contention without failing the checkpoint', async () => {
+    const { root, pairs } = setup();
+    writeFileSync(join(root, 'feature.txt'), 'feature\n');
+    const lease = acquireRepositoryLockSync(root);
+    if (!lease) throw new Error('missing lease');
+    leases.push(lease);
+    const release = setTimeout(() => { void lease.release(); }, 100);
+    try {
+      expect(await checkpointPair(root, pairs, PAIR_ID, 'transient')).toMatchObject({ ok: true });
+      expect(git(root, 'show', '--format=', '--name-only', 'HEAD')).toContain('feature.txt');
+    } finally { clearTimeout(release); }
+  });
+
+  it('rechecks stop after contention instead of committing on a retry', async () => {
+    const { root, pairs, baselineSha } = setup();
+    writeFileSync(join(root, 'feature.txt'), 'feature\n');
+    const lease = acquireRepositoryLockSync(root);
+    if (!lease) throw new Error('missing lease');
+    leases.push(lease);
+    const release = setTimeout(() => { void lease.release(); pairs.transition(PAIR_ID, 'stopped'); }, 100);
+    try {
+      expect(await checkpointPair(root, pairs, PAIR_ID, 'stopped')).toMatchObject({ ok: false, error: expect.stringContaining('stopped') });
+      expect(git(root, 'rev-parse', 'HEAD')).toBe(baselineSha);
+    } finally { clearTimeout(release); }
+  });
+
+  it('can inspect metadata without buffering a patch larger than the Git output limit', async () => {
+    const { root, pairs } = setup();
+    writeFileSync(join(root, 'large.txt'), 'x'.repeat(9 * 1024 * 1024));
+    const diff = await inspectPairDiff(root, pairs, PAIR_ID, { includePatch: false });
+    expect(diff).toMatchObject({ ok: true, diff: '', truncated: false });
+    expect(diff.nameStatus).toContain('large.txt');
+  });
+
   it('excludes checkpoint and diff Git operations until the lease is released', async () => {
     const { root, pairs, baselineSha } = setup();
     writeFileSync(join(root, 'feature.txt'), 'feature\n');

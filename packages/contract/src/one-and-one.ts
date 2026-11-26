@@ -47,6 +47,22 @@ export const pairOrderSchema = z.strictObject({
   requiredEvidence: z.string().max(1000).optional(),
   status: pairOrderStatusSchema,
   report: z.string().max(20_000).optional(),
+  // Optional for pre-hardening orders; new engine reports carry their provenance.
+  reportOutcome: z.enum(['completed', 'failed']).optional(),
+  checkpointSha: sha.optional(),
+  acceptanceNote: z.string().max(4000).optional(),
+  delivery: z.strictObject({
+    attempts: z.number().int().min(0).max(6),
+    nextAttemptAt: timestamp.optional(),
+    deliveredAt: timestamp.optional(),
+  }).optional(),
+  verification: z.strictObject({
+    state: z.enum(['passed', 'failed', 'unavailable']),
+    checkpointSha: sha,
+    reasonCode: z.string().max(80).optional(),
+    at: timestamp,
+  }).optional(),
+  verificationRuns: z.number().int().min(0).max(3).optional(),
   createdAt: timestamp,
   updatedAt: timestamp,
 });

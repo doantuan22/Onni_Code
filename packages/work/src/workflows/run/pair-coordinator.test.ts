@@ -75,6 +75,15 @@ describe('One & One coordinator', () => {
     store.updateRun(MANAGER_ID, { dispatch: { rootRunId: MANAGER_ID, pair: state } });
   }
 
+  async function recordCheckEvidence(): Promise<void> {
+    const checkpoint = await checkpointPair(root, pairs, MANAGER_ID, 'test verification');
+    if (!checkpoint.ok || !checkpoint.sha) throw new Error(checkpoint.error ?? 'missing checkpoint');
+    const orderId = pairs.readState(MANAGER_ID)?.currentOrderId;
+    if (!orderId) throw new Error('missing order');
+    // Coordinator unit tests supply the verifier receipt; pair-verify tests execute the check path.
+    pairs.recordVerification(MANAGER_ID, orderId, { state: 'passed', checkpointSha: checkpoint.sha, at: new Date().toISOString() });
+  }
+
   it('heals a transient lock failure while recording the worker report instead of failing the worker', async () => {
     await startOrder();
     writeFileSync(join(root, 'feature.txt'), 'implemented\n', 'utf8');
@@ -157,8 +166,11 @@ describe('One & One coordinator', () => {
 
     const incomplete = await finalizePairManager(context, MANAGER_ID, []);
     if (incomplete.ok) throw new Error('manager completed before accepting the order');
+    await recordCheckEvidence();
     pairs.acceptOrder(MANAGER_ID, { orderId: order.id });
     writeFileSync(join(root, 'final.txt'), 'final check\n', 'utf8');
+    expect((await finalizePairManager(context, MANAGER_ID, [])).ok).toBe(false);
+    await recordCheckEvidence();
     const finalized = await finalizePairManager(context, MANAGER_ID, []);
     if (!finalized.ok) throw new Error(finalized.error);
     expect(finalized.state.phase).toBe('complete');
@@ -572,8 +584,10 @@ describe('One & One coordinator', () => {
     writeFileSync(join(root, 'feature.txt'), 'implemented\n', 'utf8');
     await handlePairWorkerTurn(pairContext(), WORKER_ID, 'Implemented feature.txt.\nONNI:DONE', []);
     const order = pairs.getOrder(MANAGER_ID, pairs.readState(MANAGER_ID)!.currentOrderId!)!;
+    await recordCheckEvidence();
     pairs.acceptOrder(MANAGER_ID, { orderId: order.id });
     writeFileSync(join(root, 'final.txt'), 'final check\n', 'utf8');
+    await recordCheckEvidence();
     const parked = await parkPairManager(pairContext(), MANAGER_ID, []);
     if (!parked.ok) throw new Error(parked.error);
   }

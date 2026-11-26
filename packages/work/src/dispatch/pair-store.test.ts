@@ -138,6 +138,27 @@ describe('PairStore', () => {
     expect(opened.workspace.baselineSha).toBe(checkpoint);
   });
 
+  it('refuses to accept a failed worker report even when the manager asks', () => {
+    const order = store.enqueueOrder(PAIR_ID, { objective: 'fix a bug' });
+    store.markOrderWorking(PAIR_ID, order.id);
+    store.reportOrder(PAIR_ID, order.id, 'WORKER ENDED EARLY (failed) before finishing this order: tests failed');
+    expect(() => store.acceptOrder(PAIR_ID, { orderId: order.id })).toThrow(/failed worker report/i);
+    expect(store.getOrder(PAIR_ID, order.id)?.status).toBe('reported');
+  });
+
+  it('finishes interrupted acceptance idempotently without reviving a stopped pair', () => {
+    const order = store.enqueueOrder(PAIR_ID, { objective: 'implement' });
+    store.markOrderWorking(PAIR_ID, order.id);
+    store.reportOrder(PAIR_ID, order.id, 'implemented');
+    store.acceptOrder(PAIR_ID, { orderId: order.id });
+    store.updateState(PAIR_ID, { phase: 'manager_review' });
+    expect(store.acceptOrder(PAIR_ID, { orderId: order.id }).status).toBe('accepted');
+    expect(store.readState(PAIR_ID)?.phase).toBe('final_check');
+    store.transition(PAIR_ID, 'stopped');
+    expect(() => store.acceptOrder(PAIR_ID, { orderId: order.id })).toThrow();
+    expect(store.readState(PAIR_ID)?.phase).toBe('stopped');
+  });
+
   it('stores two-way messages and an auditable proposal decision', () => {
     const order = store.enqueueOrder(PAIR_ID, { objective: 'choose an approach' });
     const question = store.appendMessage(PAIR_ID, 'manager', { kind: 'question', text: 'Which approach?', orderId: order.id });

@@ -40,6 +40,16 @@ import {
 } from '../../git-worktree.ts';
 import type { RunRecord } from '../../runs/store.ts';
 import type { VerifyContext } from './internal-types.ts';
+import { PairStore } from '../../dispatch/pair-store.ts';
+import { pairVerificationHead } from '../../dispatch/pair-verification.ts';
+import { checkpointPair } from './pair-runtime.ts';
+interface PairVerifyWorkspace {
+  root: string;
+  baselineSha: string;
+  runsUsed: number;
+  reserve(): void;
+  refund(): void;
+}
 export async function verifyFor(
   context: VerifyContext,
   callerId: string,
@@ -62,7 +72,11 @@ export async function verifyFor(
   if (!isTerminalStatus(target.status) || context.isActive(target.id)) {
     return { denied: `worker ${id8} is still ${target.status} — verify runs only on a settled worker`, status: 409 };
   }
-  const used = target.dispatch?.verify?.runs ?? 0;
+  const membership = target.dispatch?.pairMember;
+  const pairs = membership ? new PairStore(context.dataDir) : undefined;
+  const pairState = membership ? pairs?.readState(membership.pairId) : undefined;
+  const pairOrder = membership && pairState?.currentOrderId ? pairs?.getOrder(membership.pairId, pairState.currentOrderId) : undefined;
+  const used = membership ? pairOrder?.verificationRuns ?? 0 : target.dispatch?.verify?.runs ?? 0;
   if (used >= VERIFY_MAX_RUNS_PER_WORKER) {
     const last = target.dispatch?.verify?.last?.state;
     return {
@@ -85,10 +99,77 @@ export async function verifyFor(
       redact: (text) => context.store.redactRunText(target.id, text),
     });
     if ('error' in resolved) return { denied: resolved.error, status: 400 };
-    return await runVerify(context, caller, target, resolved, controller, input.baseline === true);
+    return target.dispatch?.pairMember
+      ? await runPairVerify(context, caller, target, resolved, controller, input.baseline === true)
+      : await runVerify(context, caller, target, resolved, controller, input.baseline === true);
   } finally {
     clearTimeout(totalTimer);
     context.verifying.delete(caller.id);
+  }
+}
+
+/** Spec 2026-11-26: explicit verification owns the pair checkout until its evidence is saved. */
+async function runPairVerify(context: VerifyContext, caller: RunRecord, target: RunRecord,
+  resolved: { source: 'required-checks' | 'discovered' | 'none'; commands: string[] }, controller: AbortController,
+  compareBaseline: boolean): Promise<DispatchVerifyResult | { denied: string; status: 409 }> {
+  const pairId = target.dispatch?.pairMember?.pairId;
+  if (!pairId) return { denied: 'One & One membership is missing', status: 409 };
+  const pairs = new PairStore(context.dataDir);
+  const before = pairs.readState(pairId);
+  if (!before || before.managerRunId !== caller.id || before.workerRunId !== target.id
+    || !before.currentOrderId || !['manager_review', 'final_check', 'transitioning'].includes(before.phase)) {
+    return { denied: 'One & One verification requires the current reported worker order', status: 409 };
+  }
+  const orderId = before.currentOrderId;
+  const checkpoint = await checkpointPair(before.workspace.repoRoot, pairs, pairId, 'manager verification');
+  if (!checkpoint.ok || !checkpoint.sha) return { denied: checkpoint.error ?? 'One & One verification checkpoint failed', status: 409 };
+  try {
+    return await pairs.serialize(pairId, async (lease) => {
+      const current = pairs.readState(pairId);
+      if (!current || current.currentOrderId !== before.currentOrderId || current.workerRunId !== target.id
+        || !['manager_review', 'final_check', 'transitioning'].includes(current.phase) || context.isActive(target.id)) {
+        return { denied: 'One & One verification was superseded', status: 409 as const };
+      }
+      const head = pairVerificationHead(current.workspace.repoRoot);
+      if (head !== checkpoint.sha) return { denied: 'One & One checkpoint changed before verification', status: 409 as const };
+      pairs.recordVerification(pairId, orderId, {
+        state: 'unavailable', reasonCode: 'verification-in-progress', checkpointSha: head, at: new Date(context.verifyDeps.now()).toISOString(),
+      });
+      const result = await runVerify(context, caller, target, resolved, controller, compareBaseline,
+        { root: current.workspace.repoRoot, baselineSha: current.workspace.baselineSha,
+          runsUsed: pairs.getOrder(pairId, orderId)?.verificationRuns ?? 0,
+          reserve: () => pairs.changeVerificationRuns(pairId, orderId, 1),
+          refund: () => pairs.changeVerificationRuns(pairId, orderId, -1) });
+      lease?.assertValid();
+      const after = pairs.readState(pairId);
+      if (!after || after.currentOrderId !== before.currentOrderId || after.workerRunId !== target.id
+        || !['manager_review', 'final_check', 'transitioning'].includes(after.phase)) {
+        return { denied: 'One & One verification was superseded', status: 409 as const };
+      }
+      let stable = false;
+      try { stable = pairVerificationHead(current.workspace.repoRoot) === head; } catch { /* changed files invalidate evidence */ }
+      if (!stable) {
+        result.state = 'unavailable';
+        result.reasonCode = 'git-unreadable';
+        result.reason = 'The shared checkout changed during verification; checkpoint and verify again';
+      }
+      pairs.recordVerification(pairId, orderId, {
+        state: result.state, checkpointSha: head, at: result.startedAt,
+        ...(result.reasonCode ? { reasonCode: result.reasonCode } : {}),
+      });
+      if (result.state !== 'unavailable' && result.source !== 'none' && result.results.length > 0) {
+        const source = result.source;
+        context.updateDispatch(target.id, (dispatch) => ({ ...dispatch, verify: {
+          runs: result.runsUsed,
+          last: { at: result.startedAt, headCommit: result.headCommit ?? head.slice(0, 40), state: result.state === 'failed' ? 'failed' : 'passed', source,
+            results: result.results.map(({ command, outcome, exitCode }) => ({ command, outcome, exitCode })) },
+        } }));
+      }
+      recordVerify(context, caller, target, result);
+      return result;
+    }, before.workspace.repoRoot, true);
+  } catch (error) {
+    return { denied: error instanceof Error ? error.message : String(error), status: 409 };
   }
 }
 
@@ -99,10 +180,11 @@ async function runVerify(
   resolved: { source: 'required-checks' | 'discovered' | 'none'; commands: string[] },
   controller: AbortController,
   compareBaseline: boolean,
+  pairWorkspace?: PairVerifyWorkspace,
 ): Promise<DispatchVerifyResult> {
   const startedAt = new Date(context.verifyDeps.now()).toISOString();
   const t0 = context.verifyDeps.now();
-  const used = target.dispatch?.verify?.runs ?? 0;
+  const used = pairWorkspace?.runsUsed ?? target.dispatch?.verify?.runs ?? 0;
   const redact = (text: string) => context.store.redactRunText(target.id, text);
   const unavailable = (reasonCode: NonNullable<DispatchVerifyResult['reasonCode']>, reason: string): DispatchVerifyResult => {
     const result: DispatchVerifyResult = {
@@ -117,12 +199,12 @@ async function runVerify(
       runsMax: VERIFY_MAX_RUNS_PER_WORKER,
       warnings: [],
     };
-    recordVerify(context, caller, target, result);
+    if (!pairWorkspace) recordVerify(context, caller, target, result);
     return result;
   };
 
   if (context.verifyDeps.env().ONNI_DRY_RUN === '1') return unavailable('dry-run', 'ONNI_DRY_RUN=1 — no check is executed');
-  const worktree = target.worktreePath;
+  const worktree = pairWorkspace?.root ?? target.worktreePath;
   if (!worktree || !existsSync(worktree)) {
     return unavailable('no-worktree', "the worker's worktree is gone — it was reclaimed; nothing to run in");
   }
@@ -134,7 +216,7 @@ async function runVerify(
 
   const warnings: string[] = [];
   const [files, headCommit] = await Promise.all([
-    worktreeChangedFilesReadOnly(worktree, target.baseBranch ?? 'HEAD', { max: 200 }),
+    worktreeChangedFilesReadOnly(worktree, pairWorkspace?.baselineSha ?? target.baseBranch ?? 'HEAD', { max: 200 }),
     worktreeHeadShort(worktree),
   ]);
   if (files.files.some((file) => /(^|\/)(package\.json|Cargo\.toml)$/.test(file))) {
@@ -154,6 +236,7 @@ async function runVerify(
     }
     if (!counted) {
       // Reserve before the first spawn so a crashed or aborted verify cannot be repeated for free.
+      pairWorkspace?.reserve();
       context.updateDispatch(target.id, (d) => ({ ...d, verify: { runs: used + 1, ...(d.verify?.last ? { last: d.verify.last } : {}) } }));
       counted = true;
     }
@@ -170,6 +253,7 @@ async function runVerify(
     firstAttempt = false;
     if (run.spawnError) {
       if (wasFirstAttempt && run.spawnErrorCode === 'ENOENT') {
+        pairWorkspace?.refund();
         // POSIX resolveBash returns a command name; ENOENT is the first proof bash is absent.
         context.updateDispatch(target.id, (d) => {
           const runs = Math.max(0, (d.verify?.runs ?? used + 1) - 1);
@@ -192,7 +276,7 @@ async function runVerify(
     raws.push({ command, outcome, exitCode: run.exitCode, durationMs: run.durationMs, timedOut: run.timedOut, output: run.output });
   }
   const baseline = compareBaseline
-    ? await runVerifyBaseline(context, target, raws.filter((raw) => raw.outcome === 'failed' || raw.outcome === 'timed-out'), env, bash, controller, t0, warnings, redact)
+    ? await runVerifyBaseline(context, target, raws.filter((raw) => raw.outcome === 'failed' || raw.outcome === 'timed-out'), env, bash, controller, t0, warnings, redact, pairWorkspace)
     : undefined;
   const results = assembleCommandResults(raws, redact);
   const result: DispatchVerifyResult = {
@@ -207,8 +291,13 @@ async function runVerify(
     runsMax: VERIFY_MAX_RUNS_PER_WORKER,
     warnings: capWarnings(warnings.map(redact)),
   };
+  if (pairWorkspace && result.state === 'passed' && (results.length !== resolved.commands.length || results.some((entry) => entry.outcome !== 'passed'))) {
+    result.state = 'unavailable';
+    result.reasonCode = 'git-unreadable';
+    result.reason = 'Not all verification commands completed; skipped checks are not a pass';
+  }
   const lastSource = resolved.source === 'none' ? undefined : resolved.source;
-  if (lastSource && counted) {
+  if (lastSource && counted && result.state !== 'unavailable' && !pairWorkspace) {
     context.updateDispatch(target.id, (d) => ({
       ...d,
       verify: {
@@ -223,7 +312,7 @@ async function runVerify(
       },
     }));
   }
-  recordVerify(context, caller, target, result);
+  if (!pairWorkspace) recordVerify(context, caller, target, result);
   return result;
 }
 
@@ -238,6 +327,7 @@ async function runVerifyBaseline(
   startedAt: number,
   warnings: string[],
   redact: (text: string) => string,
+  pairWorkspace?: { root: string; baselineSha: string },
 ): Promise<DispatchVerifyBaseline> {
   const empty = (cleanup: DispatchVerifyBaseline['cleanup'] = 'removed'): DispatchVerifyBaseline => ({
     method: VERIFY_BASELINE_METHOD,
@@ -251,9 +341,9 @@ async function runVerifyBaseline(
   });
   if (failedCommands.length === 0) return empty();
 
-  const worktree = target.worktreePath!;
+  const worktree = pairWorkspace?.root ?? target.worktreePath!;
   const baseRemaining = Math.max(1, startedAt + VERIFY_TOTAL_TIMEOUT_MS - context.verifyDeps.now());
-  const baseSha = await resolveReadOnlyDiffBase(worktree, target.baseBranch ?? 'HEAD', {
+  const baseSha = pairWorkspace?.baselineSha ?? await resolveReadOnlyDiffBase(worktree, target.baseBranch ?? 'HEAD', {
     ...(target.branch ? { taskBranch: target.branch } : {}),
     ...(target.startedAt ? { runStartedAt: target.startedAt } : {}),
     signal: controller.signal,

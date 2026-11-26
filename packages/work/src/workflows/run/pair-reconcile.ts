@@ -2,7 +2,7 @@ import { statSync } from 'node:fs';
 import { PairStore } from '../../dispatch/pair-store.ts';
 import { resolveRunEventsPath } from '../../runs/store.ts';
 import {
-  deliverPairPeerText,
+  deliverPendingPairReport,
   PAIR_WORKER_HANDOFF_INCOMPLETE_ERROR,
   relayPairWorkerFailure,
   type PairDeliveryContext,
@@ -52,7 +52,7 @@ export function reconcileOpenPairs(context: PairReconcileContext, memory: PairRe
   for (const manager of context.store.listRuns()) {
     const pair = manager.dispatch?.pair;
     if (!pair || manager.dispatch?.rootRunId !== manager.id) continue;
-    if (pair.phase !== 'worker_queued' && pair.phase !== 'worker_working') continue;
+    if (pair.phase === 'stopped' || pair.phase === 'complete' || pair.phase === 'user_wait') continue;
     try {
       reconcileWorker(context, memory, pairs, manager.id, now, seen);
     } catch { /* one broken pair must not stop the sweep for the rest */ }
@@ -76,11 +76,23 @@ function reconcileWorker(
   const worker = context.store.getRun(workerId);
   if (!worker) return;
 
+  if (order?.status === 'accepted' && state.phase === 'manager_review') {
+    pairs.acceptOrder(pairId, { orderId: order.id });
+    const acceptedState = pairs.readState(pairId);
+    if (acceptedState) mirrorPairState(context.store, acceptedState);
+    return;
+  }
+
   if (order?.status === 'reported') {
+    if (state.phase === 'manager_review') {
+      mirrorPairState(context.store, state);
+      deliverPendingPairReport(context, pairId, now);
+      return;
+    }
     if (state.phase !== 'worker_working' || !order.report || context.isLive(workerId)) return;
     // Recover the crash window where orders.json was written but state.json still says
     // worker_working. reportOrder is idempotent and completes this transition under the pair lock.
-    const repairedOrder = pairs.reportOrder(pairId, order.id, order.report);
+    pairs.reportOrder(pairId, order.id, order.report);
     const repairedState = pairs.readState(pairId);
     if (
       !repairedState
@@ -91,7 +103,7 @@ function reconcileWorker(
     const next = mirrorPairState(context.store, repairedState);
     const recoveredAt = new Date().toISOString();
     const failedOnlyByGuard = worker.status === 'failed' && worker.error === PAIR_WORKER_HANDOFF_INCOMPLETE_ERROR;
-    if (worker.status === 'running' || failedOnlyByGuard) {
+    if (order.reportOutcome !== 'failed' && !order.report?.startsWith('WORKER ENDED EARLY') && (worker.status === 'running' || failedOnlyByGuard)) {
       for (const step of worker.steps) {
         if (step.status === 'running' || step.status === 'waiting' || (failedOnlyByGuard && step.error === PAIR_WORKER_HANDOFF_INCOMPLETE_ERROR)) {
           context.store.updateStep(workerId, step.id, { status: 'done', error: undefined, finishedAt: recoveredAt });
@@ -113,16 +125,7 @@ function reconcileWorker(
       type: 'note',
       message: `One & One recovered the persisted worker report for order ${order.id.slice(0, 8)}`,
     });
-    deliverPairPeerText(context, next.managerRunId, [
-      `One & One worker report — order ${repairedOrder.id} (revision ${repairedOrder.revision})`,
-      `Checkpoint: ${next.lastCheckpointSha ?? 'HEAD'}`,
-      `Baseline: ${next.workspace.baselineSha}`,
-      '',
-      repairedOrder.report ?? '',
-      '',
-      `Inspect the actual diff read-only with: git diff ${next.workspace.baselineSha}..HEAD`,
-      'Review the report and diff, then accept or revise the current order.',
-    ].join('\n'), 'One & One worker report is saved, but the manager could not be resumed automatically');
+    deliverPendingPairReport(context, pairId, now);
     seen.add(workerId);
     return;
   }
@@ -141,7 +144,7 @@ function reconcileWorker(
     relayPairWorkerFailure(context, workerId);
     return;
   }
-  if (worker.status !== 'running') return;
+  if (worker.autoResumeAt !== undefined || (worker.status !== 'running' && worker.status !== 'waiting')) return;
 
   if (!context.isLive(workerId)) {
     const since = memory.ghostSince.get(workerId) ?? now;

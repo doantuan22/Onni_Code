@@ -370,6 +370,7 @@ export function handleDispatchTurn(
       && ctx.state.pairAcceptedTurnSeq === (ctx.state.pairTurnSeq ?? 0);
     ctx.state.pairAcceptedTurnSeq = undefined;
     let acceptedNow = acceptedViaControl;
+    let acceptanceError: string | undefined;
     if (accepted && !acceptedViaControl) {
       if (state?.phase === 'manager_review' && order?.status === 'reported') {
         try {
@@ -378,11 +379,16 @@ export function handleDispatchTurn(
           acceptedNow = true;
           note(`One & One order ${order.id.slice(0, 8)} accepted — final checks required before completion`);
         } catch (error) {
-          note(`One & One acceptance failed — ${error instanceof Error ? error.message : String(error)}`, 'danger');
+          acceptanceError = error instanceof Error ? error.message : String(error);
+          note(`One & One acceptance failed — ${acceptanceError}`, 'danger');
         }
       } else {
         note('One & One acceptance ignored — there is no reported order awaiting review', 'danger');
       }
+    }
+    if (acceptanceError && ctx.state.session?.open === true) {
+      const rePrompted = ctx.state.session.sendMessage([{ type: 'text', text: `One & One acceptance refused: ${acceptanceError}. Address this before accepting again; failed worker orders require a revised order.` }]);
+      return { hasDispatch: true, dispatched, overBudget: false, rePrompted, doneBlocked: ctx.done };
     }
     const current = pairs.readState(pairId);
     const currentOrder = current?.currentOrderId ? pairs.getOrder(pairId, current.currentOrderId) : null;

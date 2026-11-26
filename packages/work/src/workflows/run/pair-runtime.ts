@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import type { PairState } from '@onni/contract';
 import { PairStore } from '../../dispatch/pair-store.ts';
-import type { RepositoryLease } from '../../git-repository-lock.ts';
+import { isTransientLockError, retryTransientLock, type RepositoryLease } from '../../git-repository-lock.ts';
 import { gitHasIdentity } from '../../git-worktree.ts';
 import { getHeadCommit, getRepoInfo } from '../../server/git.ts';
 import type { RunStore } from '../../runs/store.ts';
@@ -229,6 +229,31 @@ export async function checkpointPair(
   reason: string,
   excludedPaths: readonly string[] = [],
 ): Promise<PairCheckpointResult> {
+  const expected = pairs.readState(pairId);
+  return retryPairLockResult(() => {
+    const current = pairs.readState(pairId);
+    if (current?.currentOrderId !== expected?.currentOrderId || current?.workerRunId !== expected?.workerRunId) {
+      return Promise.resolve({ ok: false, error: 'One & One checkpoint was superseded' });
+    }
+    return checkpointPairOnce(root, pairs, pairId, reason, excludedPaths);
+  });
+}
+
+async function retryPairLockResult<T extends { ok: boolean; error?: string }>(operation: () => Promise<T>): Promise<T> {
+  let last: T | undefined;
+  try {
+    return await retryTransientLock(async () => {
+      last = await operation();
+      if (!last.ok && last.error && isTransientLockError(new Error(last.error))) throw new Error(last.error);
+      return last;
+    });
+  } catch (error) {
+    if (last && isTransientLockError(error)) return last;
+    throw error;
+  }
+}
+
+async function checkpointPairOnce(root: string, pairs: PairStore, pairId: string, reason: string, excludedPaths: readonly string[]): Promise<PairCheckpointResult> {
   try {
     return await pairs.serialize<PairCheckpointResult>(pairId, async (lease) => {
       const state = pairs.readState(pairId);
@@ -295,11 +320,16 @@ export async function checkpointPair(
   }
 }
 
-export async function inspectPairDiff(root: string, pairs: PairStore, pairId: string): Promise<PairDiffResult> {
+export async function inspectPairDiff(root: string, pairs: PairStore, pairId: string, options: { includePatch?: boolean } = {}): Promise<PairDiffResult> {
+  return retryPairLockResult(() => inspectPairDiffOnce(root, pairs, pairId, options));
+}
+
+async function inspectPairDiffOnce(root: string, pairs: PairStore, pairId: string, options: { includePatch?: boolean }): Promise<PairDiffResult> {
   try {
     return await pairs.serialize<PairDiffResult>(pairId, async (lease) => {
       const state = pairs.readState(pairId);
       if (!state) return { ok: false, stat: '', nameStatus: '', diff: '', truncated: false, error: 'One & One pair state is missing' };
+      if (state.phase === 'stopped' || state.phase === 'complete') return { ok: false, stat: '', nameStatus: '', diff: '', truncated: false, error: `One & One pair is ${state.phase}` };
       const scratch = await mkdtemp(join(tmpdir(), 'onni-pair-diff-'));
       try {
         await validateWorkspace(root, state, true, lease, true);
@@ -311,7 +341,7 @@ export async function inspectPairDiff(root: string, pairs: PairStore, pairId: st
         const [stat, nameStatus, diff] = await Promise.all([
           git(root, ['diff', '--stat', state.workspace.baselineSha], env),
           git(root, ['diff', '--name-status', state.workspace.baselineSha], env),
-          git(root, ['diff', '--no-ext-diff', '--unified=3', state.workspace.baselineSha], env),
+          options.includePatch === false ? Promise.resolve('') : git(root, ['diff', '--no-ext-diff', '--unified=3', state.workspace.baselineSha], env),
         ]);
         lease?.assertValid();
         return {

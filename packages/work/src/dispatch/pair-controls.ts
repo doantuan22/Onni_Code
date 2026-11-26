@@ -215,7 +215,7 @@ export function pairAcceptFor(
     if (state.currentOrderId !== input.orderId) return { denied: 'only the current order can be accepted', status: 409 };
     const order = pairs.getOrder(state.pairId, input.orderId);
     if (!order) return { denied: 'unknown order', status: 404 };
-    if (order.status !== 'reported') return { denied: 'only a reported order can be accepted', status: 409 };
+    if (order.status !== 'reported' && order.status !== 'accepted') return { denied: 'only a reported order can be accepted', status: 409 };
     const parsed = pairAcceptInputSchema.parse({
       ...input,
       ...(input.note !== undefined ? { note: context.store.redactRunText(actorId, input.note) } : {}),

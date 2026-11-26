@@ -3,6 +3,7 @@
 Everything the [README](../README.md) leaves out: the full configuration, every environment variable, agent backends, remote access, multiple projects and local development.
 
 - [Core concepts](#core-concepts)
+- [One & One recovery and verification](#one--one-recovery-and-verification)
 - [Cockpit tour](#cockpit-tour)
 - [Multiple projects, one cockpit](#multiple-projects-one-cockpit)
 - [Workflow format](#workflow-format)
@@ -16,6 +17,16 @@ Everything the [README](../README.md) leaves out: the full configuration, every 
 - [Local development](#local-development)
 
 ---
+
+## One & One recovery and verification
+
+One & One keeps a manager and one worker on the same checkout and branch. Worker failures are reported to the manager so it can revise the order; they cannot be accepted as completed work. A worker that loses its session while running or waiting is reported after a short grace period. A live, silent worker receives a warning rather than being killed during a long build.
+
+For new checkpointed worker reports, the manager runs `onni task verify <worker id>` before accepting. Onni discovers the repository's existing checks and executes them in the shared checkout under the repository lease. Results belong to that order and checkpoint; edits or a changed HEAD require fresh verification. Verification is explicit, with at most three attempts per order; the persistent worker receives a fresh allowance for its next order. Optional `--baseline` compares failures against the pair's baseline.
+
+When no checks exist, verification returns `unavailable`, not `passed`. The manager can review the diff manually and record evidence with `onni task pair accept --order <id> --note "<manual review evidence>"`. Missing tooling and interrupted checks are also unavailable, but do not count as a successful verification. Dry-run executes no checks and remains labeled unavailable. Older reports without checkpoint provenance retain their manual review path.
+
+Report delivery retries are persisted, bounded and use the order ID as their identity. A restart may replay an unacknowledged report; acceptance or a revised order ends retries. A user-stopped manager is not resumed automatically. Closing the pair still requires the user's Finish action.
 
 ## Core concepts
 

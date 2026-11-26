@@ -518,6 +518,8 @@ export function settleIdlePair(context: LifecycleContext, runId: string): boolea
   const root = rootId ? context.store.getRun(rootId) : undefined;
   if (!root || !isLivePairRoot(root)) return false;
   const peerIds = [root.id, ...(root.dispatch?.pair?.workerRunId ? [root.dispatch.pair.workerRunId] : [])];
+  // A review is an intentional gate, not a ghost; a refused deletion must not stop its pair.
+  if (peerIds.some((id) => context.store.getRun(id)?.status === 'review')) return false;
   const live = (id: string) => context.active.has(id) || context.starting.has(id) || context.queue.includes(id) || context.hasPendingWork(id);
   if (peerIds.some(live)) return false;
   stopPairForCancellation(context, root.id);

@@ -1,6 +1,7 @@
 import type { PairState } from '@onni/contract';
 import { PairStore, PairStoreError } from '../../dispatch/pair-store.ts';
 import { isTransientLockError, retryTransientLock } from '../../git-repository-lock.ts';
+import { assertPairOrderVerified } from '../../dispatch/pair-verification.ts';
 import type { RunStore } from '../../runs/store.ts';
 import type { PastedContent } from './preparation.ts';
 import type { PairWorkerTurnResult } from './internal-types.ts';
@@ -173,19 +174,13 @@ export function relayPairWorkerFailure(context: PairDeliveryContext & { dataDir:
   const reason = context.store.redactRunText(runId, run.error ?? (stopped ? 'the worker was stopped by the user' : 'the worker run failed')).slice(0, 2_000);
   try {
     if (order.status === 'queued') pairs.markOrderWorking(pairId, order.id);
-    pairs.reportOrder(pairId, order.id, `${WORKER_ENDED_MARKER} (${stopped ? 'stopped' : 'failed'}) before finishing this order: ${reason}`);
+    pairs.reportOrder(pairId, order.id, `${WORKER_ENDED_MARKER} (${stopped ? 'stopped' : 'failed'}) before finishing this order: ${reason}`, { reportOutcome: 'failed' });
     const next = mirrorPairState(context.store, pairs.readState(pairId)!);
     context.store.appendEvent(runId, { type: 'note', message: 'One & One worker failed — reported to the manager; the pair stays open', tone: 'danger' });
     context.store.appendEvent(next.managerRunId, { type: 'note', message: `One & One worker failed on order ${order.id.slice(0, 8)} — the manager decides how to continue`, tone: 'danger' });
     // The report is saved in the pair state either way; a delivery hiccup must not stop the pair.
     try {
-      deliverManagerReport(context, next.managerRunId, [
-        `One & One WORKER ${stopped ? 'STOPPED' : 'FAILED'} — order ${order.id} (revision ${order.revision})`,
-        `Reason: ${reason}`,
-        '',
-        'The worker did not finish this order and nothing was checkpointed. Its partial edits may remain uncommitted in the shared checkout: inspect `git status` and `git diff` read-only.',
-        'Do not accept this order. Either issue a new order with onni task create (Onni starts a fresh worker session), or explain the situation to the user and wait for their instruction.',
-      ].join('\n'));
+      deliverPendingPairReport(context, pairId);
     } catch { /* the saved report is still readable with `onni task pair show` */ }
     return true;
   } catch (error) {
@@ -205,24 +200,59 @@ export function pairPeerRunId(state: PairState, runId: string): string | undefin
   return runId === state.managerRunId ? state.workerRunId : state.managerRunId;
 }
 
-export function deliverPairPeerText(context: PairDeliveryContext, peerRunId: string, text: string, failureMessage: string): void {
+export function deliverPairPeerText(context: PairDeliveryContext, peerRunId: string, text: string, failureMessage: string): boolean {
   const blocks: PastedContent[] = [{ type: 'text', text }];
-  if (context.deliverMessage(peerRunId, blocks, false)) return;
-  if (context.deferMessage(peerRunId, blocks)) return;
+  if (context.deliverMessage(peerRunId, blocks, false)) return true;
+  if (context.deferMessage(peerRunId, blocks)) return true;
   const peer = context.store.getRun(peerRunId);
   if (peer && peer.status !== 'cancelled' && peer.status !== 'failed' && !context.active.has(peerRunId)) {
     const resumed = context.continueRun(peerRunId, { text, resumeWaitingPair: true }, true);
-    if (resumed.ok) return;
+    if (resumed.ok) return true;
   }
   context.store.appendEvent(peerRunId, {
     type: 'note',
     message: failureMessage,
     tone: 'danger',
   });
+  return false;
 }
 
-function deliverManagerReport(context: PairDeliveryContext, managerRunId: string, text: string): void {
-  deliverPairPeerText(context, managerRunId, text, 'One & One worker report is saved, but the manager could not be resumed automatically');
+/** Spec 2026-11-26: persist before sending; acceptance or revision acknowledges this order. */
+export function deliverPendingPairReport(context: PairDeliveryContext & { dataDir: string }, pairId: string, now = Date.now(), summary?: { nameStatus: string; stat: string }): void {
+  const pairs = new PairStore(context.dataDir);
+  const state = pairs.readState(pairId);
+  const order = state?.currentOrderId ? pairs.getOrder(pairId, state.currentOrderId) : null;
+  if (!state || state.phase !== 'manager_review' || order?.status !== 'reported' || !order.report) return;
+  const manager = context.store.getRun(state.managerRunId);
+  if (!manager || manager.status === 'failed' || manager.status === 'cancelled') return;
+  const delivery = order.delivery ?? { attempts: 0 };
+  if (delivery.attempts >= 6 || (delivery.nextAttemptAt && Date.parse(delivery.nextAttemptAt) > now)) return;
+  if (delivery.deliveredAt && context.active.has(state.managerRunId)) return;
+  const attempts = delivery.attempts + 1;
+  const delay = [1_000, 3_000, 10_000, 30_000, 60_000, 60_000][attempts - 1] ?? 60_000;
+  const pending = { ...delivery, attempts, nextAttemptAt: new Date(now + delay).toISOString() };
+  pairs.updateReportDelivery(pairId, order.id, pending);
+  const failed = order.reportOutcome === 'failed' || order.report.startsWith(WORKER_ENDED_MARKER);
+  const text = [
+    `One & One ${failed ? 'WORKER FAILED' : 'worker report'} — order ${order.id} (revision ${order.revision})`,
+    `Checkpoint: ${order.checkpointSha ?? state.lastCheckpointSha ?? 'HEAD'}`,
+    `Baseline: ${state.workspace.baselineSha}`,
+    '', order.report, '',
+    ...(summary ? ['Changed files:', summary.nameStatus.slice(0, 4_000) || '(no changed files)', 'Diff stat:', summary.stat.slice(0, 4_000) || '(empty)', ''] : []),
+    `Inspect the actual diff read-only with: git diff ${state.workspace.baselineSha}..HEAD`,
+    ...(failed ? [
+      'The worker did not finish. Partial edits or earlier checkpoints may remain: inspect git status and git diff read-only.',
+      'Do not accept this order. Issue a new order with onni task create (Onni starts a fresh worker session), or tell the user and wait.',
+    ] : [
+      'Run onni task verify for this worker, review the actual diff, then revise or accept with ONNI:PAIR:ACCEPT.',
+      'If no checks exist, use onni task pair accept --order <id> --note "<manual review evidence>". Do not mutate Git HEAD or the index.',
+    ]),
+  ].join('\n').slice(0, 30_000);
+  const sent = deliverPairPeerText(context, state.managerRunId, text, 'One & One worker report is saved, but the manager could not be resumed automatically');
+  if (sent) pairs.updateReportDelivery(pairId, order.id, { ...pending, deliveredAt: new Date(now).toISOString(), nextAttemptAt: new Date(now + 60_000).toISOString() });
+  if (!sent && attempts === 6) context.store.appendEvent(state.managerRunId, {
+    type: 'note', message: 'One & One report delivery retry limit reached — the saved report needs a user continuation', tone: 'danger',
+  });
 }
 
 export async function handlePairWorkerTurn(
@@ -249,7 +279,7 @@ export async function handlePairWorkerTurn(
   if (!canReportOrder(pairs, membership.pairId, runId, order.id)) {
     return { handled: true, ok: false, error: 'One & One pair stopped before the worker report could be recorded' };
   }
-  const diff = await inspectPairDiff(state.workspace.repoRoot, pairs, membership.pairId);
+  const diff = await inspectPairDiff(state.workspace.repoRoot, pairs, membership.pairId, { includePatch: false });
   if (!diff.ok) return { handled: true, ok: false, error: diff.error ?? 'worker diff inspection failed' };
   if (!canReportOrder(pairs, membership.pairId, runId, order.id)) {
     return { handled: true, ok: false, error: 'One & One pair stopped before the worker report could be recorded' };
@@ -262,7 +292,7 @@ export async function handlePairWorkerTurn(
     // after the write leaves the report already recorded.
     await retryTransientLock(() => {
       // PairStore also repairs its phase when this exact report already reached orders.json.
-      pairs.reportOrder(membership.pairId, order.id, report);
+      pairs.reportOrder(membership.pairId, order.id, report, { reportOutcome: 'completed', ...(checkpoint.sha ? { checkpointSha: checkpoint.sha } : {}) });
     });
     const next = mirrorPairState(context.store, pairs.readState(membership.pairId)!);
     context.store.appendEvent(runId, {
@@ -273,23 +303,10 @@ export async function handlePairWorkerTurn(
       type: 'note',
       message: `One & One worker reported order ${order.id.slice(0, 8)} (revision ${order.revision})`,
     });
-    const managerText = [
-      `One & One worker report — order ${order.id} (revision ${order.revision})`,
-      `Checkpoint: ${checkpoint.sha ?? 'HEAD'}`,
-      `Baseline: ${next.workspace.baselineSha}`,
-      '',
-      report,
-      '',
-      'Changed files:',
-      diff.nameStatus || '(no changed files)',
-      '',
-      'Diff stat:',
-      diff.stat || '(empty)',
-      '',
-      `Inspect the actual diff read-only with: git diff ${next.workspace.baselineSha}..HEAD`,
-      'Do not mutate Git HEAD or the index. Review the implementation, then either issue a revised order with onni task create or accept it with the exact ONNI:PAIR:ACCEPT marker.',
-    ].join('\n').slice(0, 30_000);
-    deliverManagerReport(context, next.managerRunId, managerText);
+    if (process.env.ONNI_DRY_RUN === '1' && checkpoint.sha) pairs.recordVerification(membership.pairId, order.id, {
+      state: 'unavailable', reasonCode: 'dry-run', checkpointSha: checkpoint.sha, at: new Date().toISOString(),
+    });
+    deliverPendingPairReport(context, membership.pairId, Date.now(), diff);
     return { handled: true, ok: true };
   } catch (error) {
     return { handled: true, ok: false, error: errorText(error) };
@@ -365,6 +382,7 @@ export async function finalizePairManager(
     return { ok: false, error: 'One & One cannot complete until the manager accepts the reported order and finishes final checks' };
   }
   try {
+    assertPairOrderVerified(state, order);
     if (state.phase === 'final_check') pairs.transition(pairId, 'transitioning', 'manager');
     const checkpoint = await checkpointPair(context.repoRoot, pairs, pairId, 'manager final check', excludedPaths);
     if (!checkpoint.ok) return { ok: false, error: checkpoint.error ?? 'One & One final checkpoint failed' };
@@ -376,6 +394,7 @@ export async function finalizePairManager(
     if (currentOrder?.status !== 'accepted' || !['final_check', 'transitioning'].includes(current.phase)) {
       return { ok: false, error: 'One & One final checks were superseded before completion' };
     }
+    assertPairOrderVerified(current, currentOrder);
     const completed = pairs.transition(pairId, 'complete', 'manager', { completedAt: new Date().toISOString() });
     return { ok: true, state: mirrorPairState(context.store, completed) };
   } catch (error) {
@@ -405,6 +424,7 @@ export async function parkPairManager(
     return { ok: false, error: 'One & One cannot park until the manager accepts the reported order and finishes final checks' };
   }
   try {
+    assertPairOrderVerified(state, order);
     if (state.phase === 'final_check') pairs.transition(pairId, 'transitioning', 'manager');
     const checkpoint = await checkpointPair(context.repoRoot, pairs, pairId, 'manager final check', excludedPaths);
     if (!checkpoint.ok) return { ok: false, error: checkpoint.error ?? 'One & One final checkpoint failed' };
@@ -416,6 +436,7 @@ export async function parkPairManager(
     if (currentOrder?.status !== 'accepted' || !['final_check', 'transitioning'].includes(current.phase)) {
       return { ok: false, error: 'One & One final checks were superseded before parking' };
     }
+    assertPairOrderVerified(current, currentOrder);
     const parked = pairs.transition(pairId, 'user_wait', 'manager');
     return { ok: true, state: mirrorPairState(context.store, parked) };
   } catch (error) {

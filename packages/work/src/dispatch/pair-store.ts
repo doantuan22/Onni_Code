@@ -44,6 +44,7 @@ import {
 import { atomicWriteJsonSync } from '../workspace/config.ts';
 import { readFileSyncWithRetry } from '../fs-rename.ts';
 import { safeRunIdSchema } from '../runs/store.ts';
+import { assertPairOrderVerified } from './pair-verification.ts';
 
 const PAIR_ID_RE = /^[A-Za-z0-9._-]{1,120}$/;
 const pairMutationTails = new Map<string, Promise<void>>();
@@ -390,11 +391,11 @@ export class PairStore {
     return updated;
   }
 
-  reportOrder(pairId: string, orderId: string, report: string): PairOrder {
-    return this.mutate(pairId, () => this.reportOrderUnlocked(pairId, orderId, report));
+  reportOrder(pairId: string, orderId: string, report: string, metadata: Pick<PairOrder, 'reportOutcome' | 'checkpointSha'> = {}): PairOrder {
+    return this.mutate(pairId, () => this.reportOrderUnlocked(pairId, orderId, report, metadata));
   }
 
-  private reportOrderUnlocked(pairId: string, orderId: string, report: string): PairOrder {
+  private reportOrderUnlocked(pairId: string, orderId: string, report: string, metadata: Pick<PairOrder, 'reportOutcome' | 'checkpointSha'>): PairOrder {
     const state = this.readState(pairId);
     if (!state) throw new PairStoreError('Pair does not exist');
     const order = this.requireOrder(pairId, orderId);
@@ -412,7 +413,7 @@ export class PairStore {
     }
     if (state.phase !== 'worker_working') throw new PairStoreError('The current One & One order is not being worked');
     if (order.status !== 'working') throw new PairStoreError('Order is not being worked');
-    const updated = pairOrderSchema.parse({ ...order, status: 'reported', report, updatedAt: new Date().toISOString() });
+    const updated = pairOrderSchema.parse({ ...order, ...metadata, status: 'reported', report, delivery: { attempts: 0 }, updatedAt: new Date().toISOString() });
     this.replaceOrderUnlocked(pairId, updated);
     this.transitionUnlocked(pairId, 'manager_review', 'manager', { currentOrderId: orderId });
     return updated;
@@ -424,12 +425,54 @@ export class PairStore {
   }
 
   private acceptOrderUnlocked(pairId: string, input: PairAcceptInput): PairOrder {
+    const state = this.readState(pairId);
+    if (!state || state.currentOrderId !== input.orderId || !['manager_review', 'final_check'].includes(state.phase)) {
+      throw new PairStoreError('Only the current order awaiting review or final checks can be accepted');
+    }
     const order = this.requireOrder(pairId, input.orderId);
-    if (order.status !== 'reported') throw new PairStoreError('Only a reported order can be accepted');
-    const updated = { ...order, status: 'accepted' as const, updatedAt: new Date().toISOString() };
+    if (order.status !== 'reported' && order.status !== 'accepted') throw new PairStoreError('Only a reported order can be accepted');
+    try { assertPairOrderVerified(state, order, input.note ?? order.acceptanceNote); }
+    catch (error) { throw new PairStoreError(error instanceof Error ? error.message : String(error)); }
+    const updated = { ...order, ...(input.note !== undefined ? { acceptanceNote: input.note } : {}), status: 'accepted' as const, updatedAt: new Date().toISOString() };
+    if (order.status === 'accepted') {
+      if (state.phase === 'manager_review') this.transitionUnlocked(pairId, 'final_check', 'manager');
+      return order;
+    }
     this.replaceOrderUnlocked(pairId, updated);
     this.transitionUnlocked(pairId, 'final_check', 'manager', { currentOrderId: order.id });
     return updated;
+  }
+
+  updateReportDelivery(pairId: string, orderId: string, delivery: NonNullable<PairOrder['delivery']>): void {
+    this.mutate(pairId, () => {
+      const state = this.readState(pairId);
+      const order = this.requireOrder(pairId, orderId);
+      if (state?.currentOrderId !== orderId || state.phase !== 'manager_review' || order.status !== 'reported') return;
+      this.replaceOrderUnlocked(pairId, pairOrderSchema.parse({ ...order, delivery }));
+    });
+  }
+
+  recordVerification(pairId: string, orderId: string, verification: NonNullable<PairOrder['verification']>): void {
+    this.mutate(pairId, () => {
+      const state = this.readState(pairId);
+      const order = this.requireOrder(pairId, orderId);
+      if (state?.currentOrderId !== orderId || !['manager_review', 'final_check', 'transitioning'].includes(state.phase)
+        || !['reported', 'accepted'].includes(order.status)) throw new PairStoreError('One & One verification was superseded');
+      this.replaceOrderUnlocked(pairId, pairOrderSchema.parse({ ...order, verification }));
+    });
+  }
+
+  changeVerificationRuns(pairId: string, orderId: string, delta: 1 | -1): void {
+    this.mutate(pairId, () => {
+      const state = this.readState(pairId);
+      const order = this.requireOrder(pairId, orderId);
+      if (state?.currentOrderId !== orderId || !['manager_review', 'final_check', 'transitioning'].includes(state.phase)) {
+        throw new PairStoreError('One & One verification was superseded');
+      }
+      const runs = Math.max(0, (order.verificationRuns ?? 0) + delta);
+      if (runs > 3) throw new PairStoreError('One & One order verification limit reached');
+      this.replaceOrderUnlocked(pairId, pairOrderSchema.parse({ ...order, verificationRuns: runs }));
+    });
   }
 
   listMessages(pairId: string): PairMessage[] {
